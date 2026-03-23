@@ -44,3 +44,25 @@ jobs:
 
       - name: Build
         run: pnpm turbo build
+
+      - name: Unit tests with coverage
+        run: pnpm turbo test -- --coverage
+
+      - name: Integration tests
+        run: pnpm turbo test:integration
+        continue-on-error: true
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-node-${{ matrix.node-version }}
+          path: packages/*/coverage/
+
+      - name: Snapshot freshness
+        run: pnpm turbo test -- --no-update
+
+      - name: Commitlint
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          pnpm exec commitlint --from origin/${{ github.base_ref }} --to HEAD
