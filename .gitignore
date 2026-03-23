@@ -5,3 +5,4 @@ coverage/
 *.tsbuildinfo
 .env.local
 test-results/
+.claude/
