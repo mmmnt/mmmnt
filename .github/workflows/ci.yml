@@ -90,6 +90,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Snyk SCA
+        if: vars.ENABLE_SNYK == 'true' || vars.ENABLE_SNYK == 'TRUE'
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -97,6 +98,7 @@ jobs:
           command: test
 
       - name: Snyk SAST
+        if: vars.ENABLE_SNYK == 'true' || vars.ENABLE_SNYK == 'TRUE'
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -104,6 +106,7 @@ jobs:
           command: code test
 
       - name: Snyk License
+        if: vars.ENABLE_SNYK == 'true' || vars.ENABLE_SNYK == 'TRUE'
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
