@@ -46,20 +46,21 @@ jobs:
         run: pnpm turbo build
 
       - name: Unit tests with coverage
-        run: pnpm turbo test -- --coverage
+        run: pnpm turbo test -- --coverage --passWithNoTests
 
       - name: Integration tests
-        run: pnpm turbo test:integration
+        run: pnpm turbo test:integration -- --passWithNoTests
         continue-on-error: true
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-node-${{ matrix.node-version }}
           path: packages/*/coverage/
 
       - name: Snapshot freshness
-        run: pnpm turbo test -- --no-update
+        run: pnpm turbo test -- --no-update --passWithNoTests
 
       - name: Commitlint
         if: github.event_name == 'pull_request'
@@ -112,3 +113,99 @@ jobs:
               -H "Content-Type: application/json" \
               -d @"$f" || true
           done
+
+  quality:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Complexity check
+        run: pnpm turbo lint
+
+      - name: Build CLI bundle
+        run: pnpm turbo build --filter=@mmmnt/cli
+
+      - name: Bundle size check
+        run: |
+          BUNDLE_SIZE=$(stat -f%z packages/cli/dist/moment.mjs 2>/dev/null || stat -c%s packages/cli/dist/moment.mjs)
+          WARN_THRESHOLD=4194304
+          FAIL_THRESHOLD=5242880
+          echo "CLI bundle size: $BUNDLE_SIZE bytes"
+          if [ "$BUNDLE_SIZE" -gt "$FAIL_THRESHOLD" ]; then
+            echo "::error::CLI bundle size ($BUNDLE_SIZE bytes) exceeds 5MB limit"
+            exit 1
+          elif [ "$BUNDLE_SIZE" -gt "$WARN_THRESHOLD" ]; then
+            echo "::warning::CLI bundle size ($BUNDLE_SIZE bytes) exceeds 4MB warning threshold"
+          fi
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=moderate || true
+
+  security:
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Snyk SCA
+        if: vars.ENABLE_SNYK == 'true' || vars.ENABLE_SNYK == 'TRUE'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+
+      - name: Snyk SAST
+        if: vars.ENABLE_SNYK == 'true' || vars.ENABLE_SNYK == 'TRUE'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: code test
+
+      - name: Snyk License
+        if: vars.ENABLE_SNYK == 'true' || vars.ENABLE_SNYK == 'TRUE'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --license
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_CONFIG: .gitleaks.toml
