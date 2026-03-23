@@ -1,0 +1,26 @@
+{
+  "name": "@mmmnt/cli",
+  "version": "0.0.0",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "bin": {
+    "moment": "dist/moment.mjs"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@mmmnt/core": "workspace:*",
+    "@mmmnt/derive": "workspace:*",
+    "@mmmnt/generate": "workspace:*",
+    "@mmmnt/harness": "workspace:*",
+    "@mmmnt/viz": "workspace:*",
+    "@mmmnt/emit-ts": "workspace:*",
+    "@mmmnt/sync": "workspace:*",
+    "@mmmnt/schema": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

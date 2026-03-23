@@ -1,0 +1,23 @@
+{
+  "name": "@mmmnt/mcp",
+  "version": "0.0.0",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "bin": {
+    "mcp": "dist/mcp.mjs"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@mmmnt/core": "workspace:*",
+    "@mmmnt/derive": "workspace:*",
+    "@mmmnt/generate": "workspace:*",
+    "@mmmnt/sync": "workspace:*",
+    "@mmmnt/schema": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
