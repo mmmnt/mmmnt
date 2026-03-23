@@ -5,7 +5,9 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: 'v8',
+      include: ['src/**/*.ts'],
       exclude: ['src/generated/**'],
+      all: false,
       thresholds: {
         lines: 95,
         branches: 95,

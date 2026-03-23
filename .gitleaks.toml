@@ -1,0 +1,33 @@
+title = "mmmnt gitleaks config"
+
+# Custom patterns per ADR-011 §8
+
+[[rules]]
+id = "npm-token"
+description = "npm access token"
+regex = '''npm_[A-Za-z0-9]{36}'''
+tags = ["npm", "token"]
+
+[[rules]]
+id = "snyk-uuid"
+description = "Snyk API token (UUID format)"
+regex = '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
+tags = ["snyk", "uuid"]
+[rules.allowlist]
+description = "Allow non-secret UUIDs in known files"
+paths = ['''turbo\.json''', '''package\.json''', '''pnpm-lock\.yaml''']
+
+[[rules]]
+id = "xray-uuid"
+description = "Xray API credential (UUID format)"
+regex = '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
+tags = ["xray", "uuid"]
+[rules.allowlist]
+description = "Allow non-secret UUIDs in known files"
+paths = ['''turbo\.json''', '''package\.json''', '''pnpm-lock\.yaml''']
+
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[A-Za-z0-9]{36,}'''
+tags = ["github", "pat"]
