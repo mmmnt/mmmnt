@@ -115,5 +115,6 @@ jobs:
 
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .gitleaks.toml
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_CONFIG: .gitleaks.toml
