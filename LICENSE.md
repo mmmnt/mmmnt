@@ -6,11 +6,11 @@ FSL-1.1-Apache-2.0
 
 ## Notice
 
-Copyright 2026 Winnovation
+Copyright 2026 mmmnt
 
 ## License Details
 
-- Licensor: Winnovation
+- Licensor: mmmnt
 - Software: Moment
 - License: FSL-1.1-Apache-2.0
 - Change Date: Two years from the date of the first published version of the Software (to be set upon 0.1.0 publish)
