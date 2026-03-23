@@ -14,4 +14,4 @@ This means:
 - Two years after each version's release, that version automatically converts to the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0), a fully permissive open-source license.
 - During the FSL period, the only restriction is on competing commercial use. See [LICENSE.md](LICENSE.md) for details.
 
-Licensor: [Winnovation](https://github.com/winnovation)
+Licensor: [Moment](https://github.com/mmmnt)
