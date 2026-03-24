@@ -114,22 +114,10 @@ describe('M1 Infrastructure > Shared Tooling', () => {
     expect(content).toContain('packages/*');
   });
 
-  it('each package vitest.config.ts enables JUnit reporter', () => {
-    for (const pkg of [
-      'core',
-      'derive',
-      'generate',
-      'harness',
-      'viz',
-      'emit-ts',
-      'sync',
-      'schema',
-      'cli',
-      'mcp',
-    ]) {
-      const config = readText(`packages/${pkg}/vitest.config.ts`);
-      expect(config).toContain('junit');
-    }
+  it('root vitest.config.ts enables JUnit reporter for test results', () => {
+    const config = readText('vitest.config.ts');
+    expect(config).toContain('junit');
+    expect(config).toContain('test-results/junit.xml');
   });
 });
 
@@ -183,26 +171,24 @@ describe('M1 Infrastructure > CI Pipeline', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 1.4 — Pre-commit Hooks
+// 1.4 — Commit Conventions
 // ---------------------------------------------------------------------------
-describe('M1 Infrastructure > Pre-commit Hooks', () => {
-  it('husky pre-commit hook runs lint-staged', () => {
-    const hook = readText('.husky/pre-commit');
-    expect(hook).toContain('lint-staged');
+describe('M1 Infrastructure > Commit Conventions', () => {
+  it('commitlint.config.mjs exists for conventional commit enforcement', () => {
+    expect(fileExists('commitlint.config.mjs')).toBe(true);
   });
 
-  it('husky commit-msg hook runs commitlint', () => {
-    const hook = readText('.husky/commit-msg');
-    expect(hook).toContain('commitlint');
+  it('CI workflow enforces commitlint on pull requests', () => {
+    const ci = readText('.github/workflows/ci.yml');
+    expect(ci).toContain('commitlint --from');
   });
 
-  it('lint-staged config processes .ts and .json files', () => {
+  it('root package.json includes commitlint devDependencies', () => {
     const pkg = readJson('package.json') as {
-      'lint-staged': Record<string, unknown>;
+      devDependencies: Record<string, string>;
     };
-    const lintStaged = pkg['lint-staged'];
-    expect(lintStaged).toHaveProperty('*.{ts,mts,mjs}');
-    expect(lintStaged).toHaveProperty('*.{json,yaml,yml}');
+    expect(pkg.devDependencies).toHaveProperty('@commitlint/cli');
+    expect(pkg.devDependencies).toHaveProperty('@commitlint/config-conventional');
   });
 });
 

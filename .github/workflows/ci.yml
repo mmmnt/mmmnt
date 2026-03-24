@@ -68,6 +68,103 @@ jobs:
           git fetch origin ${{ github.base_ref }}
           pnpm exec commitlint --from origin/${{ github.base_ref }} --to HEAD
 
+  xray-import:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run infrastructure verification tests
+        run: npx vitest run --config vitest.config.ts
+        continue-on-error: true
+
+      - name: Authenticate to Xray
+        id: xray-auth
+        run: |
+          TOKEN=$(curl -s -X POST \
+            https://xray.cloud.getxray.app/api/v2/authenticate \
+            -H "Content-Type: application/json" \
+            -d "{\"client_id\":\"${{ secrets.XRAY_CLIENT_ID }}\",\"client_secret\":\"${{ secrets.XRAY_CLIENT_SECRET }}\"}" \
+            | tr -d '"')
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Import JUnit XML results (multipart with Test Plan context)
+        if: hashFiles('**/test-results/junit.xml') != ''
+        run: |
+          for f in $(find . -path '*/test-results/junit.xml' -not -path '*/node_modules/*'); do
+            curl -s -X POST \
+              "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
+              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
+              -F "testResults=@${f};type=application/xml" || true
+          done
+
+      - name: Import Cucumber JSON results (multipart with Test Plan context)
+        if: hashFiles('**/test-results/cucumber.json') != ''
+        run: |
+          for f in $(find . -path '*/test-results/cucumber.json' -not -path '*/node_modules/*'); do
+            curl -s -X POST \
+              "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart" \
+              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — Cucumber","issuetype":{"name":"Test Execution"}}}' \
+              -F "testResults=@${f};type=application/json" || true
+          done
+
+  quality:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Complexity check
+        run: pnpm turbo lint
+
+      - name: Build CLI bundle
+        run: pnpm turbo build --filter=@mmmnt/cli
+
+      - name: Bundle size check
+        run: |
+          BUNDLE_SIZE=$(stat -f%z packages/cli/dist/moment.mjs 2>/dev/null || stat -c%s packages/cli/dist/moment.mjs)
+          WARN_THRESHOLD=4194304
+          FAIL_THRESHOLD=5242880
+          echo "CLI bundle size: $BUNDLE_SIZE bytes"
+          if [ "$BUNDLE_SIZE" -gt "$FAIL_THRESHOLD" ]; then
+            echo "::error::CLI bundle size ($BUNDLE_SIZE bytes) exceeds 5MB limit"
+            exit 1
+          elif [ "$BUNDLE_SIZE" -gt "$WARN_THRESHOLD" ]; then
+            echo "::warning::CLI bundle size ($BUNDLE_SIZE bytes) exceeds 4MB warning threshold"
+          fi
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=moderate || true
+
   security:
     runs-on: ubuntu-latest
     needs: [build]
