@@ -116,7 +116,7 @@ jobs:
               "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
               -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
-              -F "testResults=@${f};type=application/xml" || true
+              -F "results=@${f};type=application/xml" || true
           done
 
       - name: Import Cucumber JSON results (multipart with Test Plan context)
@@ -127,7 +127,7 @@ jobs:
               "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
               -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — Cucumber","issuetype":{"name":"Test Execution"}}}' \
-              -F "testResults=@${f};type=application/json" || true
+              -F "results=@${f};type=application/json" || true
           done
 
   quality:
