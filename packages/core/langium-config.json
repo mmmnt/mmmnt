@@ -1,0 +1,14 @@
+{
+  "projectName": "Moment",
+  "languages": [
+    {
+      "id": "moment",
+      "grammar": "src/grammar/moment.langium",
+      "fileExtensions": [".moment"],
+      "textMate": {
+        "out": "syntaxes/moment.tmLanguage.json"
+      }
+    }
+  ],
+  "out": "src/generated"
+}
