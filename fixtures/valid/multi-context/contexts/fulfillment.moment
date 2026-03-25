@@ -1,0 +1,55 @@
+context "Fulfillment" [Supporting]
+
+  aggregate "Inventory"
+    identity warehouseId: UUID
+
+    command CheckInventory
+      input orderId: UUID, items: OrderItem[]
+      emits InventoryReserved
+
+    command CreateBackorder
+      input orderId: UUID, items: OrderItem[]
+      emits BackorderCreated
+
+    event InventoryReserved
+      warehouseId: UUID
+      orderId: UUID
+      itemId: UUID
+      quantity: number
+      reservedAt: DateTime
+
+    event BackorderCreated
+      orderId: UUID
+      items: OrderItem[]
+      estimatedAvailability: DateTime
+
+  aggregate "FulfillmentRequest"
+    identity fulfillmentId: UUID
+
+    command PrepareFulfillment
+      input orderId: UUID, reservedItems: ReservedItem[]
+      emits FulfillmentReady
+
+    event FulfillmentReady
+      fulfillmentId: UUID
+      orderId: UUID
+      reservedItems: ReservedItem[]
+      readyAt: DateTime
+
+  value-object ReservedItem
+    itemId: UUID
+    quantity: number
+    warehouseId: UUID
+
+  value-object OrderItem
+    productId: UUID
+    quantity: number
+    unitPrice: Money
+
+  invariant INV-01 "Reserved quantity cannot exceed available stock"
+    scope Inventory
+
+  policy CheckInventoryOnOrderPlaced
+    trigger OrderPlaced
+    action "Check inventory for all order items"
+    chains-to CheckInventory

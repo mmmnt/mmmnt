@@ -1,0 +1,17 @@
+flow "order-placed"
+  description "Order submission triggers fulfillment — simplest possible cross-context flow"
+
+  lane ordering "Ordering" [Core]
+  lane fulfillment "Fulfillment" [Supporting]
+
+  frame "Order submission"
+    ordering: PlaceOrder
+    ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        items: OrderItem[] [required]
+
+  frame "Fulfillment initiation"
+    fulfillment: InitiateFulfillment
+      triggered-by OrderPlaced
+    fulfillment: FulfillmentInitiated

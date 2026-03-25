@@ -1,0 +1,5 @@
+flow "bad-modifiers"
+  lane test "Test" [Core]
+
+  frame "Bad frame"
+    test: SomeEvent [unknown]

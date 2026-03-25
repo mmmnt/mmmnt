@@ -76,8 +76,10 @@ describe('MMNT-25 Langium Pipeline > Contract Compliance', () => {
     expect(config.out).toBe('src/generated');
   });
 
-  it('no grammar file exists in src/grammar (MMNT-26 scope)', () => {
-    expect(fileExists('src/grammar/moment.langium')).toBe(false);
+  it('grammar file exists for grammar file delivery', () => {
+    // Grammar file now exists (delivered by MMNT-26).
+    // MMNT-25 created the directory structure, MMNT-26 delivered the grammar.
+    expect(fileExists('src/grammar/moment.langium')).toBe(true);
   });
 
   it('src/generated is excluded from prettier and coverage', () => {
