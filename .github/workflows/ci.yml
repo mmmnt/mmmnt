@@ -76,6 +76,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run infrastructure verification tests
+        run: npx vitest run --config vitest.config.ts
+        continue-on-error: true
+
       - name: Download test results
         uses: actions/download-artifact@v4
         with:
@@ -92,27 +108,81 @@ jobs:
             | tr -d '"')
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: Import JUnit XML results
-        if: hashFiles('test-results/**/junit.xml') != ''
+      - name: Import JUnit XML results (multipart with Test Plan context)
+        if: hashFiles('**/test-results/junit.xml') != ''
         run: |
-          for f in test-results/**/junit.xml; do
+          for f in $(find . -path '*/test-results/junit.xml' -not -path '*/node_modules/*'); do
             curl -s -X POST \
-              https://xray.cloud.getxray.app/api/v2/import/execution/junit \
+              "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -H "Content-Type: application/xml" \
-              -d @"$f" || true
+              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
+              -F "results=@${f};type=application/xml" || true
           done
 
-      - name: Import Cucumber JSON results
-        if: hashFiles('test-results/**/cucumber.json') != ''
+      - name: Import Cucumber JSON results (multipart with Test Plan context)
+        if: hashFiles('**/test-results/cucumber.json') != ''
         run: |
-          for f in test-results/**/cucumber.json; do
+          for f in $(find . -path '*/test-results/cucumber.json' -not -path '*/node_modules/*'); do
             curl -s -X POST \
-              https://xray.cloud.getxray.app/api/v2/import/execution/cucumber \
+              "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -H "Content-Type: application/json" \
-              -d @"$f" || true
+              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — Cucumber","issuetype":{"name":"Test Execution"}}}' \
+              -F "results=@${f};type=application/json" || true
           done
+
+  input-gate-verification:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Verify input gates
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
+
+          if [ -z "$STORY_KEY" ]; then
+            echo "::notice::No story key found in branch '$BRANCH' — skipping input gate verification."
+            exit 0
+          fi
+
+          echo "Checking input gates for $STORY_KEY..."
+
+          RESPONSE=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$STORY_KEY?fields=subtasks")
+
+          # Check for Context Review subtask (A)
+          GATE_A_STATUS=$(echo "$RESPONSE" | jq -r \
+            '.fields.subtasks[] | select(.fields.summary | test("-A — Context Review")) | .fields.status.name')
+          # Check for Test Specification subtask (B)
+          GATE_B_STATUS=$(echo "$RESPONSE" | jq -r \
+            '.fields.subtasks[] | select(.fields.summary | test("-B — Test Specification")) | .fields.status.name')
+
+          FAILED=0
+
+          if [ -z "$GATE_A_STATUS" ]; then
+            echo "::error::Input gate failed: No Context Review subtask found for $STORY_KEY."
+            FAILED=1
+          elif [ "$GATE_A_STATUS" != "Done" ]; then
+            echo "::error::Input gate failed: Context Review subtask for $STORY_KEY is '$GATE_A_STATUS', expected 'Done'."
+            FAILED=1
+          fi
+
+          if [ -z "$GATE_B_STATUS" ]; then
+            echo "::error::Input gate failed: No Test Specification subtask found for $STORY_KEY."
+            FAILED=1
+          elif [ "$GATE_B_STATUS" != "Done" ]; then
+            echo "::error::Input gate failed: Test Specification subtask for $STORY_KEY is '$GATE_B_STATUS', expected 'Done'."
+            FAILED=1
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo "::error::PR cannot merge until all input gates are complete."
+            exit 1
+          fi
+
+          echo "✅ Input gates verified: Context Review (Done), Test Specification (Done)."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
   quality:
     runs-on: ubuntu-latest
