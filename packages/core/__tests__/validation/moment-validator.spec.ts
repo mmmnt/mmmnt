@@ -16,6 +16,7 @@ import { MomentGeneratedModule, MomentGeneratedSharedModule } from '../../src/ge
 import type { MomentFile } from '../../src/generated/ast.js';
 import { MomentModule, registerMomentValidationChecks } from '../../src/moment-module.js';
 import type { MomentAddedServices } from '../../src/moment-module.js';
+import type { CrossFileContext } from '../../src/validation/moment-validator.js';
 import type { LangiumCoreServices } from 'langium';
 
 let validate: (input: string) => Promise<ValidationResult<MomentFile>>;
@@ -364,6 +365,603 @@ describe('MomentValidator', () => {
         const warnings = warningMessages(result);
         expect(warnings.some((m) => m.includes('V17'))).toBe(false);
       });
+    });
+  });
+
+  // ===========================================================================
+  // Cross-File Validators (with CrossFileContext)
+  // ===========================================================================
+  describe('Cross-File Rules', () => {
+    const mockContext: CrossFileContext = {
+      declaredContextNames: ['Ordering', 'Fulfillment'],
+      declaredEvents: new Map([
+        ['Ordering', ['OrderPlaced', 'OrderCancelled']],
+        ['Fulfillment', ['FulfillmentInitiated', 'OrderPlaced']],
+      ]),
+      declaredBuildingBlocks: new Map([
+        [
+          'Ordering',
+          [
+            { name: 'PlaceOrder', kind: 'command' },
+            { name: 'OrderPlaced', kind: 'event' },
+          ],
+        ],
+        [
+          'Fulfillment',
+          [
+            { name: 'InitiateFulfillment', kind: 'command' },
+            { name: 'FulfillmentInitiated', kind: 'event' },
+          ],
+        ],
+      ]),
+      declaredSagas: ['OrderFulfillment'],
+    };
+
+    describe('SP-01', () => {
+      it('rejects flow lane referencing non-existent context', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "NonExistent" [Core]
+            frame "Step"
+              a: SomeEvent
+        `);
+        const validator = services.validation.MomentValidator;
+        const flow = result.document.parseResult.value.flow!;
+        const diagnostics: string[] = [];
+        validator.checkSP01(
+          flow,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('SP-01'))).toBe(true);
+      });
+
+      it('accepts flow lane referencing declared context', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: PlaceOrder
+        `);
+        const validator = services.validation.MomentValidator;
+        const flow = result.document.parseResult.value.flow!;
+        const diagnostics: string[] = [];
+        validator.checkSP01(
+          flow,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('SP-01'))).toBe(false);
+      });
+    });
+
+    describe('SP-02', () => {
+      it('rejects crossing referencing undeclared event', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step"
+              a: NonExistentEvent crosses-to b via CustomerSupplier
+                contract
+                  id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const crossing = result.document.parseResult.value.flow!.frames[0].nodes[0].crossing!;
+        const diagnostics: string[] = [];
+        validator.checkSP02(
+          crossing,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('SP-02'))).toBe(true);
+      });
+
+      it('accepts crossing referencing declared event', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step"
+              a: OrderPlaced crosses-to b via CustomerSupplier
+                contract
+                  id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const crossing = result.document.parseResult.value.flow!.frames[0].nodes[0].crossing!;
+        const diagnostics: string[] = [];
+        validator.checkSP02(
+          crossing,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('SP-02'))).toBe(false);
+      });
+    });
+
+    describe('V1', () => {
+      it('rejects node referencing non-existent building block', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: NonExistentBlock
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV1(
+          node,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('V1'))).toBe(true);
+      });
+
+      it('accepts node referencing declared building block', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: PlaceOrder
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV1(
+          node,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('V1'))).toBe(false);
+      });
+    });
+
+    describe('V9', () => {
+      it('rejects crosses-to on command kind', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step"
+              a: PlaceOrder crosses-to b via CustomerSupplier
+                contract
+                  id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV9(
+          node,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('V9'))).toBe(true);
+      });
+
+      it('accepts crosses-to on event kind', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step"
+              a: OrderPlaced crosses-to b via CustomerSupplier
+                contract
+                  id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV9(
+          node,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('V9'))).toBe(false);
+      });
+    });
+
+    describe('V11', () => {
+      it('rejects multiplicity on command kind', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: PlaceOrder (×3)
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV11(
+          node,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('V11'))).toBe(true);
+      });
+
+      it('accepts multiplicity on event kind', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: OrderPlaced (×3)
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV11(
+          node,
+          (severity, message) => {
+            if (severity === 'error') diagnostics.push(message as string);
+          },
+          mockContext,
+        );
+        expect(diagnostics.some((m) => m.includes('V11'))).toBe(false);
+      });
+    });
+
+    describe('V14', () => {
+      it('warns on one-directional Partnership crossing', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step"
+              a: OrderPlaced crosses-to b via Partnership
+                contract
+                  id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const flow = result.document.parseResult.value.flow!;
+        const diagnostics: { severity: string; message: string }[] = [];
+        validator.checkV14(flow, (severity, message) => {
+          diagnostics.push({ severity: severity as string, message: message as string });
+        });
+        expect(diagnostics.some((d) => d.severity === 'warning' && d.message.includes('V14'))).toBe(
+          true,
+        );
+      });
+
+      it('no warning on bidirectional Partnership crossing', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step 1"
+              a: OrderPlaced crosses-to b via Partnership
+                contract
+                  id: UUID [required]
+            frame "Step 2"
+              b: FulfillmentReady crosses-to a via Partnership
+                contract
+                  id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const flow = result.document.parseResult.value.flow!;
+        const diagnostics: { severity: string; message: string }[] = [];
+        validator.checkV14(flow, (severity, message) => {
+          diagnostics.push({ severity: severity as string, message: message as string });
+        });
+        expect(diagnostics.some((d) => d.severity === 'warning' && d.message.includes('V14'))).toBe(
+          false,
+        );
+      });
+    });
+
+    describe('V5 (standalone)', () => {
+      it('rejects triggered-by referencing non-existent node via standalone method', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "A" [Core]
+            frame "Step 1"
+              a: DoSomething
+                triggered-by NonExistent
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV5(node, (severity, message) => {
+          if (severity === 'error') diagnostics.push(message as string);
+        });
+        expect(diagnostics.some((m) => m.includes('V5'))).toBe(true);
+      });
+
+      it('accepts triggered-by referencing prior node via standalone method', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "A" [Core]
+            frame "Step 1"
+              a: First
+            frame "Step 2"
+              a: Second
+                triggered-by First
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flow!.frames[1].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV5(node, (severity, message) => {
+          if (severity === 'error') diagnostics.push(message as string);
+        });
+        expect(diagnostics.some((m) => m.includes('V5'))).toBe(false);
+      });
+    });
+
+    describe('Cross-file context integration', () => {
+      it('fires cross-file V1/V9/V11 when context is set', async () => {
+        const validator = services.validation.MomentValidator;
+        validator.setCrossFileContext(mockContext);
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: NonExistentBlock
+        `);
+        validator.clearCrossFileContext();
+        // V1 fires through checkCrossFileNodeRules → checkV1
+        const errors = errorMessages(result);
+        expect(errors.some((m) => m.includes('V1'))).toBe(true);
+      });
+
+      it('does not fire cross-file rules when context is not set', async () => {
+        const validator = services.validation.MomentValidator;
+        validator.clearCrossFileContext();
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: NonExistentBlock
+        `);
+        // V1 should NOT fire since cross-file context is not set
+        const errors = errorMessages(result);
+        expect(errors.some((m) => m.includes('V1'))).toBe(false);
+      });
+
+      it('fires V9 for crosses-to on command via context', async () => {
+        const validator = services.validation.MomentValidator;
+        validator.setCrossFileContext(mockContext);
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Step"
+              a: PlaceOrder crosses-to b via CustomerSupplier
+                contract
+                  id: UUID [required]
+        `);
+        validator.clearCrossFileContext();
+        const errors = errorMessages(result);
+        expect(errors.some((m) => m.includes('V9'))).toBe(true);
+      });
+
+      it('fires V11 for multiplicity on command via context', async () => {
+        const validator = services.validation.MomentValidator;
+        validator.setCrossFileContext(mockContext);
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            frame "Step"
+              a: PlaceOrder (×3)
+        `);
+        validator.clearCrossFileContext();
+        const errors = errorMessages(result);
+        expect(errors.some((m) => m.includes('V11'))).toBe(true);
+      });
+    });
+  });
+
+  // ===========================================================================
+  // Branch coverage: when blocks with returns-to for V17 counting
+  // ===========================================================================
+  describe('V17 branch coverage', () => {
+    it('counts returns-to inside when blocks', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          frame "Step 1"
+            a: First
+          frame "Step 2" [branch]
+            when optionA
+              a: PathA
+                returns-to "Step 1"
+            when optionB
+              a: PathB
+                returns-to "Step 1"
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V17'))).toBe(true);
+    });
+  });
+
+  // ===========================================================================
+  // Edge cases: null-guard branches for defensive returns
+  // ===========================================================================
+  describe('Edge Cases', () => {
+    const edgeMockContext: CrossFileContext = {
+      declaredContextNames: ['Ordering', 'Fulfillment'],
+      declaredEvents: new Map([
+        ['Ordering', ['OrderPlaced']],
+        ['Fulfillment', ['FulfillmentInitiated', 'OrderPlaced']],
+      ]),
+      declaredBuildingBlocks: new Map([
+        [
+          'Ordering',
+          [
+            { name: 'PlaceOrder', kind: 'command' },
+            { name: 'OrderPlaced', kind: 'event' },
+          ],
+        ],
+        ['Fulfillment', [{ name: 'InitiateFulfillment', kind: 'command' }]],
+      ]),
+      declaredSagas: [],
+    };
+
+    it('V2 returns gracefully when flow is not found from crossing', async () => {
+      const validator = services.validation.MomentValidator;
+      // Create a minimal crossing-like node without a flow parent
+      const fakeCrossing = {
+        $type: 'ContextCrossing',
+        targetLaneId: 'x',
+        fields: [{ name: 'f', type: { typeName: 'UUID' } }],
+        relationshipType: 'Partnership',
+        $container: { $type: 'NodePlacement' },
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkCrossingTargetBranchLane(fakeCrossing, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V13 returns gracefully when flow is not found from node', async () => {
+      const validator = services.validation.MomentValidator;
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'x',
+        nodeName: 'Y',
+        connections: [],
+        $container: { $type: 'Frame' },
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkLaneIdExists(fakeNode, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('SP-02 returns gracefully when target lane not found', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          frame "Step"
+            a: Evt crosses-to nonexistent via CustomerSupplier
+              contract
+                id: UUID [required]
+      `);
+      const validator = services.validation.MomentValidator;
+      const crossing = result.document.parseResult.value.flow!.frames[0].nodes[0].crossing!;
+      const diagnostics: string[] = [];
+      validator.checkSP02(
+        crossing,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // Target lane 'nonexistent' is not found → early return, no SP-02 error
+      expect(diagnostics.some((m) => m.includes('SP-02'))).toBe(false);
+    });
+
+    it('V1 returns gracefully when lane not found in context', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          frame "Step"
+            a: SomeNode
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      // Lane label "A" does not match any declaredContextNames ("Ordering", "Fulfillment")
+      // so the contextName won't match, but the lane IS found
+      const diagnostics: string[] = [];
+      validator.checkV1(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // No building blocks for context "A" → V1 error
+      expect(diagnostics.some((m) => m.includes('V1'))).toBe(true);
+    });
+
+    it('V9 returns gracefully when node has no crossing', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          frame "Step"
+            a: OrderPlaced
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV9(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V11 returns gracefully when node has no multiplicity', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          frame "Step"
+            a: OrderPlaced
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('checkNodePlacement handles node without frame ancestor gracefully', () => {
+      const validator = services.validation.MomentValidator;
+      const orphanNode = {
+        $type: 'NodePlacement',
+        laneId: 'a',
+        nodeName: 'Test',
+        connections: [{ $type: 'TriggeredBy', nodeName: 'Prior', $container: null }],
+        crossing: undefined,
+        modifier: undefined,
+        multiplicity: undefined,
+        $container: { $type: 'FlowDeclaration', frames: [], lanes: [] },
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkNodePlacement(orphanNode, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('checkNodePlacement handles nodes without connections', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          frame "Step"
+            a: Simple
+      `);
+      const errors = errorMessages(result);
+      expect(errors.some((m) => m.includes('V5'))).toBe(false);
+      expect(errors.some((m) => m.includes('V6'))).toBe(false);
     });
   });
 
