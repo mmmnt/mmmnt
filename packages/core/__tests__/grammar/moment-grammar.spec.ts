@@ -539,7 +539,7 @@ describe('Moment Grammar > Generated Output', () => {
     expect(existsSync(resolve(GENERATED, 'module.ts'))).toBe(true);
   });
 
-  it('generated AST covers all 22 constructs', () => {
+  it('generated AST covers all 21 Langium constructs', () => {
     const astContent = readFileSync(resolve(GENERATED, 'ast.ts'), 'utf-8');
     // 10 spatial constructs
     expect(astContent).toContain('ContextDeclaration');
