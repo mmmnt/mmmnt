@@ -1,0 +1,23 @@
+context "Ordering" [Core]
+
+  aggregate "Order"
+    identity orderId: UUID
+
+    command PlaceOrder
+      input customerId: UUID, items: OrderItem[]
+      precondition orderNotPlaced: "Order has not already been placed"
+      emits OrderPlaced
+
+    event OrderPlaced
+      orderId: UUID
+      customerId: UUID
+      items: OrderItem[]
+      placedAt: DateTime
+
+  value-object OrderItem
+    productId: UUID
+    quantity: number
+    unitPrice: Money
+
+  invariant ORD-01 "Order must contain at least one item"
+    scope Order

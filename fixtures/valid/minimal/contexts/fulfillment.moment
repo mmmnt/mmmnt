@@ -1,0 +1,19 @@
+context "Fulfillment" [Supporting]
+
+  aggregate "FulfillmentRequest"
+    identity fulfillmentId: UUID
+
+    command InitiateFulfillment
+      input orderId: UUID, items: OrderItem[]
+      emits FulfillmentInitiated
+
+    event FulfillmentInitiated
+      fulfillmentId: UUID
+      orderId: UUID
+      items: OrderItem[]
+      initiatedAt: DateTime
+
+  value-object OrderItem
+    productId: UUID
+    quantity: number
+    unitPrice: Money

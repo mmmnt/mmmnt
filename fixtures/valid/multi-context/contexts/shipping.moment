@@ -1,0 +1,45 @@
+context "Shipping" [Supporting]
+
+  aggregate "Shipment"
+    identity shipmentId: UUID
+
+    command CreateShipment
+      input orderId: UUID, items: ReservedItem[], shippingAddress: Address
+      emits ShipmentCreated
+
+    command DispatchShipment
+      input shipmentId: UUID, carrier: string
+      precondition shipmentNotDispatched: "Shipment has not been dispatched"
+      emits ShipmentDispatched
+
+    event ShipmentCreated
+      shipmentId: UUID
+      orderId: UUID
+      shippingAddress: Address
+      createdAt: DateTime
+
+    event ShipmentDispatched
+      shipmentId: UUID
+      carrier: string
+      dispatchedAt: DateTime
+
+    event TrackingNumberAssigned
+      shipmentId: UUID
+      trackingNumber: string
+      carrier: string
+      assignedAt: DateTime
+
+  value-object ReservedItem
+    itemId: UUID
+    quantity: number
+    warehouseId: UUID
+
+  value-object Address
+    street: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+
+  invariant SHP-01 "Shipment must have a valid shipping address"
+    scope Shipment
