@@ -6,9 +6,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "generate": "if [ -f src/grammar/moment.langium ]; then langium generate; fi",
     "build": "tsc",
     "lint": "eslint src/",
     "test": "vitest run"
+  },
+  "devDependencies": {
+    "langium": "3.5.0",
+    "langium-cli": "3.5.2"
   },
   "publishConfig": {
     "access": "public",
