@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ManifestReader } from '../../src/manifest/index.js';
 
@@ -25,7 +25,7 @@ describe('ManifestReader', () => {
 
   function createFile(relativePath: string, content = ''): void {
     const fullPath = join(tmpDir, relativePath);
-    const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+    const dir = dirname(fullPath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(fullPath, content, 'utf-8');
   }
@@ -110,6 +110,62 @@ name: TestProject
 `);
 
       expect(() => reader.readManifest(manifestPath)).toThrow();
+    });
+
+    it('throws when root is not an object', () => {
+      const manifestPath = writeManifest('just a string');
+      expect(() => reader.readManifest(manifestPath)).toThrow('expected a YAML object');
+    });
+
+    it('throws when contexts is not an array', () => {
+      const manifestPath = writeManifest(`
+name: Test
+contexts: not-an-array
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow('file references must be an array');
+    });
+
+    it('throws when generators has invalid format', () => {
+      const manifestPath = writeManifest(`
+name: Test
+generators:
+  - format: invalid
+    outputDir: ./out
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow('invalid generator format');
+    });
+
+    it('throws when generator entry is null', () => {
+      const manifestPath = writeManifest(`
+name: Test
+generators:
+  - null
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow('not a valid object');
+    });
+
+    it('coerces non-string name and version to defaults', () => {
+      const manifestPath = writeManifest(`
+name: 123
+version: true
+`);
+      const config = reader.readManifest(manifestPath);
+      expect(config.name).toBe('');
+      expect(config.version).toBe('0.0.0');
+    });
+
+    it('handles watch config with invalid types gracefully', () => {
+      const manifestPath = writeManifest(`
+name: Test
+watch:
+  enabled: "yes"
+  debounceMs: "fast"
+  paths: not-an-array
+`);
+      const config = reader.readManifest(manifestPath);
+      expect(config.watch.enabled).toBe(false);
+      expect(config.watch.debounceMs).toBe(300);
+      expect(config.watch.paths).toEqual([]);
     });
   });
 
