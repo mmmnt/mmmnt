@@ -266,7 +266,7 @@ describe('AstToIr', () => {
     expect(frame.id).toBe('frame-0-Step-1');
     expect(frame.name).toBe('Step 1');
     expect(frame.contextEntries).toHaveLength(2);
-    expect(frame.contextEntries[0].contextId).toBe('a');
+    expect(frame.contextEntries[0].contextId).toBe('ctx-A');
     expect(frame.contextEntries[0].nodeName).toBe('PlaceOrder');
     expect(frame.contextEntries[0].nodeKind).toBe('event');
   });
@@ -286,8 +286,8 @@ describe('AstToIr', () => {
     const conn = ir.flows[0].connections.find((c) => c.connectionType === 'crosses-to');
     expect(conn).toBeDefined();
     expect(conn!.connectionType).toBe('crosses-to');
-    expect(conn!.targetContextId).toBe('b');
-    expect(conn!.eventId).toBe('OrderPlaced');
+    expect(conn!.targetContextId).toBe('ctx-B');
+    expect(conn!.eventId).toBe('evt-OrderPlaced');
 
     // Type narrowing for discriminated union
     if (conn!.connectionType === 'crosses-to') {
@@ -360,11 +360,11 @@ describe('AstToIr', () => {
     const connections = ir.flows[0].connections;
     const triggeredBy = connections.find((c) => c.connectionType === 'triggered-by');
     expect(triggeredBy).toBeDefined();
-    expect(triggeredBy!.eventId).toBe('OrderPlaced');
+    expect(triggeredBy!.eventId).toBe('evt-OrderPlaced');
 
     const triggers = connections.find((c) => c.connectionType === 'triggers');
     expect(triggers).toBeDefined();
-    expect(triggers!.eventId).toBe('NotifyCustomer');
+    expect(triggers!.eventId).toBe('evt-NotifyCustomer');
   });
 
   it('transforms returns-to connection', async () => {
@@ -381,7 +381,7 @@ describe('AstToIr', () => {
     const connections = ir.flows[0].connections;
     const returnsTo = connections.find((c) => c.connectionType === 'returns-to');
     expect(returnsTo).toBeDefined();
-    expect(returnsTo!.eventId).toBe('EventB');
+    expect(returnsTo!.eventId).toBe('evt-EventB');
     expect(returnsTo!.sourceFrameId).toBe('frame-1-Step-2');
   });
 
@@ -464,6 +464,6 @@ describe('AstToIr', () => {
 
     const conn = ir.flows[0].connections.find((c) => c.connectionType === 'crosses-to');
     expect(conn).toBeDefined();
-    expect(conn!.targetContextId).toBe('b');
+    expect(conn!.targetContextId).toBe('ctx-B');
   });
 });

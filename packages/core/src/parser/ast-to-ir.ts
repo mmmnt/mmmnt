@@ -253,23 +253,40 @@ function transformSaga(saga: SagaDeclaration): SagaDefinition {
   };
 }
 
+function buildLaneContextMap(flow: FlowDeclaration): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const lane of flow.lanes) {
+    map.set(lane.id, `ctx-${unquote(lane.label)}`);
+  }
+  return map;
+}
+
 function transformFlow(flow: FlowDeclaration): FlowDefinition {
   const name = unquote(flow.name);
+  const laneContextMap = buildLaneContextMap(flow);
   return {
     id: `flow-${name}`,
     name,
     description: flow.description ? unquote(flow.description) : undefined,
-    frames: flow.frames.map((frame, idx) => transformFrame(frame, idx)),
-    connections: extractConnections(flow),
+    frames: flow.frames.map((frame, idx) => transformFrame(frame, idx, laneContextMap)),
+    connections: extractConnections(flow, laneContextMap),
   };
 }
 
-function transformFrame(frame: Frame, index: number): FrameDefinition {
+function transformFrame(
+  frame: Frame,
+  index: number,
+  laneContextMap?: Map<string, string>,
+): FrameDefinition {
   const name = unquote(frame.label);
-  const contextEntries: FrameEntry[] = frame.nodes.map(transformNodeToEntry);
+  const contextEntries: FrameEntry[] = frame.nodes.map((n) =>
+    transformNodeToEntry(n, laneContextMap),
+  );
 
   const branches: BranchDefinition[] | undefined =
-    frame.whenBlocks.length > 0 ? frame.whenBlocks.map(transformWhenBlock) : undefined;
+    frame.whenBlocks.length > 0
+      ? frame.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap))
+      : undefined;
 
   const hasTerminal = contextEntries.some((e) => e.terminal === true);
 
@@ -282,16 +299,23 @@ function transformFrame(frame: Frame, index: number): FrameDefinition {
   };
 }
 
-function transformWhenBlock(when: WhenBlock): BranchDefinition {
+function transformWhenBlock(
+  when: WhenBlock,
+  laneContextMap?: Map<string, string>,
+): BranchDefinition {
   return {
     condition: when.condition,
-    entries: when.nodes.map(transformNodeToEntry),
+    entries: when.nodes.map((n) => transformNodeToEntry(n, laneContextMap)),
   };
 }
 
-function transformNodeToEntry(node: NodePlacement): FrameEntry {
+function transformNodeToEntry(
+  node: NodePlacement,
+  laneContextMap?: Map<string, string>,
+): FrameEntry {
+  const contextId = laneContextMap?.get(node.laneId) ?? node.laneId;
   const entry: FrameEntry = {
-    contextId: node.laneId,
+    contextId,
     nodeName: node.nodeName,
     nodeKind: 'event', // Default — kind resolution requires cross-file context (MMNT-27)
   };
@@ -311,9 +335,14 @@ function transformNodeToEntry(node: NodePlacement): FrameEntry {
   return entry;
 }
 
-function extractConnections(flow: FlowDeclaration): ConnectionDefinition[] {
+function extractConnections(
+  flow: FlowDeclaration,
+  laneContextMap?: Map<string, string>,
+): ConnectionDefinition[] {
   const connections: ConnectionDefinition[] = [];
   let connectionCounter = 0;
+
+  const resolveCtx = (laneId: string): string => laneContextMap?.get(laneId) ?? laneId;
 
   for (let frameIdx = 0; frameIdx < flow.frames.length; frameIdx++) {
     const frame = flow.frames[frameIdx];
@@ -326,8 +355,8 @@ function extractConnections(flow: FlowDeclaration): ConnectionDefinition[] {
         connections.push({
           id: `conn-${connectionCounter++}`,
           sourceFrameId: frameId,
-          targetContextId: node.crossing.targetLaneId,
-          eventId: node.nodeName,
+          targetContextId: resolveCtx(node.crossing.targetLaneId),
+          eventId: `evt-${node.nodeName}`,
           connectionType: 'crosses-to',
           schemaContract: contract,
         });
@@ -339,25 +368,26 @@ function extractConnections(flow: FlowDeclaration): ConnectionDefinition[] {
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceFrameId: frameId,
-            targetContextId: node.laneId,
-            eventId: conn.nodeName,
+            targetContextId: resolveCtx(node.laneId),
+            eventId: `evt-${conn.nodeName}`,
             connectionType: 'triggered-by',
           });
         } else if (isTriggers(conn)) {
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceFrameId: frameId,
-            targetContextId: node.laneId,
-            eventId: conn.nodeName,
+            targetContextId: resolveCtx(node.laneId),
+            eventId: `evt-${conn.nodeName}`,
             connectionType: 'triggers',
           });
         } else if (isReturnsTo(conn)) {
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceFrameId: frameId,
-            targetContextId: node.laneId,
-            eventId: node.nodeName,
+            targetContextId: resolveCtx(node.laneId),
+            eventId: `evt-${node.nodeName}`,
             connectionType: 'returns-to',
+            targetFrameLabel: unquote(conn.frameLabel),
           });
         }
       }
