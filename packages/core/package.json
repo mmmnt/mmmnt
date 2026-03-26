@@ -12,11 +12,15 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "langium": "3.5.0",
     "langium-cli": "3.5.2"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "dependencies": {
+    "yaml": "^2.8.3"
   }
 }
