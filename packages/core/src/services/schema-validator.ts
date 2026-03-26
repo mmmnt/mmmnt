@@ -1,0 +1,116 @@
+import type { IntermediateRepresentation, ValidationResult, Diagnostic } from '../ir/index.js';
+
+export class SchemaValidator {
+  validate(ir: IntermediateRepresentation): ValidationResult {
+    const diagnostics: Diagnostic[] = [];
+    this.checkSP01(ir, diagnostics);
+    this.checkSP02(ir, diagnostics);
+    this.checkSP03(ir, diagnostics);
+    this.checkSP04(ir, diagnostics);
+    return { valid: diagnostics.length === 0, diagnostics };
+  }
+
+  validateManifestFiles(
+    files: Array<{ name: string; path: string }>,
+    fileExists: (path: string) => boolean,
+  ): ValidationResult {
+    const diagnostics: Diagnostic[] = [];
+    for (const file of files) {
+      if (!fileExists(file.path)) {
+        diagnostics.push({
+          severity: 'error',
+          message: `SP-05: File '${file.path}' referenced in manifest does not exist.`,
+          ruleId: 'SP-05',
+        });
+      }
+    }
+    return { valid: diagnostics.length === 0, diagnostics };
+  }
+
+  private checkSP01(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
+    const contextIds = new Set(ir.contexts.map((c) => c.id));
+    for (const flow of ir.flows) {
+      for (const conn of flow.connections) {
+        if (conn.connectionType === 'crosses-to' && !contextIds.has(conn.targetContextId)) {
+          diagnostics.push({
+            severity: 'error',
+            message: `SP-01: Connection '${conn.id}' references unknown context '${conn.targetContextId}'.`,
+            ruleId: 'SP-01',
+          });
+        }
+      }
+    }
+  }
+
+  private checkSP02(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
+    const contextEventsMap = new Map<string, Set<string>>();
+    for (const ctx of ir.contexts) {
+      const eventIds = new Set(ctx.events.map((e) => e.id));
+      contextEventsMap.set(ctx.id, eventIds);
+    }
+
+    for (const flow of ir.flows) {
+      for (const conn of flow.connections) {
+        if (conn.connectionType === 'crosses-to') {
+          const targetEvents = contextEventsMap.get(conn.targetContextId);
+          if (targetEvents && !targetEvents.has(conn.eventId)) {
+            diagnostics.push({
+              severity: 'error',
+              message: `SP-02: Connection '${conn.id}' references unknown event '${conn.eventId}' in context '${conn.targetContextId}'.`,
+              ruleId: 'SP-02',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  private checkSP03(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
+    for (const flow of ir.flows) {
+      for (const conn of flow.connections) {
+        if (conn.connectionType === 'crosses-to') {
+          if (conn.schemaContract.fields.length === 0) {
+            diagnostics.push({
+              severity: 'error',
+              message: `SP-03: Crossing connection '${conn.id}' has an empty schema contract.`,
+              ruleId: 'SP-03',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  private checkSP04(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
+    for (const flow of ir.flows) {
+      const frameIndexMap = new Map<string, number>();
+      flow.frames.forEach((frame, index) => {
+        frameIndexMap.set(frame.id, index);
+      });
+
+      for (const conn of flow.connections) {
+        if (conn.connectionType === 'returns-to') {
+          const sourceIndex = frameIndexMap.get(conn.sourceFrameId);
+          const targetFrameIds = flow.frames
+            .filter((f) => f.contextEntries.some((e) => e.contextId === conn.targetContextId))
+            .map((f) => f.id);
+
+          for (const targetFrameId of targetFrameIds) {
+            const targetIndex = frameIndexMap.get(targetFrameId);
+            if (
+              sourceIndex !== undefined &&
+              targetIndex !== undefined &&
+              targetIndex >= sourceIndex
+            ) {
+              diagnostics.push({
+                severity: 'error',
+                message: `SP-04: Connection '${conn.id}' returns-to a frame that is not prior (source frame index ${sourceIndex}, target frame index ${targetIndex}).`,
+                ruleId: 'SP-04',
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+}
