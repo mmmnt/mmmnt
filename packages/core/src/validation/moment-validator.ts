@@ -67,7 +67,7 @@ export function registerMomentValidationChecks(
 }
 
 // ---------------------------------------------------------------------------
-// Helper: collect all frame labels prior to a given frame
+// Helpers: walk the $container chain to find the enclosing Flow/Frame
 // ---------------------------------------------------------------------------
 
 function getFlowFromNode(node: { $container?: unknown }): FlowDeclaration | undefined {
@@ -478,6 +478,13 @@ export class MomentValidator {
           crossings.push(node.crossing);
         }
       }
+      for (const wb of frame.whenBlocks) {
+        for (const node of wb.nodes) {
+          if (node.crossing?.relationshipType === 'Partnership') {
+            crossings.push(node.crossing);
+          }
+        }
+      }
     }
     return crossings;
   }
@@ -487,14 +494,23 @@ export class MomentValidator {
     const sourceLaneId = parentNode.laneId;
     const targetLaneId = crossing.targetLaneId;
 
+    const checkNode = (node: NodePlacement): boolean => {
+      if (!node.crossing) return false;
+      return (
+        node.laneId === targetLaneId &&
+        node.crossing.targetLaneId === sourceLaneId &&
+        node.crossing.relationshipType === 'Partnership'
+      );
+    };
+
     for (const frame of flow.frames) {
       for (const node of frame.nodes) {
-        if (!node.crossing) continue;
-        const isReverse =
-          node.laneId === targetLaneId &&
-          node.crossing.targetLaneId === sourceLaneId &&
-          node.crossing.relationshipType === 'Partnership';
-        if (isReverse) return true;
+        if (checkNode(node)) return true;
+      }
+      for (const wb of frame.whenBlocks) {
+        for (const node of wb.nodes) {
+          if (checkNode(node)) return true;
+        }
       }
     }
     return false;
