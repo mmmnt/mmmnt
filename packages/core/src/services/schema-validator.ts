@@ -1,6 +1,17 @@
-import type { IntermediateRepresentation, ValidationResult, Diagnostic } from '../ir/index.js';
+import type {
+  IntermediateRepresentation,
+  ValidationResult,
+  Diagnostic,
+  FileRef,
+} from '../ir/index.js';
 
 export class SchemaValidator {
+  /**
+   * Validates structural correctness of an IntermediateRepresentation.
+   * Enforces SP-01 through SP-04 (pure IR checks, no I/O).
+   * SP-05 (manifest file references) requires filesystem access —
+   * use `validateManifestFiles()` separately.
+   */
   validate(ir: IntermediateRepresentation): ValidationResult {
     const diagnostics: Diagnostic[] = [];
     this.checkSP01(ir, diagnostics);
@@ -10,10 +21,11 @@ export class SchemaValidator {
     return { valid: diagnostics.length === 0, diagnostics };
   }
 
-  validateManifestFiles(
-    files: Array<{ name: string; path: string }>,
-    fileExists: (path: string) => boolean,
-  ): ValidationResult {
+  /**
+   * Validates that all file references in the manifest exist on disk (SP-05).
+   * Requires an injected `fileExists` function for filesystem access.
+   */
+  validateManifestFiles(files: FileRef[], fileExists: (path: string) => boolean): ValidationResult {
     const diagnostics: Diagnostic[] = [];
     for (const file of files) {
       if (!fileExists(file.path)) {
@@ -91,17 +103,31 @@ export class SchemaValidator {
       for (const conn of flow.connections) {
         if (conn.connectionType === 'returns-to') {
           const sourceIndex = frameIndexMap.get(conn.sourceFrameId);
+          if (sourceIndex === undefined) {
+            diagnostics.push({
+              severity: 'error',
+              message: `SP-04: Connection '${conn.id}' references unresolvable source frame '${conn.sourceFrameId}'.`,
+              ruleId: 'SP-04',
+            });
+            continue;
+          }
+
           const targetFrameIds = flow.frames
             .filter((f) => f.contextEntries.some((e) => e.contextId === conn.targetContextId))
             .map((f) => f.id);
 
+          if (targetFrameIds.length === 0) {
+            diagnostics.push({
+              severity: 'error',
+              message: `SP-04: Connection '${conn.id}' returns-to target context '${conn.targetContextId}' which does not appear in any frame.`,
+              ruleId: 'SP-04',
+            });
+            continue;
+          }
+
           for (const targetFrameId of targetFrameIds) {
             const targetIndex = frameIndexMap.get(targetFrameId);
-            if (
-              sourceIndex !== undefined &&
-              targetIndex !== undefined &&
-              targetIndex >= sourceIndex
-            ) {
+            if (targetIndex !== undefined && targetIndex >= sourceIndex) {
               diagnostics.push({
                 severity: 'error',
                 message: `SP-04: Connection '${conn.id}' returns-to a frame that is not prior (source frame index ${sourceIndex}, target frame index ${targetIndex}).`,
