@@ -71,9 +71,12 @@ describe('Parse Pipeline Integration', () => {
     it('IR serializes to JSON and deserializes losslessly', async () => {
       const content = readFixture('valid/minimal/contexts/ordering.moment');
       const result = await parser.parseContent(content);
-      const json = JSON.stringify(result.ir);
+      expect(result.success).toBe(true);
+      expect(result.ir).toBeDefined();
+      const ir = result.ir!;
+      const json = JSON.stringify(ir);
       const deserialized = JSON.parse(json);
-      expect(deserialized).toEqual(result.ir);
+      expect(deserialized).toEqual(ir);
     });
   });
 
@@ -93,11 +96,18 @@ describe('Parse Pipeline Integration', () => {
     });
 
     it('valid input with warnings still produces IR', async () => {
-      // A valid flow that parses successfully — warnings don't block IR
-      const content = readFixture('valid/minimal/contexts/ordering.moment');
+      // Flow with an unused branch-lane triggers V16 warning but still parses
+      const content = `
+        flow "test-warnings"
+          lane a "A" [Core]
+          branch-lane unused "Unused" [Terminal]
+          frame "Step"
+            a: SomeEvent
+      `;
       const result = await parser.parseContent(content);
       expect(result.success).toBe(true);
       expect(result.ir).toBeDefined();
+      expect(result.diagnostics.some((d) => d.severity === 'warning')).toBe(true);
     });
   });
 });
