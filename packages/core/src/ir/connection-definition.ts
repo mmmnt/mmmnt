@@ -8,6 +8,7 @@ interface BaseConnectionDefinition {
   targetContextId: string;
   eventId: string;
   connectionType: Exclude<ConnectionType, 'crosses-to'>;
+  targetFrameLabel?: string;
 }
 
 interface CrossingConnectionDefinition {
