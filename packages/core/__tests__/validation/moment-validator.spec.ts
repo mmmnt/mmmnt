@@ -665,6 +665,32 @@ describe('MomentValidator', () => {
           false,
         );
       });
+      it('detects Partnership crossings inside when blocks', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "Ordering" [Core]
+            lane b "Fulfillment" [Supporting]
+            frame "Outcome" [branch]
+              when success
+                a: OrderPlaced crosses-to b via Partnership
+                  contract
+                    id: UUID [required]
+              when retry
+                b: RetryEvent crosses-to a via Partnership
+                  contract
+                    id: UUID [required]
+        `);
+        const validator = services.validation.MomentValidator;
+        const flow = result.document.parseResult.value.flow!;
+        const diagnostics: { severity: string; message: string }[] = [];
+        validator.checkV14(flow, (severity, message) => {
+          diagnostics.push({ severity: severity as string, message: message as string });
+        });
+        // Both crossings are inside when blocks — should detect both and find the reverse
+        expect(diagnostics.some((d) => d.severity === 'warning' && d.message.includes('V14'))).toBe(
+          false,
+        );
+      });
     });
 
     describe('V5 (standalone)', () => {
