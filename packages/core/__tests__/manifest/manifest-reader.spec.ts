@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ManifestReader } from '../../src/manifest/index.js';
 
@@ -25,7 +25,7 @@ describe('ManifestReader', () => {
 
   function createFile(relativePath: string, content = ''): void {
     const fullPath = join(tmpDir, relativePath);
-    const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
+    const dir = dirname(fullPath);
     mkdirSync(dir, { recursive: true });
     writeFileSync(fullPath, content, 'utf-8');
   }

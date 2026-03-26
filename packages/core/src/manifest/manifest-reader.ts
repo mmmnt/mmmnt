@@ -8,6 +8,8 @@ import type {
   WatchConfiguration,
 } from '../ir/index.js';
 
+const ALLOWED_FORMATS = new Set(['typescript', 'gherkin', 'markdown'] as const);
+
 export class ManifestReader {
   readManifest(manifestPath: string): ManifestConfiguration {
     if (!existsSync(manifestPath)) {
@@ -17,17 +19,22 @@ export class ManifestReader {
     const raw = parseYaml(content);
     const manifestDir = dirname(manifestPath);
 
-    const contexts = this.parseFileRefs(raw.contexts);
-    const flows = this.parseFileRefs(raw.flows);
-    const generators = this.parseGenerators(raw.generators);
-    const watch = this.parseWatch(raw.watch);
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+      throw new Error('Manifest validation failed: expected a YAML object at the root level.');
+    }
+
+    const obj = raw as Record<string, unknown>;
+    const contexts = this.parseFileRefs(obj.contexts);
+    const flows = this.parseFileRefs(obj.flows);
+    const generators = this.parseGenerators(obj.generators);
+    const watch = this.parseWatch(obj.watch);
 
     this.validateFileRefs(manifestDir, contexts, flows);
 
     return {
-      name: raw.name ?? '',
-      version: raw.version ?? '0.0.0',
-      description: raw.description,
+      name: (obj.name as string) ?? '',
+      version: (obj.version as string) ?? '0.0.0',
+      description: obj.description as string | undefined,
       contexts,
       flows,
       generators,
@@ -35,29 +42,59 @@ export class ManifestReader {
     };
   }
 
-  private parseFileRefs(entries: { name: string; path: string }[] | undefined): FileRef[] {
-    return (entries ?? []).map((e) => ({ name: e.name, path: e.path }));
+  private parseFileRefs(entries: unknown): FileRef[] {
+    if (entries == null) {
+      return [];
+    }
+    if (!Array.isArray(entries)) {
+      throw new Error('Manifest validation failed: file references must be an array.');
+    }
+    return entries.map((e, index) => {
+      if (e == null || typeof e !== 'object') {
+        throw new Error(
+          `Manifest validation failed: file reference at index ${index} is not an object.`,
+        );
+      }
+      const candidate = e as { name?: unknown; path?: unknown };
+      if (typeof candidate.name !== 'string' || typeof candidate.path !== 'string') {
+        throw new Error(
+          `Manifest validation failed: file reference at index ${index} must have string 'name' and 'path'.`,
+        );
+      }
+      return { name: candidate.name, path: candidate.path };
+    });
   }
 
-  private parseGenerators(
-    entries: { format: string; outputDir: string }[] | undefined,
-  ): GeneratorConfig[] {
-    return (entries ?? []).map((g) => ({
-      format: g.format as 'typescript' | 'gherkin' | 'markdown',
-      outputDir: g.outputDir,
-    }));
+  private parseGenerators(entries: unknown): GeneratorConfig[] {
+    if (entries == null) {
+      return [];
+    }
+    if (!Array.isArray(entries)) {
+      throw new Error('Manifest validation failed: generators must be an array.');
+    }
+    return entries.map((g, index) => {
+      const candidate = g as { format?: string; outputDir?: string };
+      if (!candidate.format || !ALLOWED_FORMATS.has(candidate.format as 'typescript')) {
+        throw new Error(
+          `Manifest validation failed: invalid generator format '${candidate.format}' at index ${index}. Supported: ${[...ALLOWED_FORMATS].join(', ')}.`,
+        );
+      }
+      return {
+        format: candidate.format as 'typescript' | 'gherkin' | 'markdown',
+        outputDir: candidate.outputDir ?? '',
+      };
+    });
   }
 
-  private parseWatch(
-    raw: { enabled?: boolean; debounceMs?: number; paths?: string[] } | undefined,
-  ): WatchConfiguration {
-    if (!raw) {
+  private parseWatch(raw: unknown): WatchConfiguration {
+    if (raw == null || typeof raw !== 'object') {
       return { enabled: false, debounceMs: 300, paths: [] };
     }
+    const obj = raw as { enabled?: boolean; debounceMs?: number; paths?: string[] };
     return {
-      enabled: raw.enabled ?? false,
-      debounceMs: raw.debounceMs ?? 300,
-      paths: raw.paths ?? [],
+      enabled: obj.enabled ?? false,
+      debounceMs: obj.debounceMs ?? 300,
+      paths: obj.paths ?? [],
     };
   }
 
