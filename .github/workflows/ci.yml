@@ -184,6 +184,51 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
+  test-traceability-verification:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Verify test traceability
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
+
+          if [ -z "$STORY_KEY" ]; then
+            echo "::notice::No story key found in branch '$BRANCH' — skipping traceability verification."
+            exit 0
+          fi
+
+          echo "Checking test traceability for $STORY_KEY..."
+
+          # Check for Traceability Verification subtask (D)
+          RESPONSE=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$STORY_KEY?fields=subtasks,issuelinks")
+
+          GATE_D_STATUS=$(echo "$RESPONSE" | jq -r \
+            '.fields.subtasks[] | select(.fields.summary | test("-D — Traceability Verification")) | .fields.status.name')
+
+          if [ -z "$GATE_D_STATUS" ]; then
+            echo "::error::Traceability gate failed: No Traceability Verification subtask found for $STORY_KEY."
+            exit 1
+          elif [ "$GATE_D_STATUS" != "Done" ]; then
+            echo "::error::Traceability gate failed: Traceability Verification subtask for $STORY_KEY is '$GATE_D_STATUS', expected 'Done'."
+            exit 1
+          fi
+
+          # Verify the story has at least one 'tests' issue link
+          TEST_LINK_COUNT=$(echo "$RESPONSE" | jq '[.fields.issuelinks[] | select(.type.name == "Test")] | length')
+
+          if [ "$TEST_LINK_COUNT" -eq 0 ]; then
+            echo "::error::Traceability gate failed: $STORY_KEY has zero 'tests' issue links. All Test issues must be linked to the parent story."
+            exit 1
+          fi
+
+          echo "✅ Test traceability verified: Subtask D (Done), $TEST_LINK_COUNT test links found."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
   quality:
     runs-on: ubuntu-latest
     needs: [build]
