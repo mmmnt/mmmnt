@@ -346,6 +346,72 @@ describe('SchemaValidator', () => {
       const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
       expect(sp04Diagnostics).toHaveLength(0);
     });
+
+    it('rejects returns-to with unresolvable source frame', () => {
+      const ir = makeMinimalIR({
+        contexts: [makeMinimalContext({ id: 'ctx-a' })],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            frames: [
+              makeFrame({
+                id: 'frame-0',
+                name: 'Frame 0',
+                contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceFrameId: 'frame-nonexistent',
+                targetContextId: 'ctx-a',
+                eventId: 'evt-1',
+                connectionType: 'returns-to',
+              } as ConnectionDefinition,
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
+      expect(sp04Diagnostics).toHaveLength(1);
+      expect(sp04Diagnostics[0].message).toContain('unresolvable source frame');
+    });
+
+    it('rejects returns-to with target context not in any frame', () => {
+      const ir = makeMinimalIR({
+        contexts: [makeMinimalContext({ id: 'ctx-a' }), makeMinimalContext({ id: 'ctx-b' })],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            frames: [
+              makeFrame({
+                id: 'frame-0',
+                name: 'Frame 0',
+                contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceFrameId: 'frame-0',
+                targetContextId: 'ctx-missing',
+                eventId: 'evt-1',
+                connectionType: 'returns-to',
+              } as ConnectionDefinition,
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
+      expect(sp04Diagnostics).toHaveLength(1);
+      expect(sp04Diagnostics[0].message).toContain('does not appear in any frame');
+    });
   });
 
   describe('SP-05', () => {
