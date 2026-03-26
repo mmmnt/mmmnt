@@ -184,6 +184,68 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
+  test-traceability-verification:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Verify test traceability
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
+
+          if [ -z "$STORY_KEY" ]; then
+            echo "::notice::No story key found in branch '$BRANCH' — skipping traceability verification."
+            exit 0
+          fi
+
+          echo "Checking test traceability for $STORY_KEY..."
+
+          # Fetch story with subtasks and issue links
+          HTTP_CODE=$(curl -s -o /tmp/jira_response.json -w "%{http_code}" -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$STORY_KEY?fields=subtasks,issuelinks")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Traceability gate failed: Jira API returned HTTP $HTTP_CODE for $STORY_KEY. Response: $(cat /tmp/jira_response.json | head -c 200)"
+            exit 1
+          fi
+
+          RESPONSE=$(cat /tmp/jira_response.json)
+
+          # Validate response has expected fields
+          if echo "$RESPONSE" | jq -e '.errorMessages' > /dev/null 2>&1; then
+            echo "::error::Traceability gate failed: Jira API error for $STORY_KEY: $(echo "$RESPONSE" | jq -r '.errorMessages[]')"
+            exit 1
+          fi
+
+          # Check for Traceability Verification subtask (D) — expect exactly one match
+          GATE_D_COUNT=$(echo "$RESPONSE" | jq '[.fields.subtasks[] | select(.fields.summary | test("-D — Traceability Verification"))] | length')
+          GATE_D_STATUS=$(echo "$RESPONSE" | jq -r '[.fields.subtasks[] | select(.fields.summary | test("-D — Traceability Verification"))][0].fields.status.name // empty')
+
+          if [ "$GATE_D_COUNT" -eq 0 ]; then
+            echo "::error::Traceability gate failed: No Traceability Verification subtask found for $STORY_KEY."
+            exit 1
+          elif [ "$GATE_D_COUNT" -gt 1 ]; then
+            echo "::error::Traceability gate failed: Multiple Traceability Verification subtasks found for $STORY_KEY ($GATE_D_COUNT matches). Expected exactly one."
+            exit 1
+          elif [ "$GATE_D_STATUS" != "Done" ]; then
+            echo "::error::Traceability gate failed: Traceability Verification subtask for $STORY_KEY is '$GATE_D_STATUS', expected 'Done'."
+            exit 1
+          fi
+
+          # Verify the story has at least one 'Test' issue link
+          TEST_LINK_COUNT=$(echo "$RESPONSE" | jq '[.fields.issuelinks[] | select(.type.name == "Test")] | length')
+
+          if [ "$TEST_LINK_COUNT" -eq 0 ]; then
+            echo "::error::Traceability gate failed: $STORY_KEY has zero 'Test' issue links. All Test issues must be linked to the parent story."
+            exit 1
+          fi
+
+          echo "✅ Test traceability verified: Subtask D (Done), $TEST_LINK_COUNT Test issue link(s) found."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
   quality:
     runs-on: ubuntu-latest
     needs: [build]
