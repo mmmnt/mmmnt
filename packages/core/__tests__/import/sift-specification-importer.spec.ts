@@ -198,10 +198,11 @@ describe('SiftSpecificationImporter', () => {
       expect(flow1).toBe(flow2);
     });
 
-    it('same input produces identical fingerprint hash', () => {
-      const result1 = importer.import(sampleInput);
-      const result2 = importer.import(sampleInput);
-      expect(result1.fingerprint.hash).toBe(result2.fingerprint.hash);
+    it('same input produces identical fingerprint (excluding importedAt timestamp)', () => {
+      const fixedTime = '2026-01-01T00:00:00.000Z';
+      const result1 = importer.import(sampleInput, { importedAt: fixedTime });
+      const result2 = importer.import(sampleInput, { importedAt: fixedTime });
+      expect(result1.fingerprint).toEqual(result2.fingerprint);
     });
   });
 

@@ -29,7 +29,7 @@ export interface SiftTimelineEvent {
   lanes: Array<{
     id: string;
     label: string;
-    classification?: string;
+    classification?: 'Core' | 'Supporting' | 'Generic' | 'Terminal';
   }>;
   frames: Array<{
     label: string;
@@ -56,12 +56,15 @@ export interface SiftImportInput {
   timelineEvents: SiftTimelineEvent[];
 }
 
+export interface SiftImportOptions {
+  importedAt?: string;
+}
+
 export class SiftSpecificationImporter {
-  import(input: SiftImportInput): ImportResult {
+  import(input: SiftImportInput, options?: SiftImportOptions): ImportResult {
     const contextFiles: Array<{ name: string; path: string }> = [];
     const flowFiles: Array<{ name: string; path: string }> = [];
 
-    // Generate context files
     for (const block of input.buildingBlocks) {
       const fileName = block.contextName.toLowerCase().replace(/\s+/g, '-');
       contextFiles.push({
@@ -70,7 +73,6 @@ export class SiftSpecificationImporter {
       });
     }
 
-    // Generate flow files
     for (const event of input.timelineEvents) {
       const fileName = event.flowName.toLowerCase().replace(/\s+/g, '-');
       flowFiles.push({
@@ -79,14 +81,13 @@ export class SiftSpecificationImporter {
       });
     }
 
-    // Generate fingerprint
     const contentHash = createHash('sha256').update(JSON.stringify(input)).digest('hex');
 
     const fingerprint: UpstreamFingerprint = {
       source: input.sourceProduct,
       version: input.sourceVersion,
       hash: contentHash,
-      importedAt: new Date().toISOString(),
+      importedAt: options?.importedAt ?? new Date().toISOString(),
     };
 
     return {
@@ -128,9 +129,9 @@ export class SiftSpecificationImporter {
       }
 
       for (const vo of agg.valueObjects) {
-        lines.push(`  value-object ${vo.name}`);
+        lines.push(`    value-object ${vo.name}`);
         for (const field of vo.fields) {
-          lines.push(`    ${field.name}: ${field.type}`);
+          lines.push(`      ${field.name}: ${field.type}`);
         }
         lines.push('');
       }
@@ -173,16 +174,5 @@ export class SiftSpecificationImporter {
     }
 
     return lines.join('\n');
-  }
-
-  // SI-02: Idempotent — same input produces identical output
-  isIdempotent(input: SiftImportInput): boolean {
-    const result1 = this.import(input);
-    const result2 = this.import(input);
-    return (
-      JSON.stringify(result1.contextFiles) === JSON.stringify(result2.contextFiles) &&
-      JSON.stringify(result1.flowFiles) === JSON.stringify(result2.flowFiles) &&
-      result1.fingerprint.hash === result2.fingerprint.hash
-    );
   }
 }
