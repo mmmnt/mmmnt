@@ -10,7 +10,7 @@ export interface FrameEntry {
   contextId: string;
   nodeName: string;
   nodeKind: 'command' | 'event' | 'policy' | 'saga' | 'projection';
-  multiplicity?: number;
+  multiplicity?: number | string;
   optional?: boolean;
   terminal?: boolean;
 }

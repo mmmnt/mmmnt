@@ -1,12 +1,13 @@
 export interface ContextDefinition {
   id: string;
   name: string;
-  classification?: 'Core' | 'Supporting' | 'Generic';
+  classification?: 'Core' | 'Supporting' | 'Generic' | 'Terminal';
   aggregates: AggregateDefinition[];
   domainServices: DomainServiceDefinition[];
   commands: CommandDefinition[];
   events: EventDefinition[];
   policies: PolicyDefinition[];
+  sagas: SagaDefinition[];
   valueObjects: ValueObjectDefinition[];
   invariants: InvariantDefinition[];
 }
@@ -73,4 +74,13 @@ export interface PolicyDefinition {
   trigger: string;
   action: string;
   chainsTo?: string;
+}
+
+export interface SagaDefinition {
+  id: string;
+  name: string;
+  trigger: string;
+  states: string[];
+  compensation: string;
+  timeout: string;
 }

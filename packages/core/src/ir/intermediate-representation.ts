@@ -26,5 +26,5 @@ export interface ContextRelationship {
   sourceContextId: string;
   targetContextId: string;
   relationshipType: string;
-  contract?: string;
+  contract: string;
 }

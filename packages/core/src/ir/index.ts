@@ -16,13 +16,14 @@ export type {
   InvariantDefinition,
   DomainServiceDefinition,
   PolicyDefinition,
+  SagaDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition } from './flow-definition.js';
 
 export type { FrameDefinition, FrameEntry, BranchDefinition } from './frame-definition.js';
 
-export type { ConnectionDefinition } from './connection-definition.js';
+export type { ConnectionDefinition, ConnectionType } from './connection-definition.js';
 
 export type { SchemaContract, SchemaFieldDefinition } from './schema-contract.js';
 

@@ -21,6 +21,7 @@ import type {
   InvariantDefinition,
   DomainServiceDefinition,
   PolicyDefinition,
+  SagaDefinition,
   FlowDefinition,
   FrameDefinition,
   FrameEntry,
@@ -116,6 +117,7 @@ describe('IR Types', () => {
         commands: [],
         events: [],
         policies: [],
+        sagas: [],
         valueObjects: [],
         invariants: [],
       };
@@ -128,6 +130,7 @@ describe('IR Types', () => {
       expect(ctx.commands).toEqual([]);
       expect(ctx.events).toEqual([]);
       expect(ctx.policies).toEqual([]);
+      expect(ctx.sagas).toEqual([]);
       expect(ctx.valueObjects).toEqual([]);
       expect(ctx.invariants).toEqual([]);
     });
@@ -359,13 +362,12 @@ describe('IR Types', () => {
   });
 
   describe('ConnectionDefinition', () => {
-    it('has id, sourceFrameId, targetContextId, eventId, isCrossing, connectionType', () => {
+    it('has crossing connection with required schemaContract', () => {
       const conn: ConnectionDefinition = {
         id: 'conn-1',
         sourceFrameId: 'frame-1',
         targetContextId: 'ctx-2',
         eventId: 'evt-1',
-        isCrossing: true,
         connectionType: 'crosses-to',
         schemaContract: {
           eventType: 'OrderPlaced',
@@ -376,12 +378,23 @@ describe('IR Types', () => {
       };
 
       expect(conn.id).toBe('conn-1');
-      expect(conn.sourceFrameId).toBe('frame-1');
-      expect(conn.targetContextId).toBe('ctx-2');
-      expect(conn.eventId).toBe('evt-1');
-      expect(conn.isCrossing).toBe(true);
       expect(conn.connectionType).toBe('crosses-to');
-      expect(conn.schemaContract).toBeDefined();
+      if (conn.connectionType === 'crosses-to') {
+        expect(conn.schemaContract).toBeDefined();
+        expect(conn.schemaContract.eventType).toBe('OrderPlaced');
+      }
+    });
+
+    it('has non-crossing connection without schemaContract', () => {
+      const conn: ConnectionDefinition = {
+        id: 'conn-2',
+        sourceFrameId: 'frame-1',
+        targetContextId: 'ctx-1',
+        eventId: 'evt-2',
+        connectionType: 'triggered-by',
+      };
+
+      expect(conn.connectionType).toBe('triggered-by');
     });
   });
 
@@ -572,9 +585,9 @@ describe('IR Types', () => {
 
   describe('barrel export', () => {
     it('all types exportable from @mmmnt/core', async () => {
-      // Dynamically import the barrel to verify it resolves
-      const barrel = await import('../../src/ir/index.js');
-      // Barrel re-exports only types, so the module object should exist but be empty at runtime
+      // Dynamically import the root barrel to verify the full re-export chain
+      const barrel = await import('../../src/index.js');
+      // Barrel re-exports only types, so the module object should exist at runtime
       expect(barrel).toBeDefined();
     });
   });
