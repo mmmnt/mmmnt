@@ -23,6 +23,11 @@ export class FileWatcher {
       return; // Disabled via config
     }
 
+    // Idempotent — stop existing watchers before creating new ones
+    if (this.watchers.length > 0) {
+      this.stop();
+    }
+
     const debounceMs = this.options.config.debounceMs;
 
     for (const watchPath of this.options.config.paths) {
@@ -32,7 +37,7 @@ export class FileWatcher {
           if (!filename) return;
           const filePath = resolve(fullPath, filename);
 
-          // Only react to .moment and .yaml files
+          // Only react to .moment, .yaml, and .yml files
           if (
             !filePath.endsWith('.moment') &&
             !filePath.endsWith('.yaml') &&
@@ -56,8 +61,13 @@ export class FileWatcher {
           }, debounceMs);
         });
         this.watchers.push(watcher);
-      } catch {
-        // Path doesn't exist yet — skip silently
+      } catch (error) {
+        const err = error as NodeJS.ErrnoException;
+        if (err && err.code === 'ENOENT') {
+          // Path doesn't exist yet — skip silently
+          continue;
+        }
+        throw error;
       }
     }
   }

@@ -120,7 +120,7 @@ describe('FileWatcher', () => {
   });
 
   describe('path filtering', () => {
-    it('only triggers for .moment and .yaml files', () => {
+    it('only triggers for .moment, .yaml, and .yml files', () => {
       vi.useFakeTimers();
       try {
         const onChange = vi.fn();
@@ -156,7 +156,7 @@ describe('FileWatcher', () => {
       }
     });
 
-    it('ignores changes outside configured paths', () => {
+    it('ignores changes for unsupported extensions and null filename', () => {
       vi.useFakeTimers();
       try {
         const onChange = vi.fn();
