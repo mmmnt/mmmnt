@@ -4,8 +4,7 @@
  * End-to-end integration test: Sift events → SiftSpecificationImporter
  * → .moment content → MomentParser → IR.
  */
-import { SiftSpecificationImporter, type SiftImportInput } from '../../src/index.js';
-import { MomentParser } from '../../src/index.js';
+import { SiftSpecificationImporter, type SiftImportInput, MomentParser } from '../../src/index.js';
 
 const sampleInput: SiftImportInput = {
   sourceProduct: 'Sift',
@@ -115,7 +114,7 @@ describe('Sift Import Round-Trip', () => {
     expect(result.diagnostics).toHaveLength(0);
   });
 
-  it('import produces deterministic fingerprint hash', () => {
+  it('import produces deterministic fingerprint', () => {
     const fixedTime = '2026-01-01T00:00:00.000Z';
     const result1 = importer.import(sampleInput, { importedAt: fixedTime });
     const result2 = importer.import(sampleInput, { importedAt: fixedTime });
