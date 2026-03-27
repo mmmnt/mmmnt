@@ -341,3 +341,45 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           GITLEAKS_CONFIG: .gitleaks.toml
+
+  close-test-issues:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build]
+    steps:
+      - name: Transition linked Test issues to Done
+        run: |
+          echo "Scanning for non-Done Test and Test Execution issues with Done parent stories..."
+
+          # Find all Test/Test Execution issues that are NOT Done and have a 'tests' link to a Done story
+          ISSUES=$(curl -s -G "https://winnovation.atlassian.net/rest/api/3/search/jql" \
+            --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND status != Done ORDER BY key ASC" \
+            --data-urlencode "maxResults=100" \
+            --data-urlencode "fields=key,issuelinks" \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN")
+
+          # For each issue, check if its linked parent story is Done, then transition
+          TRANSITIONED=0
+          echo "$ISSUES" | jq -r '.issues[]? | .key' | while read -r KEY; do
+            # Get the linked story status
+            PARENT_DONE=$(echo "$ISSUES" | jq -r --arg key "$KEY" '
+              .issues[] | select(.key == $key) |
+              .fields.issuelinks[]? |
+              select(.type.name == "Test" and .outwardIssue != null) |
+              select(.outwardIssue.fields.status.name == "Done") |
+              .outwardIssue.key' | head -1)
+
+            if [ -n "$PARENT_DONE" ]; then
+              curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$KEY/transitions" \
+                -H "Content-Type: application/json" \
+                -d '{"transition":{"id":"31"}}' > /dev/null 2>&1
+              TRANSITIONED=$((TRANSITIONED + 1))
+              echo "  $KEY → Done (parent: $PARENT_DONE)"
+            fi
+          done
+
+          echo "Transitioned $TRANSITIONED Test issues to Done."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
