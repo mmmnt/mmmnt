@@ -110,6 +110,10 @@ importers:
       '@mmmnt/derive':
         specifier: workspace:*
         version: link:../derive
+    devDependencies:
+      '@mmmnt/generate':
+        specifier: workspace:*
+        version: link:../generate
 
   packages/generate:
     dependencies:
