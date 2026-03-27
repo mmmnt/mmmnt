@@ -8,3 +8,5 @@ export type {
   TopologyMetadata,
   TestSuiteTopology,
 } from './types/index.js';
+
+export { deriveTopology } from './engine/index.js';
