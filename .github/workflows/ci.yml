@@ -134,16 +134,19 @@ jobs:
           EXEC_IDS=""
           for f in $(find test-results -name 'junit.xml'); do
             echo "Importing $f..."
-            RESPONSE=$(curl -s -X POST \
+            RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST \
               "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
               -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — JUnit\",\"issuetype\":{\"name\":\"Test Execution\"}${SPRINT_FIELD}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
               -F "results=@${f};type=application/xml" || true)
-            EXEC_ID=$(echo "$RESPONSE" | jq -r '.testExecIssue.id // empty')
-            EXEC_KEY=$(echo "$RESPONSE" | jq -r '.testExecIssue.key // empty')
+            # Xray multipart response is { id, key, self } at top level
+            EXEC_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+            EXEC_KEY=$(echo "$RESPONSE" | jq -r '.key // empty')
             if [ -n "$EXEC_ID" ]; then
               EXEC_IDS="$EXEC_IDS $EXEC_ID"
               echo "  Created Test Execution: $EXEC_KEY (id: $EXEC_ID)"
+            else
+              echo "  Warning: no execution ID in response: $(echo "$RESPONSE" | head -c 200)"
             fi
           done
           echo "ids=$(echo $EXEC_IDS | xargs)" >> $GITHUB_OUTPUT
