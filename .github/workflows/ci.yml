@@ -59,6 +59,13 @@ jobs:
           name: coverage-node-${{ matrix.node-version }}
           path: packages/*/coverage/
 
+      - name: Upload JUnit test results
+        uses: actions/upload-artifact@v4
+        if: always() && matrix.node-version == 22
+        with:
+          name: junit-results
+          path: packages/*/test-results/junit.xml
+
       - name: Snapshot freshness
         run: pnpm turbo test -- --no-update --passWithNoTests
 
@@ -73,30 +80,37 @@ jobs:
     needs: [build]
     if: ${{ needs.build.result == 'success' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run infrastructure verification tests
-        run: npx vitest run --config vitest.config.ts
-        continue-on-error: true
-
-      - name: Download test results
+      - name: Download JUnit test results
         uses: actions/download-artifact@v4
         with:
+          name: junit-results
           path: test-results/
-        continue-on-error: true
+
+      - name: Resolve sprint from feature branch story
+        id: sprint
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
+
+          if [ -z "$STORY_KEY" ]; then
+            echo "::notice::No story key in branch '$BRANCH' — sprint scoping skipped."
+            echo "id=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          SPRINT_ID=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$STORY_KEY?fields=customfield_10020" \
+            | jq -r '.fields.customfield_10020[0].id // empty')
+
+          if [ -n "$SPRINT_ID" ]; then
+            echo "Resolved sprint ID $SPRINT_ID from $STORY_KEY"
+          else
+            echo "::warning::No sprint found on $STORY_KEY — sprint scoping skipped."
+          fi
+          echo "id=$SPRINT_ID" >> $GITHUB_OUTPUT
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
       - name: Authenticate to Xray
         id: xray-auth
@@ -108,27 +122,131 @@ jobs:
             | tr -d '"')
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: Import JUnit XML results (multipart with Test Plan context)
-        if: hashFiles('**/test-results/junit.xml') != ''
+      - name: Import JUnit XML results
+        id: xray-import
         run: |
-          for f in $(find . -path '*/test-results/junit.xml' -not -path '*/node_modules/*'); do
-            curl -s -X POST \
+          SPRINT_ID="${{ steps.sprint.outputs.id }}"
+          SPRINT_FIELD=""
+          if [ -n "$SPRINT_ID" ]; then
+            SPRINT_FIELD=",\"customfield_10020\":$SPRINT_ID"
+          fi
+
+          EXEC_IDS=""
+          for f in $(find test-results -name 'junit.xml'); do
+            echo "Importing $f..."
+            RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST \
               "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
-              -F "results=@${f};type=application/xml" || true
+              -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — JUnit\",\"issuetype\":{\"name\":\"Test Execution\"}${SPRINT_FIELD}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
+              -F "results=@${f};type=application/xml" || true)
+            # Xray multipart response is { id, key, self } at top level
+            EXEC_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+            EXEC_KEY=$(echo "$RESPONSE" | jq -r '.key // empty')
+            if [ -n "$EXEC_ID" ]; then
+              EXEC_IDS="$EXEC_IDS $EXEC_ID"
+              echo "  Created Test Execution: $EXEC_KEY (id: $EXEC_ID)"
+            else
+              echo "  Warning: no execution ID in response: $(echo "$RESPONSE" | head -c 200)"
+            fi
+          done
+          echo "ids=$(echo $EXEC_IDS | xargs)" >> $GITHUB_OUTPUT
+
+      - name: Transition Test issues based on execution results
+        if: steps.xray-import.outputs.ids != ''
+        run: |
+          echo "Querying test run results and transitioning Test issues..."
+
+          # First, get all Test issues currently in Planned — one API call
+          PLANNED_KEYS=$(curl -s --connect-timeout 10 --max-time 15 -G \
+            "https://winnovation.atlassian.net/rest/api/3/search/jql" \
+            --data-urlencode "jql=project=MMNT AND issuetype=Test AND status=Planned ORDER BY key ASC" \
+            --data-urlencode "maxResults=100" \
+            --data-urlencode "fields=key" \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            | jq -r '.issues[]?.key' | sort)
+
+          if [ -z "$PLANNED_KEYS" ]; then
+            echo "No Test issues in Planned state — nothing to transition."
+            exit 0
+          fi
+
+          PLANNED_COUNT=$(echo "$PLANNED_KEYS" | wc -l)
+          echo "Found $PLANNED_COUNT Test issues in Planned state."
+
+          TRANSITIONED=0
+          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+            echo "Processing execution id $EXEC_ID..."
+
+            QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100) { results { status { name } test { jira(fields: [\\\"key\\\"]) } } } } }\"}"
+
+            GQL_RESPONSE=$(curl -s --connect-timeout 10 --max-time 15 -X POST \
+              "https://xray.cloud.getxray.app/api/v2/graphql" \
+              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+              -H "Content-Type: application/json" \
+              -d "$QUERY")
+
+            RUNS=$(echo "$GQL_RESPONSE" | jq -r '.data.getTestExecution.testRuns.results[]? | "\(.test.jira.key) \(.status.name)"')
+
+            while IFS=' ' read -r TEST_KEY STATUS; do
+              [ -z "$TEST_KEY" ] && continue
+
+              case "$STATUS" in
+                PASSED|PASS) TRANSITION_ID="31" ;;
+                FAILED|FAIL) TRANSITION_ID="4" ;;
+                *) continue ;;
+              esac
+
+              # Only transition if this key is in the Planned set
+              if echo "$PLANNED_KEYS" | grep -qx "$TEST_KEY"; then
+                curl -s --connect-timeout 5 --max-time 10 \
+                  -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                  -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$TEST_KEY/transitions" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"transition\":{\"id\":\"$TRANSITION_ID\"}}" > /dev/null 2>&1 && \
+                  TRANSITIONED=$((TRANSITIONED + 1)) && \
+                  echo "  $TEST_KEY: $STATUS → transition $TRANSITION_ID" || true
+              fi
+            done <<< "$RUNS"
           done
 
-      - name: Import Cucumber JSON results (multipart with Test Plan context)
-        if: hashFiles('**/test-results/cucumber.json') != ''
+          echo "Transitioned $TRANSITIONED Test issues."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Assign sprintless Test issues to active sprint
+        if: steps.sprint.outputs.id != ''
         run: |
-          for f in $(find . -path '*/test-results/cucumber.json' -not -path '*/node_modules/*'); do
-            curl -s -X POST \
-              "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart" \
-              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — Cucumber","issuetype":{"name":"Test Execution"}}}' \
-              -F "results=@${f};type=application/json" || true
+          SPRINT_ID="${{ steps.sprint.outputs.id }}"
+          echo "Assigning sprintless Test/Test Execution issues to sprint $SPRINT_ID..."
+
+          ASSIGNED=0
+
+          RESPONSE=$(curl -s --connect-timeout 10 --max-time 15 -G \
+            "https://winnovation.atlassian.net/rest/api/3/search/jql" \
+            --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
+            --data-urlencode "maxResults=100" \
+            --data-urlencode "fields=key" \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN")
+
+          KEYS=$(echo "$RESPONSE" | jq -r '.issues[]?.key')
+
+          for KEY in $KEYS; do
+            [ -z "$KEY" ] && continue
+            curl -s --connect-timeout 5 --max-time 10 \
+              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              -X PUT "https://winnovation.atlassian.net/rest/api/3/issue/$KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"fields\":{\"customfield_10020\":$SPRINT_ID}}" > /dev/null 2>&1 && \
+              ASSIGNED=$((ASSIGNED + 1)) && \
+              echo "  $KEY → sprint $SPRINT_ID" || \
+              echo "  Failed to assign $KEY"
           done
+
+          echo "Assigned $ASSIGNED Test issues to sprint $SPRINT_ID."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
   input-gate-verification:
     runs-on: ubuntu-latest
@@ -186,7 +304,6 @@ jobs:
 
   test-traceability-verification:
     runs-on: ubuntu-latest
-    needs: [build]
     if: github.event_name == 'pull_request'
     steps:
       - name: Verify test traceability
