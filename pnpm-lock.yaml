@@ -107,6 +107,9 @@ importers:
       '@mmmnt/core':
         specifier: workspace:*
         version: link:../core
+      '@mmmnt/derive':
+        specifier: workspace:*
+        version: link:../derive
 
   packages/generate:
     dependencies:
