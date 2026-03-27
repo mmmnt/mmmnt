@@ -131,7 +131,7 @@ jobs:
             SPRINT_FIELD=",\"customfield_10020\":$SPRINT_ID"
           fi
 
-          EXEC_KEYS=""
+          EXEC_IDS=""
           for f in $(find test-results -name 'junit.xml'); do
             echo "Importing $f..."
             RESPONSE=$(curl -s -X POST \
@@ -139,33 +139,34 @@ jobs:
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
               -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — JUnit\",\"issuetype\":{\"name\":\"Test Execution\"}${SPRINT_FIELD}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
               -F "results=@${f};type=application/xml" || true)
+            EXEC_ID=$(echo "$RESPONSE" | jq -r '.testExecIssue.id // empty')
             EXEC_KEY=$(echo "$RESPONSE" | jq -r '.testExecIssue.key // empty')
-            if [ -n "$EXEC_KEY" ]; then
-              EXEC_KEYS="$EXEC_KEYS $EXEC_KEY"
-              echo "  Created Test Execution: $EXEC_KEY"
+            if [ -n "$EXEC_ID" ]; then
+              EXEC_IDS="$EXEC_IDS $EXEC_ID"
+              echo "  Created Test Execution: $EXEC_KEY (id: $EXEC_ID)"
             fi
           done
-          echo "keys=$(echo $EXEC_KEYS | xargs)" >> $GITHUB_OUTPUT
+          echo "ids=$(echo $EXEC_IDS | xargs)" >> $GITHUB_OUTPUT
 
       - name: Transition Test issues based on execution results
-        if: steps.xray-import.outputs.keys != ''
+        if: steps.xray-import.outputs.ids != ''
         run: |
           echo "Querying test run results and transitioning Test issues..."
 
           TRANSITIONED=0
-          for EXEC_KEY in ${{ steps.xray-import.outputs.keys }}; do
-            echo "Processing $EXEC_KEY..."
+          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+            echo "Processing execution id $EXEC_ID..."
 
-            # Query Xray GraphQL for test runs in this execution
-            QUERY='{"query":"{ getTestExecution(issueId: \"'$EXEC_KEY'\") { testRuns(limit: 100) { results { status { name } test { jira(fields: [\"key\"]) { key } } } } } }"}'
+            # Query Xray GraphQL for test runs — uses numeric Jira ID, not key
+            QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100) { results { status { name } test { jira(fields: [\\\"key\\\"]) } } } } }\"}"
 
-            GQL_RESPONSE=$(curl -s -X POST \
+            GQL_RESPONSE=$(curl -s --max-time 30 -X POST \
               "https://xray.cloud.getxray.app/api/v2/graphql" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
               -H "Content-Type: application/json" \
               -d "$QUERY")
 
-            # Extract test key + status pairs
+            # jira field returns JSON directly (not a sub-object) — extract key from it
             RUNS=$(echo "$GQL_RESPONSE" | jq -r '.data.getTestExecution.testRuns.results[]? | "\(.test.jira.key) \(.status.name)"')
 
             while IFS=' ' read -r TEST_KEY STATUS; do
