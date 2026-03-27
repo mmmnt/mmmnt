@@ -95,8 +95,22 @@ jobs:
           STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
 
           if [ -z "$STORY_KEY" ]; then
-            echo "::notice::No story key in branch '$BRANCH' — sprint scoping skipped."
-            echo "id=" >> $GITHUB_OUTPUT
+            # Only resolve active sprint on main push — skip for non-story PRs (e.g. dependabot)
+            if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_name }}" = "main" ]; then
+              echo "Main push — resolving active sprint from board."
+              SPRINT_ID=$(curl -s --connect-timeout 10 --max-time 15 -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                "https://winnovation.atlassian.net/rest/agile/1.0/board/36/sprint?state=active" \
+                | jq -r '.values[0].id // empty')
+              if [ -n "$SPRINT_ID" ]; then
+                echo "Resolved active sprint ID $SPRINT_ID from board"
+              else
+                echo "::warning::No active sprint found — sprint scoping skipped."
+              fi
+              echo "id=$SPRINT_ID" >> $GITHUB_OUTPUT
+            else
+              echo "::notice::No story key in branch '$BRANCH' — sprint scoping skipped."
+              echo "id=" >> $GITHUB_OUTPUT
+            fi
             exit 0
           fi
 
@@ -495,6 +509,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build]
+    env:
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
     steps:
       - name: Checkout (for shared scripts)
         uses: actions/checkout@v4
@@ -537,6 +554,65 @@ jobs:
           done
 
           echo "Transitioned $TRANSITIONED of $TOTAL Test issues to Done."
-        env:
-          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Transition Test Execution issues to Done
+        run: |
+          echo "Transitioning non-Done Test Execution issues to Done after successful CI build..."
+
+          .github/scripts/jira-search.sh \
+            --jql "project=MMNT AND issuetype='Test Execution' AND status != Done ORDER BY key ASC" \
+            --fields "key" \
+            --output /tmp/non-done-executions.json
+
+          TRANSITIONED=0
+          TOTAL=$(jq 'length' /tmp/non-done-executions.json)
+          echo "Found $TOTAL non-Done Test Execution issues."
+
+          for KEY in $(jq -r '.[].key' /tmp/non-done-executions.json); do
+            if curl --fail -s --connect-timeout 5 --max-time 10 \
+              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$KEY/transitions" \
+              -H "Content-Type: application/json" \
+              -d '{"transition":{"id":"31"}}' > /dev/null 2>&1; then
+              TRANSITIONED=$((TRANSITIONED + 1))
+              echo "  $KEY → Done"
+            else
+              echo "  Failed to transition $KEY" >&2
+            fi
+          done
+
+          echo "Transitioned $TRANSITIONED of $TOTAL Test Execution issues to Done."
+
+      - name: Assign sprintless Test issues to active sprint
+        run: |
+          echo "Assigning sprintless Test/Test Execution issues to active sprint..."
+
+          SPRINT_ID=$(curl -s --connect-timeout 10 --max-time 15 -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/agile/1.0/board/36/sprint?state=active" \
+            | jq -r '.values[0].id // empty')
+
+          if [ -z "$SPRINT_ID" ]; then
+            echo "No active sprint found — skipping."
+            exit 0
+          fi
+
+          echo "Active sprint: $SPRINT_ID"
+
+          .github/scripts/jira-search.sh \
+            --jql "project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
+            --fields "key" \
+            --output /tmp/sprintless.json
+
+          ASSIGNED=0
+          for KEY in $(jq -r '.[].key' /tmp/sprintless.json); do
+            curl -s --connect-timeout 5 --max-time 10 \
+              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              -X PUT "https://winnovation.atlassian.net/rest/api/3/issue/$KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"fields\":{\"customfield_10020\":$SPRINT_ID}}" > /dev/null 2>&1 && \
+              ASSIGNED=$((ASSIGNED + 1)) && \
+              echo "  $KEY → sprint $SPRINT_ID" || \
+              echo "  Failed to assign $KEY"
+          done
+
+          echo "Assigned $ASSIGNED issues to sprint $SPRINT_ID."
