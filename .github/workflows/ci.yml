@@ -156,11 +156,27 @@ jobs:
         run: |
           echo "Querying test run results and transitioning Test issues..."
 
+          # First, get all Test issues currently in Planned — one API call
+          PLANNED_KEYS=$(curl -s --connect-timeout 10 --max-time 15 -G \
+            "https://winnovation.atlassian.net/rest/api/3/search/jql" \
+            --data-urlencode "jql=project=MMNT AND issuetype=Test AND status=Planned ORDER BY key ASC" \
+            --data-urlencode "maxResults=100" \
+            --data-urlencode "fields=key" \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            | jq -r '.issues[]?.key' | sort)
+
+          if [ -z "$PLANNED_KEYS" ]; then
+            echo "No Test issues in Planned state — nothing to transition."
+            exit 0
+          fi
+
+          PLANNED_COUNT=$(echo "$PLANNED_KEYS" | wc -l)
+          echo "Found $PLANNED_COUNT Test issues in Planned state."
+
           TRANSITIONED=0
           for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
             echo "Processing execution id $EXEC_ID..."
 
-            # Query Xray GraphQL for test runs — uses numeric Jira ID, not key
             QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100) { results { status { name } test { jira(fields: [\\\"key\\\"]) } } } } }\"}"
 
             GQL_RESPONSE=$(curl -s --connect-timeout 10 --max-time 15 -X POST \
@@ -169,31 +185,19 @@ jobs:
               -H "Content-Type: application/json" \
               -d "$QUERY")
 
-            # jira field returns JSON directly (not a sub-object) — extract key from it
             RUNS=$(echo "$GQL_RESPONSE" | jq -r '.data.getTestExecution.testRuns.results[]? | "\(.test.jira.key) \(.status.name)"')
 
             while IFS=' ' read -r TEST_KEY STATUS; do
               [ -z "$TEST_KEY" ] && continue
 
               case "$STATUS" in
-                PASSED|PASS)
-                  TRANSITION_ID="31"  # Done
-                  ;;
-                FAILED|FAIL)
-                  TRANSITION_ID="4"   # Blocked
-                  ;;
-                *)
-                  continue  # Skip TODO, EXECUTING, etc.
-                  ;;
+                PASSED|PASS) TRANSITION_ID="31" ;;
+                FAILED|FAIL) TRANSITION_ID="4" ;;
+                *) continue ;;
               esac
 
-              # Only transition if currently in Planned
-              CURRENT=$(curl -s --connect-timeout 5 --max-time 10 \
-                -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
-                "https://winnovation.atlassian.net/rest/api/3/issue/$TEST_KEY?fields=status" \
-                | jq -r '.fields.status.name // empty')
-
-              if [ "$CURRENT" = "Planned" ]; then
+              # Only transition if this key is in the Planned set
+              if echo "$PLANNED_KEYS" | grep -qx "$TEST_KEY"; then
                 curl -s --connect-timeout 5 --max-time 10 \
                   -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
                   -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$TEST_KEY/transitions" \
@@ -205,7 +209,7 @@ jobs:
             done <<< "$RUNS"
           done
 
-          echo "Transitioned $TRANSITIONED Test issues based on execution results."
+          echo "Transitioned $TRANSITIONED Test issues."
         env:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
