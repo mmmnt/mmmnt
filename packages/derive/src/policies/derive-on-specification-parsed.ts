@@ -18,7 +18,7 @@ export class DeriveOnSpecificationParsed {
 
     // Fire all hooks in parallel
     if (this.options?.onTopologyDerived) {
-      await Promise.all(this.options.onTopologyDerived.map((hook) => hook(topology, ir)));
+      await Promise.all(this.options.onTopologyDerived.map(async (hook) => hook(topology, ir)));
     }
 
     return topology;
