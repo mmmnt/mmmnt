@@ -105,6 +105,18 @@ describe('RegenerateOnMomentFileChanged', () => {
     expect(result1.parseResult.ir).toEqual(result2.parseResult.ir);
   });
 
+  it('constructs with default parser when none provided', async () => {
+    const defaultPolicy = new RegenerateOnMomentFileChanged();
+
+    const filePath = join(tmpDir, 'default-parser.moment');
+    writeFileSync(filePath, VALID_MOMENT, 'utf-8');
+
+    const result = await defaultPolicy.onFileChanged(filePath);
+
+    expect(result.parseResult.success).toBe(true);
+    expect(result.parseResult.ir).toBeDefined();
+  });
+
   it('accepts injected MomentParser instance', async () => {
     const injectedParser = new MomentParser();
     const customPolicy = new RegenerateOnMomentFileChanged(injectedParser);

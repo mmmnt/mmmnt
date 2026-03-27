@@ -978,6 +978,222 @@ describe('MomentValidator', () => {
       expect(diagnostics).toHaveLength(0);
     });
 
+    it('V11 returns gracefully when lane not found for multiplicity node', async () => {
+      const validator = services.validation.MomentValidator;
+      // Create a node with multiplicity but whose laneId doesn't match any lane
+      const fakeFlow = {
+        $type: 'FlowDeclaration',
+        frames: [],
+        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
+      };
+      const fakeFrame = { $type: 'Frame', $container: fakeFlow };
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'nonexistent',
+        nodeName: 'Evt',
+        multiplicity: { count: 3 },
+        connections: [],
+        $container: fakeFrame,
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        fakeNode,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // Lane not found → early return, no V11 error
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V9 returns gracefully when lane not found for crossing node', async () => {
+      const validator = services.validation.MomentValidator;
+      const fakeFlow = {
+        $type: 'FlowDeclaration',
+        frames: [],
+        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
+      };
+      const fakeFrame = { $type: 'Frame', $container: fakeFlow };
+      const fakeCrossing = {
+        $type: 'ContextCrossing',
+        targetLaneId: 'b',
+        fields: [{ name: 'f', type: { typeName: 'UUID' }, required: true }],
+        relationshipType: 'CustomerSupplier',
+      };
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'nonexistent',
+        nodeName: 'Evt',
+        crossing: fakeCrossing,
+        connections: [],
+        $container: fakeFrame,
+      } as never;
+      (fakeCrossing as Record<string, unknown>).$container = fakeNode;
+      const diagnostics: string[] = [];
+      validator.checkV9(
+        fakeNode,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V11 returns gracefully when flow not found for multiplicity node', () => {
+      const validator = services.validation.MomentValidator;
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'a',
+        nodeName: 'Evt',
+        multiplicity: { count: 3 },
+        connections: [],
+        $container: { $type: 'Frame', $container: { $type: 'Unknown' } },
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        fakeNode,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V9 checks crossing node with lane found in context', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          lane b "Fulfillment" [Supporting]
+          frame "Step"
+            a: OrderPlaced crosses-to b via CustomerSupplier
+              contract
+                id: UUID [required]
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV9(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // OrderPlaced is an event in Ordering context → no V9 error
+      expect(diagnostics.some((m) => m.includes('V9'))).toBe(false);
+    });
+
+    it('V9 reports error when crossing is on command node', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          lane b "Fulfillment" [Supporting]
+          frame "Step"
+            a: PlaceOrder crosses-to b via CustomerSupplier
+              contract
+                id: UUID [required]
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV9(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // PlaceOrder is a command in Ordering context → V9 error
+      expect(diagnostics.some((m) => m.includes('V9'))).toBe(true);
+    });
+
+    it('V11 checks multiplicity node with lane found and blocks resolved', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          frame "Step"
+            a: OrderPlaced (×3)
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // OrderPlaced is an event → no V11 error
+      expect(diagnostics.some((m) => m.includes('V11'))).toBe(false);
+    });
+
+    it('V11 reports error when multiplicity on command node', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          frame "Step"
+            a: PlaceOrder (×3)
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // PlaceOrder is a command → V11 error
+      expect(diagnostics.some((m) => m.includes('V11'))).toBe(true);
+    });
+
+    it('V14 Partnership iterates nodes without crossings', async () => {
+      // This test ensures the hasReverseCrossing method handles nodes without crossings
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          lane b "Fulfillment" [Supporting]
+          frame "Step 1"
+            a: PlaceOrder
+            a: OrderPlaced crosses-to b via Partnership
+              contract
+                id: UUID [required]
+          frame "Step 2"
+            b: InitiateFulfillment
+      `);
+      const validator = services.validation.MomentValidator;
+      const flow = result.document.parseResult.value.flow!;
+      const diagnostics: { severity: string; message: string }[] = [];
+      validator.checkV14(flow, (severity, message) => {
+        diagnostics.push({ severity: severity as string, message: message as string });
+      });
+      // One-directional Partnership → V14 warning, nodes without crossings are iterated
+      expect(diagnostics.some((d) => d.severity === 'warning' && d.message.includes('V14'))).toBe(
+        true,
+      );
+    });
+
+    it('checkBranchLaneReferenced skips when no branch lanes exist', async () => {
+      const validator = services.validation.MomentValidator;
+      const fakeFlow = {
+        $type: 'FlowDeclaration',
+        name: '"test"',
+        lanes: [{ $type: 'LaneDeclaration', id: 'a', label: '"A"', isBranch: false }],
+        frames: [],
+        whenBlocks: [],
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkBranchLaneReferenced(fakeFlow, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
     it('checkNodePlacement handles nodes without connections', async () => {
       const result = await validate(`
         flow "test"

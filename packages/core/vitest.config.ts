@@ -10,11 +10,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/generated/**'],
+      exclude: ['src/generated/**', 'src/ir/index.ts'],
       all: false,
       thresholds: {
         lines: 95,
-        branches: 90,
+        branches: 95,
         functions: 95,
         statements: 95,
       },
