@@ -22,7 +22,30 @@ function makeMetadata() {
   };
 }
 
-function makeContext(id: string, name: string): ContextDefinition {
+function makeEvent(
+  id: string,
+  eventName: string,
+): {
+  id: string;
+  name: string;
+  fields: Array<{ name: string; type: string; isArray: boolean; required: boolean }>;
+} {
+  return {
+    id,
+    name: eventName,
+    fields: [{ name: 'id', type: 'string', isArray: false, required: true }],
+  };
+}
+
+function makeContext(
+  id: string,
+  name: string,
+  events: Array<{
+    id: string;
+    name: string;
+    fields: Array<{ name: string; type: string; isArray: boolean; required: boolean }>;
+  }> = [],
+): ContextDefinition {
   return {
     id,
     name,
@@ -30,7 +53,7 @@ function makeContext(id: string, name: string): ContextDefinition {
     aggregates: [],
     domainServices: [],
     commands: [],
-    events: [],
+    events,
     policies: [],
     sagas: [],
     valueObjects: [],
@@ -57,7 +80,7 @@ function makeCrossingConnection(
   sourceFrameId: string,
   targetContextId: string,
   eventType: string,
-  fields: SchemaContract['fields'] = [],
+  fields: SchemaContract['fields'] = [{ name: 'id', type: 'string', required: true }],
   relationshipType = 'Partnership',
 ): ConnectionDefinition {
   return {
@@ -130,8 +153,12 @@ describe('DerivationEngine', () => {
   // -----------------------------------------------------------------------
   describe('DV-02', () => {
     it.skip('flow with 2 crossings in separate frames produces 2 assertion points total', () => {
-      const ctx1 = makeContext('ctx-1', 'Ordering');
-      const ctx2 = makeContext('ctx-2', 'Shipping');
+      const ctx1 = makeContext('ctx-1', 'Ordering', [
+        makeEvent('OrderShipped-event', 'OrderShipped'),
+      ]);
+      const ctx2 = makeContext('ctx-2', 'Shipping', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
       const frame1 = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
       const frame2 = makeFrame('fr2', 'Frame 2', 'ctx-2', 'ShipOrder');
       const conn1 = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
@@ -177,7 +204,7 @@ describe('DerivationEngine', () => {
   describe('DV-04', () => {
     it.skip('crossing with schema contract maps required fields to FieldConstraint entries', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
-      const ctx2 = makeContext('ctx-2', 'Billing');
+      const ctx2 = makeContext('ctx-2', 'Billing', [makeEvent('OrderPlaced-event', 'OrderPlaced')]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', [
         { name: 'orderId', type: 'string', required: true },
@@ -200,7 +227,9 @@ describe('DerivationEngine', () => {
 
     it.skip('crossing without contract produces empty payload validation', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
-      const ctx2 = makeContext('ctx-2', 'Shipping');
+      const ctx2 = makeContext('ctx-2', 'Shipping', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', []);
       const flow = makeFlow('f1', 'No-Contract Flow', [frame], [conn]);
@@ -220,7 +249,9 @@ describe('DerivationEngine', () => {
   describe('deriveTopology', () => {
     it.skip('single flow, 2 lanes, 2 frames, 1 crossing produces 1 suite, 2 cases, 1 assertion point', () => {
       const ctx1 = makeContext('ctx-1', 'Sales');
-      const ctx2 = makeContext('ctx-2', 'Fulfillment');
+      const ctx2 = makeContext('ctx-2', 'Fulfillment', [
+        makeEvent('OrderAccepted-event', 'OrderAccepted'),
+      ]);
       const frame1 = makeFrame('fr1', 'Accept Order', 'ctx-1', 'AcceptOrder');
       const frame2 = makeFrame('fr2', 'Fulfill Order', 'ctx-2', 'FulfillOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderAccepted');
@@ -280,8 +311,10 @@ describe('DerivationEngine', () => {
 
     it.skip('frame with multiple crossings produces multiple assertion points in that test case', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
-      const ctx2 = makeContext('ctx-2', 'Billing');
-      const ctx3 = makeContext('ctx-3', 'Shipping');
+      const ctx2 = makeContext('ctx-2', 'Billing', [makeEvent('OrderPlaced-event', 'OrderPlaced')]);
+      const ctx3 = makeContext('ctx-3', 'Shipping', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
       const frame = makeFrame('fr1', 'Multi-Cross Frame', 'ctx-1', 'PlaceOrder');
       const conn1 = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
       const conn2 = makeCrossingConnection('c2', 'fr1', 'ctx-3', 'OrderPlaced');
@@ -344,7 +377,9 @@ describe('DerivationEngine', () => {
 
     it.skip('partnership relationship sets correct sourceContext and targetContext on assertion point', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
-      const ctx2 = makeContext('ctx-2', 'Shipping');
+      const ctx2 = makeContext('ctx-2', 'Shipping', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection(
         'c1',
@@ -377,7 +412,9 @@ describe('DerivationEngine', () => {
 
     it.skip('customer-supplier relationship correctly identifies contexts on assertion point', () => {
       const ctx1 = makeContext('ctx-supplier', 'Inventory');
-      const ctx2 = makeContext('ctx-customer', 'Ordering');
+      const ctx2 = makeContext('ctx-customer', 'Ordering', [
+        makeEvent('StockReserved-event', 'StockReserved'),
+      ]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-supplier', 'ReserveStock');
       const conn = makeCrossingConnection(
         'c1',
@@ -385,7 +422,7 @@ describe('DerivationEngine', () => {
         'ctx-customer',
         'StockReserved',
         [{ name: 'sku', type: 'string', required: true }],
-        'Customer-Supplier',
+        'CustomerSupplier',
       );
       const flow = makeFlow('f1', 'Supplier Flow', [frame], [conn]);
       const ir = makeIR({
@@ -395,7 +432,7 @@ describe('DerivationEngine', () => {
           {
             sourceContextId: 'ctx-supplier',
             targetContextId: 'ctx-customer',
-            relationshipType: 'Customer-Supplier',
+            relationshipType: 'CustomerSupplier',
             contract: 'StockReserved',
           },
         ],
@@ -410,7 +447,9 @@ describe('DerivationEngine', () => {
 
     it.skip('crossing with required and optional fields maps both to FieldConstraint entries', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
-      const ctx2 = makeContext('ctx-2', 'Notification');
+      const ctx2 = makeContext('ctx-2', 'Notification', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', [
         { name: 'orderId', type: 'string', required: true },
