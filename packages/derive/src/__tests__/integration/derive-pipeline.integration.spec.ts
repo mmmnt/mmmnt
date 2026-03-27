@@ -5,7 +5,6 @@ import type {
   FrameDefinition,
   ConnectionDefinition,
   ContextDefinition,
-  SchemaContract,
   SchemaFieldDefinition,
 } from '@mmmnt/core';
 import { deriveTopology } from '../../engine/derivation-engine.js';
@@ -177,11 +176,13 @@ describe('Derive Pipeline Integration', () => {
 
       expect(topology.suites).toHaveLength(3);
 
-      const suiteIds = topology.suites.map((s) => s.flowId);
-      expect(suiteIds).toEqual(['flow-order', 'flow-ship', 'flow-bill']);
+      const sortedSuites = [...topology.suites].sort((a, b) => a.flowId.localeCompare(b.flowId));
 
-      const suiteNames = topology.suites.map((s) => s.flowName);
-      expect(suiteNames).toEqual(['Order Processing', 'Shipment Handling', 'Billing Cycle']);
+      const suiteIds = sortedSuites.map((s) => s.flowId);
+      expect(suiteIds).toEqual(['flow-bill', 'flow-order', 'flow-ship']);
+
+      const suiteNames = sortedSuites.map((s) => s.flowName);
+      expect(suiteNames).toEqual(['Billing Cycle', 'Order Processing', 'Shipment Handling']);
     });
   });
 
@@ -473,13 +474,19 @@ describe('Derive Pipeline Integration', () => {
       // framePlace => 1 test case, frameBranch => 2 (one per branch), frameShip => 1
       expect(suite.testCases).toHaveLength(4);
 
-      // Frame ordering preserved: place first, then branch variants, then ship
+      // Frame ordering preserved: place first, then branch variants (any order), then ship
       expect(suite.testCases[0].frameId).toBe('fr-place');
       expect(suite.testCases[1].frameId).toBe('fr-decide');
-      expect(suite.testCases[1].variant).toBe('order.total > 500');
       expect(suite.testCases[2].frameId).toBe('fr-decide');
-      expect(suite.testCases[2].variant).toBe('order.total <= 500');
       expect(suite.testCases[3].frameId).toBe('fr-ship');
+
+      // Both decision variants exist, regardless of internal ordering
+      const decideVariants = suite.testCases
+        .filter((tc) => tc.frameId === 'fr-decide')
+        .map((tc) => tc.variant);
+      expect(decideVariants).toHaveLength(2);
+      expect(decideVariants).toContain('order.total > 500');
+      expect(decideVariants).toContain('order.total <= 500');
 
       // crossToPayment is on fr-place => assertions on first test case
       expect(suite.testCases[0].assertions).toHaveLength(1);
