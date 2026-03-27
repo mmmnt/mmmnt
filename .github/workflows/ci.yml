@@ -61,9 +61,9 @@ jobs:
 
       - name: Upload JUnit test results
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && matrix.node-version == 22
         with:
-          name: junit-results-node-${{ matrix.node-version }}
+          name: junit-results
           path: packages/*/test-results/junit.xml
 
       - name: Snapshot freshness
@@ -80,38 +80,11 @@ jobs:
     needs: [build]
     if: ${{ needs.build.result == 'success' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run infrastructure verification tests
-        run: npx vitest run --config vitest.config.ts
-        continue-on-error: true
-
-      - name: Download JUnit test results (Node 20)
+      - name: Download JUnit test results
         uses: actions/download-artifact@v4
         with:
-          name: junit-results-node-20
-          path: test-results/node-20/
-        continue-on-error: true
-
-      - name: Download JUnit test results (Node 22)
-        uses: actions/download-artifact@v4
-        with:
-          name: junit-results-node-22
-          path: test-results/node-22/
-        continue-on-error: true
+          name: junit-results
+          path: test-results/
 
       - name: Authenticate to Xray
         id: xray-auth
@@ -123,33 +96,15 @@ jobs:
             | tr -d '"')
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
-      - name: Import JUnit XML results (multipart with Test Plan context)
+      - name: Import JUnit XML results
         run: |
-          for NODE_VER in 20 22; do
-            RESULTS_DIR="test-results/node-${NODE_VER}"
-            if [ ! -d "$RESULTS_DIR" ]; then
-              echo "No results for Node $NODE_VER — skipping."
-              continue
-            fi
-            for f in $(find "$RESULTS_DIR" -name 'junit.xml'); do
-              echo "Importing $f (Node $NODE_VER)..."
-              curl -s -X POST \
-                "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
-                -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-                -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — Node ${NODE_VER} — JUnit\",\"issuetype\":{\"name\":\"Test Execution\"}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
-                -F "results=@${f};type=application/xml" || true
-            done
-          done
-
-      - name: Import Cucumber JSON results (multipart with Test Plan context)
-        if: hashFiles('**/test-results/cucumber.json') != ''
-        run: |
-          for f in $(find . -path '*/test-results/cucumber.json' -not -path '*/node_modules/*'); do
+          for f in $(find test-results -name 'junit.xml'); do
+            echo "Importing $f..."
             curl -s -X POST \
-              "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart" \
+              "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — Cucumber","issuetype":{"name":"Test Execution"}}}' \
-              -F "results=@${f};type=application/json" || true
+              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
+              -F "results=@${f};type=application/xml" || true
           done
 
   input-gate-verification:
@@ -208,7 +163,6 @@ jobs:
 
   test-traceability-verification:
     runs-on: ubuntu-latest
-    needs: [build]
     if: github.event_name == 'pull_request'
     steps:
       - name: Verify test traceability
