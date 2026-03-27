@@ -13,14 +13,22 @@ import { SpecificationDocumentGenerator } from '../services/specification-docume
  *  - GherkinGenerator  (topology -> .feature files)
  *  - SpecificationDocumentGenerator (IR -> spec markdown docs)
  *
- * and returns a combined GenerationManifest.
- *
- * Designed to be used as a TopologyDerivedHook callback from
- * DeriveOnSpecificationParsed.
+ * The {@link handle} method conforms to TopologyDerivedHook signature
+ * for use as a callback from DeriveOnSpecificationParsed.
+ * The {@link execute} method returns the GenerationManifest for callers
+ * who need the result.
  */
 export class GenerateGherkinOnTopologyDerived {
   private readonly gherkinGenerator = new GherkinGenerator();
   private readonly specDocGenerator = new SpecificationDocumentGenerator();
+
+  /**
+   * TopologyDerivedHook-compatible entry point.
+   * Matches the (topology, ir) => void signature.
+   */
+  handle(topology: TestSuiteTopology, ir: IntermediateRepresentation): void {
+    this.execute(ir, topology);
+  }
 
   execute(ir: IntermediateRepresentation, topology: TestSuiteTopology): GenerationManifest {
     const gherkinManifest = this.gherkinGenerator.generate(ir, topology);

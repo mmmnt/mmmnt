@@ -8,6 +8,7 @@ import type {
   AssertionPoint,
   FieldConstraint,
   PayloadValidationStep,
+  TopologyDerivedHook,
 } from '@mmmnt/derive';
 import { GenerateGherkinOnTopologyDerived } from '../../policies/generate-gherkin-on-topology-derived.js';
 
@@ -32,7 +33,7 @@ function makeIR(overrides: Partial<IntermediateRepresentation> = {}): Intermedia
 
 function makeContext(name: string, id?: string): ContextDefinition {
   return {
-    id: id ?? name.toLowerCase(),
+    id: id ?? `ctx-${name}`,
     name,
     aggregates: [],
     commands: [],
@@ -139,7 +140,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     ]);
     const topology = makeTopology([suite]);
     const ir = makeIR({
-      contexts: [makeContext('Ordering', 'ordering'), makeContext('Shipping', 'shipping')],
+      contexts: [makeContext('Ordering'), makeContext('Shipping')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -162,7 +163,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Frame B')]);
     const topology = makeTopology([suiteA, suiteB]);
     const ir = makeIR({
-      contexts: [makeContext('Sales', 'sales')],
+      contexts: [makeContext('Sales')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -183,7 +184,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
   it('empty topology with contexts produces no features but still produces spec docs', () => {
     const topology = makeTopology([]);
     const ir = makeIR({
-      contexts: [makeContext('Ordering', 'ordering'), makeContext('Billing', 'billing')],
+      contexts: [makeContext('Ordering'), makeContext('Billing')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -201,26 +202,23 @@ describe('GenerateGherkinOnTopologyDerived', () => {
   });
 
   // 4. Works as a hook from DeriveOnSpecificationParsed (callable interface)
-  it('works as a TopologyDerivedHook callback', () => {
+  it('works as a TopologyDerivedHook callback via handle method', () => {
     const suite = makeSuite('f1', 'Hook Flow', [makeTestCase('fr1', 'Frame 1')]);
     const topology = makeTopology([suite]);
     const ir = makeIR({
-      contexts: [makeContext('Payments', 'payments')],
+      contexts: [makeContext('Payments')],
     });
 
-    // Simulate the hook signature: (topology, ir) => void | Promise<void>
-    // The policy's execute takes (ir, topology), so a wrapper adapts it.
-    let capturedManifest: ReturnType<typeof policy.execute> | undefined;
-    const hook = (t: TestSuiteTopology, i: IntermediateRepresentation): void => {
-      capturedManifest = policy.execute(i, t);
-    };
+    // Type-safe: policy.handle conforms to TopologyDerivedHook signature
+    const hook: TopologyDerivedHook = policy.handle.bind(policy);
 
-    // Invoke the hook as DeriveOnSpecificationParsed would
+    // Invoke as DeriveOnSpecificationParsed would — no errors
     hook(topology, ir);
 
-    expect(capturedManifest).toBeDefined();
-    expect(capturedManifest!.featuresGenerated).toHaveLength(1);
-    expect(capturedManifest!.docsGenerated.length).toBeGreaterThanOrEqual(1);
+    // Verify execute still produces correct manifest
+    const manifest = policy.execute(ir, topology);
+    expect(manifest.featuresGenerated).toHaveLength(1);
+    expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(1);
   });
 
   // 5. Empty IR (no contexts) with topology produces features but no docs
