@@ -86,6 +86,32 @@ jobs:
           name: junit-results
           path: test-results/
 
+      - name: Resolve sprint from feature branch story
+        id: sprint
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
+
+          if [ -z "$STORY_KEY" ]; then
+            echo "::notice::No story key in branch '$BRANCH' — sprint scoping skipped."
+            echo "id=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          SPRINT_ID=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$STORY_KEY?fields=customfield_10020" \
+            | jq -r '.fields.customfield_10020[0].id // empty')
+
+          if [ -n "$SPRINT_ID" ]; then
+            echo "Resolved sprint ID $SPRINT_ID from $STORY_KEY"
+          else
+            echo "::warning::No sprint found on $STORY_KEY — sprint scoping skipped."
+          fi
+          echo "id=$SPRINT_ID" >> $GITHUB_OUTPUT
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
       - name: Authenticate to Xray
         id: xray-auth
         run: |
@@ -98,14 +124,62 @@ jobs:
 
       - name: Import JUnit XML results
         run: |
+          SPRINT_ID="${{ steps.sprint.outputs.id }}"
+          SPRINT_FIELD=""
+          if [ -n "$SPRINT_ID" ]; then
+            SPRINT_FIELD=",\"customfield_10020\":$SPRINT_ID"
+          fi
+
           for f in $(find test-results -name 'junit.xml'); do
             echo "Importing $f..."
             curl -s -X POST \
               "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
+              -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — JUnit\",\"issuetype\":{\"name\":\"Test Execution\"}${SPRINT_FIELD}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
               -F "results=@${f};type=application/xml" || true
           done
+
+      - name: Assign sprintless Test issues to active sprint
+        if: steps.sprint.outputs.id != ''
+        run: |
+          SPRINT_ID="${{ steps.sprint.outputs.id }}"
+          echo "Assigning sprintless Test/Test Execution issues to sprint $SPRINT_ID..."
+
+          ASSIGNED=0
+          START_AT=0
+
+          while true; do
+            RESPONSE=$(curl -s -G "https://winnovation.atlassian.net/rest/api/3/search/jql" \
+              --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
+              --data-urlencode "maxResults=100" \
+              --data-urlencode "startAt=$START_AT" \
+              --data-urlencode "fields=key" \
+              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN")
+
+            KEYS=$(echo "$RESPONSE" | jq -r '.issues[]?.key')
+            if [ -z "$KEYS" ]; then
+              break
+            fi
+
+            for KEY in $KEYS; do
+              curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                -X PUT "https://winnovation.atlassian.net/rest/api/3/issue/$KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"fields\":{\"customfield_10020\":{\"id\":$SPRINT_ID}}}" > /dev/null 2>&1 && \
+                ASSIGNED=$((ASSIGNED + 1)) || true
+            done
+
+            COUNT=$(echo "$RESPONSE" | jq '.issues | length')
+            if [ "$COUNT" -lt 100 ]; then
+              break
+            fi
+            START_AT=$((START_AT + 100))
+          done
+
+          echo "Assigned $ASSIGNED Test issues to sprint $SPRINT_ID."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
   input-gate-verification:
     runs-on: ubuntu-latest
