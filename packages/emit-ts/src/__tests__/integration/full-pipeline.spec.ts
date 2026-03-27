@@ -130,7 +130,7 @@ function makeFlow(overrides: Partial<FlowDefinition> = {}): FlowDefinition {
 }
 
 // ---------------------------------------------------------------------------
-// Minimal IR fixture: single context, single aggregate, single flow
+// Minimal IR fixture: two contexts, multiple aggregates, single flow with crossing connection
 // ---------------------------------------------------------------------------
 function buildMinimalIR(): IntermediateRepresentation {
   const ctx = makeContext({
@@ -359,7 +359,7 @@ describe('Full Pipeline Integration — M3 Gate', () => {
     expect(specFiles.some((f) => f.endsWith('.spec.ts'))).toBe(true);
   });
 
-  // Test 2: Minimal sample — single-flow IR with one context, one aggregate
+  // Test 2: Minimal sample — single-flow IR with two contexts and crossing
   it('minimal sample: single-flow IR with two contexts produces all outputs', async () => {
     const ir = buildMinimalIR();
     const { topology, generateResult, emitResult } = await runPipeline(ir);
@@ -415,22 +415,24 @@ describe('Full Pipeline Integration — M3 Gate', () => {
     const { topology, generateResult, emitResult } = await runPipeline(ir);
 
     const featureFlowIds = new Set(generateResult.featuresGenerated.map((f) => f.flowId));
-    const specFlowNames = new Set(
-      [...emitResult.scaffoldOutput.files.keys()].filter((k) => k.includes('flows/')).map((k) => k),
+    const flowSpecPaths = [...emitResult.scaffoldOutput.files.keys()].filter(
+      (k) => k.includes('__tests__/flows/') && k.endsWith('.spec.ts'),
     );
 
     for (const suite of topology.suites) {
       // Each flow must have a .feature
       expect(featureFlowIds.has(suite.flowId)).toBe(true);
 
-      // Each flow must have a .spec.ts under __tests__/flows/
-      const hasSpec = [...specFlowNames].some((specPath) => specPath.endsWith('.spec.ts'));
+      // Each flow must have its own .spec.ts under __tests__/flows/
+      const hasSpec = flowSpecPaths.some((specPath) =>
+        specPath.toLowerCase().includes(suite.flowName.toLowerCase().replace(/\s+/g, '-')),
+      );
       expect(hasSpec).toBe(true);
     }
 
     // Number of feature files == number of spec flow files == number of suites
     expect(generateResult.featuresGenerated).toHaveLength(topology.suites.length);
-    expect(specFlowNames.size).toBe(topology.suites.length);
+    expect(flowSpecPaths.length).toBe(topology.suites.length);
   });
 
   // Test 5: GN-01 — every flow has a .feature file
