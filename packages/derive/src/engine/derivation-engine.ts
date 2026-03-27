@@ -15,16 +15,18 @@ import type {
 
 /**
  * Derives a TestSuiteTopology from an IntermediateRepresentation.
- * Pure function: IR in -> TestSuiteTopology out. No I/O, no state.
+ * Pure function when derivedAt is provided. If omitted, current time is used.
  */
-export function deriveTopology(ir: IntermediateRepresentation): TestSuiteTopology {
+export function deriveTopology(
+  ir: IntermediateRepresentation,
+  derivedAt?: string,
+): TestSuiteTopology {
   const suites = ir.flows.map((flow) => deriveTestSuite(flow));
   const sourceIrHash = computeHash(ir);
-  const derivedAt = new Date().toISOString();
 
   return {
     suites,
-    metadata: { sourceIrHash, derivedAt },
+    metadata: { sourceIrHash, derivedAt: derivedAt ?? new Date().toISOString() },
   };
 }
 
@@ -69,11 +71,39 @@ function deriveTestCases(
   return [baseCase];
 }
 
+function resolveSourceContextId(
+  conn: ConnectionDefinition & { connectionType: 'crosses-to' },
+  frame: FrameDefinition,
+): string {
+  const baseEntries = frame.contextEntries ?? [];
+  const branchEntries = (frame.branches ?? []).flatMap((b) => b.entries ?? []);
+  const allEntries = [...baseEntries, ...branchEntries];
+
+  if (allEntries.length === 0) {
+    throw new Error(
+      `Invariant violation: frame ${frame.id} has no context entries for crossing ${conn.id}`,
+    );
+  }
+
+  // If only one context in this frame, it's the source
+  if (allEntries.length === 1) {
+    return allEntries[0].contextId;
+  }
+
+  // For multi-context frames, the source is the context that is NOT the target
+  const nonTarget = allEntries.find((e) => e.contextId !== conn.targetContextId);
+  if (nonTarget) {
+    return nonTarget.contextId;
+  }
+
+  return allEntries[0].contextId;
+}
+
 function mapCrossingToAssertion(
   conn: ConnectionDefinition & { connectionType: 'crosses-to' },
   frame: FrameDefinition,
 ): AssertionPoint {
-  const sourceContextId = frame.contextEntries[0].contextId;
+  const sourceContextId = resolveSourceContextId(conn, frame);
   const targetContextId = conn.targetContextId;
   const { schemaContract } = conn;
 
