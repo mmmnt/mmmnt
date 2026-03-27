@@ -75,28 +75,12 @@ function resolveSourceContextId(
   conn: ConnectionDefinition & { connectionType: 'crosses-to' },
   frame: FrameDefinition,
 ): string {
-  const baseEntries = frame.contextEntries ?? [];
-  const branchEntries = (frame.branches ?? []).flatMap((b) => b.entries ?? []);
-  const allEntries = [...baseEntries, ...branchEntries];
+  const branchEntries = (frame.branches ?? []).flatMap((b) => b.entries);
+  const allEntries = [...frame.contextEntries, ...branchEntries];
 
-  if (allEntries.length === 0) {
-    throw new Error(
-      `Invariant violation: frame ${frame.id} has no context entries for crossing ${conn.id}`,
-    );
-  }
-
-  // If only one context in this frame, it's the source
-  if (allEntries.length === 1) {
-    return allEntries[0].contextId;
-  }
-
-  // For multi-context frames, the source is the context that is NOT the target
+  // For multi-context frames, prefer the entry that is NOT the crossing target
   const nonTarget = allEntries.find((e) => e.contextId !== conn.targetContextId);
-  if (nonTarget) {
-    return nonTarget.contextId;
-  }
-
-  return allEntries[0].contextId;
+  return nonTarget ? nonTarget.contextId : allEntries[0].contextId;
 }
 
 function mapCrossingToAssertion(
