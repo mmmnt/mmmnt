@@ -55,16 +55,26 @@ function makeContext(
     valueObjects?: ValueObjectDefinition[];
   },
 ): ContextDefinition {
+  const aggregates = options?.aggregates ?? [];
+  const directCommands = options?.commands ?? [];
+  const directEvents = options?.events ?? [];
+  const directVOs = options?.valueObjects ?? [];
+
+  // Mirror @mmmnt/core IR behavior: context-level arrays include aggregate members
+  const aggregateCommands = aggregates.flatMap((a) => a.commands);
+  const aggregateEvents = aggregates.flatMap((a) => a.events);
+  const aggregateVOs = aggregates.flatMap((a) => a.valueObjects);
+
   return {
     id: `ctx-${name}`,
     name,
-    aggregates: options?.aggregates ?? [],
+    aggregates,
     domainServices: [],
-    commands: options?.commands ?? [],
-    events: options?.events ?? [],
+    commands: [...aggregateCommands, ...directCommands],
+    events: [...aggregateEvents, ...directEvents],
     policies: [],
     sagas: [],
-    valueObjects: options?.valueObjects ?? [],
+    valueObjects: [...aggregateVOs, ...directVOs],
     invariants: [],
   };
 }
@@ -164,7 +174,7 @@ describe('SpecificationDocumentGenerator', () => {
 
     expect(inventoryDocs).toHaveLength(2);
 
-    const orderingInventory = inventoryDocs.find((d) => d.filePath === 'Ordering/inventory.md');
+    const orderingInventory = inventoryDocs.find((d) => d.filePath === 'ordering/inventory.md');
     expect(orderingInventory).toBeDefined();
     expect(orderingInventory!.content).toContain('# Ordering Inventory');
     expect(orderingInventory!.content).toContain('### Order');
@@ -172,7 +182,7 @@ describe('SpecificationDocumentGenerator', () => {
     expect(orderingInventory!.content).toContain('- OrderPlaced');
     expect(orderingInventory!.content).toContain('- OrderTotal');
 
-    const shippingInventory = inventoryDocs.find((d) => d.filePath === 'Shipping/inventory.md');
+    const shippingInventory = inventoryDocs.find((d) => d.filePath === 'shipping/inventory.md');
     expect(shippingInventory).toBeDefined();
     expect(shippingInventory!.content).toContain('# Shipping Inventory');
   });
@@ -260,9 +270,9 @@ describe('SpecificationDocumentGenerator', () => {
     const specDoc = docs.find((d) => d.documentType === 'specification');
 
     expect(specDoc).toBeDefined();
-    // 1 aggregate command + 1 context command = 2
+    // context.commands includes aggregate + direct commands (flattened by IR transform)
     expect(specDoc!.content).toContain('- Commands: 2');
-    // 1 aggregate event + 1 context event = 2
+    // context.events includes aggregate + direct events (flattened by IR transform)
     expect(specDoc!.content).toContain('- Events: 2');
   });
 });

@@ -19,6 +19,15 @@ import type { GeneratedDocument } from '../types/index.js';
  *  - Deterministic: same IR → identical output
  *  - Pure transformation: no I/O side effects
  */
+function safePathSegment(name: string): string {
+  return name
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/[^a-z0-9-]/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase();
+}
+
 export class SpecificationDocumentGenerator {
   generate(ir: IntermediateRepresentation): GeneratedDocument[] {
     if (ir.contexts.length === 0) {
@@ -124,29 +133,45 @@ export class SpecificationDocumentGenerator {
     lines.push(`# ${context.name} Inventory`);
     lines.push('');
 
+    // De-duplicate: context-level arrays include aggregate members (from core IR transform).
+    // Only show items NOT already listed under an aggregate.
+    const aggregateCommandNames = new Set<string>();
+    const aggregateEventNames = new Set<string>();
+    const aggregateVONames = new Set<string>();
+
+    for (const aggregate of context.aggregates) {
+      for (const cmd of aggregate.commands) aggregateCommandNames.add(cmd.name);
+      for (const evt of aggregate.events) aggregateEventNames.add(evt.name);
+      for (const vo of aggregate.valueObjects) aggregateVONames.add(vo.name);
+    }
+
+    const contextOnlyCommands = context.commands.filter((c) => !aggregateCommandNames.has(c.name));
+    const contextOnlyEvents = context.events.filter((e) => !aggregateEventNames.has(e.name));
+    const contextOnlyVOs = context.valueObjects.filter((v) => !aggregateVONames.has(v.name));
+
     this.appendAggregatesSection(lines, context);
     this.appendNamedItemSection(
       lines,
       '## Commands',
       'No context-level commands defined.',
-      context.commands,
+      contextOnlyCommands,
     );
     this.appendNamedItemSection(
       lines,
       '## Events',
       'No context-level events defined.',
-      context.events,
+      contextOnlyEvents,
     );
     this.appendNamedItemSection(
       lines,
       '## Value Objects',
       'No context-level value objects defined.',
-      context.valueObjects,
+      contextOnlyVOs,
     );
 
     return {
       documentType: 'context-inventory',
-      filePath: `${context.name}/inventory.md`,
+      filePath: `${safePathSegment(context.name)}/inventory.md`,
       content: lines.join('\n'),
     };
   }
@@ -215,18 +240,17 @@ export class SpecificationDocumentGenerator {
     return context ? context.name : contextId;
   }
 
+  // context.commands/events/valueObjects already include aggregate members
+  // (flattened by @mmmnt/core AST→IR transform). No need to sum separately.
   private countCommands(context: ContextDefinition): number {
-    const aggregateCommands = context.aggregates.reduce((sum, agg) => sum + agg.commands.length, 0);
-    return aggregateCommands + context.commands.length;
+    return context.commands.length;
   }
 
   private countEvents(context: ContextDefinition): number {
-    const aggregateEvents = context.aggregates.reduce((sum, agg) => sum + agg.events.length, 0);
-    return aggregateEvents + context.events.length;
+    return context.events.length;
   }
 
   private countValueObjects(context: ContextDefinition): number {
-    const aggregateVOs = context.aggregates.reduce((sum, agg) => sum + agg.valueObjects.length, 0);
-    return aggregateVOs + context.valueObjects.length;
+    return context.valueObjects.length;
   }
 }
