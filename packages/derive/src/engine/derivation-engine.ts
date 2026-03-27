@@ -15,16 +15,18 @@ import type {
 
 /**
  * Derives a TestSuiteTopology from an IntermediateRepresentation.
- * Pure function: IR in -> TestSuiteTopology out. No I/O, no state.
+ * Pure function when derivedAt is provided. If omitted, current time is used.
  */
-export function deriveTopology(ir: IntermediateRepresentation): TestSuiteTopology {
+export function deriveTopology(
+  ir: IntermediateRepresentation,
+  derivedAt?: string,
+): TestSuiteTopology {
   const suites = ir.flows.map((flow) => deriveTestSuite(flow));
   const sourceIrHash = computeHash(ir);
-  const derivedAt = new Date().toISOString();
 
   return {
     suites,
-    metadata: { sourceIrHash, derivedAt },
+    metadata: { sourceIrHash, derivedAt: derivedAt ?? new Date().toISOString() },
   };
 }
 
@@ -69,11 +71,39 @@ function deriveTestCases(
   return [baseCase];
 }
 
+function resolveSourceContextId(
+  conn: ConnectionDefinition & { connectionType: 'crosses-to' },
+  frame: FrameDefinition,
+): string {
+  const branchEntries = (frame.branches ?? []).flatMap((b) => b.entries);
+  const allEntries = [...frame.contextEntries, ...branchEntries];
+
+  // Single context — unambiguous
+  if (allEntries.length === 1) {
+    return allEntries[0].contextId;
+  }
+
+  // Multi-context: filter out the target to find source candidates
+  const nonTargetEntries = allEntries.filter((e) => e.contextId !== conn.targetContextId);
+
+  if (nonTargetEntries.length === 1) {
+    return nonTargetEntries[0].contextId;
+  }
+
+  // All entries are the target context — return it
+  if (nonTargetEntries.length === 0) {
+    return allEntries[0].contextId;
+  }
+
+  // Ambiguous: multiple distinct non-target contexts — use first
+  return nonTargetEntries[0].contextId;
+}
+
 function mapCrossingToAssertion(
   conn: ConnectionDefinition & { connectionType: 'crosses-to' },
   frame: FrameDefinition,
 ): AssertionPoint {
-  const sourceContextId = frame.contextEntries[0].contextId;
+  const sourceContextId = resolveSourceContextId(conn, frame);
   const targetContextId = conn.targetContextId;
   const { schemaContract } = conn;
 

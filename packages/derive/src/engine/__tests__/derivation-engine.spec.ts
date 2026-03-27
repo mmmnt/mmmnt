@@ -484,5 +484,74 @@ describe('DerivationEngine', () => {
       expect(topology.metadata.derivedAt).toBeDefined();
       expect(typeof topology.metadata.derivedAt).toBe('string');
     });
+
+    it('multi-context frame resolves source as non-target context', () => {
+      const ctx1 = makeContext('ctx-1', 'Ordering', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
+      const ctx2 = makeContext('ctx-2', 'Shipping', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
+      const frame: FrameDefinition = {
+        id: 'fr1',
+        name: 'Multi-Context Frame',
+        contextEntries: [
+          { contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' },
+          { contextId: 'ctx-2', nodeName: 'ReceiveOrder', nodeKind: 'event' },
+        ],
+      };
+      const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
+      const flow = makeFlow('f1', 'Multi-Ctx Flow', [frame], [conn]);
+      const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const assertion = topology.suites[0].testCases[0].assertions[0];
+      expect(assertion.sourceContext).toBe('ctx-1');
+      expect(assertion.targetContext).toBe('ctx-2');
+    });
+
+    it('frame with empty contextEntries but branch entries resolves source from branches', () => {
+      const ctx1 = makeContext('ctx-1', 'Ordering', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
+      const ctx2 = makeContext('ctx-2', 'Shipping', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
+      const frame: FrameDefinition = {
+        id: 'fr1',
+        name: 'Branch-Only Frame',
+        contextEntries: [],
+        branches: [
+          {
+            condition: 'always',
+            entries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
+          },
+        ],
+      };
+      const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
+      const flow = makeFlow('f1', 'Branch Entry Flow', [frame], [conn]);
+      const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const assertion = topology.suites[0].testCases[0].assertions[0];
+      expect(assertion.sourceContext).toBe('ctx-1');
+    });
+
+    it('single-context frame returns that context as source', () => {
+      const ctx1 = makeContext('ctx-1', 'Ordering');
+      const ctx2 = makeContext('ctx-2', 'Fulfillment', [
+        makeEvent('OrderPlaced-event', 'OrderPlaced'),
+      ]);
+      const frame = makeFrame('fr1', 'Single Context', 'ctx-1', 'PlaceOrder');
+      const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
+      const flow = makeFlow('f1', 'Single Ctx Flow', [frame], [conn]);
+      const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      expect(topology.suites[0].testCases[0].assertions[0].sourceContext).toBe('ctx-1');
+    });
   });
 });
