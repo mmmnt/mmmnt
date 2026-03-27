@@ -49,22 +49,6 @@ function sanitizeJsDoc(text: string): string {
   return text.replace(/\*\//g, '* /');
 }
 
-function isValidTsIdentifier(name: string): boolean {
-  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
-}
-
-function safePropertyKey(name: string): string {
-  return isValidTsIdentifier(name) ? name : `'${name.replace(/'/g, "\\'")}'`;
-}
-
-function safePathSegment(name: string): string {
-  return name.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
-}
-
-function sanitizeJsDoc(text: string): string {
-  return text.replace(/\*\//g, '* /');
-}
-
 function mapFieldType(field: FieldDefinition): string {
   const typeMap: Record<string, string> = {
     string: 'string',
