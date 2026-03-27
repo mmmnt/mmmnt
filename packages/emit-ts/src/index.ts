@@ -7,3 +7,6 @@ export type {
 
 export { TypeScriptEmitter } from './services/typescript-emitter.js';
 export type { EmitOptions, TypeScriptEmitterOutput } from './services/typescript-emitter.js';
+
+export { TestScaffoldEmitter } from './services/test-scaffold-emitter.js';
+export type { TestScaffoldEmitterOutput } from './services/test-scaffold-emitter.js';
