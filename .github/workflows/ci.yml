@@ -233,15 +233,21 @@ jobs:
             exit 1
           fi
 
-          # Verify the story has at least one 'Test' issue link
+          # Check if the B subtask indicates zero behavioral assertions (type-only stories)
+          GATE_B_SUMMARY=$(echo "$RESPONSE" | jq -r '[.fields.subtasks[] | select(.fields.summary | test("-B — Test Specification"))][0].fields.summary // empty')
+          IS_ZERO_ASSERTION=$(echo "$GATE_B_SUMMARY" | grep -ci "zero" || true)
+
+          # Verify the story has at least one 'Test' issue link (unless zero assertions confirmed)
           TEST_LINK_COUNT=$(echo "$RESPONSE" | jq '[.fields.issuelinks[] | select(.type.name == "Test")] | length')
 
-          if [ "$TEST_LINK_COUNT" -eq 0 ]; then
+          if [ "$TEST_LINK_COUNT" -eq 0 ] && [ "$IS_ZERO_ASSERTION" -gt 0 ]; then
+            echo "✅ Test traceability verified: Subtask D (Done), zero Test links expected (type-only story with zero behavioral assertions)."
+          elif [ "$TEST_LINK_COUNT" -eq 0 ]; then
             echo "::error::Traceability gate failed: $STORY_KEY has zero 'Test' issue links. All Test issues must be linked to the parent story."
             exit 1
+          else
+            echo "✅ Test traceability verified: Subtask D (Done), $TEST_LINK_COUNT Test issue link(s) found."
           fi
-
-          echo "✅ Test traceability verified: Subtask D (Done), $TEST_LINK_COUNT Test issue link(s) found."
         env:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
