@@ -182,15 +182,38 @@ jobs:
           for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
             echo "Processing execution id $EXEC_ID..."
 
-            QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100) { results { status { name } test { jira(fields: [\\\"key\\\"]) } } } } }\"}"
+            # Paginate through all test runs — Xray caps at 100 per query
+            ALL_RUNS=""
+            PAGE_START=0
+            PAGE_SIZE=100
 
-            GQL_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 -X POST \
-              "https://xray.cloud.getxray.app/api/v2/graphql" \
-              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -H "Content-Type: application/json" \
-              -d "$QUERY")
+            while true; do
+              QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: $PAGE_SIZE, start: $PAGE_START) { total results { status { name } test { jira(fields: [\\\"key\\\"]) } } } } }\"}"
 
-            RUNS=$(echo "$GQL_RESPONSE" | jq -r '.data.getTestExecution.testRuns.results[]? | "\(.test.jira.key) \(.status.name)"')
+              GQL_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 -X POST \
+                "https://xray.cloud.getxray.app/api/v2/graphql" \
+                -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+                -H "Content-Type: application/json" \
+                -d "$QUERY")
+
+              TOTAL=$(echo "$GQL_RESPONSE" | jq '.data.getTestExecution.testRuns.total // 0')
+              PAGE_RUNS=$(echo "$GQL_RESPONSE" | jq -r '.data.getTestExecution.testRuns.results[]? | "\(.test.jira.key) \(.status.name)"')
+              PAGE_COUNT=$(echo "$GQL_RESPONSE" | jq '.data.getTestExecution.testRuns.results | length')
+
+              if [ -n "$PAGE_RUNS" ]; then
+                ALL_RUNS="${ALL_RUNS}${ALL_RUNS:+$'\n'}${PAGE_RUNS}"
+              fi
+
+              PAGE_START=$((PAGE_START + PAGE_SIZE))
+              if [ "$PAGE_START" -ge "$TOTAL" ]; then
+                break
+              fi
+            done
+
+            FETCHED=$(echo "$ALL_RUNS" | grep -c . || echo 0)
+            echo "  Fetched $FETCHED of $TOTAL test runs."
+
+            RUNS="$ALL_RUNS"
 
             while IFS=' ' read -r TEST_KEY STATUS; do
               [ -z "$TEST_KEY" ] && continue
