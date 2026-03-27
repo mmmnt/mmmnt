@@ -80,6 +80,8 @@ jobs:
     needs: [build]
     if: ${{ needs.build.result == 'success' }}
     steps:
+      - name: Checkout (for shared scripts)
+        uses: actions/checkout@v4
       - name: Download JUnit test results
         uses: actions/download-artifact@v4
         with:
@@ -161,14 +163,12 @@ jobs:
         run: |
           echo "Querying test run results and transitioning Test issues..."
 
-          # First, get all Test issues currently in Planned — one API call
-          PLANNED_KEYS=$(curl -s --connect-timeout 10 --max-time 15 -G \
-            "https://winnovation.atlassian.net/rest/api/3/search/jql" \
-            --data-urlencode "jql=project=MMNT AND issuetype=Test AND status=Planned ORDER BY key ASC" \
-            --data-urlencode "maxResults=100" \
-            --data-urlencode "fields=key" \
-            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
-            | jq -r '.issues[]?.key' | sort)
+          .github/scripts/jira-search.sh \
+            --jql "project=MMNT AND issuetype=Test AND status=Planned ORDER BY key ASC" \
+            --fields "key" \
+            --output /tmp/planned-tests.json
+
+          PLANNED_KEYS=$(jq -r '.[].key' /tmp/planned-tests.json | sort)
 
           if [ -z "$PLANNED_KEYS" ]; then
             echo "No Test issues in Planned state — nothing to transition."
@@ -250,14 +250,12 @@ jobs:
 
           ASSIGNED=0
 
-          RESPONSE=$(curl -s --connect-timeout 10 --max-time 15 -G \
-            "https://winnovation.atlassian.net/rest/api/3/search/jql" \
-            --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
-            --data-urlencode "maxResults=100" \
-            --data-urlencode "fields=key" \
-            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN")
+          .github/scripts/jira-search.sh \
+            --jql "project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
+            --fields "key" \
+            --output /tmp/sprintless-tests.json
 
-          KEYS=$(echo "$RESPONSE" | jq -r '.issues[]?.key')
+          KEYS=$(jq -r '.[].key' /tmp/sprintless-tests.json)
 
           for KEY in $KEYS; do
             [ -z "$KEY" ] && continue
@@ -498,57 +496,47 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build]
     steps:
+      - name: Checkout (for shared scripts)
+        uses: actions/checkout@v4
+
       - name: Transition linked Test issues to Done
         run: |
           echo "Scanning for non-Done Test and Test Execution issues with Done parent stories..."
 
+          .github/scripts/jira-search.sh \
+            --jql "project=MMNT AND issuetype in (Test, 'Test Execution') AND status != Done ORDER BY key ASC" \
+            --fields "key,issuelinks" \
+            --output /tmp/non-done-tests.json
+
           TRANSITIONED=0
-          START_AT=0
-          PAGE_SIZE=100
+          TOTAL=$(jq 'length' /tmp/non-done-tests.json)
+          echo "Found $TOTAL non-Done Test issues."
 
-          while true; do
-            RESPONSE=$(curl -s -G "https://winnovation.atlassian.net/rest/api/3/search/jql" \
-              --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND status != Done ORDER BY key ASC" \
-              --data-urlencode "maxResults=$PAGE_SIZE" \
-              --data-urlencode "startAt=$START_AT" \
-              --data-urlencode "fields=key,issuelinks" \
-              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN")
+          for KEY in $(jq -r '.[].key' /tmp/non-done-tests.json); do
+            PARENT_DONE=$(jq -r --arg key "$KEY" '
+              first(
+                .[] | select(.key == $key) |
+                .fields.issuelinks[]? |
+                select(.type.name == "Test" and .outwardIssue != null) |
+                select(.outwardIssue.fields.status.name == "Done") |
+                .outwardIssue.key
+              ) // empty' /tmp/non-done-tests.json)
 
-            COUNT=$(echo "$RESPONSE" | jq '.issues | length')
-            if [ "$COUNT" -eq 0 ]; then
-              break
-            fi
-
-            # Extract keys into array to avoid subshell counter issue
-            KEYS=$(echo "$RESPONSE" | jq -r '.issues[]? | .key')
-
-            for KEY in $KEYS; do
-              PARENT_DONE=$(echo "$RESPONSE" | jq -r --arg key "$KEY" '
-                first(
-                  .issues[] | select(.key == $key) |
-                  .fields.issuelinks[]? |
-                  select(.type.name == "Test" and .outwardIssue != null) |
-                  select(.outwardIssue.fields.status.name == "Done") |
-                  .outwardIssue.key
-                ) // empty')
-
-              if [ -n "$PARENT_DONE" ]; then
-                if curl --fail -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
-                  -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$KEY/transitions" \
-                  -H "Content-Type: application/json" \
-                  -d '{"transition":{"id":"31"}}' > /dev/null 2>&1; then
-                  TRANSITIONED=$((TRANSITIONED + 1))
-                  echo "  $KEY → Done (parent: $PARENT_DONE)"
-                else
-                  echo "  Failed to transition $KEY (parent: $PARENT_DONE)" >&2
-                fi
+            if [ -n "$PARENT_DONE" ]; then
+              if curl --fail -s --connect-timeout 5 --max-time 10 \
+                -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$KEY/transitions" \
+                -H "Content-Type: application/json" \
+                -d '{"transition":{"id":"31"}}' > /dev/null 2>&1; then
+                TRANSITIONED=$((TRANSITIONED + 1))
+                echo "  $KEY → Done (parent: $PARENT_DONE)"
+              else
+                echo "  Failed to transition $KEY (parent: $PARENT_DONE)" >&2
               fi
-            done
-
-            START_AT=$((START_AT + PAGE_SIZE))
+            fi
           done
 
-          echo "Transitioned $TRANSITIONED Test issues to Done."
+          echo "Transitioned $TRANSITIONED of $TOTAL Test issues to Done."
         env:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
