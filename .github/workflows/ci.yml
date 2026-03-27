@@ -160,7 +160,7 @@ jobs:
             # Query Xray GraphQL for test runs — uses numeric Jira ID, not key
             QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100) { results { status { name } test { jira(fields: [\\\"key\\\"]) } } } } }\"}"
 
-            GQL_RESPONSE=$(curl -s --max-time 30 -X POST \
+            GQL_RESPONSE=$(curl -s --connect-timeout 10 --max-time 15 -X POST \
               "https://xray.cloud.getxray.app/api/v2/graphql" \
               -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
               -H "Content-Type: application/json" \
@@ -185,12 +185,14 @@ jobs:
               esac
 
               # Only transition if currently in Planned
-              CURRENT=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              CURRENT=$(curl -s --connect-timeout 5 --max-time 10 \
+                -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
                 "https://winnovation.atlassian.net/rest/api/3/issue/$TEST_KEY?fields=status" \
                 | jq -r '.fields.status.name // empty')
 
               if [ "$CURRENT" = "Planned" ]; then
-                curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                curl -s --connect-timeout 5 --max-time 10 \
+                  -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
                   -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$TEST_KEY/transitions" \
                   -H "Content-Type: application/json" \
                   -d "{\"transition\":{\"id\":\"$TRANSITION_ID\"}}" > /dev/null 2>&1 && \
