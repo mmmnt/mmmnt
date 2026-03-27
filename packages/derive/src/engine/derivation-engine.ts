@@ -78,9 +78,25 @@ function resolveSourceContextId(
   const branchEntries = (frame.branches ?? []).flatMap((b) => b.entries);
   const allEntries = [...frame.contextEntries, ...branchEntries];
 
-  // For multi-context frames, prefer the entry that is NOT the crossing target
-  const nonTarget = allEntries.find((e) => e.contextId !== conn.targetContextId);
-  return nonTarget ? nonTarget.contextId : allEntries[0].contextId;
+  // Single context — unambiguous
+  if (allEntries.length === 1) {
+    return allEntries[0].contextId;
+  }
+
+  // Multi-context: filter out the target to find source candidates
+  const nonTargetEntries = allEntries.filter((e) => e.contextId !== conn.targetContextId);
+
+  if (nonTargetEntries.length === 1) {
+    return nonTargetEntries[0].contextId;
+  }
+
+  // All entries are the target context — return it
+  if (nonTargetEntries.length === 0) {
+    return allEntries[0].contextId;
+  }
+
+  // Ambiguous: multiple distinct non-target contexts — use first
+  return nonTargetEntries[0].contextId;
 }
 
 function mapCrossingToAssertion(
