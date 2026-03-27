@@ -58,13 +58,11 @@ function renderAssertionSteps(lines: string[], assertion: AssertionPoint): void 
   lines.push(`    Then ${event} payload is valid`);
 
   if (assertion.schemaContract.expectedFields.length > 0) {
-    renderExamplesTable(lines, assertion.schemaContract.expectedFields);
+    renderDataTable(lines, assertion.schemaContract.expectedFields);
   }
 }
 
-function renderExamplesTable(lines: string[], fields: readonly FieldConstraint[]): void {
-  lines.push('    Examples:');
-
+function renderDataTable(lines: string[], fields: readonly FieldConstraint[]): void {
   const headers = fields.map((f) => f.fieldName);
   const types = fields.map((f) => f.expectedType);
   const required = fields.map((f) => (f.required ? 'required' : 'optional'));

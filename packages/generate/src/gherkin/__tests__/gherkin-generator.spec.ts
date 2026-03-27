@@ -247,7 +247,7 @@ describe('GherkinGenerator', () => {
     const manifest = generator.generate(ir, topology);
     const content = manifest.featuresGenerated[0].content;
 
-    expect(content).toContain('Examples:');
+    expect(content).not.toContain('Examples:');
     expect(content).toContain('| orderId | amount | notes |');
     expect(content).toContain('| string | number | string |');
     expect(content).toContain('| required | required | optional |');
@@ -369,7 +369,7 @@ describe('renderFeature (pure function)', () => {
     expect(content).toContain('    Given order is pending');
     expect(content).toContain('    When OrderPlaced crosses from Ordering to Shipping');
     expect(content).toContain('    Then OrderPlaced payload is valid');
-    expect(content).toContain('    Examples:');
+    expect(content).toContain('      | orderId |');
     expect(content.endsWith('\n')).toBe(true);
   });
 
@@ -384,5 +384,29 @@ describe('renderFeature (pure function)', () => {
 
     expect(content).toContain('When OrderUpdated is emitted');
     expect(content).not.toContain('crosses from');
+  });
+});
+
+describe('Gherkin syntax validation (@cucumber/gherkin)', () => {
+  it('generated .feature content parses without errors', async () => {
+    const { Parser, AstBuilder, GherkinClassicTokenMatcher } = await import('@cucumber/gherkin');
+    const { IdGenerator } = await import('@cucumber/messages');
+
+    const suite = makeSuite('f1', 'Valid Flow', [
+      makeTestCase('fr1', 'Step Frame', {
+        setupSteps: [makeSetupStep('Ordering', 'Order', 'order exists')],
+        assertions: [makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced')],
+      }),
+    ]);
+
+    const content = renderFeature(suite);
+
+    const uuidFn = IdGenerator.uuid();
+    const builder = new AstBuilder(uuidFn);
+    const matcher = new GherkinClassicTokenMatcher();
+    const parser = new Parser(builder, matcher);
+
+    // Throws on syntax errors
+    expect(() => parser.parse(content)).not.toThrow();
   });
 });

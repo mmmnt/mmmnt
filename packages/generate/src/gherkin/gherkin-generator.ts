@@ -18,7 +18,10 @@ import { renderFeature } from './feature-renderer.js';
  *  - Deterministic: same IR+topology yields the same output
  */
 export class GherkinGenerator {
-  generate(_ir: IntermediateRepresentation, topology: TestSuiteTopology): GenerationManifest {
+  generate(ir: IntermediateRepresentation, topology: TestSuiteTopology): GenerationManifest {
+    // IR is accepted for API stability — future use for glossary/vocabulary lookups.
+    // Currently topology carries all data needed for generation.
+    void ir;
     const featuresGenerated: GeneratedFeatureFile[] = topology.suites.map((suite) =>
       this.generateFeatureFile(suite),
     );
@@ -34,7 +37,7 @@ export class GherkinGenerator {
 
     return {
       flowId: suite.flowId,
-      filePath: `features/${toKebabCase(suite.flowName)}.feature`,
+      filePath: `features/${safeFileName(suite.flowName)}.feature`,
       content,
       scenarioCount,
     };
@@ -45,9 +48,11 @@ export class GherkinGenerator {
   }
 }
 
-function toKebabCase(str: string): string {
+function safeFileName(str: string): string {
   return str
     .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
     .toLowerCase();
 }
