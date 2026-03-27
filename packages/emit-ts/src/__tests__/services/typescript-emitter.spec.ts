@@ -197,8 +197,8 @@ describe('TypeScriptEmitter', () => {
     expect(indexContent).toContain("export * from './order.aggregate.js';");
   });
 
-  // Test 8: JSDoc comments generated from IR descriptions
-  it('JSDoc comments generated from IR descriptions', () => {
+  // Test 8: JSDoc comments generated for aggregates
+  it('JSDoc comments generated for aggregates', () => {
     const ir = makeIR();
     const output = emitter.emit(ir, defaultOptions());
 
@@ -213,8 +213,8 @@ describe('TypeScriptEmitter', () => {
     expect(aggContent).toContain('* Aggregate root for Order.');
   });
 
-  // Test 9: union types for enumeration-style value objects
-  it('union types for enumeration-style value objects', () => {
+  // Test 9: value objects with fields emit correct interfaces
+  it('value objects with fields emit correct interfaces', () => {
     const enumVO = makeValueObject({
       name: 'OrderStatus',
       fields: [makeField({ name: 'status', type: 'string' })],
@@ -369,7 +369,7 @@ describe('TypeScriptEmitter', () => {
     const aggContent = output.files.get('src/order-management/order.aggregate.ts');
     expect(aggContent).toBeDefined();
     expect(aggContent).toContain(
-      "import type { CreateOrder, OrderCreated, EmailAddress } from './order.types.js';",
+      "import type { CreateOrder, EmailAddress, OrderCreated } from './order.types.js';",
     );
   });
 

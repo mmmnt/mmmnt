@@ -29,7 +29,40 @@ function toKebabCase(name: string): string {
 function toPascalCase(name: string): string {
   return name
     .replace(/[-_\s]+(.)?/g, (_, c: string | undefined) => (c ? c.toUpperCase() : ''))
-    .replace(/^(.)/, (_, c: string) => c.toUpperCase());
+    .replace(/^(.)/, (_, c: string) => c.toUpperCase())
+    .replace(/[^A-Za-z0-9_$]/g, '');
+}
+
+function isValidTsIdentifier(name: string): boolean {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
+}
+
+function safePropertyKey(name: string): string {
+  return isValidTsIdentifier(name) ? name : `'${name.replace(/'/g, "\\'")}'`;
+}
+
+function safePathSegment(name: string): string {
+  return name.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+}
+
+function sanitizeJsDoc(text: string): string {
+  return text.replace(/\*\//g, '* /');
+}
+
+function isValidTsIdentifier(name: string): boolean {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
+}
+
+function safePropertyKey(name: string): string {
+  return isValidTsIdentifier(name) ? name : `'${name.replace(/'/g, "\\'")}'`;
+}
+
+function safePathSegment(name: string): string {
+  return name.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+}
+
+function sanitizeJsDoc(text: string): string {
+  return text.replace(/\*\//g, '* /');
 }
 
 function mapFieldType(field: FieldDefinition): string {
@@ -49,7 +82,8 @@ function mapFieldType(field: FieldDefinition): string {
 }
 
 function generateJsDoc(description: string, indent: string): string {
-  return `${indent}/**\n${indent} * ${description}\n${indent} */\n`;
+  const safe = sanitizeJsDoc(description);
+  return `${indent}/**\n${indent} * ${safe}\n${indent} */\n`;
 }
 
 function generateValueObjectInterface(vo: ValueObjectDefinition): string {
@@ -58,7 +92,7 @@ function generateValueObjectInterface(vo: ValueObjectDefinition): string {
   for (const field of vo.fields) {
     const fieldType = mapFieldType(field);
     const optional = field.required ? '' : '?';
-    output += `  readonly ${field.name}${optional}: ${fieldType};\n`;
+    output += `  readonly ${safePropertyKey(field.name)}${optional}: ${fieldType};\n`;
   }
   output += '}\n';
   return output;
@@ -70,7 +104,7 @@ function generateEventInterface(event: EventDefinition): string {
   for (const field of event.fields) {
     const fieldType = mapFieldType(field);
     const optional = field.required ? '' : '?';
-    output += `  readonly ${field.name}${optional}: ${fieldType};\n`;
+    output += `  readonly ${safePropertyKey(field.name)}${optional}: ${fieldType};\n`;
   }
   output += '}\n';
   return output;
@@ -82,7 +116,7 @@ function generateCommandInterface(cmd: CommandDefinition): string {
   for (const input of cmd.inputs) {
     const fieldType = mapFieldType(input);
     const optional = input.required ? '' : '?';
-    output += `  readonly ${input.name}${optional}: ${fieldType};\n`;
+    output += `  readonly ${safePropertyKey(input.name)}${optional}: ${fieldType};\n`;
   }
   output += '}\n';
   return output;
@@ -125,8 +159,10 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
     importNames.push(toPascalCase(vo.name));
   }
 
-  if (importNames.length > 0) {
-    parts.push(`import type { ${importNames.join(', ')} } from './${kebabName}.types.js';`);
+  const uniqueImportNames = Array.from(new Set(importNames)).sort();
+
+  if (uniqueImportNames.length > 0) {
+    parts.push(`import type { ${uniqueImportNames.join(', ')} } from './${kebabName}.types.js';`);
     parts.push('');
   }
 
@@ -135,13 +171,14 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
   parts.push(`export interface ${aggregateName}Aggregate {`);
 
   const idField = aggregate.identityField;
-  parts.push(`  readonly ${idField.name}: ${mapFieldType(idField)};`);
+  parts.push(`  readonly ${safePropertyKey(idField.name)}: ${mapFieldType(idField)};`);
 
   for (const cmd of aggregate.commands) {
     const cmdName = toPascalCase(cmd.name);
-    const handlerName = cmd.name.charAt(0).toLowerCase() + cmd.name.slice(1).replace(/\s+/g, '');
+    const handlerName =
+      cmd.name.charAt(0).toLowerCase() + cmd.name.slice(1).replace(/[^A-Za-z0-9_$]/g, '');
     const eventName = cmd.emitsEvent ? toPascalCase(cmd.emitsEvent) : 'void';
-    parts.push(`  ${handlerName}(command: ${cmdName}): ${eventName};`);
+    parts.push(`  ${safePropertyKey(handlerName)}(command: ${cmdName}): ${eventName};`);
   }
 
   parts.push('}');
@@ -199,7 +236,7 @@ export class TypeScriptEmitter {
         continue;
       }
 
-      const contextDir = `src/${toKebabCase(context.name)}`;
+      const contextDir = `src/${safePathSegment(toKebabCase(context.name))}`;
       const aggregates = filterAggregates(context, options.scope);
 
       for (const aggregate of aggregates) {
