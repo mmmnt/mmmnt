@@ -59,6 +59,13 @@ jobs:
           name: coverage-node-${{ matrix.node-version }}
           path: packages/*/coverage/
 
+      - name: Upload JUnit test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-results-node-${{ matrix.node-version }}
+          path: packages/*/test-results/junit.xml
+
       - name: Snapshot freshness
         run: pnpm turbo test -- --no-update --passWithNoTests
 
@@ -92,10 +99,18 @@ jobs:
         run: npx vitest run --config vitest.config.ts
         continue-on-error: true
 
-      - name: Download test results
+      - name: Download JUnit test results (Node 20)
         uses: actions/download-artifact@v4
         with:
-          path: test-results/
+          name: junit-results-node-20
+          path: test-results/node-20/
+        continue-on-error: true
+
+      - name: Download JUnit test results (Node 22)
+        uses: actions/download-artifact@v4
+        with:
+          name: junit-results-node-22
+          path: test-results/node-22/
         continue-on-error: true
 
       - name: Authenticate to Xray
@@ -109,14 +124,21 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
       - name: Import JUnit XML results (multipart with Test Plan context)
-        if: hashFiles('**/test-results/junit.xml') != ''
         run: |
-          for f in $(find . -path '*/test-results/junit.xml' -not -path '*/node_modules/*'); do
-            curl -s -X POST \
-              "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
-              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
-              -F "info=@-;type=application/json" <<< '{"fields":{"project":{"key":"MMNT"},"summary":"CI Run #${{ github.run_number }} — JUnit","issuetype":{"name":"Test Execution"}},"xpiTestPlanKey":"MMNT-585"}' \
-              -F "results=@${f};type=application/xml" || true
+          for NODE_VER in 20 22; do
+            RESULTS_DIR="test-results/node-${NODE_VER}"
+            if [ ! -d "$RESULTS_DIR" ]; then
+              echo "No results for Node $NODE_VER — skipping."
+              continue
+            fi
+            for f in $(find "$RESULTS_DIR" -name 'junit.xml'); do
+              echo "Importing $f (Node $NODE_VER)..."
+              curl -s -X POST \
+                "https://xray.cloud.getxray.app/api/v2/import/execution/junit/multipart" \
+                -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+                -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — Node ${NODE_VER} — JUnit\",\"issuetype\":{\"name\":\"Test Execution\"}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
+                -F "results=@${f};type=application/xml" || true
+            done
           done
 
       - name: Import Cucumber JSON results (multipart with Test Plan context)
