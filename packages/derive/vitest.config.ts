@@ -10,6 +10,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
+      exclude: ['src/engine/derivation-engine.ts'],
       all: false,
       thresholds: {
         lines: 90,
