@@ -125,7 +125,7 @@ describe('DerivationEngine', () => {
   // DV-01: One TestSuiteDefinition per flow
   // -----------------------------------------------------------------------
   describe('DV-01', () => {
-    it.skip('IR with 3 flows produces topology with 3 suites', () => {
+    it('IR with 3 flows produces topology with 3 suites', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const flows = [
         makeFlow('f1', 'Flow A', [makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder')], []),
@@ -139,7 +139,7 @@ describe('DerivationEngine', () => {
       expect(topology.suites).toHaveLength(3);
     });
 
-    it.skip('IR with 0 flows produces empty topology', () => {
+    it('IR with 0 flows produces empty topology', () => {
       const ir = makeIR({ flows: [] });
 
       const topology = deriveTopology(ir);
@@ -152,7 +152,7 @@ describe('DerivationEngine', () => {
   // DV-02: One AssertionPoint per crossing
   // -----------------------------------------------------------------------
   describe('DV-02', () => {
-    it.skip('flow with 2 crossings in separate frames produces 2 assertion points total', () => {
+    it('flow with 2 crossings in separate frames produces 2 assertion points total', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering', [
         makeEvent('OrderShipped-event', 'OrderShipped'),
       ]);
@@ -179,7 +179,7 @@ describe('DerivationEngine', () => {
   // DV-03: TestCaseDefinitions ordered by frame position
   // -----------------------------------------------------------------------
   describe('DV-03', () => {
-    it.skip('multi-frame flow produces TestCaseDefinitions ordered by frame position', () => {
+    it('multi-frame flow produces TestCaseDefinitions ordered by frame position', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const frames = [
         makeFrame('fr1', 'First Frame', 'ctx-1', 'Step1'),
@@ -202,7 +202,7 @@ describe('DerivationEngine', () => {
   // DV-04: Schema contract → FieldConstraint entries
   // -----------------------------------------------------------------------
   describe('DV-04', () => {
-    it.skip('crossing with schema contract maps required fields to FieldConstraint entries', () => {
+    it('crossing with schema contract maps required fields to FieldConstraint entries', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Billing', [makeEvent('OrderPlaced-event', 'OrderPlaced')]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
@@ -225,7 +225,7 @@ describe('DerivationEngine', () => {
       expect(fieldConstraints[1].required).toBe(true);
     });
 
-    it.skip('crossing with minimal single-field contract produces one FieldConstraint', () => {
+    it('crossing with minimal single-field contract produces one FieldConstraint', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
@@ -250,7 +250,7 @@ describe('DerivationEngine', () => {
   // deriveTopology operation tests
   // -----------------------------------------------------------------------
   describe('deriveTopology', () => {
-    it.skip('single flow, 2 lanes, 2 frames, 1 crossing produces 1 suite, 2 cases, 1 assertion point', () => {
+    it('single flow, 2 lanes, 2 frames, 1 crossing produces 1 suite, 2 cases, 1 assertion point', () => {
       const ctx1 = makeContext('ctx-1', 'Sales');
       const ctx2 = makeContext('ctx-2', 'Fulfillment', [
         makeEvent('OrderAccepted-event', 'OrderAccepted'),
@@ -269,7 +269,7 @@ describe('DerivationEngine', () => {
       expect(allAssertions).toHaveLength(1);
     });
 
-    it.skip('multiple flows produce one suite per flow with correct flowId and flowName', () => {
+    it('multiple flows produce one suite per flow with correct flowId and flowName', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const flowA = makeFlow('fa', 'Alpha', [makeFrame('fr1', 'F1', 'ctx-1', 'Cmd1')], []);
       const flowB = makeFlow('fb', 'Beta', [makeFrame('fr2', 'F2', 'ctx-1', 'Cmd2')], []);
@@ -284,7 +284,7 @@ describe('DerivationEngine', () => {
       expect(topology.suites[1].flowName).toBe('Beta');
     });
 
-    it.skip('flow with no crossings produces suite with test cases and empty assertion lists', () => {
+    it('flow with no crossings produces suite with test cases and empty assertion lists', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
       const flow = makeFlow('f1', 'No Crossing Flow', [frame], []);
@@ -297,7 +297,7 @@ describe('DerivationEngine', () => {
       expect(topology.suites[0].testCases[0].assertions).toHaveLength(0);
     });
 
-    it.skip('flow with 3 frames produces 3 test cases', () => {
+    it('flow with 3 frames produces 3 test cases', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const frames = [
         makeFrame('fr1', 'Step 1', 'ctx-1', 'Cmd1'),
@@ -312,7 +312,7 @@ describe('DerivationEngine', () => {
       expect(topology.suites[0].testCases).toHaveLength(3);
     });
 
-    it.skip('frame with multiple crossings produces multiple assertion points in that test case', () => {
+    it('frame with multiple crossings produces multiple assertion points in that test case', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Billing', [makeEvent('OrderPlaced-event', 'OrderPlaced')]);
       const ctx3 = makeContext('ctx-3', 'Shipping', [
@@ -335,7 +335,7 @@ describe('DerivationEngine', () => {
   // Edge cases
   // -----------------------------------------------------------------------
   describe('edge cases', () => {
-    it.skip('empty IR (no contexts, no flows) produces empty topology', () => {
+    it('empty IR (no contexts, no flows) produces empty topology', () => {
       const ir = makeIR({ contexts: [], flows: [] });
 
       const topology = deriveTopology(ir);
@@ -343,7 +343,7 @@ describe('DerivationEngine', () => {
       expect(topology.suites).toHaveLength(0);
     });
 
-    it.skip('IR with contexts but no flows produces empty topology', () => {
+    it('IR with contexts but no flows produces empty topology', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const ir = makeIR({ contexts: [ctx], flows: [] });
 
@@ -352,7 +352,7 @@ describe('DerivationEngine', () => {
       expect(topology.suites).toHaveLength(0);
     });
 
-    it.skip('branch frame produces test cases for both branch paths', () => {
+    it('branch frame produces test cases for both branch paths', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const branchFrame: FrameDefinition = {
         id: 'fr-branch',
@@ -378,7 +378,7 @@ describe('DerivationEngine', () => {
       expect(testCases.length).toBeGreaterThanOrEqual(2);
     });
 
-    it.skip('partnership relationship sets correct sourceContext and targetContext on assertion point', () => {
+    it('partnership relationship sets correct sourceContext and targetContext on assertion point', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
@@ -413,7 +413,7 @@ describe('DerivationEngine', () => {
       expect(assertion.targetContext).toBe('ctx-2');
     });
 
-    it.skip('customer-supplier relationship correctly identifies contexts on assertion point', () => {
+    it('customer-supplier relationship correctly identifies contexts on assertion point', () => {
       const ctx1 = makeContext('ctx-supplier', 'Inventory');
       const ctx2 = makeContext('ctx-customer', 'Ordering', [
         makeEvent('StockReserved-event', 'StockReserved'),
@@ -448,7 +448,7 @@ describe('DerivationEngine', () => {
       expect(assertion.targetContext).toBe('ctx-customer');
     });
 
-    it.skip('crossing with required and optional fields maps both to FieldConstraint entries', () => {
+    it('crossing with required and optional fields maps both to FieldConstraint entries', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Notification', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
@@ -473,7 +473,7 @@ describe('DerivationEngine', () => {
       expect(optionalFields[0].fieldName).toBe('notes');
     });
 
-    it.skip('topology metadata includes sourceIrHash and derivedAt', () => {
+    it('topology metadata includes sourceIrHash and derivedAt', () => {
       const ir = makeIR({ flows: [] });
 
       const topology = deriveTopology(ir);
