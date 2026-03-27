@@ -4,18 +4,40 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { WatchConfiguration } from '../../src/ir/index.js';
 
-// We need to mock node:fs watch before importing FileWatcher
-const mockWatch = vi.fn();
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    watch: (...args: unknown[]) => mockWatch(...args),
-  };
-});
+type ChokidarHandler = (filePath: string) => void;
 
-// Import after mock is set up
+interface MockWatcher {
+  on: ReturnType<typeof vi.fn>;
+  close: ReturnType<typeof vi.fn>;
+  handlers: Map<string, ChokidarHandler>;
+}
+
+function createMockWatcher(): MockWatcher {
+  const handlers = new Map<string, ChokidarHandler>();
+  const watcher: MockWatcher = {
+    handlers,
+    close: vi.fn(),
+    on: vi.fn((event: string, handler: ChokidarHandler) => {
+      handlers.set(event, handler);
+      return watcher;
+    }),
+  };
+  return watcher;
+}
+
+let currentMockWatcher: MockWatcher;
+
+vi.mock('chokidar', () => ({
+  default: {
+    watch: vi.fn(() => {
+      currentMockWatcher = createMockWatcher();
+      return currentMockWatcher;
+    }),
+  },
+}));
+
 import { FileWatcher } from '../../src/infrastructure/file-watcher.js';
+import chokidar from 'chokidar';
 
 function makeConfig(overrides: Partial<WatchConfiguration> = {}): WatchConfiguration {
   return {
@@ -31,7 +53,7 @@ describe('FileWatcher', () => {
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), 'fw-test-'));
-    mockWatch.mockReset();
+    vi.mocked(chokidar.watch).mockClear();
   });
 
   afterEach(() => {
@@ -43,14 +65,6 @@ describe('FileWatcher', () => {
       vi.useFakeTimers();
       try {
         const onChange = vi.fn();
-        let watchCallback!: (event: string, filename: string) => void;
-
-        mockWatch.mockImplementation(
-          (_path: string, _opts: unknown, cb: (event: string, filename: string) => void) => {
-            watchCallback = cb;
-            return { close: vi.fn() };
-          },
-        );
 
         const watcher = new FileWatcher({
           config: makeConfig({ debounceMs: 300 }),
@@ -59,15 +73,13 @@ describe('FileWatcher', () => {
         });
         watcher.start();
 
-        // Simulate a file change
-        watchCallback('change', 'test.moment');
+        const handler = currentMockWatcher.handlers.get('change')!;
+        handler('/some/path/test.moment');
         expect(onChange).not.toHaveBeenCalled();
 
-        // At 299ms, still not called
         vi.advanceTimersByTime(299);
         expect(onChange).not.toHaveBeenCalled();
 
-        // At 300ms, debounce fires
         vi.advanceTimersByTime(1);
         expect(onChange).toHaveBeenCalledTimes(1);
 
@@ -77,18 +89,10 @@ describe('FileWatcher', () => {
       }
     });
 
-    it('rapid changes within debounce window produce one callback', () => {
+    it('rapid changes within debounce window produce one callback per file', () => {
       vi.useFakeTimers();
       try {
         const onChange = vi.fn();
-        let watchCallback!: (event: string, filename: string) => void;
-
-        mockWatch.mockImplementation(
-          (_path: string, _opts: unknown, cb: (event: string, filename: string) => void) => {
-            watchCallback = cb;
-            return { close: vi.fn() };
-          },
-        );
 
         const watcher = new FileWatcher({
           config: makeConfig({ debounceMs: 100 }),
@@ -97,18 +101,16 @@ describe('FileWatcher', () => {
         });
         watcher.start();
 
-        // Simulate rapid changes
-        watchCallback('change', 'a.moment');
+        const handler = currentMockWatcher.handlers.get('change')!;
+        handler('/path/a.moment');
         vi.advanceTimersByTime(50);
-        watchCallback('change', 'b.moment');
+        handler('/path/b.moment');
         vi.advanceTimersByTime(50);
-        watchCallback('change', 'c.yaml');
+        handler('/path/c.yaml');
 
-        // Still within debounce window of last change
         vi.advanceTimersByTime(99);
         expect(onChange).not.toHaveBeenCalled();
 
-        // Debounce fires — one call per unique file
         vi.advanceTimersByTime(1);
         expect(onChange).toHaveBeenCalledTimes(3);
 
@@ -124,14 +126,6 @@ describe('FileWatcher', () => {
       vi.useFakeTimers();
       try {
         const onChange = vi.fn();
-        let watchCallback!: (event: string, filename: string) => void;
-
-        mockWatch.mockImplementation(
-          (_path: string, _opts: unknown, cb: (event: string, filename: string) => void) => {
-            watchCallback = cb;
-            return { close: vi.fn() };
-          },
-        );
 
         const watcher = new FileWatcher({
           config: makeConfig({ debounceMs: 10 }),
@@ -140,15 +134,16 @@ describe('FileWatcher', () => {
         });
         watcher.start();
 
-        watchCallback('change', 'test.moment');
-        watchCallback('change', 'config.yaml');
-        watchCallback('change', 'config.yml');
+        const handler = currentMockWatcher.handlers.get('change')!;
+        handler('/path/test.moment');
+        handler('/path/config.yaml');
+        handler('/path/config.yml');
         vi.advanceTimersByTime(20);
 
         expect(onChange).toHaveBeenCalledTimes(3);
-        expect(onChange).toHaveBeenCalledWith(expect.stringContaining('test.moment'));
-        expect(onChange).toHaveBeenCalledWith(expect.stringContaining('config.yaml'));
-        expect(onChange).toHaveBeenCalledWith(expect.stringContaining('config.yml'));
+        expect(onChange).toHaveBeenCalledWith('/path/test.moment');
+        expect(onChange).toHaveBeenCalledWith('/path/config.yaml');
+        expect(onChange).toHaveBeenCalledWith('/path/config.yml');
 
         watcher.stop();
       } finally {
@@ -156,18 +151,10 @@ describe('FileWatcher', () => {
       }
     });
 
-    it('ignores changes for unsupported extensions and null filename', () => {
+    it('ignores changes for unsupported extensions', () => {
       vi.useFakeTimers();
       try {
         const onChange = vi.fn();
-        let watchCallback!: (event: string, filename: string) => void;
-
-        mockWatch.mockImplementation(
-          (_path: string, _opts: unknown, cb: (event: string, filename: string) => void) => {
-            watchCallback = cb;
-            return { close: vi.fn() };
-          },
-        );
 
         const watcher = new FileWatcher({
           config: makeConfig({ debounceMs: 10 }),
@@ -176,15 +163,43 @@ describe('FileWatcher', () => {
         });
         watcher.start();
 
-        // These should be ignored — wrong extensions
-        watchCallback('change', 'readme.md');
-        watchCallback('change', 'script.ts');
-        watchCallback('change', 'data.json');
-        // Null filename should also be ignored
-        watchCallback('change', null as unknown as string);
+        const handler = currentMockWatcher.handlers.get('change')!;
+        handler('/path/readme.md');
+        handler('/path/script.ts');
+        handler('/path/data.json');
 
         vi.advanceTimersByTime(20);
         expect(onChange).not.toHaveBeenCalled();
+
+        watcher.stop();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('event types', () => {
+    it('handles add and unlink events', () => {
+      vi.useFakeTimers();
+      try {
+        const onChange = vi.fn();
+
+        const watcher = new FileWatcher({
+          config: makeConfig({ debounceMs: 10 }),
+          rootDir: tempDir,
+          onFileChange: onChange,
+        });
+        watcher.start();
+
+        const addHandler = currentMockWatcher.handlers.get('add')!;
+        const unlinkHandler = currentMockWatcher.handlers.get('unlink')!;
+        addHandler('/path/new.moment');
+        unlinkHandler('/path/old.yaml');
+        vi.advanceTimersByTime(20);
+
+        expect(onChange).toHaveBeenCalledTimes(2);
+        expect(onChange).toHaveBeenCalledWith('/path/new.moment');
+        expect(onChange).toHaveBeenCalledWith('/path/old.yaml');
 
         watcher.stop();
       } finally {
@@ -205,27 +220,12 @@ describe('FileWatcher', () => {
       watcher.start();
 
       expect(watcher.isRunning).toBe(false);
-      expect(mockWatch).not.toHaveBeenCalled();
-    });
-
-    it('does not start when paths array is empty', () => {
-      const onChange = vi.fn();
-
-      const watcher = new FileWatcher({
-        config: makeConfig({ paths: [] }),
-        rootDir: tempDir,
-        onFileChange: onChange,
-      });
-      watcher.start();
-
-      expect(watcher.isRunning).toBe(false);
+      expect(chokidar.watch).not.toHaveBeenCalled();
     });
   });
 
   describe('lifecycle', () => {
-    it('start creates watchers', () => {
-      mockWatch.mockReturnValue({ close: vi.fn() });
-
+    it('start creates watcher', () => {
       const watcher = new FileWatcher({
         config: makeConfig({ paths: ['src', 'lib'] }),
         rootDir: tempDir,
@@ -239,45 +239,48 @@ describe('FileWatcher', () => {
       watcher.stop();
     });
 
-    it('stop closes all watchers and clears pending changes', () => {
-      vi.useFakeTimers();
-      try {
-        const closeA = vi.fn();
-        const closeB = vi.fn();
-        let callCount = 0;
-        let watchCallback!: (event: string, filename: string) => void;
+    it('stop closes watcher', () => {
+      const watcher = new FileWatcher({
+        config: makeConfig(),
+        rootDir: tempDir,
+        onFileChange: vi.fn(),
+      });
+      watcher.start();
+      const mockWatcher = currentMockWatcher;
 
-        mockWatch.mockImplementation(
-          (_path: string, _opts: unknown, cb: (event: string, filename: string) => void) => {
-            watchCallback = cb;
-            callCount++;
-            return { close: callCount === 1 ? closeA : closeB };
-          },
-        );
+      watcher.stop();
 
-        const onChange = vi.fn();
-        const watcher = new FileWatcher({
-          config: makeConfig({ paths: ['a', 'b'], debounceMs: 100 }),
-          rootDir: tempDir,
-          onFileChange: onChange,
-        });
-        watcher.start();
+      expect(mockWatcher.close).toHaveBeenCalled();
+      expect(watcher.isRunning).toBe(false);
+    });
 
-        // Queue a change but don't let debounce fire
-        watchCallback('change', 'test.moment');
+    it('start stops previous watcher before creating new one', () => {
+      const watcher = new FileWatcher({
+        config: makeConfig(),
+        rootDir: tempDir,
+        onFileChange: vi.fn(),
+      });
 
-        watcher.stop();
+      watcher.start();
+      const firstWatcher = currentMockWatcher;
 
-        expect(closeA).toHaveBeenCalled();
-        expect(closeB).toHaveBeenCalled();
-        expect(watcher.isRunning).toBe(false);
+      watcher.start();
+      expect(firstWatcher.close).toHaveBeenCalled();
+      expect(watcher.isRunning).toBe(true);
 
-        // Debounce should not fire after stop
-        vi.advanceTimersByTime(200);
-        expect(onChange).not.toHaveBeenCalled();
-      } finally {
-        vi.useRealTimers();
-      }
+      watcher.stop();
+    });
+
+    it('stop is safe to call when not running', () => {
+      const watcher = new FileWatcher({
+        config: makeConfig(),
+        rootDir: tempDir,
+        onFileChange: vi.fn(),
+      });
+
+      // Should not throw
+      watcher.stop();
+      expect(watcher.isRunning).toBe(false);
     });
   });
 });

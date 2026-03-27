@@ -450,6 +450,36 @@ describe('AstToIr', () => {
     expect(entry.multiplicity).toBe('N');
   });
 
+  it('returns empty contexts and flows for empty file', async () => {
+    const doc = await parse('');
+    const ir = astToIr(doc.parseResult.value);
+
+    expect(ir.contexts).toHaveLength(0);
+    expect(ir.flows).toHaveLength(0);
+    expect(ir.relationships).toEqual([]);
+  });
+
+  it('transforms context without classification', async () => {
+    const ir = await toIr(`
+      context "Plain"
+        aggregate "Thing"
+          identity id: UUID
+    `);
+
+    expect(ir.contexts[0].classification).toBeUndefined();
+  });
+
+  it('transforms flow without description', async () => {
+    const ir = await toIr(`
+      flow "nodesc"
+        lane a "A" [Core]
+        frame "Step"
+          a: EventA
+    `);
+
+    expect(ir.flows[0].description).toBeUndefined();
+  });
+
   it('handles crossing connection in when block', async () => {
     const ir = await toIr(`
       flow "test"

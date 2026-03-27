@@ -144,6 +144,58 @@ generators:
       expect(() => reader.readManifest(manifestPath)).toThrow('not a valid object');
     });
 
+    it('throws when generators is not an array', () => {
+      const manifestPath = writeManifest(`
+name: Test
+generators: not-an-array
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow('generators must be an array');
+    });
+
+    it('throws when file reference entry is not an object', () => {
+      const manifestPath = writeManifest(`
+name: Test
+contexts:
+  - "just a string"
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow('is not an object');
+    });
+
+    it('throws when file reference has non-string name or path', () => {
+      const manifestPath = writeManifest(`
+name: Test
+contexts:
+  - name: 123
+    path: true
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow("must have string 'name' and 'path'");
+    });
+
+    it('throws when generator outputDir is not a string', () => {
+      const manifestPath = writeManifest(`
+name: Test
+generators:
+  - format: typescript
+    outputDir: 123
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow("'outputDir' for generator");
+    });
+
+    it('returns default watch config when watch is an array', () => {
+      const manifestPath = writeManifest(`
+name: Test
+watch:
+  - item1
+  - item2
+`);
+      const config = reader.readManifest(manifestPath);
+      expect(config.watch).toEqual({
+        enabled: false,
+        debounceMs: 300,
+        paths: [],
+      });
+    });
+
     it('coerces non-string name and version to defaults', () => {
       const manifestPath = writeManifest(`
 name: 123

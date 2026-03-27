@@ -256,6 +256,113 @@ describe('SiftSpecificationImporter', () => {
     expect(result.flowFiles[0].path).toBe('flows/place-order-flow.moment');
   });
 
+  it('generates flow file with lane without classification', () => {
+    const event: SiftTimelineEvent = {
+      flowName: 'simple-flow',
+      lanes: [{ id: 'main', label: 'Main' }],
+      frames: [
+        {
+          label: 'Step 1',
+          nodes: [{ laneId: 'main', nodeName: 'DoSomething' }],
+        },
+      ],
+    };
+
+    const content = importer.generateFlowFile(event);
+
+    expect(content).toContain('lane main "Main"');
+    expect(content).not.toContain('[');
+    expect(content).toContain('main: DoSomething');
+  });
+
+  it('generates flow file without description', () => {
+    const event: SiftTimelineEvent = {
+      flowName: 'no-desc-flow',
+      lanes: [{ id: 'a', label: 'A' }],
+      frames: [],
+    };
+
+    const content = importer.generateFlowFile(event);
+
+    expect(content).toContain('flow "no-desc-flow"');
+    expect(content).not.toContain('description');
+  });
+
+  it('generates flow file with non-required contract fields', () => {
+    const event: SiftTimelineEvent = {
+      flowName: 'optional-fields',
+      lanes: [
+        { id: 'a', label: 'A', classification: 'Core' },
+        { id: 'b', label: 'B', classification: 'Supporting' },
+      ],
+      frames: [
+        {
+          label: 'Step',
+          nodes: [
+            {
+              laneId: 'a',
+              nodeName: 'EventA',
+              crossing: {
+                targetLaneId: 'b',
+                relationshipType: 'CustomerSupplier',
+                contractFields: [
+                  { name: 'id', type: 'UUID', required: true },
+                  { name: 'notes', type: 'String', required: false },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const content = importer.generateFlowFile(event);
+
+    expect(content).toContain('id: UUID [required]');
+    expect(content).toContain('notes: String');
+    // The non-required field should NOT have [required]
+    const notesLine = content.split('\n').find((l: string) => l.includes('notes: String'));
+    expect(notesLine).not.toContain('[required]');
+  });
+
+  it('generates context file without classification', () => {
+    const block: SiftBuildingBlock = {
+      contextName: 'NoClassification',
+      aggregates: [],
+    };
+
+    const content = importer.generateContextFile(block);
+    expect(content).toContain('context "NoClassification"');
+    expect(content).not.toContain('[');
+  });
+
+  it('generates context file with command without inputs', () => {
+    const block: SiftBuildingBlock = {
+      contextName: 'Test',
+      classification: 'Core',
+      aggregates: [
+        {
+          name: 'Thing',
+          identityField: { name: 'id', type: 'UUID' },
+          commands: [
+            {
+              name: 'DoIt',
+              inputs: [],
+              emitsEvent: 'ItDone',
+            },
+          ],
+          events: [],
+          valueObjects: [],
+        },
+      ],
+    };
+
+    const content = importer.generateContextFile(block);
+    expect(content).toContain('command DoIt');
+    expect(content).not.toContain('input');
+    expect(content).toContain('emits ItDone');
+  });
+
   it('includes all diagnostics in result', () => {
     const result = importer.import(sampleInput);
 
