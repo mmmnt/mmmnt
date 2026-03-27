@@ -146,13 +146,24 @@ jobs:
           echo "Assigning sprintless Test/Test Execution issues to sprint $SPRINT_ID..."
 
           ASSIGNED=0
-          START_AT=0
+          PAGE_SIZE=100
 
+          # Get total count first
+          TOTAL=$(curl -s -G "https://winnovation.atlassian.net/rest/api/3/search/jql" \
+            --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
+            --data-urlencode "maxResults=0" \
+            --data-urlencode "fields=key" \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" | jq '.total // 0')
+
+          echo "Found $TOTAL sprintless issues."
+
+          # Each successful assignment removes the issue from the query,
+          # so always query startAt=0 until no results remain
           while true; do
             RESPONSE=$(curl -s -G "https://winnovation.atlassian.net/rest/api/3/search/jql" \
               --data-urlencode "jql=project=MMNT AND issuetype in (Test, 'Test Execution') AND sprint is EMPTY ORDER BY key ASC" \
-              --data-urlencode "maxResults=100" \
-              --data-urlencode "startAt=$START_AT" \
+              --data-urlencode "maxResults=$PAGE_SIZE" \
+              --data-urlencode "startAt=0" \
               --data-urlencode "fields=key" \
               -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN")
 
@@ -162,21 +173,18 @@ jobs:
             fi
 
             for KEY in $KEYS; do
-              curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              if curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
                 -X PUT "https://winnovation.atlassian.net/rest/api/3/issue/$KEY" \
                 -H "Content-Type: application/json" \
-                -d "{\"fields\":{\"customfield_10020\":{\"id\":$SPRINT_ID}}}" > /dev/null 2>&1 && \
-                ASSIGNED=$((ASSIGNED + 1)) || true
+                -d "{\"fields\":{\"customfield_10020\":{\"id\":$SPRINT_ID}}}" > /dev/null 2>&1; then
+                ASSIGNED=$((ASSIGNED + 1))
+              else
+                echo "  Failed to assign $KEY — skipping to avoid infinite loop."
+              fi
             done
-
-            COUNT=$(echo "$RESPONSE" | jq '.issues | length')
-            if [ "$COUNT" -lt 100 ]; then
-              break
-            fi
-            START_AT=$((START_AT + 100))
           done
 
-          echo "Assigned $ASSIGNED Test issues to sprint $SPRINT_ID."
+          echo "Assigned $ASSIGNED of $TOTAL Test issues to sprint $SPRINT_ID."
         env:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
