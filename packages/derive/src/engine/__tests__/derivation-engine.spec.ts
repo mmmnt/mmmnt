@@ -225,21 +225,24 @@ describe('DerivationEngine', () => {
       expect(fieldConstraints[1].required).toBe(true);
     });
 
-    it.skip('crossing without contract produces empty payload validation', () => {
+    it.skip('crossing with minimal single-field contract produces one FieldConstraint', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
       const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
-      const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', []);
-      const flow = makeFlow('f1', 'No-Contract Flow', [frame], [conn]);
+      const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', [
+        { name: 'orderId', type: 'string', required: true },
+      ]);
+      const flow = makeFlow('f1', 'Minimal-Contract Flow', [frame], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
 
       const assertions = topology.suites[0].testCases[0].assertions;
       expect(assertions).toHaveLength(1);
-      expect(assertions[0].schemaContract.expectedFields).toHaveLength(0);
+      expect(assertions[0].schemaContract.expectedFields).toHaveLength(1);
+      expect(assertions[0].schemaContract.expectedFields[0].fieldName).toBe('orderId');
     });
   });
 
