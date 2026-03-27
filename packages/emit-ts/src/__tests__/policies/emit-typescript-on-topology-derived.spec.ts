@@ -17,6 +17,7 @@ import type {
   TopologyMetadata,
   PayloadValidationStep,
   FieldConstraint,
+  TopologyDerivedHook,
 } from '@mmmnt/derive';
 import { EmitTypeScriptOnTopologyDerived } from '../../policies/emit-typescript-on-topology-derived.js';
 
@@ -232,22 +233,18 @@ describe('EmitTypeScriptOnTopologyDerived', () => {
   });
 
   // Test 4: Works as a hook from DeriveOnSpecificationParsed (callable interface)
-  it('works as a hook callable from DeriveOnSpecificationParsed', () => {
+  it('works as a TopologyDerivedHook callback via handle method', () => {
     const ir = makeIR();
     const topology = makeTopology();
 
-    // The policy's execute method matches the TopologyDerivedHook signature:
-    //   (topology: TestSuiteTopology, ir: IntermediateRepresentation) => void | Promise<void>
-    // We verify it can be invoked in the same argument order as the hook.
-    const hook = (topo: typeof topology, irArg: typeof ir): void => {
-      policy.execute(irArg, topo);
-    };
+    // Type-safe: policy.handle conforms to TopologyDerivedHook signature
+    const hook: TopologyDerivedHook = policy.handle.bind(policy);
 
-    // Simulate what DeriveOnSpecificationParsed does: call the hook
-    const result = policy.execute(ir, topology);
-
-    // Verify the hook invocation doesn't throw and produces valid output
+    // Invoke as DeriveOnSpecificationParsed would — no errors
     expect(() => hook(topology, ir)).not.toThrow();
+
+    // Verify execute still produces correct results
+    const result = policy.execute(ir, topology);
     expect(result.typeScriptOutput.result.filesWritten.length).toBeGreaterThan(0);
     expect(result.scaffoldOutput.result.specFilesWritten.length).toBeGreaterThan(0);
   });

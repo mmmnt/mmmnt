@@ -14,6 +14,14 @@ export class EmitTypeScriptOnTopologyDerived {
   private readonly tsEmitter = new TypeScriptEmitter();
   private readonly scaffoldEmitter = new TestScaffoldEmitter();
 
+  /**
+   * TopologyDerivedHook-compatible entry point.
+   * Matches the (topology, ir) => void signature.
+   */
+  handle(topology: TestSuiteTopology, ir: IntermediateRepresentation): void {
+    this.execute(ir, topology);
+  }
+
   execute(ir: IntermediateRepresentation, topology: TestSuiteTopology): EmitTypeScriptResult {
     const typeScriptOutput = this.tsEmitter.emit(ir, { scope: { level: 'system' } });
     const scaffoldOutput = this.scaffoldEmitter.emit(ir, topology);
