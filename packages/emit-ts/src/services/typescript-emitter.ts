@@ -194,10 +194,8 @@ function shouldIncludeContext(context: ContextDefinition, scope: GenerationScope
   if (scope.level === 'context' && !scope.targets) {
     return true;
   }
-  if (scope.level === 'aggregate') {
-    return context.aggregates.some((a) => !scope.targets || scope.targets.includes(a.name));
-  }
-  return true;
+  // scope.level === 'aggregate'
+  return context.aggregates.some((a) => !scope.targets || scope.targets.includes(a.name));
 }
 
 function filterAggregates(

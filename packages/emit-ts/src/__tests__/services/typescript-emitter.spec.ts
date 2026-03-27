@@ -428,4 +428,36 @@ describe('TypeScriptEmitter', () => {
     expect(aggContent).toBeDefined();
     expect(aggContent).toContain('readonly orderId: string;');
   });
+
+  // Test 22: scope level='context' without targets includes all contexts
+  it('scope level=context without targets includes all contexts', () => {
+    const ir = makeIR([
+      makeContext({ name: 'Ordering' }),
+      makeContext({
+        id: 'ctx-2',
+        name: 'Shipping',
+        aggregates: [makeAggregate({ name: 'Shipment' })],
+      }),
+    ]);
+    const output = emitter.emit(ir, { scope: { level: 'context' } });
+
+    expect(output.result.filesWritten.length).toBeGreaterThanOrEqual(4);
+  });
+
+  // Test 23: scope level='aggregate' with targets filters to matching aggregates
+  it('scope level=aggregate with targets filters to matching aggregates only', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [
+          makeAggregate({ name: 'Order' }),
+          makeAggregate({ id: 'agg-2', name: 'Invoice' }),
+        ],
+      }),
+    ]);
+    const output = emitter.emit(ir, { scope: { level: 'aggregate', targets: ['Order'] } });
+
+    const paths = output.result.filesWritten;
+    expect(paths.some((p) => p.includes('order.'))).toBe(true);
+    expect(paths.some((p) => p.includes('invoice.'))).toBe(false);
+  });
 });
