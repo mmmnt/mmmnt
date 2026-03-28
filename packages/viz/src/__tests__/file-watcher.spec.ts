@@ -38,7 +38,9 @@ describe('FileWatcher', () => {
     });
 
     await watcher.start();
-    writeFileSync(testFile, 'updated content');
+    // Let chokidar's polling settle before triggering the change
+    await new Promise((r) => setTimeout(r, 200));
+    writeFileSync(testFile, 'updated content at ' + Date.now());
 
     await waitFor(() => onChange.mock.calls.length > 0);
 
@@ -61,6 +63,7 @@ describe('FileWatcher', () => {
     });
 
     await watcher.start();
+    await new Promise((r) => setTimeout(r, 200));
 
     for (let i = 2; i <= 6; i++) {
       writeFileSync(testFile, `v${i}`);
@@ -169,6 +172,7 @@ describe('FileWatcher', () => {
     });
 
     await watcher.start();
+    await new Promise((r) => setTimeout(r, 200));
 
     writeFileSync(testFile, 'v2');
     await waitFor(() => onChange.mock.calls.length >= 1, 2000);
