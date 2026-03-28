@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mmmnt/core": "workspace:*"
+    "@mmmnt/core": "workspace:*",
+    "@mmmnt/derive": "workspace:*"
   },
   "publishConfig": {
     "access": "public",
