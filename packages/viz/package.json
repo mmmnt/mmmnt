@@ -22,10 +22,14 @@
   },
   "dependencies": {
     "@mmmnt/core": "workspace:*",
-    "glob": "^13.0.6"
+    "chokidar": "^5.0.0",
+    "picomatch": "^4.0.4"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.2"
   }
 }
