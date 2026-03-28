@@ -1,4 +1,5 @@
 export interface ContextMapNode {
+  readonly contextId: string;
   readonly contextName: string;
   readonly classification: string;
   readonly x: number;
@@ -9,8 +10,8 @@ export interface ContextMapNode {
 }
 
 export interface ContextMapEdge {
-  readonly sourceContext: string;
-  readonly targetContext: string;
+  readonly sourceContextId: string;
+  readonly targetContextId: string;
   readonly relationshipType: string;
   readonly label: string;
   readonly points: readonly { readonly x: number; readonly y: number }[];

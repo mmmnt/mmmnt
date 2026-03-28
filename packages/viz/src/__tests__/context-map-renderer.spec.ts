@@ -76,9 +76,9 @@ describe('ContextMapRenderer', () => {
 
     expect(layout.nodes).toHaveLength(3);
     expect(layout.edges).toHaveLength(2);
-    expect(layout.edges[0].sourceContext).toBe('ctx-ordering');
-    expect(layout.edges[0].targetContext).toBe('ctx-shipping');
-    expect(layout.edges[1].targetContext).toBe('ctx-billing');
+    expect(layout.edges[0].sourceContextId).toBe('ctx-ordering');
+    expect(layout.edges[0].targetContextId).toBe('ctx-shipping');
+    expect(layout.edges[1].targetContextId).toBe('ctx-billing');
   });
 
   it('carries correct relationship type labels on edges', () => {
@@ -143,7 +143,7 @@ describe('ContextMapRenderer', () => {
 
   it('VZ-02: pure function — no mutations to input IR', () => {
     const ir = makeIR({
-      contexts: [makeContext('ctx-ordering', 'Ordering')],
+      contexts: [makeContext('ctx-ordering', 'Ordering'), makeContext('ctx-shipping', 'Shipping')],
       relationships: [
         {
           sourceContextId: 'ctx-ordering',

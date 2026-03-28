@@ -8,12 +8,12 @@ const COLUMNS = 3;
 
 /**
  * Pure function: IR → ContextMapLayout.
- * VZ-01: derived from IR only, no visual-only data.
- * VZ-02: deterministic — same IR → identical output.
+ * VZ-01: deterministic — same IR → identical output.
+ * VZ-02: pure/no mutation — no side effects; derived from IR only (no visual-only data).
  */
 export function renderContextMap(ir: IntermediateRepresentation): ContextMapLayout {
   const nodes = buildNodes(ir);
-  const nodeIndex = new Map(nodes.map((n) => [n.contextName, n]));
+  const nodeIndex = new Map(nodes.map((n) => [n.contextId, n]));
   const edges = buildEdges(ir, nodeIndex);
   const dimensions = computeDimensions(nodes);
 
@@ -25,6 +25,7 @@ function buildNodes(ir: IntermediateRepresentation): ContextMapNode[] {
     const col = index % COLUMNS;
     const row = Math.floor(index / COLUMNS);
     return {
+      contextId: ctx.id,
       contextName: ctx.name,
       classification: ctx.classification ?? 'Supporting',
       x: col * (NODE_WIDTH + NODE_SPACING) + NODE_SPACING,
@@ -40,31 +41,28 @@ function buildEdges(
   ir: IntermediateRepresentation,
   nodeIndex: ReadonlyMap<string, ContextMapNode>,
 ): ContextMapEdge[] {
-  return ir.relationships.map((rel) => {
-    const sourceNode = nodeIndex.get(findContextName(ir, rel.sourceContextId));
-    const targetNode = nodeIndex.get(findContextName(ir, rel.targetContextId));
+  const edges: ContextMapEdge[] = [];
 
-    const sourceX = sourceNode ? sourceNode.x + sourceNode.width : 0;
-    const sourceY = sourceNode ? sourceNode.y + sourceNode.height / 2 : 0;
-    const targetX = targetNode ? targetNode.x : 0;
-    const targetY = targetNode ? targetNode.y + targetNode.height / 2 : 0;
+  for (const rel of ir.relationships) {
+    const sourceNode = nodeIndex.get(rel.sourceContextId);
+    const targetNode = nodeIndex.get(rel.targetContextId);
 
-    return {
-      sourceContext: rel.sourceContextId,
-      targetContext: rel.targetContextId,
+    // Skip edges referencing missing contexts
+    if (!sourceNode || !targetNode) continue;
+
+    edges.push({
+      sourceContextId: rel.sourceContextId,
+      targetContextId: rel.targetContextId,
       relationshipType: rel.relationshipType,
       label: rel.relationshipType,
       points: [
-        { x: sourceX, y: sourceY },
-        { x: targetX, y: targetY },
+        { x: sourceNode.x + sourceNode.width, y: sourceNode.y + sourceNode.height / 2 },
+        { x: targetNode.x, y: targetNode.y + targetNode.height / 2 },
       ],
-    };
-  });
-}
+    });
+  }
 
-function findContextName(ir: IntermediateRepresentation, contextId: string): string {
-  const ctx = ir.contexts.find((c) => c.id === contextId);
-  return ctx?.name ?? contextId;
+  return edges;
 }
 
 function computeDimensions(nodes: readonly ContextMapNode[]): { width: number; height: number } {
