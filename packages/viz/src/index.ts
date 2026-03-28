@@ -9,6 +9,10 @@ export type {
   SequenceLayout,
   PreviewServerConfig,
   BundledApp,
+  ContextMapNode,
+  ContextMapEdge,
+  ContextMapLayout,
 } from './types/index.js';
 
 export { renderTimeline } from './renderers/index.js';
+export { renderContextMap } from './renderers/index.js';
