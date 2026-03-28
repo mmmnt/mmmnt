@@ -16,3 +16,11 @@ export type {
 
 export { renderTimeline } from './renderers/index.js';
 export { renderContextMap } from './renderers/index.js';
+
+export { WatchModePublisher, FileWatcher } from './server/index.js';
+export type {
+  WatchModePublisherOptions,
+  TopologyPublishTarget,
+  ComplaiEventEnvelope,
+  FileWatcherOptions,
+} from './server/index.js';
