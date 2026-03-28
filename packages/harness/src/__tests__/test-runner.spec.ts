@@ -85,8 +85,8 @@ function makeTopology(overrides: Partial<TestSuiteTopology> = {}): TestSuiteTopo
             assertions: [
               {
                 crossingId: 'crossing-1',
-                sourceContext: 'Ordering',
-                targetContext: 'Shipping',
+                sourceContext: 'ctx-ordering',
+                targetContext: 'ctx-shipping',
                 schemaContract: { eventType: 'OrderPlaced', expectedFields: [] },
                 assertionType: 'payload' as const,
               },
@@ -302,8 +302,8 @@ describe('TestRunner', () => {
               assertions: [
                 {
                   crossingId: 'c1',
-                  sourceContext: 'Ordering',
-                  targetContext: 'MissingContext',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-missing',
                   schemaContract: { eventType: 'Evt', expectedFields: [] },
                   assertionType: 'payload' as const,
                 },

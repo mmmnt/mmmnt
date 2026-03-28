@@ -1,4 +1,9 @@
-import type { IntermediateRepresentation, FlowDefinition, FrameDefinition } from '@mmmnt/core';
+import type {
+  IntermediateRepresentation,
+  FlowDefinition,
+  FrameDefinition,
+  FrameEntry,
+} from '@mmmnt/core';
 import type { ReplayResult, DivergencePoint } from './types/index.js';
 
 /**
@@ -6,7 +11,6 @@ import type { ReplayResult, DivergencePoint } from './types/index.js';
  * detects divergence points where actual behavior deviates from specification,
  * and returns a ReplayResult with full divergence detail.
  *
- * Invariant TE-01: every result includes traceability to originating specification element.
  * Infrastructure-agnostic (Design Principle #6).
  */
 export class EventReplayEngine {
@@ -49,7 +53,31 @@ export class EventReplayEngine {
     frameIndex: number,
     contextIndex: ReadonlyMap<string, { id: string; name: string }>,
   ): DivergencePoint | undefined {
-    for (const entry of frame.contextEntries) {
+    // Check main context entries
+    const mainDivergence = this.checkEntries(frame.contextEntries, frameIndex, contextIndex);
+    if (mainDivergence) {
+      return mainDivergence;
+    }
+
+    // Check branch entries
+    if (frame.branches) {
+      for (const branch of frame.branches) {
+        const branchDivergence = this.checkEntries(branch.entries, frameIndex, contextIndex);
+        if (branchDivergence) {
+          return branchDivergence;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private checkEntries(
+    entries: readonly FrameEntry[],
+    frameIndex: number,
+    contextIndex: ReadonlyMap<string, { id: string; name: string }>,
+  ): DivergencePoint | undefined {
+    for (const entry of entries) {
       const context = contextIndex.get(entry.contextId);
       if (!context) {
         return {

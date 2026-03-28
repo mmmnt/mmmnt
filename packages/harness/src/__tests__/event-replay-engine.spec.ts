@@ -137,6 +137,38 @@ describe('EventReplayEngine', () => {
     expect(resultInvalid.finalStateMatch).toBe(false);
   });
 
+  it('detects divergence in branch entries', () => {
+    const ir = makeIR();
+    const flow = makeFlow({
+      frames: [
+        {
+          id: 'frame-1',
+          name: 'Branched Frame',
+          contextEntries: [
+            { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
+          ],
+          branches: [
+            {
+              condition: 'amount > 100',
+              entries: [
+                {
+                  contextId: 'ctx-nonexistent',
+                  nodeName: 'HighValueOrder',
+                  nodeKind: 'command' as const,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = engine.replay(flow, ir);
+
+    expect(result.divergencePoints).toHaveLength(1);
+    expect(result.divergencePoints[0].eventThatCaused).toBe('HighValueOrder');
+  });
+
   it('handles empty flow (zero steps)', () => {
     const ir = makeIR();
     const flow = makeFlow({ frames: [] });

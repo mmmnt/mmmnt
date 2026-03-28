@@ -80,8 +80,8 @@ export class TestRunner {
     }
 
     for (const assertion of testCase.assertions) {
-      const sourceExists = ir.contexts.some((c) => c.name === assertion.sourceContext);
-      const targetExists = ir.contexts.some((c) => c.name === assertion.targetContext);
+      const sourceExists = ir.contexts.some((c) => c.id === assertion.sourceContext);
+      const targetExists = ir.contexts.some((c) => c.id === assertion.targetContext);
       if (!sourceExists || !targetExists) {
         return false;
       }
