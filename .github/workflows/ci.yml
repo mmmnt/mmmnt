@@ -288,6 +288,156 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
+      - name: Transition Test Execution issues to Done
+        if: steps.xray-import.outputs.ids != ''
+        run: |
+          echo "Transitioning Test Execution issues to Done..."
+          TRANSITIONED=0
+          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+            EXEC_KEY=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              "https://winnovation.atlassian.net/rest/api/3/issue/$EXEC_ID?fields=key,status" \
+              | jq -r '.key // empty' 2>/dev/null)
+
+            if [ -z "$EXEC_KEY" ]; then
+              # Fallback: search by ID
+              EXEC_KEY=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+                "https://winnovation.atlassian.net/rest/api/3/search/jql?jql=id=$EXEC_ID&fields=key" \
+                | jq -r '.issues[0].key // empty' 2>/dev/null)
+            fi
+
+            [ -z "$EXEC_KEY" ] && echo "  Could not resolve key for id $EXEC_ID" && continue
+
+            curl -s --connect-timeout 5 --max-time 10 \
+              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              -X POST "https://winnovation.atlassian.net/rest/api/3/issue/$EXEC_KEY/transitions" \
+              -H "Content-Type: application/json" \
+              -d '{"transition":{"id":"31"}}' > /dev/null 2>&1 && \
+              TRANSITIONED=$((TRANSITIONED + 1)) && \
+              echo "  $EXEC_KEY → Done" || \
+              echo "  Failed to transition $EXEC_KEY"
+          done
+          echo "Transitioned $TRANSITIONED Test Execution issues to Done."
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Add Tests to Test Set and link to story
+        if: steps.xray-import.outputs.ids != ''
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
+
+          if [ -z "$STORY_KEY" ]; then
+            echo "::notice::No story key in branch — skipping Test Set/story linking."
+            exit 0
+          fi
+
+          echo "Resolving Test Set for $STORY_KEY..."
+
+          # Resolve story → epic
+          EPIC_KEY=$(curl -s --connect-timeout 5 --max-time 10 \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$STORY_KEY?fields=parent" \
+            | jq -r '.fields.parent.key // empty')
+
+          if [ -z "$EPIC_KEY" ]; then
+            echo "::notice::No epic for $STORY_KEY — skipping."
+            exit 0
+          fi
+
+          # Extract epic number from summary (e.g., "4.3" from "4.3 — @mmmnt/viz...")
+          EPIC_SUMMARY=$(curl -s --connect-timeout 5 --max-time 10 \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$EPIC_KEY?fields=summary" \
+            | jq -r '.fields.summary // empty')
+          EPIC_NUMBER=$(echo "$EPIC_SUMMARY" | sed -n 's/^\([0-9]*\.[0-9]*\).*/\1/p')
+
+          if [ -z "$EPIC_NUMBER" ]; then
+            echo "::notice::Could not extract epic number from '$EPIC_SUMMARY'."
+            exit 0
+          fi
+
+          echo "Epic: $EPIC_KEY ($EPIC_NUMBER)"
+
+          # Find Test Set matching this epic
+          .github/scripts/jira-search.sh \
+            --jql "project=MMNT AND issuetype='Test Set' AND summary ~ '$EPIC_NUMBER' ORDER BY created DESC" \
+            --fields "key" \
+            --max-results 1 \
+            --output /tmp/test-set.json
+
+          TEST_SET_KEY=$(jq -r '.[0].key // empty' /tmp/test-set.json)
+          if [ -z "$TEST_SET_KEY" ]; then
+            echo "::notice::No Test Set for epic $EPIC_NUMBER."
+            exit 0
+          fi
+
+          TEST_SET_JIRA_ID=$(curl -s --connect-timeout 5 --max-time 10 \
+            -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            "https://winnovation.atlassian.net/rest/api/3/issue/$TEST_SET_KEY?fields=summary" \
+            | jq -r '.id // empty')
+
+          echo "Test Set: $TEST_SET_KEY (id: $TEST_SET_JIRA_ID)"
+
+          # Collect all test issue IDs and keys from executions
+          ALL_TEST_IDS=""
+          ALL_TEST_KEYS=""
+          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+            PAGE_START=0
+            while true; do
+              QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100, start: $PAGE_START) { total results { test { issueId jira(fields: [\\\"key\\\"]) } } } } }\"}"
+              GQL=$(curl -s --connect-timeout 10 --max-time 60 -X POST \
+                "https://xray.cloud.getxray.app/api/v2/graphql" \
+                -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+                -H "Content-Type: application/json" \
+                -d "$QUERY")
+
+              TOTAL=$(echo "$GQL" | jq '.data.getTestExecution.testRuns.total // 0')
+              KEYS=$(echo "$GQL" | jq -r '.data.getTestExecution.testRuns.results[]?.test.jira.key // empty')
+              IDS=$(echo "$GQL" | jq -r '.data.getTestExecution.testRuns.results[]?.test.issueId // empty')
+
+              [ -n "$KEYS" ] && ALL_TEST_KEYS="${ALL_TEST_KEYS}${ALL_TEST_KEYS:+$'\n'}${KEYS}"
+              [ -n "$IDS" ] && ALL_TEST_IDS="${ALL_TEST_IDS}${ALL_TEST_IDS:+$'\n'}${IDS}"
+
+              PAGE_START=$((PAGE_START + 100))
+              [ "$PAGE_START" -ge "$TOTAL" ] && break
+            done
+          done
+
+          UNIQUE_KEYS=$(echo "$ALL_TEST_KEYS" | sort -u | grep -v '^$')
+          UNIQUE_IDS=$(echo "$ALL_TEST_IDS" | sort -u | grep -v '^$')
+          echo "Found $(echo "$UNIQUE_KEYS" | wc -l) unique Test issues."
+
+          # 1. Link Tests to story
+          LINKED=0
+          for TEST_KEY in $UNIQUE_KEYS; do
+            curl -s -o /dev/null --connect-timeout 5 --max-time 10 \
+              -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+              -X POST "https://winnovation.atlassian.net/rest/api/3/issueLink" \
+              -H "Content-Type: application/json" \
+              -d "{\"type\":{\"name\":\"Test\"},\"inwardIssue\":{\"key\":\"$TEST_KEY\"},\"outwardIssue\":{\"key\":\"$STORY_KEY\"}}" && \
+              LINKED=$((LINKED + 1)) || true
+          done
+          echo "Linked $LINKED Tests to $STORY_KEY."
+
+          # 2. Add Tests to Test Set via Xray GraphQL
+          if [ -n "$TEST_SET_JIRA_ID" ] && [ -n "$UNIQUE_IDS" ]; then
+            ID_ARRAY=$(echo "$UNIQUE_IDS" | sed 's/.*/"&"/' | paste -sd ',' -)
+            MUTATION="{\"query\":\"mutation { addTestsToTestSet(issueId: \\\"$TEST_SET_JIRA_ID\\\", testIssueIds: [$ID_ARRAY]) { addedTests warning } }\"}"
+
+            RESULT=$(curl -s --connect-timeout 10 --max-time 30 -X POST \
+              "https://xray.cloud.getxray.app/api/v2/graphql" \
+              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+              -H "Content-Type: application/json" \
+              -d "$MUTATION")
+
+            ADDED=$(echo "$RESULT" | jq '.data.addTestsToTestSet.addedTests | length // 0')
+            echo "Added $ADDED Tests to Test Set $TEST_SET_KEY."
+          fi
+        env:
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
   input-gate-verification:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
