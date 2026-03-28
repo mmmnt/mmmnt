@@ -18,15 +18,15 @@ const ENTRY_SPACING = 140;
  * VZ-02: deterministic — same IR → identical output.
  */
 export function renderTimeline(ir: IntermediateRepresentation): TimelineLayout {
-  const contextOrder = ir.contexts.map((c) => c.id);
-  const lanes = buildLanes(ir, contextOrder);
+  const lanes = buildLanes(ir);
   const laneIndex = new Map(lanes.map((l) => [l.contextId, l]));
 
   const entries: TimelineEntry[] = [];
   const connections: TimelineConnection[] = [];
+  let globalXOffset = LANE_PADDING;
 
   for (const flow of ir.flows) {
-    processFlow(flow, ir, laneIndex, entries, connections);
+    globalXOffset = processFlow(flow, ir, laneIndex, entries, connections, globalXOffset);
   }
 
   return {
@@ -50,9 +50,8 @@ function processFlow(
   laneIndex: ReadonlyMap<string, TimelineLane>,
   entries: TimelineEntry[],
   connections: TimelineConnection[],
-): void {
-  let xOffset = LANE_PADDING;
-
+  xOffset: number,
+): number {
   for (const frame of flow.frames) {
     for (const entry of frame.contextEntries) {
       const lane = laneIndex.get(entry.contextId);
@@ -77,15 +76,20 @@ function processFlow(
     const targetLane = laneIndex.get(conn.targetContextId);
     if (!sourceLane || !targetLane) continue;
 
+    const sourceEntry = entries.find((e) => e.frameId === conn.sourceFrameId);
+    const connectionX = sourceEntry != null ? sourceEntry.x + sourceEntry.width / 2 : LANE_PADDING;
+
     connections.push({
       connectionId: conn.id,
       sourceFrameId: conn.sourceFrameId,
       targetContextId: conn.targetContextId,
       sourceLaneY: sourceLane.y + LANE_HEIGHT / 2,
       targetLaneY: targetLane.y + LANE_HEIGHT / 2,
-      x: LANE_PADDING,
+      x: connectionX,
     });
   }
+
+  return xOffset;
 }
 
 function computeDimensions(
@@ -100,19 +104,13 @@ function computeDimensions(
   return { width: maxX, height: maxY };
 }
 
-function buildLanes(
-  ir: IntermediateRepresentation,
-  contextOrder: readonly string[],
-): TimelineLane[] {
-  return contextOrder.map((ctxId, index) => {
-    const ctx = ir.contexts.find((c) => c.id === ctxId);
-    return {
-      contextId: ctxId,
-      contextName: ctx?.name ?? ctxId,
-      y: index * (LANE_HEIGHT + LANE_PADDING),
-      height: LANE_HEIGHT,
-    };
-  });
+function buildLanes(ir: IntermediateRepresentation): TimelineLane[] {
+  return ir.contexts.map((ctx, index) => ({
+    contextId: ctx.id,
+    contextName: ctx.name,
+    y: index * (LANE_HEIGHT + LANE_PADDING),
+    height: LANE_HEIGHT,
+  }));
 }
 
 function isCrossing(conn: ConnectionDefinition): boolean {
@@ -122,11 +120,25 @@ function isCrossing(conn: ConnectionDefinition): boolean {
 function findSourceContext(
   conn: ConnectionDefinition,
   flow: { frames: readonly { id: string; contextEntries: readonly { contextId: string }[] }[] },
-  _ir: IntermediateRepresentation,
+  ir: IntermediateRepresentation,
 ): string {
+  // Resolve source context from eventId by searching IR contexts/aggregates
+  for (const ctx of ir.contexts) {
+    if (ctx.events.some((e) => e.id === conn.eventId)) {
+      return ctx.id;
+    }
+    for (const agg of ctx.aggregates) {
+      if (agg.events.some((e) => e.id === conn.eventId)) {
+        return ctx.id;
+      }
+    }
+  }
+
+  // Fallback: infer from source frame's first context entry
   const sourceFrame = flow.frames.find((f) => f.id === conn.sourceFrameId);
   if (sourceFrame && sourceFrame.contextEntries.length > 0) {
     return sourceFrame.contextEntries[0].contextId;
   }
+
   return conn.targetContextId;
 }

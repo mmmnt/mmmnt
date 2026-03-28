@@ -1,9 +1,9 @@
-/** @default port 3000 */
+/** Preview server configuration. */
 export interface PreviewServerConfig {
   readonly port: number;
   readonly watchPaths: readonly string[];
-  /** Debounce milliseconds for file watcher. @default 300 */
+  /** Debounce milliseconds for file watcher. */
   readonly refreshInterval: number;
-  /** Auto-open browser on start. @default true */
+  /** Auto-open browser on start. */
   readonly openBrowser: boolean;
 }
