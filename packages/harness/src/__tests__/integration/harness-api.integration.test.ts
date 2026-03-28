@@ -121,7 +121,7 @@ const sampleTopology: TestSuiteTopology = {
     {
       flowId: 'flow-order-to-ship',
       flowName: 'Order to Ship',
-      contextsCovered: ['Ordering', 'Shipping'],
+      contextsCovered: ['ctx-ordering', 'ctx-shipping'],
       testCases: [
         {
           frameId: 'frame-place',
@@ -216,8 +216,9 @@ describe('Harness API Integration', () => {
 
     expect(result.valid).toBe(false);
     expect(result.violations.length).toBeGreaterThanOrEqual(1);
-    expect(result.violations[0].fieldName).toBe('amount');
-    expect(result.violations[0].constraintViolated).toBe('required field missing');
+    const amountViolation = result.violations.find((v) => v.fieldName === 'amount');
+    expect(amountViolation).toBeDefined();
+    expect(amountViolation!.constraintViolated).toBe('required field missing');
   });
 
   it('EventReplayEngine detects divergence (TE-02)', () => {
