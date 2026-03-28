@@ -17,10 +17,6 @@ export type {
 export { renderTimeline } from './renderers/index.js';
 export { renderContextMap } from './renderers/index.js';
 
-export { WatchModePublisher, FileWatcher } from './server/index.js';
-export type {
-  WatchModePublisherOptions,
-  TopologyPublishTarget,
-  ComplaiEventEnvelope,
-  FileWatcherOptions,
-} from './server/index.js';
+// Server exports available via '@mmmnt/viz/server' subpath or direct import.
+// Not re-exported from root to keep root entrypoint platform-agnostic
+// (server modules import Node-only fs, crypto, glob).

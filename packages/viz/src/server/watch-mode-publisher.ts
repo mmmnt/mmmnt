@@ -30,6 +30,9 @@ export class WatchModePublisher {
   private fileWatcher: FileWatcher | null = null;
   private correlationId: string;
   private lastEventId: string | null = null;
+  private publishInFlight = false;
+  private publishQueued = false;
+  private queuedTrigger: string | null = null;
 
   constructor(private readonly options: WatchModePublisherOptions) {
     this.correlationId = randomUUID();
@@ -44,10 +47,14 @@ export class WatchModePublisher {
     };
 
     this.fileWatcher = new FileWatcher(watcherOptions);
-    await this.fileWatcher.start();
 
-    // Publish initial topology on start
-    await this.publishTopology('initial');
+    try {
+      await this.fileWatcher.start();
+      await this.publishTopology('initial');
+    } catch (error) {
+      this.stop();
+      throw error;
+    }
   }
 
   stop(): void {
@@ -62,19 +69,33 @@ export class WatchModePublisher {
   }
 
   private async onFileChange(changedPath: string): Promise<void> {
+    if (this.publishInFlight) {
+      this.publishQueued = true;
+      this.queuedTrigger = changedPath;
+      return;
+    }
     await this.publishTopology(changedPath);
+    if (this.publishQueued) {
+      this.publishQueued = false;
+      const trigger = this.queuedTrigger ?? 'queued';
+      this.queuedTrigger = null;
+      await this.publishTopology(trigger);
+    }
   }
 
   private async publishTopology(trigger: string): Promise<void> {
-    const topology = await this.options.buildTopology();
-
-    const envelope = this.buildEnvelope('TopologyUpdated', {
-      ...topology,
-      trigger,
-    });
-
-    await this.options.target.publish(envelope);
-    this.lastEventId = envelope.eventId;
+    this.publishInFlight = true;
+    try {
+      const topology = await this.options.buildTopology();
+      const envelope = this.buildEnvelope('TopologyUpdated', {
+        ...topology,
+        trigger,
+      });
+      await this.options.target.publish(envelope);
+      this.lastEventId = envelope.eventId;
+    } finally {
+      this.publishInFlight = false;
+    }
   }
 
   buildEnvelope(eventType: string, payload: Record<string, unknown>): ComplaiEventEnvelope {

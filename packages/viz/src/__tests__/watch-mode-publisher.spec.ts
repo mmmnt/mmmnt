@@ -1,10 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, rmSync } from 'fs';
+import { join } from 'path';
 import {
   WatchModePublisher,
   type WatchModePublisherOptions,
   type TopologyPublishTarget,
   type ComplaiEventEnvelope,
 } from '../server/watch-mode-publisher.js';
+
+const TEST_DIR = join(process.cwd(), '.test-publisher-tmp');
 
 function makeTarget(): TopologyPublishTarget & { calls: ComplaiEventEnvelope[] } {
   const calls: ComplaiEventEnvelope[] = [];
@@ -21,7 +25,7 @@ function makeOptions(
 ): WatchModePublisherOptions {
   return {
     watchPatterns: overrides.watchPatterns ?? ['**/*.moment'],
-    cwd: overrides.cwd ?? '/tmp/test-project',
+    cwd: overrides.cwd ?? TEST_DIR,
     debounceMs: overrides.debounceMs ?? 100,
     sessionId: overrides.sessionId ?? 'test-session-123',
     target: overrides.target ?? makeTarget(),
@@ -30,6 +34,18 @@ function makeOptions(
 }
 
 describe('WatchModePublisher', () => {
+  beforeEach(() => {
+    mkdirSync(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(TEST_DIR, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  });
+
   it('starts within 2 seconds (PS-01)', async () => {
     const target = makeTarget();
     const options = makeOptions({ target });
@@ -101,13 +117,12 @@ describe('WatchModePublisher', () => {
 
     // Initial publish has no causation
     expect(target.calls[0].causationEventIds).toHaveLength(0);
+    const firstEventId = target.calls[0].eventId;
 
-    // Simulate a second publish via buildEnvelope
+    // Build a second envelope — should chain to first event
     const second = publisher.buildEnvelope('TopologyUpdated', { trigger: 'file-change' });
-    await options.target.publish(second);
+    expect(second.causationEventIds).toContain(firstEventId);
 
-    // The publisher tracks lastEventId internally — verify second call happened
-    expect(target.calls).toHaveLength(2);
     publisher.stop();
   });
 

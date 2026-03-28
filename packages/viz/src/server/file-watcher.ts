@@ -13,6 +13,7 @@ export class FileWatcher {
   private watchers: FSWatcher[] = [];
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
+  private callbackInFlight = false;
 
   constructor(private readonly options: FileWatcherOptions) {}
 
@@ -20,13 +21,17 @@ export class FileWatcher {
     if (this.running) return;
     this.running = true;
 
-    const resolvedPaths = await this.resolvePatterns();
-
-    for (const filePath of resolvedPaths) {
-      const watcher = watch(filePath, () => {
-        this.scheduleCallback(filePath);
+    try {
+      // Watch cwd recursively to catch newly created files matching patterns
+      const watcher = watch(this.options.cwd, { recursive: true }, (_event, filename) => {
+        if (filename && this.matchesPatterns(filename)) {
+          this.scheduleCallback(resolve(this.options.cwd, filename));
+        }
       });
       this.watchers.push(watcher);
+    } catch {
+      this.running = false;
+      throw new Error(`Failed to start file watcher on ${this.options.cwd}`);
     }
   }
 
@@ -46,25 +51,29 @@ export class FileWatcher {
     return this.running;
   }
 
+  private matchesPatterns(filename: string): boolean {
+    for (const pattern of this.options.patterns) {
+      if (filename.endsWith(pattern.replace('**/', '').replace('*', ''))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private scheduleCallback(changedPath: string): void {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
     this.debounceTimer = setTimeout(() => {
       this.debounceTimer = null;
+      if (this.callbackInFlight) return;
+      this.callbackInFlight = true;
       const rel = relative(this.options.cwd, changedPath);
-      void this.options.onChange(rel || changedPath);
+      Promise.resolve(this.options.onChange(rel || changedPath))
+        .catch(() => {})
+        .finally(() => {
+          this.callbackInFlight = false;
+        });
     }, this.options.debounceMs);
-  }
-
-  private async resolvePatterns(): Promise<string[]> {
-    const allPaths: string[] = [];
-    for (const pattern of this.options.patterns) {
-      const glob = new Glob(pattern, { cwd: this.options.cwd, absolute: true });
-      for await (const match of glob) {
-        allPaths.push(resolve(match));
-      }
-    }
-    return allPaths;
   }
 }
