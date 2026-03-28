@@ -5,16 +5,31 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "types": "./dist/server/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/",
     "test": "vitest run"
   },
   "dependencies": {
-    "@mmmnt/core": "workspace:*"
+    "@mmmnt/core": "workspace:*",
+    "chokidar": "^5.0.0",
+    "picomatch": "^4.0.4"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.2"
   }
 }
