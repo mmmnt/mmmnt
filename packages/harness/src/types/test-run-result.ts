@@ -3,5 +3,5 @@ export interface TestRunResult {
   readonly testsPassed: number;
   readonly testsFailed: number;
   readonly testsSkipped: number;
-  readonly traceabilityMap: ReadonlyMap<string, string>;
+  readonly traceabilityMap: Readonly<Record<string, string>>;
 }
