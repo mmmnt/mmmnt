@@ -146,9 +146,11 @@ export class ASTDiffEngine {
       allUnresolvable.push(...result.unresolvable);
     }
 
+    const uniqueUnresolvable = Array.from(new Set(allUnresolvable)).sort();
+
     return {
       detectedConsumptions: allConsumptions,
-      unresolvableReferences: allUnresolvable,
+      unresolvableReferences: uniqueUnresolvable,
     };
   }
 
