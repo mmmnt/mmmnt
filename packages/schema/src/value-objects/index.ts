@@ -5,4 +5,4 @@ export type { ConstraintTarget, SchemaConstraint } from './schema-constraint.js'
 export type { SchemaConstraintViolation } from './schema-constraint-violation.js';
 export type { RuleEvaluationResult } from './rule-evaluation-result.js';
 export type { FetchMode, LazyFetchStrategy } from './lazy-fetch-strategy.js';
-export type { Diagnostic, FetchResult } from './fetch-result.js';
+export type { FetchDiagnostic, FetchResult } from './fetch-result.js';

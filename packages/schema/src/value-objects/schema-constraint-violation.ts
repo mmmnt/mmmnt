@@ -1,8 +1,8 @@
 import type { RuleSeverity } from './codex-rule.js';
 
 export interface SchemaConstraintViolation {
-  readonly constraintId: string;
-  readonly codexRuleId: string;
+  readonly constraintType: string;
+  readonly ruleId: string;
   readonly target: string;
   readonly description: string;
   readonly severity: RuleSeverity;

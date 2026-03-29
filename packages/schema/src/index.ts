@@ -10,6 +10,6 @@ export type {
   RuleEvaluationResult,
   FetchMode,
   LazyFetchStrategy,
-  Diagnostic,
+  FetchDiagnostic,
   FetchResult,
 } from './value-objects/index.js';
