@@ -45,3 +45,18 @@ export type {
   EventTypeDefinition,
 } from './services/ast-diff-engine.js';
 export type { DeprecationMetadata } from './services/proposal-generator.js';
+
+export { PushFlowSaga } from './sagas/push-flow-saga.js';
+export type {
+  PushFlowState,
+  PushFlowEvent,
+  PushFlowStarted,
+  PushFlowProposalsGenerated,
+  PushFlowConfirmationComplete,
+  PushFlowRecordingComplete,
+  PushFlowCommitted,
+  PushFlowCompleted,
+  PushFlowAborted,
+} from './sagas/push-flow-saga.js';
+
+export type { PushFlowRecord } from './sagas/push-flow-saga.jsonl-schema.js';
