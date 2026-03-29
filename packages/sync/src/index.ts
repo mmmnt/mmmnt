@@ -15,3 +15,16 @@ export type {
   SourceAttribution,
   EventMetadata,
 } from './value-objects/index.js';
+
+export { SyncState } from './aggregates/sync-state.js';
+
+export type {
+  ProposalRecorded,
+  ProposalAccepted,
+  ProposalRejected,
+  ProposalSkipped,
+  CursorAdvanced,
+  SyncStateEvent,
+} from './events/sync-state-events.js';
+
+export type { SyncStateRecord } from './aggregates/sync-state.jsonl-schema.js';
