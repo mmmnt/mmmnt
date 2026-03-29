@@ -161,6 +161,11 @@ export class ReconciliationState {
             `RS-01: Duplicate active reconciliation '${event.reconciliationId}' in event stream`,
           );
         }
+        if (!this.driftDetected) {
+          throw new Error(
+            `ReconciliationStarted without preceding UpstreamDriftDetected in event stream`,
+          );
+        }
         this.activeReconciliationId = event.reconciliationId;
         break;
 
@@ -177,7 +182,7 @@ export class ReconciliationState {
 
       default: {
         const exhaustive: never = event;
-        throw new Error(`Unknown event type '${(exhaustive as { type: string }).type}'`);
+        throw new Error(`RS-04: Unknown event type '${(exhaustive as { type: string }).type}'`);
       }
     }
   }

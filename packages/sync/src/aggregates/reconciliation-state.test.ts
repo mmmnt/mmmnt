@@ -222,6 +222,22 @@ describe('ReconciliationState', () => {
     }
   });
 
+  // --- Replay invariant enforcement ---
+
+  it('rejects ReconciliationStarted replay without preceding UpstreamDriftDetected', () => {
+    const state = new ReconciliationState();
+
+    expect(() =>
+      state.apply({
+        type: 'ReconciliationStarted',
+        reconciliationId: 'recon-1',
+        mode: 'local',
+        driftSummary: 'drift',
+        timestamp: new Date().toISOString(),
+      }),
+    ).toThrow('without preceding UpstreamDriftDetected');
+  });
+
   // --- Event sourcing replay ---
 
   it('replays events correctly to rebuild state', () => {
