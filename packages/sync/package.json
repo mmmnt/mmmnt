@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mmmnt/emit-ts": "workspace:*"
+    "@mmmnt/emit-ts": "workspace:*",
+    "typescript": "^5.9.3"
   },
   "publishConfig": {
     "access": "public",
