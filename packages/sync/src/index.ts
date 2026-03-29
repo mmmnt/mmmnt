@@ -18,6 +18,12 @@ export type {
 
 export { SyncState } from './aggregates/sync-state.js';
 
+export { ImplementationFeedbackJournal } from './aggregates/implementation-feedback-journal.js';
+export type {
+  RecordImplementationFeedbackInput,
+  ImplementationFeedbackRecorded,
+} from './aggregates/implementation-feedback-journal.js';
+
 export type {
   ProposalRecorded,
   ProposalAccepted,
