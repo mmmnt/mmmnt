@@ -11,19 +11,11 @@ import type {
   EventMetadata,
   SourceAttribution,
 } from '../value-objects/index.js';
+import { FEEDBACK_EVENT_TYPES } from '../value-objects/feedback-event-type.js';
 import { SyncState } from './sync-state.js';
 
 // The 8 known feedback event types
-const KNOWN_FEEDBACK_TYPES: ReadonlySet<FeedbackEventType> = new Set([
-  'ValueObjectDefined',
-  'ValueObjectRemoved',
-  'ValueObjectRenamed',
-  'ValueObjectFieldAdded',
-  'ValueObjectFieldRemoved',
-  'ValueObjectFieldRevised',
-  'CommandInputRevised',
-  'DomainEventPayloadRevised',
-]);
+const KNOWN_FEEDBACK_TYPES: ReadonlySet<string> = new Set(FEEDBACK_EVENT_TYPES);
 
 export interface RecordImplementationFeedbackInput {
   readonly feedbackEventType: FeedbackEventType;

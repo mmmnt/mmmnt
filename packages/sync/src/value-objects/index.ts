@@ -1,6 +1,7 @@
 export type { DifferenceType } from './difference-type.js';
 export type { DriftDirection } from './drift-direction.js';
 export type { ProposalStatus } from './proposal-status.js';
+export { FEEDBACK_EVENT_TYPES } from './feedback-event-type.js';
 export type { FeedbackEventType } from './feedback-event-type.js';
 export type { ASTDifference } from './ast-difference.js';
 export type { TypeLevelChange } from './type-level-change.js';

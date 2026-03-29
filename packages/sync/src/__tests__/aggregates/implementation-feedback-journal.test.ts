@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { SyncState } from '../../aggregates/sync-state.js';
 import { ImplementationFeedbackJournal } from '../../aggregates/implementation-feedback-journal.js';
-import type {
-  RecordImplementationFeedbackInput,
-  ImplementationFeedbackRecorded,
-} from '../../aggregates/implementation-feedback-journal.js';
+import type { RecordImplementationFeedbackInput } from '../../aggregates/implementation-feedback-journal.js';
 import type { ImplementationChangeProposal, FeedbackEventType } from '../../value-objects/index.js';
 
 function makeProposal(id = 'prop-001'): ImplementationChangeProposal {

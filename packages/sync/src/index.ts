@@ -1,3 +1,4 @@
+export { FEEDBACK_EVENT_TYPES } from './value-objects/index.js';
 export type {
   DifferenceType,
   DriftDirection,
@@ -34,6 +35,7 @@ export type {
 } from './events/sync-state-events.js';
 
 export type { SyncStateRecord } from './aggregates/sync-state.jsonl-schema.js';
+export type { ImplementationFeedbackRecord } from './aggregates/implementation-feedback-journal.jsonl-schema.js';
 
 export { ASTDiffEngine } from './services/ast-diff-engine.js';
 export type {
