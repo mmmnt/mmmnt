@@ -15,7 +15,7 @@ import type {
   DriftDirection,
   ProposalStatus,
   FeedbackEventType,
-} from '../value-objects/index.js';
+} from '../index.js';
 
 // ---------------------------------------------------------------------------
 // String literal union types (enums)
@@ -126,10 +126,10 @@ describe('DriftPoint', () => {
       filePath: 'src/order.ts',
       aggregateName: 'Order',
       contextName: 'Ordering',
-      driftType: 'implementation-added',
+      driftDirection: 'implementation-added',
       description: 'New field added in implementation',
     };
-    expect(vo.driftType).toBe('implementation-added');
+    expect(vo.driftDirection).toBe('implementation-added');
     expect(vo.suggestedEvent).toBeUndefined();
   });
 });
@@ -143,7 +143,7 @@ describe('DriftReport', () => {
           filePath: 'src/order.ts',
           aggregateName: 'Order',
           contextName: 'Ordering',
-          driftType: 'implementation-added',
+          driftDirection: 'implementation-added',
           description: 'New field',
         },
       ],
@@ -233,7 +233,7 @@ describe('EventMetadata', () => {
       eventType: 'ValueObjectDefined',
       timestamp: '2026-01-01T00:00:00Z',
       actor: 'dev@example.com',
-      source: 'mmmnt:implementation-feedback',
+      source: { source: 'mmmnt:implementation-feedback' },
       causationId: 'cause-001',
       correlationId: 'corr-001',
       version: 1,
@@ -257,13 +257,13 @@ describe('Immutability', () => {
       timestamp: 'now',
     };
 
-    // @ts-expect-error — readonly field cannot be assigned
-    cursor.specificationHash = 'changed';
+    if (false) {
+      // @ts-expect-error — readonly field cannot be assigned
+      cursor.specificationHash = 'changed';
+    }
 
-    // The assignment above would fail at compile time with strict readonly.
-    // At runtime, Object.freeze would enforce it — but VOs are interfaces,
-    // not classes, so freeze is the consumer's responsibility.
-    // This test validates the type constraint exists.
+    // Readonly enforcement is compile-time via TypeScript.
+    // This test validates the type constraint exists without runtime mutation.
     expect(cursor).toBeDefined();
   });
 });

@@ -4,7 +4,7 @@ export interface DriftPoint {
   readonly filePath: string;
   readonly aggregateName: string;
   readonly contextName: string;
-  readonly driftType: DriftDirection;
+  readonly driftDirection: DriftDirection;
   readonly description: string;
   readonly suggestedEvent?: string;
 }
