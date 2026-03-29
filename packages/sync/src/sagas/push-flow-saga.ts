@@ -87,7 +87,7 @@ function now(): string {
 const TERMINAL_STATES: ReadonlySet<PushFlowState> = new Set<PushFlowState>(['Complete', 'Aborted']);
 
 // ---------------------------------------------------------------------------
-// Saga
+// Saga — all state transitions go through apply()
 // ---------------------------------------------------------------------------
 
 export class PushFlowSaga {
@@ -100,30 +100,37 @@ export class PushFlowSaga {
     this.sagaId = sagaId ?? randomUUID();
   }
 
-  // -- State transitions ----------------------------------------------------
+  // -- Commands (create event → apply → return) ---
 
   start(): PushFlowStarted {
-    this.assertState('Idle', 'start');
     const event: PushFlowStarted = {
       type: 'PushFlowStarted',
       sagaId: this.sagaId,
       timestamp: now(),
     };
-    this.state = 'Diffing';
-    this.events.push(event);
+    this.apply(event);
     return event;
   }
 
   proposalsGenerated(proposalCount: number): PushFlowProposalsGenerated {
-    this.assertState('Diffing', 'proposalsGenerated');
     const event: PushFlowProposalsGenerated = {
       type: 'PushFlowProposalsGenerated',
       sagaId: this.sagaId,
       proposalCount,
       timestamp: now(),
     };
-    this.state = proposalCount > 0 ? 'Proposing' : 'Complete';
-    this.events.push(event);
+    this.apply(event);
+
+    // Zero-proposal shortcut: also emit PushFlowCompleted
+    if (proposalCount === 0) {
+      const completed: PushFlowCompleted = {
+        type: 'PushFlowCompleted',
+        sagaId: this.sagaId,
+        timestamp: now(),
+      };
+      this.applyCompleted(completed);
+    }
+
     return event;
   }
 
@@ -132,7 +139,6 @@ export class PushFlowSaga {
     rejected: number,
     skipped: number,
   ): PushFlowConfirmationComplete {
-    this.assertState('Proposing', 'confirmationComplete');
     const event: PushFlowConfirmationComplete = {
       type: 'PushFlowConfirmationComplete',
       sagaId: this.sagaId,
@@ -141,66 +147,54 @@ export class PushFlowSaga {
       skippedCount: skipped,
       timestamp: now(),
     };
-    this.lastAcceptedCount = accepted;
-    this.state = 'Recording';
-    this.events.push(event);
+    this.apply(event);
     return event;
   }
 
   recordingComplete(recordedCount: number): PushFlowRecordingComplete {
-    this.assertState('Recording', 'recordingComplete');
     const event: PushFlowRecordingComplete = {
       type: 'PushFlowRecordingComplete',
       sagaId: this.sagaId,
       recordedCount,
       timestamp: now(),
     };
-    this.state = 'Committing';
-    this.events.push(event);
+    this.apply(event);
     return event;
   }
 
   committed(commitRef: string): PushFlowCommitted {
-    this.assertState('Committing', 'committed');
     const event: PushFlowCommitted = {
       type: 'PushFlowCommitted',
       sagaId: this.sagaId,
       commitRef,
       timestamp: now(),
     };
-    // Stay in Committing — caller must call complete() to finalize
-    this.events.push(event);
+    this.apply(event);
     return event;
   }
 
   complete(): PushFlowCompleted {
-    this.assertState('Committing', 'complete');
     const event: PushFlowCompleted = {
       type: 'PushFlowCompleted',
       sagaId: this.sagaId,
       timestamp: now(),
     };
-    this.state = 'Complete';
-    this.events.push(event);
+    this.apply(event);
     return event;
   }
 
   abort(reason: string): PushFlowAborted {
-    if (TERMINAL_STATES.has(this.state)) {
-      throw new Error(`Cannot abort saga in terminal state "${this.state}"`);
-    }
     const event: PushFlowAborted = {
       type: 'PushFlowAborted',
       sagaId: this.sagaId,
       reason,
       timestamp: now(),
     };
-    this.state = 'Aborted';
-    this.events.push(event);
+    this.apply(event);
     return event;
   }
 
-  // -- Queries --------------------------------------------------------------
+  // -- Queries ---
 
   getState(): PushFlowState {
     return this.state;
@@ -214,49 +208,99 @@ export class PushFlowSaga {
     return this.events;
   }
 
-  /**
-   * IS-03: Cursor may only advance after the saga has completed successfully.
-   */
   canAdvanceCursor(): boolean {
     return this.state === 'Complete';
   }
 
-  // -- Replay ---------------------------------------------------------------
+  // -- Replay (single source of truth for all state transitions) ---
 
   apply(event: PushFlowEvent): void {
+    this.assertNotTerminal(event.type);
+
     switch (event.type) {
       case 'PushFlowStarted':
+        this.assertState('Idle', event.type);
         this.state = 'Diffing';
         break;
+
       case 'PushFlowProposalsGenerated':
-        this.state = event.proposalCount > 0 ? 'Proposing' : 'Complete';
+        this.assertState('Diffing', event.type);
+        this.state = event.proposalCount > 0 ? 'Proposing' : 'AwaitingConfirmation';
         break;
+
       case 'PushFlowConfirmationComplete':
+        this.assertOneOf(['Proposing', 'AwaitingConfirmation'], event.type);
         this.lastAcceptedCount = event.acceptedCount;
         this.state = 'Recording';
         break;
+
       case 'PushFlowRecordingComplete':
+        this.assertState('Recording', event.type);
+        this.assertIS04(event.recordedCount);
         this.state = 'Committing';
         break;
+
       case 'PushFlowCommitted':
-        // stays Committing
+        this.assertState('Committing', event.type);
         break;
+
       case 'PushFlowCompleted':
-        this.state = 'Complete';
-        break;
+        this.applyCompleted(event);
+        return; // applyCompleted pushes the event
+
       case 'PushFlowAborted':
         this.state = 'Aborted';
         break;
+
+      default: {
+        const exhaustive: never = event;
+        throw new Error(`Unknown PushFlowEvent type: ${(exhaustive as { type: string }).type}`);
+      }
     }
     this.events.push(event);
   }
 
-  // -- Internal -------------------------------------------------------------
+  // -- Internal ---
 
-  private assertState(expected: PushFlowState, action: string): void {
+  private applyCompleted(event: PushFlowCompleted): void {
+    // Complete can come from Committing (normal) or AwaitingConfirmation (zero-proposal)
+    if (this.state !== 'Committing' && this.state !== 'AwaitingConfirmation') {
+      throw new Error(
+        `Invalid transition: cannot apply "PushFlowCompleted" from state "${this.state}"`,
+      );
+    }
+    this.state = 'Complete';
+    this.events.push(event);
+  }
+
+  private assertNotTerminal(eventType: string): void {
+    if (TERMINAL_STATES.has(this.state)) {
+      throw new Error(
+        `Invalid transition: cannot apply "${eventType}" from terminal state "${this.state}"`,
+      );
+    }
+  }
+
+  private assertState(expected: PushFlowState, eventType: string): void {
     if (this.state !== expected) {
       throw new Error(
-        `Invalid transition: cannot "${action}" from state "${this.state}" (expected "${expected}")`,
+        `Invalid transition: cannot apply "${eventType}" from state "${this.state}" (expected "${expected}")`,
+      );
+    }
+  }
+
+  private assertOneOf(expected: readonly PushFlowState[], eventType: string): void {
+    if (!expected.includes(this.state)) {
+      throw new Error(
+        `Invalid transition: cannot apply "${eventType}" from state "${this.state}" (expected one of: ${expected.join(', ')})`,
+      );
+    }
+  }
+
+  private assertIS04(recordedCount: number): void {
+    if (recordedCount !== this.lastAcceptedCount) {
+      throw new Error(
+        `IS-04: recordedCount (${recordedCount}) does not match acceptedCount (${this.lastAcceptedCount})`,
       );
     }
   }
