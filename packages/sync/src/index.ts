@@ -15,6 +15,9 @@ export type {
   SyncCursor,
   SourceAttribution,
   EventMetadata,
+  CascadeCategory,
+  CascadeClassification,
+  ReconciliationResult,
 } from './value-objects/index.js';
 
 export { SyncState } from './aggregates/sync-state.js';
