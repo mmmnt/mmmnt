@@ -14,3 +14,5 @@ export type { ConsumptionDetectionResult } from './consumption-detection-result.
 export type { SyncCursor } from './sync-cursor.js';
 export type { SourceAttribution } from './source-attribution.js';
 export type { EventMetadata } from './event-metadata.js';
+export type { CascadeCategory, CascadeClassification } from './cascade-classification.js';
+export type { ReconciliationResult } from './reconciliation-result.js';
