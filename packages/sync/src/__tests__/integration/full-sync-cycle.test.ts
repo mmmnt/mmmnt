@@ -194,17 +194,26 @@ describe('Full sync cycle integration', () => {
     });
     expect(proposals.length).toBeGreaterThan(0);
 
-    // Every proposal must contain a proposedEventType (suggesting an update via
-    // event, not a direct mutation). This is the IS-01 invariant: proposals
-    // suggest domain events rather than directly modifying the specification.
+    // Every proposal must encode a domain-event suggestion (FeedbackEventType),
+    // not a direct spec mutation. IS-01: the sync system proposes events that
+    // the spec can choose to incorporate — it never writes to .moment files.
     for (const proposal of proposals) {
-      expect(proposal.proposedEventType).toBeDefined();
-      expect(typeof proposal.proposedEventType).toBe('string');
-      expect(proposal.proposedEventType.length).toBeGreaterThan(0);
+      // proposedEventType must be a known FeedbackEventType value
+      const knownTypes = [
+        'ValueObjectDefined',
+        'ValueObjectRemoved',
+        'ValueObjectRenamed',
+        'ValueObjectFieldAdded',
+        'ValueObjectFieldRemoved',
+        'ValueObjectFieldRevised',
+        'CommandInputRevised',
+        'DomainEventPayloadRevised',
+      ];
+      expect(knownTypes).toContain(proposal.proposedEventType);
 
-      // Verify the proposal carries structured payload, not raw source mutations
-      expect(proposal.proposedPayload).toBeDefined();
-      expect(typeof proposal.proposedPayload).toBe('object');
+      // Payload describes what changed, not how to mutate the spec
+      expect(proposal.proposedPayload).toHaveProperty('symbolName');
+      expect(proposal.proposedPayload).toHaveProperty('differenceType');
     }
   });
 
@@ -237,17 +246,18 @@ describe('Full sync cycle integration', () => {
     expect(saga.canAdvanceCursor()).toBe(true);
 
     // Advance cursor
+    // Use fixed deterministic timestamps to avoid wall-clock flakiness
     const cursor: SyncCursor = {
       specificationHash: 'sha256-abc',
-      timestamp: new Date().toISOString(),
+      timestamp: '2026-01-01T00:00:00.000Z',
     };
     syncState.advanceCursor(cursor);
     expect(syncState.getCursor()).toEqual(cursor);
 
-    // Verify cursor moved forward — a second advance with a later timestamp succeeds
+    // SS-02: a second advance with a strictly later timestamp succeeds
     const laterCursor: SyncCursor = {
       specificationHash: 'sha256-def',
-      timestamp: new Date(Date.now() + 1000).toISOString(),
+      timestamp: '2026-01-01T00:01:00.000Z',
     };
     syncState.advanceCursor(laterCursor);
     expect(syncState.getCursor()).toEqual(laterCursor);
