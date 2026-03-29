@@ -63,3 +63,20 @@ export type {
 } from './sagas/push-flow-saga.js';
 
 export type { PushFlowRecord } from './sagas/push-flow-saga.jsonl-schema.js';
+
+export { ReconciliationState } from './aggregates/reconciliation-state.js';
+export type {
+  DetectUpstreamDriftInput,
+  StartReconciliationInput,
+  CompleteReconciliationInput,
+} from './aggregates/reconciliation-state.js';
+
+export type {
+  UpstreamFingerprint,
+  UpstreamDriftDetected,
+  ReconciliationStarted,
+  ReconciliationCompleted,
+  ReconciliationStateEvent,
+} from './events/reconciliation-state-events.js';
+
+export type { ReconciliationStateRecord } from './aggregates/reconciliation-state.jsonl-schema.js';
