@@ -13,7 +13,6 @@ export interface GenerateProposalsInput {
   readonly expected: ReadonlyMap<string, string>;
   readonly actual: ReadonlyMap<string, string>;
   readonly deprecation?: DeprecationMetadata;
-  readonly scope?: string;
 }
 
 export interface DetectDriftInput {

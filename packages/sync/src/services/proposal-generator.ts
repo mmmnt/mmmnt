@@ -10,6 +10,10 @@ export interface DeprecationMetadata {
   readonly deprecatedFields: ReadonlyMap<string, string>; // oldFieldName → replacementFieldName
 }
 
+export interface ProposalGeneratorOptions {
+  readonly idFactory?: () => string;
+}
+
 const DIFFERENCE_TO_EVENT: Record<DifferenceType, FeedbackEventType> = {
   'renamed-interface': 'ValueObjectRenamed',
   'added-field': 'ValueObjectFieldAdded',
@@ -20,39 +24,49 @@ const DIFFERENCE_TO_EVENT: Record<DifferenceType, FeedbackEventType> = {
   unrecognized: 'ValueObjectFieldRevised',
 };
 
+function checkDualPopulation(
+  diff: TypeDifference,
+  deprecation?: DeprecationMetadata,
+): { applies: boolean; fieldName?: string } {
+  if (diff.differenceType !== 'removed-field' || !deprecation) {
+    return { applies: false };
+  }
+  const match = diff.description.match(/'([^']+)'/);
+  const fieldName = match ? match[1] : undefined;
+  if (!fieldName || !deprecation.deprecatedFields.has(fieldName)) {
+    return { applies: false };
+  }
+  return { applies: true, fieldName };
+}
+
+function buildPayload(diff: TypeDifference): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    symbolName: diff.symbolName,
+    description: diff.description,
+    differenceType: diff.differenceType,
+  };
+  if (diff.differenceType === 'unrecognized') {
+    payload.requiresManualReview = true;
+  }
+  return payload;
+}
+
 export function generateProposalsFromDifferences(
   filePath: string,
   differences: readonly TypeDifference[],
   deprecation?: DeprecationMetadata,
+  options?: ProposalGeneratorOptions,
 ): ImplementationChangeProposal[] {
   const proposals: ImplementationChangeProposal[] = [];
+  const generateId = options?.idFactory ?? randomUUID;
 
   for (const diff of differences) {
-    const eventType = DIFFERENCE_TO_EVENT[diff.differenceType];
-
-    // Extract field name from description for deprecation lookup
-    const fieldNameMatch = diff.description.match(/'([^']+)'/);
-    const fieldName = fieldNameMatch ? fieldNameMatch[1] : undefined;
-
-    const hasDualPopulation =
-      deprecation !== undefined &&
-      fieldName !== undefined &&
-      deprecation.deprecatedFields.has(fieldName);
-
-    const payload: Record<string, unknown> = {
-      symbolName: diff.symbolName,
-      description: diff.description,
-      differenceType: diff.differenceType,
-    };
-
-    if (diff.differenceType === 'unrecognized') {
-      payload.requiresManualReview = true;
-    }
+    const dual = checkDualPopulation(diff, deprecation);
 
     proposals.push({
-      proposalId: randomUUID(),
-      proposedEventType: eventType,
-      proposedPayload: payload,
+      proposalId: generateId(),
+      proposedEventType: DIFFERENCE_TO_EVENT[diff.differenceType],
+      proposedPayload: buildPayload(diff),
       sourceFile: filePath,
       sourceDifference: {
         filePath,
@@ -60,18 +74,17 @@ export function generateProposalsFromDifferences(
         expectedNode: '',
         actualNode: '',
       },
-      dualPopulationApplied: hasDualPopulation,
+      dualPopulationApplied: dual.applies,
     });
 
-    // For dual-population: generate a second proposal for the replacement field
-    if (hasDualPopulation && diff.differenceType === 'removed-field') {
-      const replacementField = deprecation!.deprecatedFields.get(fieldName!)!;
+    if (dual.applies) {
+      const replacement = deprecation!.deprecatedFields.get(dual.fieldName!)!;
       proposals.push({
-        proposalId: randomUUID(),
+        proposalId: generateId(),
         proposedEventType: 'ValueObjectFieldAdded',
         proposedPayload: {
           symbolName: diff.symbolName,
-          description: `Replacement field '${replacementField}' for deprecated field '${fieldName}'`,
+          description: `Replacement field '${replacement}' for deprecated field '${dual.fieldName}'`,
           differenceType: 'added-field' as DifferenceType,
         },
         sourceFile: filePath,

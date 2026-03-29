@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ASTDiffEngine } from '../../services/ast-diff-engine.js';
+import { generateProposalsFromDifferences } from '../../services/proposal-generator.js';
 import type { DeprecationMetadata } from '../../services/proposal-generator.js';
 
 describe('ASTDiffEngine.generateProposals', () => {
@@ -133,6 +134,25 @@ describe('ASTDiffEngine.generateProposals', () => {
     expect(addedProposal).toBeDefined();
     expect(removedProposal!.proposedPayload.symbolName).toBe('OrderItem');
     expect(addedProposal!.proposedPayload.symbolName).toBe('LineItem');
+  });
+
+  // -----------------------------------------------------------------------
+  // 8b. Direct renamed-interface test (via proposal-generator)
+  // -----------------------------------------------------------------------
+  it('renamed-interface maps to ValueObjectRenamed via direct generator', () => {
+    // compareTypeSymbols emits removed + new (not renamed), but the
+    // renamed-interface → ValueObjectRenamed mapping must still be tested.
+    // Test the mapping directly via generateProposalsFromDifferences.
+    const proposals = generateProposalsFromDifferences('types.ts', [
+      {
+        symbolName: 'Order',
+        differenceType: 'renamed-interface',
+        description: "interface 'Order' was renamed to 'LineItem'",
+      },
+    ]);
+
+    expect(proposals).toHaveLength(1);
+    expect(proposals[0].proposedEventType).toBe('ValueObjectRenamed');
   });
 
   // -----------------------------------------------------------------------
