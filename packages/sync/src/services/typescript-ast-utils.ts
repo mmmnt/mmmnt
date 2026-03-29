@@ -20,11 +20,25 @@ export interface TypeDifference {
   description: string;
 }
 
+const printer = ts.createPrinter({ removeComments: true });
+
 function hasExportModifier(node: ts.Node): boolean {
   if (!ts.canHaveModifiers(node)) return false;
   const modifiers = ts.getModifiers(node);
   if (!modifiers) return false;
   return modifiers.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+}
+
+function printNode(node: ts.Node, sourceFile: ts.SourceFile): string {
+  return printer.printNode(ts.EmitHint.Unspecified, node, sourceFile).trim();
+}
+
+function extractFieldSignature(member: ts.PropertySignature, sourceFile: ts.SourceFile): string {
+  const typeNodeText = member.type ? printNode(member.type, sourceFile) : 'unknown';
+  const isOptional = !!member.questionToken;
+  const modifiers = ts.getModifiers(member);
+  const isReadonly = !!modifiers && modifiers.some((m) => m.kind === ts.SyntaxKind.ReadonlyKeyword);
+  return `${isReadonly ? 'readonly ' : ''}${isOptional ? '?' : ''}${typeNodeText}`;
 }
 
 function extractInterface(
@@ -35,15 +49,14 @@ function extractInterface(
   for (const member of statement.members) {
     if (ts.isPropertySignature(member) && member.name) {
       const name = member.name.getText(sourceFile);
-      const typeText = member.type ? member.type.getText(sourceFile) : 'unknown';
-      fields.set(name, typeText);
+      fields.set(name, extractFieldSignature(member, sourceFile));
     }
   }
   return {
     name: statement.name.text,
     kind: 'interface',
     fields,
-    text: statement.getText(sourceFile),
+    text: printNode(statement, sourceFile),
   };
 }
 
@@ -51,14 +64,14 @@ function extractEnum(statement: ts.EnumDeclaration, sourceFile: ts.SourceFile): 
   const fields = new Map<string, string>();
   for (const member of statement.members) {
     const name = member.name.getText(sourceFile);
-    const initializer = member.initializer ? member.initializer.getText(sourceFile) : '';
+    const initializer = member.initializer ? printNode(member.initializer, sourceFile) : '';
     fields.set(name, initializer);
   }
   return {
     name: statement.name.text,
     kind: 'enum',
     fields,
-    text: statement.getText(sourceFile),
+    text: printNode(statement, sourceFile),
   };
 }
 
@@ -83,7 +96,7 @@ export function extractTypeSymbols(sourceText: string, fileName = 'source.ts'): 
         name: statement.name.text,
         kind: 'type-alias',
         fields: new Map(),
-        text: statement.type.getText(sourceFile),
+        text: printNode(statement.type, sourceFile),
       });
     } else if (ts.isEnumDeclaration(statement)) {
       symbols.push(extractEnum(statement, sourceFile));
@@ -100,6 +113,8 @@ function findRemovedSymbols(
   const diffs: TypeDifference[] = [];
   for (const [name, sym] of expectedByName) {
     if (!actualByName.has(name)) {
+      // DifferenceType uses 'removed-interface' per Domain Spec §7.1s
+      // regardless of actual symbol kind — description carries the specific kind
       diffs.push({
         symbolName: name,
         differenceType: 'removed-interface',
@@ -117,6 +132,7 @@ function findAddedSymbols(
   const diffs: TypeDifference[] = [];
   for (const [name, sym] of actualByName) {
     if (!expectedByName.has(name)) {
+      // DifferenceType uses 'new-interface' per Domain Spec §7.1s
       diffs.push({
         symbolName: name,
         differenceType: 'new-interface',
@@ -196,7 +212,7 @@ function compareSharedSymbol(expected: TypeSymbol, actual: TypeSymbol): TypeDiff
       {
         symbolName: expected.name,
         differenceType: 'changed-type',
-        description: `Type alias '${expected.name}' changed from '${expected.text}' to '${actual.text}'`,
+        description: `Type alias '${expected.name}' changed`,
       },
     ];
   }
