@@ -3,11 +3,22 @@ import type {
   DriftPoint,
   DriftDirection,
   ImplementationChangeProposal,
+  ConsumptionDetectionResult,
+  DetectedConsumption,
 } from '../value-objects/index.js';
 import { extractTypeSymbols, compareTypeSymbols } from './typescript-ast-utils.js';
 import type { TypeDifference } from './typescript-ast-utils.js';
 import { generateProposalsFromDifferences } from './proposal-generator.js';
 import type { DeprecationMetadata } from './proposal-generator.js';
+import { scanForConsumptions } from './consumption-scanner.js';
+import type { EventTypeDefinition } from './consumption-scanner.js';
+
+export type { EventTypeDefinition } from './consumption-scanner.js';
+
+export interface DetectConsumptionInput {
+  readonly sourceFiles: ReadonlyMap<string, string>;
+  readonly knownEventTypes: readonly EventTypeDefinition[];
+}
 
 export interface GenerateProposalsInput {
   readonly expected: ReadonlyMap<string, string>;
@@ -121,6 +132,23 @@ export class ASTDiffEngine {
       totalDrifted,
       totalAligned,
       timestamp: new Date().toISOString(),
+    };
+  }
+
+  detectConsumption(input: DetectConsumptionInput): ConsumptionDetectionResult {
+    const { sourceFiles, knownEventTypes } = input;
+    const allConsumptions: DetectedConsumption[] = [];
+    const allUnresolvable: string[] = [];
+
+    for (const [filePath, sourceText] of sourceFiles) {
+      const result = scanForConsumptions(filePath, sourceText, knownEventTypes);
+      allConsumptions.push(...result.consumptions);
+      allUnresolvable.push(...result.unresolvable);
+    }
+
+    return {
+      detectedConsumptions: allConsumptions,
+      unresolvableReferences: allUnresolvable,
     };
   }
 
