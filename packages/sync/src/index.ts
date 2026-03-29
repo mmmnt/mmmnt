@@ -30,5 +30,10 @@ export type {
 export type { SyncStateRecord } from './aggregates/sync-state.jsonl-schema.js';
 
 export { ASTDiffEngine } from './services/ast-diff-engine.js';
-export type { DetectDriftInput, GenerateProposalsInput } from './services/ast-diff-engine.js';
+export type {
+  DetectDriftInput,
+  GenerateProposalsInput,
+  DetectConsumptionInput,
+  EventTypeDefinition,
+} from './services/ast-diff-engine.js';
 export type { DeprecationMetadata } from './services/proposal-generator.js';
