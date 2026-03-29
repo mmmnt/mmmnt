@@ -24,6 +24,14 @@ const TERMINAL_STATUSES: ReadonlySet<ProposalStatus> = new Set<ProposalStatus>([
   'superseded',
 ]);
 
+function parseTimestamp(ts: string): number {
+  const parsed = Date.parse(ts);
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Invalid timestamp: '${ts}' is not a valid ISO-8601 date`);
+  }
+  return parsed;
+}
+
 export class SyncState {
   private readonly proposals: Map<
     string,
@@ -103,13 +111,10 @@ export class SyncState {
 
   /**
    * SS-02: Advance the sync cursor. Throws if new cursor timestamp <= current.
+   * Validates timestamps via Date.parse for robust comparison.
    */
   advanceCursor(cursor: SyncCursor): CursorAdvanced {
-    if (this.cursor !== null && cursor.timestamp <= this.cursor.timestamp) {
-      throw new Error(
-        `SS-02: New cursor timestamp '${cursor.timestamp}' must be greater than current cursor timestamp '${this.cursor.timestamp}'`,
-      );
-    }
+    this.assertCursorAdvances(cursor);
 
     const event: CursorAdvanced = {
       type: 'CursorAdvanced',
@@ -123,11 +128,16 @@ export class SyncState {
 
   /**
    * Apply a domain event to update internal state (event sourcing replay).
+   * Enforces all invariants during replay to detect corrupted streams.
    * SS-04: Throws for unrecognized event types.
    */
   apply(event: SyncStateEvent): void {
     switch (event.type) {
       case 'ProposalRecorded':
+        // SS-01: reject duplicate proposalId during replay
+        if (this.proposals.has(event.proposalId)) {
+          throw new Error(`SS-01: Duplicate proposalId '${event.proposalId}' in event stream`);
+        }
         this.proposals.set(event.proposalId, {
           proposal: event.proposal,
           status: 'pending',
@@ -135,18 +145,32 @@ export class SyncState {
         break;
 
       case 'ProposalAccepted':
-        this.setProposalStatus(event.proposalId, 'accepted');
+        this.assertProposalExistsAndNotTerminal(event.proposalId);
+        this.proposals.set(event.proposalId, {
+          ...this.proposals.get(event.proposalId)!,
+          status: 'accepted',
+        });
         break;
 
       case 'ProposalRejected':
-        this.setProposalStatus(event.proposalId, 'rejected');
+        this.assertProposalExistsAndNotTerminal(event.proposalId);
+        this.proposals.set(event.proposalId, {
+          ...this.proposals.get(event.proposalId)!,
+          status: 'rejected',
+        });
         break;
 
       case 'ProposalSkipped':
-        this.setProposalStatus(event.proposalId, 'superseded');
+        this.assertProposalExistsAndNotTerminal(event.proposalId);
+        this.proposals.set(event.proposalId, {
+          ...this.proposals.get(event.proposalId)!,
+          status: 'superseded',
+        });
         break;
 
       case 'CursorAdvanced':
+        // SS-02: enforce forward-only during replay
+        this.assertCursorAdvances(event.cursor);
         this.cursor = event.cursor;
         break;
 
@@ -157,16 +181,10 @@ export class SyncState {
     }
   }
 
-  /**
-   * Query the status of a proposal by id.
-   */
   getProposalStatus(proposalId: string): ProposalStatus | undefined {
     return this.proposals.get(proposalId)?.status;
   }
 
-  /**
-   * Query the current sync cursor.
-   */
   getCursor(): SyncCursor | null {
     return this.cursor;
   }
@@ -181,10 +199,14 @@ export class SyncState {
     }
   }
 
-  private setProposalStatus(proposalId: string, status: ProposalStatus): void {
-    const entry = this.proposals.get(proposalId);
-    if (entry) {
-      this.proposals.set(proposalId, { ...entry, status });
+  private assertCursorAdvances(cursor: SyncCursor): void {
+    if (this.cursor === null) return;
+    const currentMs = parseTimestamp(this.cursor.timestamp);
+    const newMs = parseTimestamp(cursor.timestamp);
+    if (newMs <= currentMs) {
+      throw new Error(
+        `SS-02: New cursor timestamp '${cursor.timestamp}' must be after current '${this.cursor.timestamp}'`,
+      );
     }
   }
 }

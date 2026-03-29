@@ -200,6 +200,73 @@ describe('SyncState', () => {
 
       expect(state.getProposalStatus('p1')).toBe('accepted');
     });
+
+    it('SS-01: rejects duplicate proposalId during replay', () => {
+      const state = new SyncState();
+      state.apply({
+        type: 'ProposalRecorded',
+        proposalId: 'p1',
+        proposal: makeProposal('p1'),
+        timestamp: '2026-01-01T00:00:00Z',
+      });
+
+      expect(() =>
+        state.apply({
+          type: 'ProposalRecorded',
+          proposalId: 'p1',
+          proposal: makeProposal('p1'),
+          timestamp: '2026-01-01T00:01:00Z',
+        }),
+      ).toThrow('SS-01');
+    });
+
+    it('SS-03: rejects transition of terminal proposal during replay', () => {
+      const state = new SyncState();
+      state.apply({
+        type: 'ProposalRecorded',
+        proposalId: 'p1',
+        proposal: makeProposal('p1'),
+        timestamp: '2026-01-01T00:00:00Z',
+      });
+      state.apply({
+        type: 'ProposalAccepted',
+        proposalId: 'p1',
+        timestamp: '2026-01-01T00:01:00Z',
+      });
+
+      expect(() =>
+        state.apply({
+          type: 'ProposalRejected',
+          proposalId: 'p1',
+          reason: 'too late',
+          timestamp: '2026-01-01T00:02:00Z',
+        }),
+      ).toThrow('SS-03');
+    });
+
+    it('SS-02: rejects backward cursor during replay', () => {
+      const state = new SyncState();
+      state.apply({
+        type: 'CursorAdvanced',
+        cursor: makeCursor('2026-01-02T00:00:00Z'),
+        timestamp: '2026-01-02T00:00:00Z',
+      });
+
+      expect(() =>
+        state.apply({
+          type: 'CursorAdvanced',
+          cursor: makeCursor('2026-01-01T00:00:00Z'),
+          timestamp: '2026-01-01T00:00:00Z',
+        }),
+      ).toThrow('SS-02');
+    });
+
+    it('SS-04: rejects unknown event type', () => {
+      const state = new SyncState();
+      const badEvent = { type: 'UnknownEvent', timestamp: '2026-01-01T00:00:00Z' };
+
+      expect(() => state.apply(badEvent as never)).toThrow('SS-04');
+    });
   });
 
   // -----------------------------------------------------------------------
