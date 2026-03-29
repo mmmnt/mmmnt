@@ -1,1 +1,17 @@
-export {};
+export type {
+  DifferenceType,
+  DriftDirection,
+  ProposalStatus,
+  FeedbackEventType,
+  ASTDifference,
+  TypeLevelChange,
+  DiffPoint,
+  DriftPoint,
+  DriftReport,
+  ImplementationChangeProposal,
+  DetectedConsumption,
+  ConsumptionDetectionResult,
+  SyncCursor,
+  SourceAttribution,
+  EventMetadata,
+} from './value-objects/index.js';

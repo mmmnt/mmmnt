@@ -1,0 +1,15 @@
+export type { DifferenceType } from './difference-type.js';
+export type { DriftDirection } from './drift-direction.js';
+export type { ProposalStatus } from './proposal-status.js';
+export type { FeedbackEventType } from './feedback-event-type.js';
+export type { ASTDifference } from './ast-difference.js';
+export type { TypeLevelChange } from './type-level-change.js';
+export type { DiffPoint } from './diff-point.js';
+export type { DriftPoint } from './drift-point.js';
+export type { DriftReport } from './drift-report.js';
+export type { ImplementationChangeProposal } from './implementation-change-proposal.js';
+export type { DetectedConsumption } from './detected-consumption.js';
+export type { ConsumptionDetectionResult } from './consumption-detection-result.js';
+export type { SyncCursor } from './sync-cursor.js';
+export type { SourceAttribution } from './source-attribution.js';
+export type { EventMetadata } from './event-metadata.js';
