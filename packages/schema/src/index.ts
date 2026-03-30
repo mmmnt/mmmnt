@@ -47,3 +47,10 @@ export type {
 } from './events/consumption-manifest-events.js';
 
 export type { ConsumptionManifestRecord } from './aggregates/consumption-manifest.jsonl-schema.js';
+
+export { CodexRuleEvaluator } from './services/codex-rule-evaluator.js';
+export type {
+  CodexRuleEvaluatorConfig,
+  RulePackFetcher,
+  SchemaEvaluationInput,
+} from './services/codex-rule-evaluator.js';
