@@ -185,55 +185,77 @@ export class SchemaRegistry {
 
   /**
    * Apply a domain event to update internal state (event sourcing replay).
+   * Enforces all invariants during replay to detect corrupted streams.
    */
   apply(event: SchemaRegistryEvent): void {
     switch (event.type) {
-      case 'EventSchemaRegistered': {
-        const key = this.schemaKey(event.eventType, event.version);
-        if (this.schemas.has(key)) {
-          throw new Error(
-            `SR-01: Duplicate schema '${event.eventType}@${event.version}' in event stream`,
-          );
-        }
-        this.schemas.set(key, {
-          eventType: event.eventType,
-          version: event.version,
-          fieldDefinitions: event.fieldDefinitions,
-          registeredBy: event.registeredBy,
-          isGA: !isPreGA(event.version),
-        });
-        for (const field of event.fieldDefinitions) {
-          const fk = this.fieldKey(event.eventType, field.fieldName);
-          if (!this.fieldStates.has(fk)) {
-            this.fieldStates.set(fk, { phase: 'active' });
-          }
-        }
+      case 'EventSchemaRegistered':
+        this.applySchemaRegistered(event);
         break;
-      }
-
-      case 'EventFieldDeprecated': {
-        const fk = this.fieldKey(event.eventType, event.fieldName);
-        this.fieldStates.set(fk, { phase: 'deprecated' });
+      case 'EventFieldDeprecated':
+        this.applyFieldDeprecated(event);
         break;
-      }
-
-      case 'EventFieldEndOfLife': {
-        const fk = this.fieldKey(event.eventType, event.fieldName);
-        this.fieldStates.set(fk, { phase: 'end-of-life' });
+      case 'EventFieldEndOfLife':
+        this.applyFieldEndOfLife(event);
         break;
-      }
-
-      case 'EventFieldRemoved': {
-        const fk = this.fieldKey(event.eventType, event.fieldName);
-        this.fieldStates.set(fk, { phase: 'removed' });
+      case 'EventFieldRemoved':
+        this.applyFieldRemoved(event);
         break;
-      }
-
       default: {
         const exhaustive: never = event;
         throw new Error(`SR-06: Unknown event type '${(exhaustive as { type: string }).type}'`);
       }
     }
+  }
+
+  private applySchemaRegistered(event: EventSchemaRegistered): void {
+    const key = this.schemaKey(event.eventType, event.version);
+    if (this.schemas.has(key)) {
+      throw new Error(
+        `SR-01: Duplicate schema '${event.eventType}@${event.version}' in event stream`,
+      );
+    }
+    if (isPreGA(event.version)) {
+      this.assertPreGAAdditiveOnly(event.eventType, event.fieldDefinitions);
+    }
+    this.schemas.set(key, {
+      eventType: event.eventType,
+      version: event.version,
+      fieldDefinitions: event.fieldDefinitions,
+      registeredBy: event.registeredBy,
+      isGA: !isPreGA(event.version),
+    });
+    for (const field of event.fieldDefinitions) {
+      const fk = this.fieldKey(event.eventType, field.fieldName);
+      if (!this.fieldStates.has(fk)) {
+        this.fieldStates.set(fk, { phase: 'active' });
+      }
+    }
+  }
+
+  private applyFieldDeprecated(event: EventFieldDeprecated): void {
+    this.assertFieldInPhase(event.eventType, event.fieldName, 'active');
+    if (!event.reason || event.reason.trim() === '') {
+      throw new Error(`SR-03: Deprecation reason is required for field '${event.fieldName}'`);
+    }
+    if (!event.replacement || event.replacement.trim() === '') {
+      throw new Error(`SR-03: Deprecation replacement is required for field '${event.fieldName}'`);
+    }
+    this.fieldStates.set(this.fieldKey(event.eventType, event.fieldName), {
+      phase: 'deprecated',
+    });
+  }
+
+  private applyFieldEndOfLife(event: EventFieldEndOfLife): void {
+    this.assertFieldInPhase(event.eventType, event.fieldName, 'deprecated');
+    this.fieldStates.set(this.fieldKey(event.eventType, event.fieldName), {
+      phase: 'end-of-life',
+    });
+  }
+
+  private applyFieldRemoved(event: EventFieldRemoved): void {
+    this.assertFieldInPhase(event.eventType, event.fieldName, 'end-of-life');
+    this.fieldStates.set(this.fieldKey(event.eventType, event.fieldName), { phase: 'removed' });
   }
 
   getFieldPhase(eventType: string, fieldName: string): FieldPhase | undefined {
@@ -270,8 +292,8 @@ export class SchemaRegistry {
   }
 
   private assertPreGAAdditiveOnly(eventType: string, newFields: readonly FieldDefinition[]): void {
-    // Find latest existing schema for this event type
-    const existingFields = this.getLatestFieldNames(eventType);
+    // Collect all fields ever defined across all versions of this event type
+    const existingFields = this.getAllFieldNames(eventType);
     if (existingFields.size === 0) return; // First registration — always allowed
 
     const newFieldNames = new Set(newFields.map((f) => f.fieldName));
@@ -284,7 +306,7 @@ export class SchemaRegistry {
     }
   }
 
-  private getLatestFieldNames(eventType: string): Set<string> {
+  private getAllFieldNames(eventType: string): Set<string> {
     const fields = new Set<string>();
     for (const [key, entry] of this.schemas.entries()) {
       if (key.startsWith(`${eventType}@`)) {
