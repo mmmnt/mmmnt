@@ -5,11 +5,13 @@ import type {
   ReconciliationStateEvent,
 } from '../../events/reconciliation-state-events.js';
 
+const FIXED_RECORDED_AT = '2026-01-01T00:00:00.000Z';
+
 function makeFingerprint(overrides?: Partial<UpstreamFingerprint>): UpstreamFingerprint {
   return {
     specificationId: 'moment-spec',
     contentHash: 'abc123',
-    recordedAt: new Date().toISOString(),
+    recordedAt: FIXED_RECORDED_AT,
     ...overrides,
   };
 }
@@ -124,6 +126,7 @@ describe('Upstream Drift Reconciliation E2E', () => {
       previousFingerprint: previous,
       cascadeCategory: 1,
     });
+    expect(e1).not.toBeNull();
 
     const e2 = state1.startReconciliation({
       reconciliationId: 'recon-replay',
