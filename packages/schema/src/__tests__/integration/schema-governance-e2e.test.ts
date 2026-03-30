@@ -55,7 +55,7 @@ describe('Schema Governance E2E', () => {
       eventType: 'UserCreated',
       fieldName: 'legacyId',
       confirmedBy: 'admin',
-      hasActiveConsumers: manifest.hasZeroConsumers('UserCreated', 'legacyId') === false,
+      hasActiveConsumers: !manifest.hasZeroConsumers('UserCreated', 'legacyId'),
     });
     expect(eol.type).toBe('EventFieldEndOfLife');
     expect(registry.getFieldPhase('UserCreated', 'legacyId')).toBe('end-of-life');
@@ -66,7 +66,7 @@ describe('Schema Governance E2E', () => {
       fieldName: 'legacyId',
       removedBy: 'admin',
       rationale: 'Zero consumers confirmed',
-      hasActiveConsumers: manifest.hasZeroConsumers('UserCreated', 'legacyId') === false,
+      hasActiveConsumers: !manifest.hasZeroConsumers('UserCreated', 'legacyId'),
     });
     expect(removed.type).toBe('EventFieldRemoved');
     expect(registry.getFieldPhase('UserCreated', 'legacyId')).toBe('removed');
@@ -115,6 +115,17 @@ describe('Schema Governance E2E', () => {
         hasActiveConsumers: !manifest.hasZeroConsumers('OrderPlaced', 'legacyRef'),
       }),
     ).toThrow('SR-02');
+
+    // Attempt removal from deprecated phase — rejected by SR-04 (must be end-of-life first)
+    expect(() =>
+      registry.removeField({
+        eventType: 'OrderPlaced',
+        fieldName: 'legacyRef',
+        removedBy: 'admin',
+        rationale: 'Clean up legacy field',
+        hasActiveConsumers: !manifest.hasZeroConsumers('OrderPlaced', 'legacyRef'),
+      }),
+    ).toThrow('SR-04');
   });
 
   it('SR-04: lifecycle phase skipping rejected', () => {
@@ -185,6 +196,7 @@ describe('Schema Governance E2E', () => {
     const result = await validateOnSchemaEvolution(events, evaluator);
 
     expect(result.evaluatedSchemas).toBe(1);
+    expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0].eventType).toBe('UserCreated');
     expect(result.diagnostics[0].evaluationResult.passedAll).toBe(true);
   });
