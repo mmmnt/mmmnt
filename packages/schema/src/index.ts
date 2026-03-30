@@ -33,3 +33,17 @@ export type {
 } from './events/schema-registry-events.js';
 
 export type { SchemaRegistryRecord } from './aggregates/schema-registry.jsonl-schema.js';
+
+export { ConsumptionManifest } from './aggregates/consumption-manifest.js';
+export type {
+  DeclareConsumptionInput,
+  ConsumptionEntry,
+} from './aggregates/consumption-manifest.js';
+
+export type {
+  ConsumedEventDeclaration,
+  ProjectionConsumptionDeclared,
+  ConsumptionManifestEvent,
+} from './events/consumption-manifest-events.js';
+
+export type { ConsumptionManifestRecord } from './aggregates/consumption-manifest.jsonl-schema.js';
