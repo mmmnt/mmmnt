@@ -20,7 +20,7 @@ export interface DeclareConsumptionInput {
   readonly consumedEvents: readonly ConsumedEventDeclaration[];
 }
 
-interface ConsumptionEntry {
+export interface ConsumptionEntry {
   readonly projectionId: string;
   readonly projectionName: string;
   readonly product: string;
@@ -76,12 +76,16 @@ export class ConsumptionManifest {
           consumedEvents: event.consumedEvents,
         });
         break;
+      default: {
+        const exhaustive: never = event as never;
+        throw new Error(`CM-03: Unknown event type '${(exhaustive as { type: string }).type}'`);
+      }
     }
   }
 
   /**
    * Zero-consumption proof query for SchemaRegistry SR-02.
-   * Returns true if NO active projections consume the specified field.
+   * Returns true if no declared projections in this manifest consume the specified field.
    */
   hasZeroConsumers(eventType: string, fieldName: string): boolean {
     for (const entry of this.declarations.values()) {
