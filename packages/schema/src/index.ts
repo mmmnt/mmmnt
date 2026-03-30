@@ -54,3 +54,9 @@ export type {
   RulePackFetcher,
   SchemaEvaluationInput,
 } from './services/codex-rule-evaluator.js';
+
+export { validateOnSchemaEvolution } from './policies/validate-on-schema-evolution.js';
+export type {
+  SchemaEvolutionDiagnostic,
+  SchemaEvolutionPolicyResult,
+} from './policies/validate-on-schema-evolution.js';
