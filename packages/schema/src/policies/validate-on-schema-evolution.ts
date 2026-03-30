@@ -28,7 +28,7 @@ export interface SchemaEvolutionDiagnostic {
 export interface SchemaEvolutionPolicyResult {
   readonly diagnostics: readonly SchemaEvolutionDiagnostic[];
   readonly totalViolations: number;
-  readonly evaluatedEventTypes: number;
+  readonly evaluatedSchemas: number;
 }
 
 export async function validateOnSchemaEvolution(
@@ -62,7 +62,7 @@ export async function validateOnSchemaEvolution(
   return {
     diagnostics,
     totalViolations,
-    evaluatedEventTypes: evaluationInputs.length,
+    evaluatedSchemas: evaluationInputs.length,
   };
 }
 

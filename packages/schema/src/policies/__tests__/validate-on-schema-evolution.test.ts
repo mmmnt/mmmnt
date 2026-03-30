@@ -58,7 +58,7 @@ describe('ValidateOnSchemaEvolution', () => {
 
     expect(result.diagnostics).toEqual([]);
     expect(result.totalViolations).toBe(0);
-    expect(result.evaluatedEventTypes).toBe(0);
+    expect(result.evaluatedSchemas).toBe(0);
   });
 
   it('single schema with no violations returns passedAll true', async () => {
@@ -83,7 +83,7 @@ describe('ValidateOnSchemaEvolution', () => {
 
     const result = await validateOnSchemaEvolution(events, evaluator);
 
-    expect(result.evaluatedEventTypes).toBe(1);
+    expect(result.evaluatedSchemas).toBe(1);
     expect(result.totalViolations).toBe(0);
     expect(result.diagnostics[0].eventType).toBe('UserCreated');
     expect(result.diagnostics[0].evaluationResult.passedAll).toBe(true);
@@ -139,7 +139,7 @@ describe('ValidateOnSchemaEvolution', () => {
 
     const result = await validateOnSchemaEvolution(events, evaluator);
 
-    expect(result.evaluatedEventTypes).toBe(2);
+    expect(result.evaluatedSchemas).toBe(2);
     expect(result.diagnostics).toHaveLength(2);
     expect(result.diagnostics[0].eventType).toBe('UserCreated');
     expect(result.diagnostics[1].eventType).toBe('OrderPlaced');
@@ -167,7 +167,7 @@ describe('ValidateOnSchemaEvolution', () => {
 
     const result = await validateOnSchemaEvolution(events, evaluator);
 
-    expect(result.evaluatedEventTypes).toBe(1);
+    expect(result.evaluatedSchemas).toBe(1);
     expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0].eventType).toBe('UserCreated');
   });
@@ -183,7 +183,7 @@ describe('ValidateOnSchemaEvolution', () => {
 
     const result = await validateOnSchemaEvolution(events, evaluator);
 
-    expect(result.evaluatedEventTypes).toBe(1);
+    expect(result.evaluatedSchemas).toBe(1);
     expect(result.totalViolations).toBe(0);
     expect(result.diagnostics[0].evaluationResult.passedAll).toBe(true);
   });
