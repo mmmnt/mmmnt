@@ -55,7 +55,7 @@ export class CodexRuleEvaluator {
     const fetchResult = await this.ensureFetched();
 
     if (this.cachedPack === null || this.cachedVersion === null) {
-      return this.makeEmptyResult(fetchResult);
+      return this.makeEmptyResult();
     }
 
     const constraints = this.translateRules(this.cachedPack);
@@ -158,6 +158,8 @@ export class CodexRuleEvaluator {
         return this.evaluateSensitivityClassification(constraint, input, severity);
       case 'retention-period-minimum':
       case 'deprecation-timeline-minimum':
+        // Recognized but not evaluable in CLI mode — requires runtime metadata
+        // not available in SchemaEvaluationInput. Counted in constraintsEvaluated.
         return [];
       default:
         return [];
@@ -235,7 +237,7 @@ export class CodexRuleEvaluator {
     return violations;
   }
 
-  private makeEmptyResult(fetchResult: FetchResult): RuleEvaluationResult {
+  private makeEmptyResult(): RuleEvaluationResult {
     return {
       packVersion: {
         packId: '',

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   CodexRuleEvaluator,
-  type CodexRuleEvaluatorConfig,
   type RulePackFetcher,
   type SchemaEvaluationInput,
 } from '../codex-rule-evaluator.js';
