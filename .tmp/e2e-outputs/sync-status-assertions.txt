@@ -1,0 +1,4 @@
+scope: sync
+driftPoints: 7
+totalDrifted: 7
+totalAligned: 0

@@ -2,28 +2,56 @@
   "scope": "sync",
   "driftPoints": [
     {
-      "filePath": "src/ordering/order.types.ts",
-      "aggregateName": "src/ordering/order.types.ts",
-      "contextName": "ordering",
+      "filePath": "src/ecommerce/order.types.ts",
+      "aggregateName": "src/ecommerce/order.types.ts",
+      "contextName": "ecommerce",
       "driftDirection": "specification-added",
-      "description": "File 'src/ordering/order.types.ts' exists in specification but not in implementation"
+      "description": "File 'src/ecommerce/order.types.ts' exists in specification but not in implementation"
     },
     {
-      "filePath": "src/ordering/order.aggregate.ts",
-      "aggregateName": "src/ordering/order.aggregate.ts",
-      "contextName": "ordering",
+      "filePath": "src/ecommerce/order.aggregate.ts",
+      "aggregateName": "src/ecommerce/order.aggregate.ts",
+      "contextName": "ecommerce",
       "driftDirection": "specification-added",
-      "description": "File 'src/ordering/order.aggregate.ts' exists in specification but not in implementation"
+      "description": "File 'src/ecommerce/order.aggregate.ts' exists in specification but not in implementation"
     },
     {
-      "filePath": "src/ordering/index.ts",
-      "aggregateName": "src/ordering/index.ts",
-      "contextName": "ordering",
+      "filePath": "src/ecommerce/inventory.types.ts",
+      "aggregateName": "src/ecommerce/inventory.types.ts",
+      "contextName": "ecommerce",
       "driftDirection": "specification-added",
-      "description": "File 'src/ordering/index.ts' exists in specification but not in implementation"
+      "description": "File 'src/ecommerce/inventory.types.ts' exists in specification but not in implementation"
+    },
+    {
+      "filePath": "src/ecommerce/inventory.aggregate.ts",
+      "aggregateName": "src/ecommerce/inventory.aggregate.ts",
+      "contextName": "ecommerce",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ecommerce/inventory.aggregate.ts' exists in specification but not in implementation"
+    },
+    {
+      "filePath": "src/ecommerce/shipment.types.ts",
+      "aggregateName": "src/ecommerce/shipment.types.ts",
+      "contextName": "ecommerce",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ecommerce/shipment.types.ts' exists in specification but not in implementation"
+    },
+    {
+      "filePath": "src/ecommerce/shipment.aggregate.ts",
+      "aggregateName": "src/ecommerce/shipment.aggregate.ts",
+      "contextName": "ecommerce",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ecommerce/shipment.aggregate.ts' exists in specification but not in implementation"
+    },
+    {
+      "filePath": "src/ecommerce/index.ts",
+      "aggregateName": "src/ecommerce/index.ts",
+      "contextName": "ecommerce",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ecommerce/index.ts' exists in specification but not in implementation"
     }
   ],
-  "totalDrifted": 3,
+  "totalDrifted": 7,
   "totalAligned": 0,
-  "timestamp": "2026-03-31T22:13:59.997Z"
+  "timestamp": "2026-03-31T22:25:14.562Z"
 }

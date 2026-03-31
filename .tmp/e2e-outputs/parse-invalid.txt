@@ -8,3 +8,5 @@ error: <unknown> — Expecting: one of these possible Token sequences:
   2. [flow]
 but found: 'aggregate'
 exit: 1
+ASSERT: reports diagnostics: PASS
+ASSERT: non-zero exit: PASS

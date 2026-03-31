@@ -1,2 +1,3 @@
 Not authenticated. Run `moment auth login` to authenticate.
 exit: 0
+ASSERT: reports auth state: PASS

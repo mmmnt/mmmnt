@@ -1,2 +1,4 @@
-Drift detected: 3 drifted, 0 aligned
+Drift detected: 7 drifted, 0 aligned
 exit: 0
+ASSERT: reports drift info: PASS
+ASSERT: >=1 drifted files (7): PASS

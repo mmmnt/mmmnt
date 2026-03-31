@@ -1,19 +1,19 @@
 {
   "type": "viz:initial-load",
   "session": {
-    "sessionId": "viz-1774995238894",
-    "specificationName": "ordering",
-    "startedAt": "2026-03-31T22:13:58.895Z"
+    "sessionId": "viz-1774995889786",
+    "specificationName": "e-commerce",
+    "startedAt": "2026-03-31T22:24:49.786Z"
   },
   "envelope": {
-    "sessionId": "viz-1774995238894",
-    "timestamp": "2026-03-31T22:13:58.895Z",
+    "sessionId": "viz-1774995889786",
+    "timestamp": "2026-03-31T22:24:49.787Z",
     "version": 1,
     "contextMap": {
       "nodes": [
         {
-          "contextId": "ctx-Ordering",
-          "contextName": "Ordering",
+          "contextId": "ctx-ECommerce",
+          "contextName": "ECommerce",
           "classification": "Core",
           "x": 40,
           "y": 40,
@@ -31,8 +31,8 @@
     "timeline": {
       "lanes": [
         {
-          "contextId": "ctx-Ordering",
-          "contextName": "Ordering",
+          "contextId": "ctx-ECommerce",
+          "contextName": "ECommerce",
           "y": 0,
           "height": 80
         }
@@ -48,7 +48,7 @@
       "contextCount": 1,
       "flowCount": 0,
       "relationshipCount": 0,
-      "generatedAt": "2026-03-31T22:13:58.895Z"
+      "generatedAt": "2026-03-31T22:24:49.787Z"
     }
   }
 }

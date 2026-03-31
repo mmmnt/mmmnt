@@ -1,2 +1,4 @@
 Parsed successfully: 1 context(s), 0 flow(s)
 exit: 0
+ASSERT: reports 1 context: PASS
+ASSERT: exit code 0: PASS

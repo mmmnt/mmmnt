@@ -1,2 +1,6 @@
-Generated: 0 .feature file(s), 1 .spec.ts file(s), 3 document(s)
+Generated: 0 .feature file(s), 3 .spec.ts file(s), 3 document(s)
 exit: 0
+ASSERT: exit code 0: PASS
+ASSERT: feature=0 spec=3 doc=3
+ASSERT: >=1 spec.ts files: PASS
+ASSERT: >=1 documents: PASS
