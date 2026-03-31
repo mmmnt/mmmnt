@@ -2,13 +2,10 @@ import { describe, it, expect } from 'vitest';
 import type {
   VizSessionConfig,
   VizDataEnvelope,
-  VizEnvelopeMetadata,
   VizTransmissionEvent,
   VizInitialLoad,
   VizIncrementalUpdate,
   VizSessionClose,
-  ContextMapLayout,
-  TimelineLayout,
 } from '../index.js';
 
 describe('VizDataEnvelope contracts', () => {

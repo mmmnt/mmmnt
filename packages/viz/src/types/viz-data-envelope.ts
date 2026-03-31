@@ -27,6 +27,7 @@ export interface VizSessionConfig {
  */
 export interface VizDataEnvelope {
   readonly sessionId: string;
+  /** When this envelope was emitted by the producer (event emission time). */
   readonly timestamp: string;
   readonly version: number;
   readonly contextMap: ContextMapLayout;
@@ -38,6 +39,7 @@ export interface VizEnvelopeMetadata {
   readonly contextCount: number;
   readonly flowCount: number;
   readonly relationshipCount: number;
+  /** When the topology/layouts were generated from IR (may differ from envelope emission time). */
   readonly generatedAt: string;
   readonly specificationHash?: string;
 }
