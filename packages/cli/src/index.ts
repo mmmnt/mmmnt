@@ -1,5 +1,6 @@
 import { runInit } from './commands/init.js';
 import { runParse, formatDiagnostic } from './commands/parse.js';
+import { runWatch } from './commands/watch.js';
 
 const [command, ...args] = process.argv.slice(2);
 
@@ -33,12 +34,19 @@ switch (command) {
       });
     break;
   }
+  case 'watch': {
+    const result = runWatch(args);
+    if (!result.started) {
+      console.log(result.message);
+    }
+    break;
+  }
   default:
     if (command) {
       console.error(`Error: Unknown command '${command}'`);
     } else {
       console.error('Usage: moment <command> [options]');
-      console.error('Commands: init, parse');
+      console.error('Commands: init, parse, watch');
     }
     process.exitCode = 1;
 }
