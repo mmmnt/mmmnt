@@ -7,11 +7,11 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-import { ASTDiffEngine } from '@mmmnt/sync';
+import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { DriftReport } from '@mmmnt/sync';
 
@@ -74,11 +74,21 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   const emitter = new TypeScriptEmitter();
   const tsOutput = emitter.emit(ir, { scope: { level: 'system' } });
 
-  // Actual implementation files are not loaded yet — no project-root convention
-  // exists to locate them. Once a --root flag or manifest config is added, this
-  // map will be populated by reading .ts files keyed to the same paths as
-  // tsOutput.files. Until then, every expected file reports as drifted.
+  // Read actual implementation files via GitArtifactStore (ADR-024)
+  // Repo root defaults to the directory containing the .moment file
+  const repoRoot = dirname(resolvedPath);
+  const store = new LocalGitArtifactStore(repoRoot);
+  const expectedPaths = [...tsOutput.files.keys()];
   const actual = new Map<string, string>();
+
+  for (const path of expectedPaths) {
+    try {
+      const content = await store.readArtifact(path);
+      actual.set(path, content);
+    } catch {
+      // File doesn't exist on disk — will show as drifted
+    }
+  }
 
   const engine = new ASTDiffEngine();
   const report = engine.detectDrift({ expected: tsOutput.files, actual });

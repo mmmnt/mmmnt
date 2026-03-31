@@ -10,4 +10,7 @@ await build({
   banner: { js: '#!/usr/bin/env node' },
   external: ['typescript'],
   sourcemap: true,
+  define: {
+    __GH_APP_CLIENT_ID__: JSON.stringify(process.env.GH_APP_CLIENT_ID ?? ''),
+  },
 });
