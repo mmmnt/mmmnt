@@ -13,18 +13,19 @@ describe('moment emit-ts', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('Emitted');
-    expect(result.tsFileCount).toBeGreaterThanOrEqual(0);
+    expect(result.tsFileCount).toBeGreaterThan(0);
     expect(result.scaffoldFileCount).toBeGreaterThanOrEqual(0);
   });
 
   it('does NOT produce .feature or specification.md files', async () => {
-    const result = await runEmitTs([VALID_FIXTURE]);
+    const result = await runEmitTs(['--dry-run', VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
-    // The emit-ts command only delegates to TypeScriptEmitter + TestScaffoldEmitter.
-    // No GherkinGenerator or SpecificationDocumentGenerator is invoked.
-    expect(result.message).not.toContain('.feature');
-    expect(result.message).not.toContain('specification.md');
+    expect(result.dryRun).toBe(true);
+    expect(result.fileList).toBeDefined();
+    const fileList = result.fileList ?? [];
+    expect(fileList.some((file) => file.endsWith('.feature'))).toBe(false);
+    expect(fileList.some((file) => file.endsWith('specification.md'))).toBe(false);
   });
 
   it('--dry-run outputs file list without writing (TG-05)', async () => {

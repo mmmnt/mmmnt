@@ -1,7 +1,7 @@
 /**
- * moment emit-ts — Emit TypeScript types only (no Gherkin)
+ * moment emit-ts — Emit TypeScript artifacts (types + test scaffolds, no Gherkin)
  *
- * TS-only subset of `moment generate`. Chains parse → derive → TypeScriptEmitter + TestScaffoldEmitter.
+ * TypeScript-artifacts subset of `moment generate`. Chains parse → derive → TypeScriptEmitter + TestScaffoldEmitter.
  * No GherkinGenerator or SpecificationDocumentGenerator. Supports --dry-run (TG-05).
  * No codegen logic in CLI layer (EXIT-C1).
  */
