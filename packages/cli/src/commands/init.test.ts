@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe('moment init', () => {
-  it('creates .manifest.yaml with valid schema', () => {
+  it('creates .manifest.yaml with expected default fields', () => {
     const result = runInit(['--dir', tempDir, '--name', 'test-project']);
 
     expect(result.success).toBe(true);
@@ -42,7 +42,7 @@ describe('moment init', () => {
     expect(content).toContain('name: custom-name');
   });
 
-  it('existing .manifest.yaml exits non-zero with diagnostic', () => {
+  it('existing .manifest.yaml returns success: false with diagnostic', () => {
     writeFileSync(join(tempDir, '.manifest.yaml'), 'name: existing\n', 'utf-8');
 
     const result = runInit(['--dir', tempDir]);

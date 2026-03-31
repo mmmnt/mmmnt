@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { runInit } from './commands/init.js';
 
 const [command, ...args] = process.argv.slice(2);
