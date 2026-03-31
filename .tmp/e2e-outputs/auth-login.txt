@@ -1,0 +1,13 @@
+$ GH_APP_CLIENT_ID=Ov23li5nhWuDstHvLltG node build.mjs
+$ moment auth login
+
+Result: fetch failed (no outbound internet in sandbox)
+Client ID resolved correctly (Ov23li5nhWuDstHvLltG baked into bundle)
+Device flow reached network call — correct behavior.
+
+NOTE: Turbo caches builds and does not pass env vars through.
+Must build directly with `node build.mjs` or clear turbo cache.
+
+To test interactively:
+  GH_APP_CLIENT_ID=Ov23li5nhWuDstHvLltG node packages/cli/build.mjs
+  node packages/cli/dist/moment.mjs auth login
