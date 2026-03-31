@@ -13,11 +13,7 @@ import { formatDiagnostic } from './parse.js';
 export interface WatchCommandResult {
   readonly started: boolean;
   readonly message: string;
-}
-
-export interface WatchContext {
-  readonly watcher: FileWatcher;
-  stop(): void;
+  readonly watcher?: FileWatcher;
 }
 
 export function runWatch(
@@ -56,7 +52,7 @@ export function runWatch(
         .onFileChanged(filePath)
         .then((result) => {
           if (result.parseResult.success) {
-            log(`Regenerated: ${filePath}`);
+            log(`Parsed: ${filePath}`);
           } else {
             for (const d of result.parseResult.diagnostics) {
               logError(formatDiagnostic(d, filePath));
@@ -75,5 +71,5 @@ export function runWatch(
 
   log(`Watching for changes in ${targetDir}...`);
 
-  return { started: true, message: `Watching for changes in ${targetDir}...` };
+  return { started: true, message: `Watching for changes in ${targetDir}...`, watcher };
 }
