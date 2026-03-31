@@ -98,8 +98,19 @@ export type {
   PullOptions,
   BranchResult,
   AuthorConfig,
+  GitCredentials,
+  CredentialStrategy,
+  CredentialResolver,
+  StoredCredentials,
 } from './infrastructure/index.js';
 
 export { LocalGitArtifactStore } from './infrastructure/index.js';
 export { LocalGitArtifactWriter } from './infrastructure/index.js';
 export { LocalGitRemoteManager } from './infrastructure/index.js';
+export {
+  EnvCredentialStrategy,
+  GhCliCredentialStrategy,
+  GitCredentialHelperStrategy,
+  OAuthDeviceFlowStrategy,
+  LayeredCredentialResolver,
+} from './infrastructure/index.js';
