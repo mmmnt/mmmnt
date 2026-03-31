@@ -6,6 +6,7 @@ import { runGenerate } from './commands/generate.js';
 import { runEmitTs } from './commands/emit-ts.js';
 import { runTest } from './commands/test.js';
 import { runViz } from './commands/viz.js';
+import { runSyncStatus } from './commands/sync-status.js';
 
 const [command, ...args] = process.argv.slice(2);
 
@@ -141,12 +142,39 @@ switch (command) {
       });
     break;
   }
+  case 'sync': {
+    const subcommand = args[0];
+    const subArgs = args.slice(1);
+    if (subcommand === 'status') {
+      runSyncStatus(subArgs)
+        .then((result) => {
+          if (result.success) {
+            console.log(result.message);
+          } else {
+            console.error(result.message);
+            for (const d of result.diagnostics) {
+              console.error(formatDiagnostic(d, result.filePath));
+            }
+            process.exitCode = 1;
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Error:', error instanceof Error ? error.message : String(error));
+          process.exitCode = 1;
+        });
+    } else {
+      console.error(`Error: Unknown sync subcommand '${subcommand ?? ''}'`);
+      console.error('Subcommands: status');
+      process.exitCode = 1;
+    }
+    break;
+  }
   default:
     if (command) {
       console.error(`Error: Unknown command '${command}'`);
     } else {
       console.error('Usage: moment <command> [options]');
-      console.error('Commands: init, parse, watch, derive, generate, emit-ts, test, viz');
+      console.error('Commands: init, parse, watch, derive, generate, emit-ts, test, viz, sync');
     }
     process.exitCode = 1;
 }
