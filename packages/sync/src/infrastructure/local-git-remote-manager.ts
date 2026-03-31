@@ -1,8 +1,9 @@
 /**
  * LocalGitRemoteManager — Remote operations via isomorphic-git (ADR-024)
  *
- * Handles clone, push, pull, branch management with GitHub auth.
- * Auth uses onAuth callback for GitHub App installation tokens.
+ * Auth resolved via CredentialResolver (ADR-025) injected at construction.
+ * Callers never pass credentials — the resolver handles env vars,
+ * gh CLI, OAuth tokens, and git credential helpers.
  */
 
 import * as git from 'isomorphic-git';
@@ -16,6 +17,7 @@ import type {
   PullOptions,
   BranchResult,
 } from './git-remote-manager.js';
+import type { CredentialResolver } from './credential-resolver.js';
 
 function loadHttp(): git.HttpClient {
   const req = createRequire(import.meta.url);
@@ -24,13 +26,16 @@ function loadHttp(): git.HttpClient {
 
 export class LocalGitRemoteManager implements GitRemoteManager {
   private readonly dir: string;
+  private readonly credentials: CredentialResolver;
 
-  constructor(repoRoot: string) {
+  constructor(repoRoot: string, credentials: CredentialResolver) {
     this.dir = resolve(repoRoot);
+    this.credentials = credentials;
   }
 
   async clone(options: CloneOptions): Promise<void> {
     const http = loadHttp();
+    const creds = await this.credentials.resolve();
     await git.clone({
       fs,
       http,
@@ -39,25 +44,27 @@ export class LocalGitRemoteManager implements GitRemoteManager {
       ref: options.ref,
       depth: options.depth,
       singleBranch: !!options.ref,
-      onAuth: options.onAuth,
+      onAuth: () => creds,
     });
   }
 
-  async push(options: PushOptions): Promise<void> {
+  async push(options?: PushOptions): Promise<void> {
     const http = loadHttp();
+    const creds = await this.credentials.resolve();
     await git.push({
       fs,
       http,
       dir: this.dir,
-      remote: options.remote ?? 'origin',
-      ref: options.ref,
-      force: options.force ?? false,
-      onAuth: options.onAuth,
+      remote: options?.remote ?? 'origin',
+      ref: options?.ref,
+      force: options?.force ?? false,
+      onAuth: () => creds,
     });
   }
 
   async pull(options: PullOptions): Promise<void> {
     const http = loadHttp();
+    const creds = await this.credentials.resolve();
     await git.pull({
       fs,
       http,
@@ -65,7 +72,7 @@ export class LocalGitRemoteManager implements GitRemoteManager {
       remote: options.remote ?? 'origin',
       ref: options.ref,
       author: options.author,
-      onAuth: options.onAuth,
+      onAuth: () => creds,
     });
   }
 

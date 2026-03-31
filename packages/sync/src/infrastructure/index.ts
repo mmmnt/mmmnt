@@ -13,7 +13,6 @@ export type { GitArtifactWriter, CommitResult } from './git-artifact-writer.js';
 
 export type {
   GitRemoteManager,
-  GitAuth,
   CloneOptions,
   PushOptions,
   PullOptions,

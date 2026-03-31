@@ -92,7 +92,6 @@ export type {
   GitArtifactWriter,
   CommitResult,
   GitRemoteManager,
-  GitAuth,
   CloneOptions,
   PushOptions,
   PullOptions,

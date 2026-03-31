@@ -5,6 +5,13 @@ import { tmpdir } from 'node:os';
 import * as git from 'isomorphic-git';
 import * as fs from 'node:fs';
 import { LocalGitRemoteManager } from '../infrastructure/local-git-remote-manager.js';
+import type { CredentialResolver } from '../infrastructure/credential-resolver.js';
+
+const mockCredentials: CredentialResolver = {
+  async resolve() {
+    return { username: 'x-access-token', password: 'ghp_test123' };
+  },
+};
 
 describe('LocalGitRemoteManager', () => {
   let tmpDir: string;
@@ -34,10 +41,15 @@ describe('LocalGitRemoteManager', () => {
     );
   }
 
+  it('constructor accepts CredentialResolver (ADR-025 integration)', () => {
+    const manager = new LocalGitRemoteManager(tmpDir, mockCredentials);
+    expect(manager).toBeDefined();
+  });
+
   it('createBranch() creates a new branch at HEAD', async () => {
     await writeAndCommit('README.md', 'hello', 'initial');
 
-    const manager = new LocalGitRemoteManager(tmpDir);
+    const manager = new LocalGitRemoteManager(tmpDir, mockCredentials);
     const result = await manager.createBranch('feature/test');
 
     expect(result.name).toBe('feature/test');
@@ -51,7 +63,7 @@ describe('LocalGitRemoteManager', () => {
     const firstOid = await writeAndCommit('README.md', 'v1', 'first');
     await writeAndCommit('README.md', 'v2', 'second');
 
-    const manager = new LocalGitRemoteManager(tmpDir);
+    const manager = new LocalGitRemoteManager(tmpDir, mockCredentials);
     const result = await manager.createBranch('hotfix/v1', firstOid);
 
     expect(result.oid).toBe(firstOid);
@@ -60,7 +72,7 @@ describe('LocalGitRemoteManager', () => {
   it('checkout() switches branches', async () => {
     await writeAndCommit('README.md', 'hello', 'initial');
 
-    const manager = new LocalGitRemoteManager(tmpDir);
+    const manager = new LocalGitRemoteManager(tmpDir, mockCredentials);
     await manager.createBranch('develop');
     await manager.checkout('develop');
 
@@ -71,7 +83,7 @@ describe('LocalGitRemoteManager', () => {
   it('currentBranch() returns current branch name', async () => {
     await writeAndCommit('README.md', 'hello', 'initial');
 
-    const manager = new LocalGitRemoteManager(tmpDir);
+    const manager = new LocalGitRemoteManager(tmpDir, mockCredentials);
     const branch = await manager.currentBranch();
 
     expect(branch).toBe('master');

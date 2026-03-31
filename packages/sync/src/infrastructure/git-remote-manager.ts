@@ -1,34 +1,25 @@
 /**
  * GitRemoteManager — Remote operations for Moment artifact repos (ADR-024)
  *
- * Handles clone, push, pull, and branch management.
- * Auth is provided via onAuth callback (GitHub App installation token).
+ * Auth is resolved via CredentialResolver (ADR-025) — no per-call onAuth.
  */
-
-export interface GitAuth {
-  readonly username: string;
-  readonly password: string;
-}
 
 export interface CloneOptions {
   readonly url: string;
   readonly dir: string;
   readonly ref?: string;
   readonly depth?: number;
-  readonly onAuth: () => GitAuth;
 }
 
 export interface PushOptions {
   readonly remote?: string;
   readonly ref?: string;
-  readonly onAuth: () => GitAuth;
   readonly force?: boolean;
 }
 
 export interface PullOptions {
   readonly remote?: string;
   readonly ref?: string;
-  readonly onAuth: () => GitAuth;
   readonly author: { readonly name: string; readonly email: string };
 }
 
@@ -42,7 +33,7 @@ export interface GitRemoteManager {
   clone(options: CloneOptions): Promise<void>;
 
   /** Push local commits to a remote */
-  push(options: PushOptions): Promise<void>;
+  push(options?: PushOptions): Promise<void>;
 
   /** Pull remote changes and merge */
   pull(options: PullOptions): Promise<void>;
