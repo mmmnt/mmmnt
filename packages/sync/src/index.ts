@@ -80,3 +80,18 @@ export type {
 } from './events/reconciliation-state-events.js';
 
 export type { ReconciliationStateRecord } from './aggregates/reconciliation-state.jsonl-schema.js';
+
+export type {
+  GitCredentials,
+  CredentialStrategy,
+  CredentialResolver,
+  StoredCredentials,
+} from './infrastructure/index.js';
+
+export {
+  EnvCredentialStrategy,
+  GhCliCredentialStrategy,
+  GitCredentialHelperStrategy,
+  OAuthDeviceFlowStrategy,
+  LayeredCredentialResolver,
+} from './infrastructure/index.js';
