@@ -7,7 +7,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, basename } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { VizEmitter } from '@mmmnt/viz';
@@ -73,7 +73,7 @@ export async function runViz(argv: string[]): Promise<VizCommandResult> {
 
   const event = emitter.createInitialLoad(ir, {
     sessionId,
-    specificationName: filePath,
+    specificationName: basename(resolvedPath, '.moment'),
     startedAt: new Date().toISOString(),
   });
 

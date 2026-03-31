@@ -7,8 +7,7 @@
  */
 
 import type { IntermediateRepresentation } from '@mmmnt/core';
-import { renderContextMap } from '../renderers/index.js';
-import { renderTimeline } from '../renderers/index.js';
+import { renderContextMap, renderTimeline } from '../renderers/index.js';
 import type {
   VizDataEnvelope,
   VizSessionConfig,
