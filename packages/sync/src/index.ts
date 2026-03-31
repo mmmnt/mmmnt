@@ -82,12 +82,30 @@ export type {
 export type { ReconciliationStateRecord } from './aggregates/reconciliation-state.jsonl-schema.js';
 
 export type {
+  MomentArtifactIndex,
+  ContextIndexEntry,
+  FlowIndexEntry,
+  ArtifactIndexEntry,
+  ArtifactType,
+  DecisionIndexEntry,
+  GitArtifactStore,
+  GitArtifactWriter,
+  CommitResult,
+  GitRemoteManager,
+  CloneOptions,
+  PushOptions,
+  PullOptions,
+  BranchResult,
+  AuthorConfig,
   GitCredentials,
   CredentialStrategy,
   CredentialResolver,
   StoredCredentials,
 } from './infrastructure/index.js';
 
+export { LocalGitArtifactStore } from './infrastructure/index.js';
+export { LocalGitArtifactWriter } from './infrastructure/index.js';
+export { LocalGitRemoteManager } from './infrastructure/index.js';
 export {
   EnvCredentialStrategy,
   GhCliCredentialStrategy,
