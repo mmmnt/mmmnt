@@ -8,6 +8,6 @@ await build({
   target: 'node20',
   outfile: 'dist/moment.mjs',
   banner: { js: '#!/usr/bin/env node' },
-  external: [],
+  external: ['typescript'],
   sourcemap: true,
 });
