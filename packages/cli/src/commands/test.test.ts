@@ -8,7 +8,7 @@ const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment'
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment test', () => {
-  it('runs all derived test suites, exits 0 on all pass', async () => {
+  it('returns success when all tests pass', async () => {
     const result = await runTest([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
@@ -23,17 +23,20 @@ describe('moment test', () => {
     expect(result.message).toContain('Usage:');
   });
 
-  it('delegates to TestRunner (no test execution logic in CLI)', async () => {
+  it('delegates to TestRunner and returns structured result', async () => {
     const result = await runTest([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
     expect(result.testResult).toBeDefined();
     expect(result.testResult!.suitesRun).toBeGreaterThanOrEqual(0);
+    expect(result.testResult!.testsPassed).toBeGreaterThanOrEqual(0);
+    expect(result.testResult!.traceabilityMap).toBeDefined();
   });
 
-  it('output includes suite/case counts and pass/fail', async () => {
+  it('output includes total, pass/fail counts and suite count', async () => {
     const result = await runTest([VALID_FIXTURE]);
 
+    expect(result.message).toMatch(/\d+ total/);
     expect(result.message).toMatch(/\d+ passed/);
     expect(result.message).toMatch(/\d+ failed/);
     expect(result.message).toMatch(/\d+ suite/);

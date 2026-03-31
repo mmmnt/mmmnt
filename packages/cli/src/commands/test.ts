@@ -75,7 +75,7 @@ export async function runTest(argv: string[]): Promise<TestCommandResult> {
 
   return {
     success: allPassed,
-    message: `Tests: ${testResult.testsPassed} passed, ${testResult.testsFailed} failed, ${testResult.testsSkipped} skipped (${testResult.suitesRun} suite(s))`,
+    message: `Tests: ${testResult.testsPassed + testResult.testsFailed + testResult.testsSkipped} total, ${testResult.testsPassed} passed, ${testResult.testsFailed} failed, ${testResult.testsSkipped} skipped (${testResult.suitesRun} suite(s))`,
     diagnostics: EMPTY,
     testResult,
   };
