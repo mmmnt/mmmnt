@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, chmodSync } from 'node:fs';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdtempSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -10,6 +10,13 @@ import {
 } from '../infrastructure/credential-strategies.js';
 import { LayeredCredentialResolver } from '../infrastructure/layered-credential-resolver.js';
 import type { CredentialStrategy, GitCredentials } from '../infrastructure/credential-resolver.js';
+
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn(),
+}));
+
+import { execFile } from 'node:child_process';
+const mockExecFile = vi.mocked(execFile);
 
 describe('EnvCredentialStrategy', () => {
   const originalEnv = { ...process.env };
@@ -66,21 +73,79 @@ describe('EnvCredentialStrategy', () => {
 });
 
 describe('GhCliCredentialStrategy', () => {
-  it('returns undefined when gh is not installed (CRED-02)', async () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns credentials when gh auth token succeeds', async () => {
+    mockExecFile.mockImplementation((_cmd, _args, _opts, cb) => {
+      (cb as Function)(null, 'gho_faketoken123\n');
+      return {} as ReturnType<typeof execFile>;
+    });
+
     const strategy = new GhCliCredentialStrategy();
-    // In CI/test environments, gh is typically not installed
-    // or not authenticated, so this should return undefined
     const creds = await strategy.resolve();
-    // Either undefined (not installed) or credentials (if gh is available)
-    expect(creds === undefined || typeof creds.password === 'string').toBe(true);
+
+    expect(creds).toEqual({
+      username: 'x-access-token',
+      password: 'gho_faketoken123',
+    });
+  });
+
+  it('returns undefined when gh is not installed (CRED-02)', async () => {
+    mockExecFile.mockImplementation((_cmd, _args, _opts, cb) => {
+      const err = new Error('ENOENT') as NodeJS.ErrnoException;
+      err.code = 'ENOENT';
+      (cb as Function)(err, '');
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    const strategy = new GhCliCredentialStrategy();
+    const creds = await strategy.resolve();
+
+    expect(creds).toBeUndefined();
   });
 });
 
 describe('GitCredentialHelperStrategy', () => {
-  it('returns undefined when git credential helper fails (CRED-02)', async () => {
-    // Use an invalid host to ensure credential fill fails
-    const strategy = new GitCredentialHelperStrategy('nonexistent.invalid');
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns credentials when git credential fill succeeds', async () => {
+    mockExecFile.mockImplementation((_cmd, _args, _opts, cb) => {
+      (cb as Function)(null, 'username=x-access-token\npassword=ghp_abc123\n');
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    const strategy = new GitCredentialHelperStrategy();
     const creds = await strategy.resolve();
+
+    expect(creds).toEqual({
+      username: 'x-access-token',
+      password: 'ghp_abc123',
+    });
+  });
+
+  it('returns undefined when git is not installed (CRED-02)', async () => {
+    mockExecFile.mockImplementation((_cmd, _args, _opts, cb) => {
+      const err = new Error('ENOENT') as NodeJS.ErrnoException;
+      err.code = 'ENOENT';
+      (cb as Function)(err, '');
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    const strategy = new GitCredentialHelperStrategy();
+    const creds = await strategy.resolve();
+
+    expect(creds).toBeUndefined();
+  });
+
+  it('returns undefined when credential fill returns empty output', async () => {
+    mockExecFile.mockImplementation((_cmd, _args, _opts, cb) => {
+      (cb as Function)(null, '');
+      return {} as ReturnType<typeof execFile>;
+    });
+
+    const strategy = new GitCredentialHelperStrategy();
+    const creds = await strategy.resolve();
+
     expect(creds).toBeUndefined();
   });
 });
@@ -110,13 +175,27 @@ describe('OAuthDeviceFlowStrategy', () => {
     });
   });
 
+  it('accepts read-only 0o400 permissions (CRED-04)', async () => {
+    const credPath = join(tmpDir, 'credentials.json');
+    writeFileSync(credPath, JSON.stringify({ token: 'readonly-token' }));
+    chmodSync(credPath, 0o400);
+
+    const strategy = new OAuthDeviceFlowStrategy(credPath);
+    const creds = await strategy.resolve();
+
+    expect(creds).toEqual({
+      username: 'x-access-token',
+      password: 'readonly-token',
+    });
+  });
+
   it('returns undefined when credentials file does not exist', async () => {
     const strategy = new OAuthDeviceFlowStrategy(join(tmpDir, 'nope.json'));
     const creds = await strategy.resolve();
     expect(creds).toBeUndefined();
   });
 
-  it('returns undefined when permissions are not 0o600 (CRED-04)', async () => {
+  it('returns undefined when group/other bits are set (CRED-04)', async () => {
     const credPath = join(tmpDir, 'credentials.json');
     writeFileSync(credPath, JSON.stringify({ token: 'insecure-token' }));
     chmodSync(credPath, 0o644);
@@ -134,6 +213,23 @@ describe('OAuthDeviceFlowStrategy', () => {
       JSON.stringify({
         token: 'expired-token',
         expiresAt: '2020-01-01T00:00:00Z',
+      }),
+    );
+    chmodSync(credPath, 0o600);
+
+    const strategy = new OAuthDeviceFlowStrategy(credPath);
+    const creds = await strategy.resolve();
+
+    expect(creds).toBeUndefined();
+  });
+
+  it('returns undefined when expiresAt is an invalid date', async () => {
+    const credPath = join(tmpDir, 'credentials.json');
+    writeFileSync(
+      credPath,
+      JSON.stringify({
+        token: 'bad-date-token',
+        expiresAt: 'not-a-date',
       }),
     );
     chmodSync(credPath, 0o600);
@@ -194,5 +290,6 @@ describe('LayeredCredentialResolver', () => {
 
     await expect(resolver.resolve()).rejects.toThrow('moment auth login');
     await expect(resolver.resolve()).rejects.toThrow('MOMENT_GITHUB_TOKEN');
+    await expect(resolver.resolve()).rejects.toThrow('GITHUB_TOKEN');
   });
 });

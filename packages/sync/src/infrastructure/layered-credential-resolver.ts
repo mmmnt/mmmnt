@@ -25,7 +25,7 @@ export class LayeredCredentialResolver implements CredentialResolver {
 
     throw new Error(
       'No git credentials found. ' +
-        'Run `moment auth login` or set MOMENT_GITHUB_TOKEN ' +
+        'Run `moment auth login` or set MOMENT_GITHUB_TOKEN or GITHUB_TOKEN ' +
         'to authenticate with GitHub.',
     );
   }

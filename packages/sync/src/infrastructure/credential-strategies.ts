@@ -106,15 +106,18 @@ export class OAuthDeviceFlowStrategy implements CredentialStrategy {
     try {
       const fileStat = await stat(this.credentialsPath);
       const mode = fileStat.mode & 0o777;
-      if (mode !== 0o600) return undefined;
+      if ((mode & 0o077) !== 0) return undefined;
 
       const raw = await readFile(this.credentialsPath, 'utf-8');
       const stored: StoredCredentials = JSON.parse(raw);
 
       if (!stored.token) return undefined;
 
-      if (stored.expiresAt && new Date(stored.expiresAt) < new Date()) {
-        return undefined;
+      if (stored.expiresAt) {
+        const expiresAt = new Date(stored.expiresAt);
+        if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
+          return undefined;
+        }
       }
 
       return toGitHubToken(stored.token);
