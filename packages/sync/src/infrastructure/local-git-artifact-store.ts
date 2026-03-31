@@ -1,16 +1,59 @@
 /**
  * LocalGitArtifactStore — CLI-context implementation of GitArtifactStore (ADR-024)
  *
- * Reads artifacts from the local git working tree using fs.readFileSync.
+ * Reads artifacts from the local git working tree.
  * Index is read from .moment/index.json on disk.
  */
 
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { resolve, relative, join } from 'node:path';
+import { readFile, readdir, lstat, access } from 'node:fs/promises';
+import { resolve, relative, join, dirname, isAbsolute } from 'node:path';
 import type { GitArtifactStore } from './git-artifact-store.js';
 import type { MomentArtifactIndex, ArtifactIndexEntry } from './artifact-index.js';
 
 const INDEX_PATH = '.moment/index.json';
+
+function toPosix(p: string): string {
+  return p.split('\\').join('/');
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function assertField(obj: Record<string, unknown>, field: string, type: 'string' | 'array'): void {
+  const value = obj[field];
+  if (type === 'string' && typeof value !== 'string') {
+    throw new Error(`Artifact index missing required field: ${field}`);
+  }
+  if (type === 'array' && !Array.isArray(value)) {
+    throw new Error(`Artifact index missing required field: ${field}`);
+  }
+}
+
+function validateIndex(parsed: unknown): asserts parsed is MomentArtifactIndex {
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('Artifact index is not an object');
+  }
+
+  const obj = parsed as Record<string, unknown>;
+
+  // GAS-04: Version gate
+  if (obj.version !== 1) {
+    throw new Error(`Unsupported artifact index version: ${obj.version ?? 'unknown'}`);
+  }
+
+  assertField(obj, 'generatedAt', 'string');
+  assertField(obj, 'specHash', 'string');
+  assertField(obj, 'contexts', 'array');
+  assertField(obj, 'flows', 'array');
+  assertField(obj, 'artifacts', 'array');
+  assertField(obj, 'decisions', 'array');
+}
 
 export class LocalGitArtifactStore implements GitArtifactStore {
   private readonly repoRoot: string;
@@ -26,38 +69,30 @@ export class LocalGitArtifactStore implements GitArtifactStore {
 
     const indexPath = resolve(this.repoRoot, INDEX_PATH);
 
-    if (!existsSync(indexPath)) {
+    if (!(await exists(indexPath))) {
       throw new Error(`Artifact index not found: ${indexPath}`);
     }
 
-    const raw = readFileSync(indexPath, 'utf-8');
+    const raw = await readFile(indexPath, 'utf-8');
     const parsed: unknown = JSON.parse(raw);
 
-    // GAS-04: Version gate
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      !('version' in parsed) ||
-      (parsed as { version: unknown }).version !== 1
-    ) {
-      throw new Error(
-        `Unsupported artifact index version: ${typeof parsed === 'object' && parsed !== null && 'version' in parsed ? (parsed as { version: unknown }).version : 'unknown'}`,
-      );
-    }
+    validateIndex(parsed);
 
-    this.cachedIndex = parsed as MomentArtifactIndex;
+    this.cachedIndex = parsed;
     return this.cachedIndex;
   }
 
   /** GAS-02: Returns file content as string, throws on missing file */
   async readArtifact(path: string): Promise<string> {
+    this.assertSafePath(path);
+
     const fullPath = resolve(this.repoRoot, path);
 
-    if (!existsSync(fullPath)) {
+    if (!(await exists(fullPath))) {
       throw new Error(`Artifact not found: ${path}`);
     }
 
-    return readFileSync(fullPath, 'utf-8');
+    return readFile(fullPath, 'utf-8');
   }
 
   async readArtifacts(paths: readonly string[]): Promise<ReadonlyMap<string, string>> {
@@ -73,10 +108,12 @@ export class LocalGitArtifactStore implements GitArtifactStore {
 
   async listArtifacts(pattern: string): Promise<readonly string[]> {
     const momentDir = resolve(this.repoRoot, '.moment');
-    if (!existsSync(momentDir)) return [];
+    if (!(await exists(momentDir))) return [];
 
-    const files = walkDir(momentDir);
-    const relativePaths = files.map((f) => relative(this.repoRoot, f));
+    const files = await walkDir(momentDir);
+    const relativePaths = files
+      .map((f) => toPosix(relative(this.repoRoot, f)))
+      .filter((p) => p !== INDEX_PATH);
 
     if (pattern === '*') return relativePaths;
 
@@ -95,15 +132,26 @@ export class LocalGitArtifactStore implements GitArtifactStore {
     const index = await this.getIndex();
     return index.artifacts.filter((a) => a.contextName === contextName);
   }
+
+  private assertSafePath(path: string): void {
+    if (isAbsolute(path)) {
+      throw new Error(`Absolute paths are not allowed: ${path}`);
+    }
+    const resolved = resolve(this.repoRoot, path);
+    if (!resolved.startsWith(this.repoRoot)) {
+      throw new Error(`Path traversal detected: ${path}`);
+    }
+  }
 }
 
-function walkDir(dir: string): string[] {
+async function walkDir(dir: string): Promise<string[]> {
   const results: string[] = [];
-  for (const entry of readdirSync(dir)) {
+  for (const entry of await readdir(dir)) {
     const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
+    const stat = await lstat(fullPath);
+    if (stat.isSymbolicLink()) continue;
     if (stat.isDirectory()) {
-      results.push(...walkDir(fullPath));
+      results.push(...(await walkDir(fullPath)));
     } else {
       results.push(fullPath);
     }

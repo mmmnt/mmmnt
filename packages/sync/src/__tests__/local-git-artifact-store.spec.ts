@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { LocalGitArtifactStore } from '../infrastructure/local-git-artifact-store.js';
 import type { MomentArtifactIndex } from '../infrastructure/artifact-index.js';
@@ -76,8 +76,7 @@ describe('LocalGitArtifactStore', () => {
 
   function writeArtifact(path: string, content: string): void {
     const fullPath = join(tmpDir, path);
-    const dir = fullPath.substring(0, fullPath.lastIndexOf('/'));
-    mkdirSync(dir, { recursive: true });
+    mkdirSync(dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, content);
   }
 
@@ -178,6 +177,44 @@ describe('LocalGitArtifactStore', () => {
 
     const tsFiles = await store.listArtifacts('.moment/generated/*.ts');
     expect(tsFiles).toHaveLength(1);
+  });
+
+  it('readArtifact() rejects absolute paths', async () => {
+    const store = new LocalGitArtifactStore(tmpDir);
+    await expect(store.readArtifact('/etc/passwd')).rejects.toThrow(
+      'Absolute paths are not allowed',
+    );
+  });
+
+  it('readArtifact() rejects path traversal', async () => {
+    const store = new LocalGitArtifactStore(tmpDir);
+    await expect(store.readArtifact('../../../etc/passwd')).rejects.toThrow(
+      'Path traversal detected',
+    );
+  });
+
+  it('getIndex() validates required fields', async () => {
+    const momentDir = join(tmpDir, '.moment');
+    mkdirSync(momentDir, { recursive: true });
+    writeFileSync(
+      join(momentDir, 'index.json'),
+      JSON.stringify({ version: 1, generatedAt: 'x', specHash: 'y' }),
+    );
+
+    const store = new LocalGitArtifactStore(tmpDir);
+    await expect(store.getIndex()).rejects.toThrow('missing required field: contexts');
+  });
+
+  it('listArtifacts() excludes .moment/index.json', async () => {
+    const index = createValidIndex();
+    writeIndex(index);
+    writeArtifact('.moment/contexts/ordering.moment', 'context Ordering {}');
+
+    const store = new LocalGitArtifactStore(tmpDir);
+    const all = await store.listArtifacts('*');
+
+    expect(all).not.toContain('.moment/index.json');
+    expect(all).toContain('.moment/contexts/ordering.moment');
   });
 
   it('getIndex() caches the index after first read', async () => {
