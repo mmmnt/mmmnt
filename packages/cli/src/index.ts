@@ -6,6 +6,9 @@ import { runGenerate } from './commands/generate.js';
 import { runEmitTs } from './commands/emit-ts.js';
 import { runTest } from './commands/test.js';
 import { runViz } from './commands/viz.js';
+import { runAuthLogin } from './commands/auth-login.js';
+import { runAuthStatus } from './commands/auth-status.js';
+import { runAuthLogout } from './commands/auth-logout.js';
 
 const [command, ...args] = process.argv.slice(2);
 
@@ -141,12 +144,43 @@ switch (command) {
       });
     break;
   }
+  case 'auth': {
+    const [subcommand] = args;
+    const authHandler =
+      subcommand === 'login'
+        ? runAuthLogin()
+        : subcommand === 'status'
+          ? runAuthStatus()
+          : subcommand === 'logout'
+            ? runAuthLogout()
+            : undefined;
+
+    if (!authHandler) {
+      console.error('Usage: moment auth <login|status|logout>');
+      process.exitCode = 1;
+    } else {
+      authHandler
+        .then((result) => {
+          if (result.success) {
+            console.log(result.message);
+          } else {
+            console.error(result.message);
+            process.exitCode = 1;
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Error:', error instanceof Error ? error.message : String(error));
+          process.exitCode = 1;
+        });
+    }
+    break;
+  }
   default:
     if (command) {
       console.error(`Error: Unknown command '${command}'`);
     } else {
       console.error('Usage: moment <command> [options]');
-      console.error('Commands: init, parse, watch, derive, generate, emit-ts, test, viz');
+      console.error('Commands: init, parse, watch, derive, generate, emit-ts, test, viz, auth');
     }
     process.exitCode = 1;
 }
