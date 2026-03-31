@@ -12,12 +12,11 @@ import { MomentParser } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import type { Diagnostic } from '@mmmnt/core';
 import type { TestSuiteTopology } from '@mmmnt/derive';
-import { formatDiagnostic } from './parse.js';
-
 export interface DeriveCommandResult {
   readonly success: boolean;
   readonly message: string;
   readonly diagnostics: readonly Diagnostic[];
+  readonly filePath?: string;
   readonly topology?: TestSuiteTopology;
   readonly json?: string;
 }
@@ -62,6 +61,7 @@ export async function runDerive(argv: string[]): Promise<DeriveCommandResult> {
       success: false,
       message: `Parse failed with ${parseResult.diagnostics.length} diagnostic(s)`,
       diagnostics: parseResult.diagnostics,
+      filePath: resolvedPath,
     };
   }
 
@@ -70,12 +70,13 @@ export async function runDerive(argv: string[]): Promise<DeriveCommandResult> {
   const caseCount = topology.suites.reduce((sum, s) => sum + s.testCases.length, 0);
 
   if (values.json === true) {
+    const topologyJson = JSON.stringify(topology, null, 2);
     return {
       success: true,
-      message: JSON.stringify(topology, null, 2),
+      message: topologyJson,
       diagnostics: EMPTY,
       topology,
-      json: JSON.stringify(topology, null, 2),
+      json: topologyJson,
     };
   }
 

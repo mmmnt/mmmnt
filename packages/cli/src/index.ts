@@ -50,7 +50,7 @@ switch (command) {
         } else {
           console.error(result.message);
           for (const d of result.diagnostics) {
-            console.error(formatDiagnostic(d));
+            console.error(formatDiagnostic(d, result.filePath));
           }
           process.exitCode = 1;
         }
