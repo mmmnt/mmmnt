@@ -80,3 +80,15 @@ export type {
 } from './events/reconciliation-state-events.js';
 
 export type { ReconciliationStateRecord } from './aggregates/reconciliation-state.jsonl-schema.js';
+
+export type {
+  MomentArtifactIndex,
+  ContextIndexEntry,
+  FlowIndexEntry,
+  ArtifactIndexEntry,
+  ArtifactType,
+  DecisionIndexEntry,
+  GitArtifactStore,
+} from './infrastructure/index.js';
+
+export { LocalGitArtifactStore } from './infrastructure/index.js';
