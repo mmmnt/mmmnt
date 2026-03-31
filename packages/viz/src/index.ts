@@ -12,6 +12,13 @@ export type {
   ContextMapNode,
   ContextMapEdge,
   ContextMapLayout,
+  VizSessionConfig,
+  VizDataEnvelope,
+  VizEnvelopeMetadata,
+  VizTransmissionEvent,
+  VizInitialLoad,
+  VizIncrementalUpdate,
+  VizSessionClose,
 } from './types/index.js';
 
 export { renderTimeline } from './renderers/index.js';
