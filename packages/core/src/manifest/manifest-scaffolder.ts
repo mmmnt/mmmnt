@@ -7,9 +7,10 @@
  * - .moment/flows/ directory
  */
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { stringify as stringifyYaml } from 'yaml';
+import type { ManifestConfiguration } from '../ir/manifest-configuration.js';
 
 export interface ScaffoldOptions {
   readonly name: string;
@@ -26,13 +27,7 @@ export class ManifestScaffolder {
   scaffold(targetDir: string, options: ScaffoldOptions): ScaffoldResult {
     const manifestPath = join(targetDir, '.manifest.yaml');
 
-    if (existsSync(manifestPath)) {
-      throw new Error(
-        `Manifest already exists at ${manifestPath}. Use a different directory or remove the existing manifest.`,
-      );
-    }
-
-    const manifest = {
+    const manifest: ManifestConfiguration = {
       name: options.name,
       version: options.version ?? '0.0.0',
       ...(options.description ? { description: options.description } : {}),
@@ -57,7 +52,16 @@ export class ManifestScaffolder {
     mkdirSync(flowsDir, { recursive: true });
 
     const yamlContent = stringifyYaml(manifest);
-    writeFileSync(manifestPath, yamlContent, 'utf-8');
+    try {
+      writeFileSync(manifestPath, yamlContent, { encoding: 'utf-8', flag: 'wx' });
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && err.code === 'EEXIST') {
+        throw new Error(
+          `Manifest already exists at ${manifestPath}. Use a different directory or remove the existing manifest.`,
+        );
+      }
+      throw err;
+    }
 
     return {
       manifestPath,
