@@ -93,8 +93,10 @@ export class GitCredentialHelperStrategy implements CredentialStrategy {
 
 export interface StoredCredentials {
   readonly token: string;
+  readonly tokenType: string;
+  readonly scope: string;
+  readonly createdAt: string;
   readonly expiresAt?: string;
-  readonly refreshToken?: string;
 }
 
 const CREDENTIALS_PATH = join(homedir(), '.moment', 'credentials.json');
