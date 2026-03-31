@@ -54,7 +54,13 @@ export class GhCliCredentialStrategy implements CredentialStrategy {
   }
 }
 
-/** CRED-02: Returns undefined when git not installed */
+/**
+ * CRED-02: Returns undefined when git not installed.
+ *
+ * HTTPS-only fallback — last resort. Only works for developers who have
+ * git credential helpers configured for HTTPS (e.g., osxkeychain, wincred).
+ * Most developers use SSH; this strategy is effectively skipped for them.
+ */
 export class GitCredentialHelperStrategy implements CredentialStrategy {
   readonly name = 'git-credential-helper';
   private readonly host: string;
