@@ -23,6 +23,7 @@ export type {
 
 export { renderTimeline } from './renderers/index.js';
 export { renderContextMap } from './renderers/index.js';
+export { VizEmitter } from './services/viz-emitter.js';
 
 // Server exports available via '@mmmnt/viz/server' subpath or direct import.
 // Not re-exported from root to keep root entrypoint platform-agnostic
