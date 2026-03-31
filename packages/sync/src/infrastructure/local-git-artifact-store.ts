@@ -1,29 +1,18 @@
 /**
  * LocalGitArtifactStore — CLI-context implementation of GitArtifactStore (ADR-024)
  *
- * Reads artifacts from the local git working tree.
- * Index is read from .moment/index.json on disk.
+ * Reads artifacts from the git object store via isomorphic-git.
+ * All reads go through git (resolveRef → readBlob), not raw filesystem.
+ * Index is read from .moment/index.json in the committed tree.
  */
 
-import { readFile, readdir, lstat, access } from 'node:fs/promises';
-import { resolve, relative, join, dirname, isAbsolute } from 'node:path';
+import * as git from 'isomorphic-git';
+import * as fs from 'node:fs';
+import { resolve, isAbsolute } from 'node:path';
 import type { GitArtifactStore } from './git-artifact-store.js';
 import type { MomentArtifactIndex, ArtifactIndexEntry } from './artifact-index.js';
 
 const INDEX_PATH = '.moment/index.json';
-
-function toPosix(p: string): string {
-  return p.split('\\').join('/');
-}
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 function assertField(obj: Record<string, unknown>, field: string, type: 'string' | 'array'): void {
   const value = obj[field];
@@ -56,24 +45,20 @@ function validateIndex(parsed: unknown): asserts parsed is MomentArtifactIndex {
 }
 
 export class LocalGitArtifactStore implements GitArtifactStore {
-  private readonly repoRoot: string;
+  private readonly dir: string;
+  private readonly ref: string;
   private cachedIndex: MomentArtifactIndex | undefined;
 
-  constructor(repoRoot: string) {
-    this.repoRoot = resolve(repoRoot);
+  constructor(repoRoot: string, ref = 'HEAD') {
+    this.dir = resolve(repoRoot);
+    this.ref = ref;
   }
 
   /** GAS-01: Returns valid MomentArtifactIndex or throws */
   async getIndex(): Promise<MomentArtifactIndex> {
     if (this.cachedIndex) return this.cachedIndex;
 
-    const indexPath = resolve(this.repoRoot, INDEX_PATH);
-
-    if (!(await exists(indexPath))) {
-      throw new Error(`Artifact index not found: ${indexPath}`);
-    }
-
-    const raw = await readFile(indexPath, 'utf-8');
+    const raw = await this.readBlobAsString(INDEX_PATH);
     const parsed: unknown = JSON.parse(raw);
 
     validateIndex(parsed);
@@ -85,14 +70,7 @@ export class LocalGitArtifactStore implements GitArtifactStore {
   /** GAS-02: Returns file content as string, throws on missing file */
   async readArtifact(path: string): Promise<string> {
     this.assertSafePath(path);
-
-    const fullPath = resolve(this.repoRoot, path);
-
-    if (!(await exists(fullPath))) {
-      throw new Error(`Artifact not found: ${path}`);
-    }
-
-    return readFile(fullPath, 'utf-8');
+    return this.readBlobAsString(path);
   }
 
   async readArtifacts(paths: readonly string[]): Promise<ReadonlyMap<string, string>> {
@@ -107,15 +85,10 @@ export class LocalGitArtifactStore implements GitArtifactStore {
   }
 
   async listArtifacts(pattern: string): Promise<readonly string[]> {
-    const momentDir = resolve(this.repoRoot, '.moment');
-    if (!(await exists(momentDir))) return [];
+    const allFiles = await git.listFiles({ fs, dir: this.dir, ref: this.ref });
+    const momentFiles = allFiles.filter((f) => f.startsWith('.moment/') && f !== INDEX_PATH);
 
-    const files = await walkDir(momentDir);
-    const relativePaths = files
-      .map((f) => toPosix(relative(this.repoRoot, f)))
-      .filter((p) => p !== INDEX_PATH);
-
-    if (pattern === '*') return relativePaths;
+    if (pattern === '*') return momentFiles;
 
     const escaped = pattern
       .replace(/[.+^${}()|[\]\\]/g, '\\$&')
@@ -124,7 +97,7 @@ export class LocalGitArtifactStore implements GitArtifactStore {
       .replace(/{{GLOBSTAR}}/g, '.*');
     const regex = new RegExp(`^${escaped}$`);
 
-    return relativePaths.filter((p) => regex.test(p));
+    return momentFiles.filter((p) => regex.test(p));
   }
 
   /** GAS-03: Filters ArtifactIndexEntry by contextName */
@@ -137,24 +110,27 @@ export class LocalGitArtifactStore implements GitArtifactStore {
     if (isAbsolute(path)) {
       throw new Error(`Absolute paths are not allowed: ${path}`);
     }
-    const resolved = resolve(this.repoRoot, path);
-    if (!resolved.startsWith(this.repoRoot)) {
+    if (path.includes('..')) {
       throw new Error(`Path traversal detected: ${path}`);
     }
   }
-}
 
-async function walkDir(dir: string): Promise<string[]> {
-  const results: string[] = [];
-  for (const entry of await readdir(dir)) {
-    const fullPath = join(dir, entry);
-    const stat = await lstat(fullPath);
-    if (stat.isSymbolicLink()) continue;
-    if (stat.isDirectory()) {
-      results.push(...(await walkDir(fullPath)));
-    } else {
-      results.push(fullPath);
+  private async readBlobAsString(filepath: string): Promise<string> {
+    try {
+      const commitOid = await git.resolveRef({ fs, dir: this.dir, ref: this.ref });
+      const { blob } = await git.readBlob({
+        fs,
+        dir: this.dir,
+        oid: commitOid,
+        filepath,
+      });
+      return Buffer.from(blob).toString('utf-8');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('Could not find') || message.includes('NotFoundError')) {
+        throw new Error(`Artifact not found: ${filepath}`);
+      }
+      throw err;
     }
   }
-  return results;
 }
