@@ -1,5 +1,5 @@
 /**
- * moment generate — Compound command: parse → derive → [emit-ts + gherkin + docs] parallel
+ * moment generate — Compound command: parse → derive → [emit-ts + gherkin + docs]
  *
  * Design Principle #2: every temporal flow produces BOTH .feature AND .spec.ts.
  * No --gherkin-only or --ts-only flags. Use `moment emit-ts` for TS-only.
@@ -75,22 +75,20 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
   // Step 2: Derive
   const topology = deriveTopology(ir);
 
-  // Step 3: Generate in parallel (Design Principle #2 — both .feature + .spec.ts)
+  // Step 3: Generate all artifacts (Design Principle #2 — both .feature + .spec.ts)
   const gherkinGen = new GherkinGenerator();
   const docGen = new SpecificationDocumentGenerator();
   const tsEmitter = new TypeScriptEmitter();
   const scaffoldEmitter = new TestScaffoldEmitter();
 
-  const [gherkinManifest, docs, tsOutput, scaffoldOutput] = await Promise.all([
-    Promise.resolve(gherkinGen.generate(ir, topology)),
-    Promise.resolve(docGen.generate(ir)),
-    Promise.resolve(tsEmitter.emit(ir, { scope: 'full' })),
-    Promise.resolve(scaffoldEmitter.emit(ir, topology)),
-  ]);
+  const gherkinManifest = gherkinGen.generate(ir, topology);
+  const docs = docGen.generate(ir);
+  tsEmitter.emit(ir, { scope: { level: 'system' } });
+  const scaffoldOutput = scaffoldEmitter.emit(ir, topology);
 
-  const featureCount = gherkinManifest.features?.length ?? 0;
+  const featureCount = gherkinManifest.featuresGenerated.length;
   const docCount = docs.length;
-  const specCount = scaffoldOutput.files?.size ?? 0;
+  const specCount = scaffoldOutput.files.size;
 
   return {
     success: true,

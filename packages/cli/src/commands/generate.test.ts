@@ -13,9 +13,9 @@ describe('moment generate', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('Generated');
-    expect(result.featureCount).toBeDefined();
-    expect(result.specCount).toBeDefined();
-    expect(result.docCount).toBeDefined();
+    expect(result.featureCount).toBeGreaterThanOrEqual(0);
+    expect(result.specCount).toBeGreaterThanOrEqual(0);
+    expect(result.docCount).toBeGreaterThanOrEqual(0);
   });
 
   it('invalid spec returns failure with parse diagnostics', async () => {
@@ -26,32 +26,21 @@ describe('moment generate', () => {
     expect(result.message).toContain('diagnostic');
   });
 
-  it('no --gherkin-only or --ts-only flags exist (Design Principle #2)', async () => {
-    // The generate command has no --gherkin-only or --ts-only flags.
-    // It always produces both .feature and .spec.ts files.
-    // Developers wanting TS-only use `moment emit-ts` instead.
+  it('enforces Design Principle #2 — both feature and spec.ts produced', async () => {
+    // The generate command always produces both .feature and .spec.ts files.
+    // No --gherkin-only or --ts-only flags exist on this command.
     const result = await runGenerate([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
-    // Both feature and spec counts are present
-    expect(result.featureCount).toBeDefined();
-    expect(result.specCount).toBeDefined();
-  });
-
-  it('gherkin + typescript emission run in parallel', async () => {
-    // The generate command uses Promise.all to run gherkin generation
-    // and typescript emission in parallel, not sequentially.
-    const result = await runGenerate([VALID_FIXTURE]);
-
-    expect(result.success).toBe(true);
+    expect(result.message).toContain('.feature');
+    expect(result.message).toContain('.spec.ts');
   });
 
   it('delegates to full pipeline (no generation logic in CLI)', async () => {
     const result = await runGenerate([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
-    expect(result.message).toContain('.feature');
-    expect(result.message).toContain('.spec.ts');
+    expect(result.message).toContain('Generated');
   });
 
   it('no arguments returns failure with usage message', async () => {
