@@ -74,8 +74,10 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   const emitter = new TypeScriptEmitter();
   const tsOutput = emitter.emit(ir, { scope: { level: 'system' } });
 
-  // For now, actual = empty (no implementation files on disk to compare)
-  // In a real project, actual would be read from the project's src/ directory
+  // Actual implementation files are not loaded yet — no project-root convention
+  // exists to locate them. Once a --root flag or manifest config is added, this
+  // map will be populated by reading .ts files keyed to the same paths as
+  // tsOutput.files. Until then, every expected file reports as drifted.
   const actual = new Map<string, string>();
 
   const engine = new ASTDiffEngine();

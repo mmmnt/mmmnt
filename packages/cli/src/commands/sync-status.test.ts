@@ -8,15 +8,15 @@ const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment'
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment sync status', () => {
-  it('no drift returns success with aligned message', async () => {
-    // With no actual files on disk, expected files will show as drifted
-    // This test verifies the command runs successfully and produces a report
+  it('reports drift when no actual files are present', async () => {
+    // With no actual files on disk, all expected files should be reported as drifted
     const result = await runSyncStatus([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
     expect(result.report).toBeDefined();
-    expect(result.report!.totalDrifted).toBeGreaterThanOrEqual(0);
-    expect(result.report!.totalAligned).toBeGreaterThanOrEqual(0);
+    expect(result.report!.totalDrifted).toBeGreaterThan(0);
+    expect(result.report!.totalAligned).toBe(0);
+    expect(result.message).toContain('Drift detected');
   });
 
   it('delegates to ASTDiffEngine.detectDrift()', async () => {
@@ -34,6 +34,18 @@ describe('moment sync status', () => {
     expect(result.success).toBe(true);
     expect(typeof result.report!.totalDrifted).toBe('number');
     expect(typeof result.report!.totalAligned).toBe('number');
+  });
+
+  it('--json returns valid JSON with DriftReport fields', async () => {
+    const result = await runSyncStatus(['--json', VALID_FIXTURE]);
+
+    expect(result.success).toBe(true);
+    expect(result.json).toBeDefined();
+    const parsed = JSON.parse(result.json!);
+    expect(typeof parsed.totalDrifted).toBe('number');
+    expect(typeof parsed.totalAligned).toBe('number');
+    expect(parsed.scope).toBeDefined();
+    expect(parsed.timestamp).toBeTruthy();
   });
 
   it('no arguments returns failure with usage message', async () => {
