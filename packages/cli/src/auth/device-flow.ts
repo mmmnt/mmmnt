@@ -21,18 +21,18 @@ export interface TokenResponse {
 }
 
 export interface DeviceFlowCallbacks {
-  onUserCode(userCode: string, verificationUri: string): void;
   onPolling(): void;
 }
 
-async function postJson<T>(url: string, body: Record<string, string>): Promise<T> {
+async function postForm<T>(url: string, body: Record<string, string>): Promise<T> {
+  const params = new URLSearchParams(body);
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
     },
-    body: JSON.stringify(body),
+    body: params.toString(),
   });
 
   if (!res.ok) {
@@ -45,7 +45,7 @@ async function postJson<T>(url: string, body: Record<string, string>): Promise<T
 export async function requestDeviceCode(): Promise<DeviceCodeResponse> {
   const clientId = getClientId();
 
-  return postJson<DeviceCodeResponse>(GITHUB_DEVICE_CODE_URL, {
+  return postForm<DeviceCodeResponse>(GITHUB_DEVICE_CODE_URL, {
     client_id: clientId,
     scope: TOKEN_SCOPE,
   });
@@ -65,7 +65,7 @@ export async function pollForToken(
     await sleep(pollInterval);
     callbacks.onPolling();
 
-    const body = await postJson<Record<string, string>>(GITHUB_TOKEN_URL, {
+    const body = await postForm<Record<string, string>>(GITHUB_TOKEN_URL, {
       client_id: clientId,
       device_code: deviceCode,
       grant_type: 'urn:ietf:params:oauth:grant-type:device_code',

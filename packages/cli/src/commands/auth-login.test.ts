@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, readFileSync, statSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, statSync, writeFileSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { storeToken, readStoredToken, removeToken } from '../auth/token-storage.js';
+import { runAuthStatus } from './auth-status.js';
 
 describe('token-storage', () => {
   let tmpDir: string;
@@ -27,6 +28,17 @@ describe('token-storage', () => {
     expect(stored.tokenType).toBe('bearer');
     expect(stored.scope).toBe('repo');
     expect(stored.createdAt).toBeTruthy();
+
+    const mode = statSync(credPath).mode & 0o777;
+    expect(mode).toBe(0o600);
+  });
+
+  it('storeToken tightens permissions on existing file', async () => {
+    const credPath = join(tmpDir, '.moment', 'credentials.json');
+    await storeToken('ghp_first', 'bearer', 'repo', credPath);
+    chmodSync(credPath, 0o644);
+
+    await storeToken('ghp_second', 'bearer', 'repo', credPath);
 
     const mode = statSync(credPath).mode & 0o777;
     expect(mode).toBe(0o600);
@@ -72,7 +84,7 @@ describe('device-flow', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv };
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('requestDeviceCode calls GitHub device code endpoint (AUTH-01)', async () => {
@@ -105,7 +117,9 @@ describe('device-flow', () => {
       'https://github.com/login/device/code',
       expect.objectContaining({
         method: 'POST',
-        body: expect.stringContaining('test-client-id'),
+        headers: expect.objectContaining({
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }),
       }),
     );
   });
@@ -139,13 +153,10 @@ describe('device-flow', () => {
 
     const { pollForToken } = await import('../auth/device-flow.js');
     const pollPromise = pollForToken('dc_test', 1, 30, {
-      onUserCode: () => {},
       onPolling: () => {},
     });
 
-    // Advance past first interval (1s)
     await vi.advanceTimersByTimeAsync(1000);
-    // Advance past second interval (1s + 5s slow_down = 6s)
     await vi.advanceTimersByTimeAsync(6000);
 
     const result = await pollPromise;
@@ -176,14 +187,37 @@ describe('auth-status', () => {
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('reports not authenticated when no credentials', async () => {
-    const { runAuthStatus } = await import('./auth-status.js');
-    // Default path won't have credentials in test env
-    const result = await runAuthStatus();
+  it('reports authenticated when credentials exist', async () => {
+    const credPath = join(tmpDir, '.moment', 'credentials.json');
+    await storeToken('ghp_statustest', 'bearer', 'repo', credPath);
 
-    // Either not authenticated or authenticated (if user has real creds)
+    const result = await runAuthStatus(credPath);
+
     expect(result.success).toBe(true);
-    expect(typeof result.authenticated).toBe('boolean');
+    expect(result.authenticated).toBe(true);
+    expect(result.message).toContain('ghp_****test');
+  });
+
+  it('reports not authenticated when no credentials', async () => {
+    const credPath = join(tmpDir, 'nope.json');
+    const result = await runAuthStatus(credPath);
+
+    expect(result.success).toBe(true);
+    expect(result.authenticated).toBe(false);
+    expect(result.message).toContain('moment auth login');
+  });
+
+  it('reports insecure permissions when file is world-readable', async () => {
+    const credPath = join(tmpDir, '.moment', 'credentials.json');
+    await storeToken('ghp_insecure', 'bearer', 'repo', credPath);
+    chmodSync(credPath, 0o644);
+
+    const result = await runAuthStatus(credPath);
+
+    expect(result.success).toBe(false);
+    expect(result.authenticated).toBe(false);
+    expect(result.message).toContain('permissions are too open');
+    expect(result.message).toContain('chmod 600');
   });
 });
 

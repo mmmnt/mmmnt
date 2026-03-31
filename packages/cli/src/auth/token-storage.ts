@@ -4,8 +4,8 @@
  * Stores OAuth tokens at ~/.moment/credentials.json with 0o600 permissions.
  */
 
-import { readFile, writeFile, mkdir, unlink, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, writeFile, mkdir, unlink, stat, chmod } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 
 export interface StoredCredentials {
@@ -14,6 +14,11 @@ export interface StoredCredentials {
   readonly scope: string;
   readonly createdAt: string;
 }
+
+export type TokenReadResult =
+  | { status: 'ok'; credentials: StoredCredentials }
+  | { status: 'missing' }
+  | { status: 'insecure'; path: string };
 
 const MOMENT_DIR = join(homedir(), '.moment');
 const CREDENTIALS_PATH = join(MOMENT_DIR, 'credentials.json');
@@ -25,7 +30,7 @@ export async function storeToken(
   credentialsPath?: string,
 ): Promise<string> {
   const filePath = credentialsPath ?? CREDENTIALS_PATH;
-  const dir = join(filePath, '..');
+  const dir = dirname(filePath);
 
   // AUTH-03: Directory at 0o700, file at 0o600
   await mkdir(dir, { recursive: true, mode: 0o700 });
@@ -42,26 +47,36 @@ export async function storeToken(
     mode: 0o600,
   });
 
+  // Explicitly chmod in case file already existed with broader permissions
+  await chmod(filePath, 0o600);
+
   return filePath;
 }
 
-export async function readStoredToken(
-  credentialsPath?: string,
-): Promise<StoredCredentials | undefined> {
+export async function readStoredTokenResult(credentialsPath?: string): Promise<TokenReadResult> {
   const filePath = credentialsPath ?? CREDENTIALS_PATH;
 
   try {
     const fileStat = await stat(filePath);
     const mode = fileStat.mode & 0o777;
-    if ((mode & 0o077) !== 0) return undefined;
+    if ((mode & 0o077) !== 0) {
+      return { status: 'insecure', path: filePath };
+    }
 
     const raw = await readFile(filePath, 'utf-8');
     const stored: StoredCredentials = JSON.parse(raw);
-    if (!stored.token) return undefined;
-    return stored;
+    if (!stored.token) return { status: 'missing' };
+    return { status: 'ok', credentials: stored };
   } catch {
-    return undefined;
+    return { status: 'missing' };
   }
+}
+
+export async function readStoredToken(
+  credentialsPath?: string,
+): Promise<StoredCredentials | undefined> {
+  const result = await readStoredTokenResult(credentialsPath);
+  return result.status === 'ok' ? result.credentials : undefined;
 }
 
 export async function removeToken(credentialsPath?: string): Promise<boolean> {
@@ -69,8 +84,11 @@ export async function removeToken(credentialsPath?: string): Promise<boolean> {
   try {
     await unlink(filePath);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (error && typeof error === 'object' && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return false;
+    }
+    throw error;
   }
 }
 

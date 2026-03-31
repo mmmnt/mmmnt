@@ -3,7 +3,7 @@
  */
 
 import { requestDeviceCode, pollForToken } from '../auth/device-flow.js';
-import { storeToken, getDefaultCredentialsPath } from '../auth/token-storage.js';
+import { storeToken } from '../auth/token-storage.js';
 import { GITHUB_USER_URL } from '../auth/constants.js';
 
 export interface AuthLoginResult {
@@ -25,7 +25,6 @@ export async function runAuthLogin(): Promise<AuthLoginResult> {
       deviceCode.interval,
       deviceCode.expires_in,
       {
-        onUserCode: () => {},
         onPolling: () => process.stdout.write('.'),
       },
     );
