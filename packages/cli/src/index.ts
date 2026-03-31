@@ -15,17 +15,22 @@ switch (command) {
     break;
   }
   case 'parse': {
-    runParse(args).then((result) => {
-      if (result.success) {
-        console.log(result.message);
-      } else {
-        console.error(result.message);
-        for (const d of result.diagnostics) {
-          console.error(formatDiagnostic(d));
+    runParse(args)
+      .then((result) => {
+        if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
+          for (const d of result.diagnostics) {
+            console.error(formatDiagnostic(d));
+          }
+          process.exitCode = 1;
         }
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
-      }
-    });
+      });
     break;
   }
   default:

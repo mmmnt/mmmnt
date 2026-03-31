@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { runParse, formatDiagnostic } from './parse.js';
 import type { Diagnostic } from '@mmmnt/core';
 
@@ -8,7 +9,7 @@ const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment'
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment parse', () => {
-  it('valid .moment + .manifest.yaml exits 0 with IR summary', async () => {
+  it('valid .moment file returns success with IR summary', async () => {
     const result = await runParse([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
@@ -16,7 +17,7 @@ describe('moment parse', () => {
     expect(result.contextCount).toBeGreaterThanOrEqual(0);
   });
 
-  it('invalid .moment file exits non-zero with diagnostics', async () => {
+  it('invalid .moment file returns failure with diagnostics', async () => {
     const result = await runParse([INVALID_FIXTURE]);
 
     expect(result.success).toBe(false);
@@ -24,15 +25,16 @@ describe('moment parse', () => {
     expect(result.message).toContain('diagnostic');
   });
 
-  it('no arguments exits non-zero with usage message', async () => {
+  it('no arguments returns failure with usage message', async () => {
     const result = await runParse([]);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('Usage:');
   });
 
-  it('nonexistent path exits non-zero with file-not-found', async () => {
-    const result = await runParse(['/tmp/nonexistent-file-12345.moment']);
+  it('nonexistent path returns failure with file-not-found', async () => {
+    const nonexistent = join(tmpdir(), 'nonexistent-moment-file-12345.moment');
+    const result = await runParse([nonexistent]);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('File not found');
@@ -41,8 +43,6 @@ describe('moment parse', () => {
   it('delegates to MomentParser (no grammar/AST logic in CLI)', async () => {
     const result = await runParse([VALID_FIXTURE]);
 
-    // The CLI delegates to MomentParser — it returns ParseResult with IR
-    // No grammar manipulation happens in the CLI layer
     expect(result.success).toBe(true);
     expect(result.contextCount).toBeDefined();
     expect(result.flowCount).toBeDefined();
@@ -60,5 +60,16 @@ describe('moment parse', () => {
     expect(formatted).toContain('test.moment:5:10');
     expect(formatted).toContain('error');
     expect(formatted).toContain('Unexpected token');
+  });
+
+  it('formatDiagnostic uses fallback file when source is missing', () => {
+    const diagnostic: Diagnostic = {
+      severity: 'warning',
+      message: 'Missing declaration',
+    };
+
+    const formatted = formatDiagnostic(diagnostic, 'fallback.moment');
+    expect(formatted).toContain('fallback.moment');
+    expect(formatted).toContain('warning');
   });
 });
