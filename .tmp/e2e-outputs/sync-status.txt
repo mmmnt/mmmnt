@@ -1,0 +1,2 @@
+Drift detected: 3 drifted, 0 aligned
+exit: 0

@@ -1,0 +1,2 @@
+Initialized Moment project 'test-project' at /tmp/tmp.sijbln629x
+exit: 0

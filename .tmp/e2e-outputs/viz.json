@@ -1,0 +1,54 @@
+{
+  "type": "viz:initial-load",
+  "session": {
+    "sessionId": "viz-1774995238894",
+    "specificationName": "ordering",
+    "startedAt": "2026-03-31T22:13:58.895Z"
+  },
+  "envelope": {
+    "sessionId": "viz-1774995238894",
+    "timestamp": "2026-03-31T22:13:58.895Z",
+    "version": 1,
+    "contextMap": {
+      "nodes": [
+        {
+          "contextId": "ctx-Ordering",
+          "contextName": "Ordering",
+          "classification": "Core",
+          "x": 40,
+          "y": 40,
+          "width": 160,
+          "height": 80,
+          "isExternal": false
+        }
+      ],
+      "edges": [],
+      "dimensions": {
+        "width": 240,
+        "height": 160
+      }
+    },
+    "timeline": {
+      "lanes": [
+        {
+          "contextId": "ctx-Ordering",
+          "contextName": "Ordering",
+          "y": 0,
+          "height": 80
+        }
+      ],
+      "entries": [],
+      "connections": [],
+      "dimensions": {
+        "width": 40,
+        "height": 80
+      }
+    },
+    "metadata": {
+      "contextCount": 1,
+      "flowCount": 0,
+      "relationshipCount": 0,
+      "generatedAt": "2026-03-31T22:13:58.895Z"
+    }
+  }
+}

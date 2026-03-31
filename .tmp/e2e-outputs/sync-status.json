@@ -1,0 +1,29 @@
+{
+  "scope": "sync",
+  "driftPoints": [
+    {
+      "filePath": "src/ordering/order.types.ts",
+      "aggregateName": "src/ordering/order.types.ts",
+      "contextName": "ordering",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ordering/order.types.ts' exists in specification but not in implementation"
+    },
+    {
+      "filePath": "src/ordering/order.aggregate.ts",
+      "aggregateName": "src/ordering/order.aggregate.ts",
+      "contextName": "ordering",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ordering/order.aggregate.ts' exists in specification but not in implementation"
+    },
+    {
+      "filePath": "src/ordering/index.ts",
+      "aggregateName": "src/ordering/index.ts",
+      "contextName": "ordering",
+      "driftDirection": "specification-added",
+      "description": "File 'src/ordering/index.ts' exists in specification but not in implementation"
+    }
+  ],
+  "totalDrifted": 3,
+  "totalAligned": 0,
+  "timestamp": "2026-03-31T22:13:59.997Z"
+}
