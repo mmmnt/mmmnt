@@ -89,6 +89,17 @@ export type {
   ArtifactType,
   DecisionIndexEntry,
   GitArtifactStore,
+  GitArtifactWriter,
+  CommitResult,
+  GitRemoteManager,
+  GitAuth,
+  CloneOptions,
+  PushOptions,
+  PullOptions,
+  BranchResult,
+  AuthorConfig,
 } from './infrastructure/index.js';
 
 export { LocalGitArtifactStore } from './infrastructure/index.js';
+export { LocalGitArtifactWriter } from './infrastructure/index.js';
+export { LocalGitRemoteManager } from './infrastructure/index.js';
