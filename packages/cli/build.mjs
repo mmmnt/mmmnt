@@ -7,7 +7,13 @@ await build({
   platform: 'node',
   target: 'node20',
   outfile: 'dist/moment.mjs',
-  banner: { js: '#!/usr/bin/env node' },
+  banner: {
+    js: [
+      '#!/usr/bin/env node',
+      'import { createRequire as __createRequire } from "node:module";',
+      'const require = __createRequire(import.meta.url);',
+    ].join('\n'),
+  },
   external: ['typescript'],
   sourcemap: true,
   define: {
