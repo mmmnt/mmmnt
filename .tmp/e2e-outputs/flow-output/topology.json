@@ -1,0 +1,124 @@
+{
+  "suites": [
+    {
+      "flowId": "flow-order-to-shipment",
+      "flowName": "order-to-shipment",
+      "testCases": [
+        {
+          "frameId": "frame-0-Order-placement",
+          "frameName": "Order placement",
+          "assertions": [
+            {
+              "crossingId": "conn-0",
+              "sourceContext": "ctx-Ordering",
+              "targetContext": "ctx-Fulfillment",
+              "schemaContract": {
+                "eventType": "OrderPlaced",
+                "expectedFields": [
+                  {
+                    "fieldName": "orderId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "items",
+                    "expectedType": "OrderItem[]",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "shippingAddress",
+                    "expectedType": "Address",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": []
+        },
+        {
+          "frameId": "frame-1-Inventory-check",
+          "frameName": "Inventory check",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "frameId": "frame-2-Inventory-check-outcome",
+          "frameName": "Inventory check outcome",
+          "assertions": [
+            {
+              "crossingId": "conn-2",
+              "sourceContext": "ctx-Fulfillment",
+              "targetContext": "ctx-Shipping",
+              "schemaContract": {
+                "eventType": "FulfillmentReady",
+                "expectedFields": [
+                  {
+                    "fieldName": "orderId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "reservedItems",
+                    "expectedType": "ReservedItem[]",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": [],
+          "variant": "available"
+        },
+        {
+          "frameId": "frame-2-Inventory-check-outcome",
+          "frameName": "Inventory check outcome",
+          "assertions": [
+            {
+              "crossingId": "conn-2",
+              "sourceContext": "ctx-Fulfillment",
+              "targetContext": "ctx-Shipping",
+              "schemaContract": {
+                "eventType": "FulfillmentReady",
+                "expectedFields": [
+                  {
+                    "fieldName": "orderId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "reservedItems",
+                    "expectedType": "ReservedItem[]",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": [],
+          "variant": "unavailable"
+        },
+        {
+          "frameId": "frame-3-Shipment-creation",
+          "frameName": "Shipment creation",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "frameId": "frame-4-Dispatch",
+          "frameName": "Dispatch",
+          "assertions": [],
+          "setupSteps": []
+        }
+      ],
+      "contextsCovered": ["ctx-Ordering", "ctx-Fulfillment", "ctx-Out of Stock", "ctx-Shipping"]
+    }
+  ],
+  "metadata": {
+    "sourceIrHash": "7c5892b25079bdc3249bacf7ac02224feab67ac970591424926dc52d5119e338",
+    "derivedAt": "2026-03-31T22:36:04.128Z"
+  }
+}

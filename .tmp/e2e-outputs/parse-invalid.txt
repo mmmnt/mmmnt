@@ -1,0 +1,12 @@
+Parse failed with 2 diagnostic(s)
+error: <unknown> — Expecting: one of these possible Token sequences:
+  1. [context]
+  2. [flow]
+but found: 'aggregate'
+error: <unknown> — Expecting: one of these possible Token sequences:
+  1. [context]
+  2. [flow]
+but found: 'aggregate'
+exit: 1
+ASSERT: reports diagnostics: PASS
+ASSERT: non-zero exit: PASS

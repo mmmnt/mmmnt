@@ -1,0 +1,4 @@
+type: viz:initial-load
+sessionId: true
+contexts: 1
+timeline entries: 0
