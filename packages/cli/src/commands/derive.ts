@@ -9,6 +9,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
+import { updateManifestFromIr } from './update-manifest.js';
 import { deriveTopology } from '@mmmnt/derive';
 import type { Diagnostic } from '@mmmnt/core';
 import type { TestSuiteTopology } from '@mmmnt/derive';
@@ -65,7 +66,10 @@ export async function runDerive(argv: string[]): Promise<DeriveCommandResult> {
     };
   }
 
-  const topology = deriveTopology(parseResult.ir!);
+  const ir = parseResult.ir!;
+  updateManifestFromIr(resolvedPath, ir);
+
+  const topology = deriveTopology(ir);
   const suiteCount = topology.suites.length;
   const caseCount = topology.suites.reduce((sum, s) => sum + s.testCases.length, 0);
 

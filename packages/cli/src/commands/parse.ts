@@ -9,6 +9,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { MomentParser } from '@mmmnt/core';
 import type { Diagnostic, ParseResult } from '@mmmnt/core';
+import { updateManifestFromIr } from './update-manifest.js';
 
 export interface ParseCommandResult {
   readonly success: boolean;
@@ -73,5 +74,10 @@ export async function runParse(argv: string[]): Promise<ParseCommandResult> {
 
   const parser = new MomentParser();
   const result = await parser.parseContent(content);
+
+  if (result.success && result.ir) {
+    updateManifestFromIr(resolvedPath, result.ir);
+  }
+
   return toResult(result);
 }

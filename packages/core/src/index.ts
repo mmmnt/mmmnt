@@ -1,7 +1,7 @@
 export * from './ir/index.js';
 export * from './services/index.js';
-export { ManifestReader, ManifestScaffolder } from './manifest/index.js';
-export type { ScaffoldOptions, ScaffoldResult } from './manifest/index.js';
+export { ManifestReader, ManifestScaffolder, ManifestUpdater } from './manifest/index.js';
+export type { ScaffoldOptions, ScaffoldResult, ManifestUpdateResult } from './manifest/index.js';
 export { MomentParser } from './parser/index.js';
 export { astToIr } from './parser/ast-to-ir.js';
 export { FileWatcher, type FileWatcherOptions } from './infrastructure/index.js';

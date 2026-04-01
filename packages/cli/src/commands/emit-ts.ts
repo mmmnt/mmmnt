@@ -10,6 +10,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
+import { updateManifestFromIr } from './update-manifest.js';
 import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
@@ -70,6 +71,7 @@ export async function runEmitTs(argv: string[]): Promise<EmitTsCommandResult> {
   }
 
   const ir = parseResult.ir!;
+  updateManifestFromIr(resolvedPath, ir);
   const topology = deriveTopology(ir);
   const isDryRun = values['dry-run'] === true;
 
