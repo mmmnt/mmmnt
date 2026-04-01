@@ -46,6 +46,23 @@ function makeContext(name: string, id?: string): ContextDefinition {
   };
 }
 
+function makeFlow(id: string, name: string) {
+  return {
+    id,
+    name,
+    moments: [
+      {
+        id: 'moment-0',
+        name: 'Step',
+        contextEntries: [
+          { contextId: 'ctx-Ordering', nodeName: 'DoSomething', nodeKind: 'command' as const },
+        ],
+      },
+    ],
+    connections: [],
+  };
+}
+
 function makeFieldConstraint(
   fieldName: string,
   expectedType: string,
@@ -141,6 +158,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     const topology = makeTopology([suite]);
     const ir = makeIR({
       contexts: [makeContext('Ordering'), makeContext('Shipping')],
+      flows: [makeFlow('f1', 'Place Order')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -163,6 +181,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     const topology = makeTopology([suiteA, suiteB]);
     const ir = makeIR({
       contexts: [makeContext('Sales')],
+      flows: [makeFlow('f1', 'Flow Alpha'), makeFlow('f2', 'Flow Beta')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -203,6 +222,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     const topology = makeTopology([suite]);
     const ir = makeIR({
       contexts: [makeContext('Payments')],
+      flows: [makeFlow('f1', 'Hook Flow')],
     });
 
     // Type-safe: policy.handle conforms to TopologyDerivedHook signature
@@ -217,15 +237,14 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 5. Empty IR (no contexts) with topology produces features but no docs
-  it('empty IR with topology produces features but no docs', () => {
-    const suite = makeSuite('f1', 'Lonely Flow', [makeTestCase('fr1', 'Moment 1')]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR(); // no contexts
+  // 5. Empty IR (no contexts, no flows) produces nothing
+  it('empty IR produces no features and no docs', () => {
+    const topology = makeTopology([]);
+    const ir = makeIR(); // no contexts, no flows
 
     const manifest = policy.execute(ir, topology);
 
-    expect(manifest.featuresGenerated).toHaveLength(1);
+    expect(manifest.featuresGenerated).toHaveLength(0);
     expect(manifest.docsGenerated).toHaveLength(0);
   });
 });

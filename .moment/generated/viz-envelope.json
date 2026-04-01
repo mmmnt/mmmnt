@@ -1,13 +1,13 @@
 {
   "type": "viz:initial-load",
   "session": {
-    "sessionId": "viz-1775085900262",
+    "sessionId": "viz-1775086821197",
     "specificationName": "vet-clinic",
-    "startedAt": "2026-04-01T23:25:00.262Z"
+    "startedAt": "2026-04-01T23:40:21.197Z"
   },
   "envelope": {
-    "sessionId": "viz-1775085900262",
-    "timestamp": "2026-04-01T23:25:00.263Z",
+    "sessionId": "viz-1775086821197",
+    "timestamp": "2026-04-01T23:40:21.198Z",
     "version": 1,
     "contextMap": {
       "nodes": [
@@ -320,7 +320,7 @@
       "contextCount": 4,
       "flowCount": 1,
       "relationshipCount": 0,
-      "generatedAt": "2026-04-01T23:25:00.263Z"
+      "generatedAt": "2026-04-01T23:40:21.198Z"
     }
   }
 }
