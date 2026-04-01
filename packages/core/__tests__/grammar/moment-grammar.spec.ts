@@ -552,6 +552,36 @@ describe('Moment Grammar > Unified File (ADR-027)', () => {
     expect(doc.parseResult.value.contexts).toHaveLength(0);
     expect(doc.parseResult.value.flows).toHaveLength(1);
   });
+
+  it('rejects empty files (no declarations)', async () => {
+    const doc = await parse('');
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+  });
+
+  it('allows interleaved contexts and flows', async () => {
+    const doc = await parse(`
+      context "First" [Core]
+        aggregate "A"
+          identity id: UUID
+
+      flow "middle-flow"
+        lane a "First" [Core]
+        frame "Step"
+          a: SomeEvent crosses-to a via Partnership
+            contract
+              id: UUID [required]
+
+      context "Second" [Supporting]
+        aggregate "B"
+          identity id: UUID
+    `);
+    expect(doc.parseResult.lexerErrors).toHaveLength(0);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    expect(doc.parseResult.value.contexts).toHaveLength(2);
+    expect(doc.parseResult.value.flows).toHaveLength(1);
+    expect(doc.parseResult.value.contexts[0].name).toBe('First');
+    expect(doc.parseResult.value.contexts[1].name).toBe('Second');
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -5,8 +5,7 @@ grammar Moment
 // ============================================================================
 
 entry MomentFile:
-    contexts+=ContextDeclaration*
-    flows+=FlowDeclaration*;
+    (contexts+=ContextDeclaration | flows+=FlowDeclaration)+;
 
 // ============================================================================
 // Part I: Spatial Constructs (context files)

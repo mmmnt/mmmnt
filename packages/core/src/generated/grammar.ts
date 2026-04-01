@@ -19,7 +19,7 @@ export const MomentGrammar = (): Grammar =>
       "entry": true,
       "name": "MomentFile",
       "definition": {
-        "$type": "Group",
+        "$type": "Alternatives",
         "elements": [
           {
             "$type": "Assignment",
@@ -31,8 +31,7 @@ export const MomentGrammar = (): Grammar =>
                 "$ref": "#/rules@1"
               },
               "arguments": []
-            },
-            "cardinality": "*"
+            }
           },
           {
             "$type": "Assignment",
@@ -44,10 +43,10 @@ export const MomentGrammar = (): Grammar =>
                 "$ref": "#/rules@17"
               },
               "arguments": []
-            },
-            "cardinality": "*"
+            }
           }
-        ]
+        ],
+        "cardinality": "+"
       },
       "definesHiddenTokens": false,
       "fragment": false,
