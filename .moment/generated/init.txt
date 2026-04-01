@@ -1,0 +1,1 @@
+Initialized Moment project 'e2e-test' at /tmp/moment-e2e-N3l0jH

@@ -1,0 +1,391 @@
+{
+  "timestamp": "2026-04-01T22:54:52.746Z",
+  "fixture": "fixtures/valid/unified/vet-clinic.moment",
+  "summary": {
+    "tests": 21,
+    "passed": 21,
+    "failed": 0,
+    "assertions": 63,
+    "assertionsPassed": 63
+  },
+  "results": [
+    {
+      "name": "parse: vet-clinic (4 contexts, 1 flow)",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports 4 contexts",
+          "pass": true
+        },
+        {
+          "message": "reports 1 flow",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "parse: unified ordering (2 contexts, 1 flow)",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports 2 contexts",
+          "pass": true
+        },
+        {
+          "message": "reports 1 flow",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "parse: invalid file rejects with diagnostics",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 1",
+          "pass": true
+        },
+        {
+          "message": "reports diagnostics",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "parse: missing file errors",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 1",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "derive: vet-clinic produces 1 suite, 17 cases",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports 1 suite",
+          "pass": true
+        },
+        {
+          "message": "reports 17 cases",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "derive: --json outputs valid topology JSON",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "valid JSON",
+          "pass": true
+        },
+        {
+          "message": "1 suite",
+          "pass": true
+        },
+        {
+          "message": "17 test cases",
+          "pass": true
+        },
+        {
+          "message": "has IR hash",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "generate: vet-clinic produces features + specs + docs",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "produces .feature files",
+          "pass": true
+        },
+        {
+          "message": "produces .spec.ts files",
+          "pass": true
+        },
+        {
+          "message": "produces documents",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "emit-ts: vet-clinic produces 14 TS + 6 scaffolds",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "14 TypeScript files",
+          "pass": true
+        },
+        {
+          "message": "6 scaffold files",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "emit-ts: --dry-run lists files without writing",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports dry run",
+          "pass": true
+        },
+        {
+          "message": "lists .ts files",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "simulate: vet-clinic produces 28 events, 3 branches",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "28 events",
+          "pass": true
+        },
+        {
+          "message": "3 branches",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "simulate: --json outputs valid Facet scenario",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "valid JSON",
+          "pass": true
+        },
+        {
+          "message": "has scenarioId",
+          "pass": true
+        },
+        {
+          "message": "28-node expected path",
+          "pass": true
+        },
+        {
+          "message": "3 active branches",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "simulate: --json events have causation and payloads",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "28 events",
+          "pass": true
+        },
+        {
+          "message": "first event has eventId",
+          "pass": true
+        },
+        {
+          "message": "has causation field",
+          "pass": true
+        },
+        {
+          "message": "causation chain populated",
+          "pass": true
+        },
+        {
+          "message": "events have payloads",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "viz: vet-clinic produces VizDataEnvelope",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "valid JSON",
+          "pass": true
+        },
+        {
+          "message": "type is viz:initial-load",
+          "pass": true
+        },
+        {
+          "message": ">=4 context nodes",
+          "pass": true
+        },
+        {
+          "message": "has session ID",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "sync status: vet-clinic detects drift",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports drift",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "sync status: --json outputs DriftReport",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "valid JSON",
+          "pass": true
+        },
+        {
+          "message": "totalDrifted > 0",
+          "pass": true
+        },
+        {
+          "message": "has drift points",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "test: vet-clinic runs harness",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports test summary",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "init: creates project structure",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": ".manifest.yaml exists",
+          "pass": true
+        },
+        {
+          "message": ".moment/contexts exists",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "init: manifest contains project name",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "manifest contains project name",
+          "pass": true
+        },
+        {
+          "message": ".moment/flows exists",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "init: rejects duplicate",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 1",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "auth status: reports not authenticated",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports auth state",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "auth logout: reports result",
+      "pass": true,
+      "assertions": [
+        {
+          "message": "exit code 0",
+          "pass": true
+        },
+        {
+          "message": "reports logout result",
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "suites": [
+    {
+      "flowId": "flow-scheduled-visit-happy-path",
+      "flowName": "scheduled-visit-happy-path",
+      "testCases": [
+        {
+          "momentId": "moment-0-Patient-check-in",
+          "momentName": "Patient check-in",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-1-Intake-validation",
+          "momentName": "Intake validation",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-2-Intake-validation-outcome",
+          "momentName": "Intake validation outcome",
+          "assertions": [
+            {
+              "crossingId": "conn-2",
+              "sourceContext": "ctx-Reception",
+              "targetContext": "ctx-Clinical",
+              "schemaContract": {
+                "eventType": "PatientIntakeRegistered",
+                "expectedFields": [
+                  {
+                    "fieldName": "patientId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "name",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "species",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "ownerName",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "appointmentType",
+                    "expectedType": "string",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": [],
+          "variant": "valid"
+        },
+        {
+          "momentId": "moment-2-Intake-validation-outcome",
+          "momentName": "Intake validation outcome",
+          "assertions": [
+            {
+              "crossingId": "conn-2",
+              "sourceContext": "ctx-Reception",
+              "targetContext": "ctx-Clinical",
+              "schemaContract": {
+                "eventType": "PatientIntakeRegistered",
+                "expectedFields": [
+                  {
+                    "fieldName": "patientId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "name",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "species",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "ownerName",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "appointmentType",
+                    "expectedType": "string",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": [],
+          "variant": "invalid"
+        },
+        {
+          "momentId": "moment-3-Triage",
+          "momentName": "Triage",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-4-Dual-vet-assessment",
+          "momentName": "Dual-vet assessment",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-5-Assessment-agreement",
+          "momentName": "Assessment agreement",
+          "assertions": [],
+          "setupSteps": [],
+          "variant": "agree"
+        },
+        {
+          "momentId": "moment-5-Assessment-agreement",
+          "momentName": "Assessment agreement",
+          "assertions": [],
+          "setupSteps": [],
+          "variant": "disagree"
+        },
+        {
+          "momentId": "moment-6-Clinical-record-normalization",
+          "momentName": "Clinical record normalization",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-7-Records-completeness-check",
+          "momentName": "Records completeness check",
+          "assertions": [],
+          "setupSteps": [],
+          "variant": "complete"
+        },
+        {
+          "momentId": "moment-7-Records-completeness-check",
+          "momentName": "Records completeness check",
+          "assertions": [],
+          "setupSteps": [],
+          "variant": "incomplete"
+        },
+        {
+          "momentId": "moment-8-Treatment-planning",
+          "momentName": "Treatment planning",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-9-Treatment-confirmation",
+          "momentName": "Treatment confirmation",
+          "assertions": [
+            {
+              "crossingId": "conn-10",
+              "sourceContext": "ctx-Clinical",
+              "targetContext": "ctx-Billing",
+              "schemaContract": {
+                "eventType": "TreatmentConfirmed",
+                "expectedFields": [
+                  {
+                    "fieldName": "planId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "visitId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "patientId",
+                    "expectedType": "UUID",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-10-Invoice-generation",
+          "momentName": "Invoice generation",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-11-Billing-verification",
+          "momentName": "Billing verification",
+          "assertions": [
+            {
+              "crossingId": "conn-13",
+              "sourceContext": "ctx-Billing",
+              "targetContext": "ctx-Records",
+              "schemaContract": {
+                "eventType": "BillingVerified",
+                "expectedFields": [
+                  {
+                    "fieldName": "invoiceId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "visitId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "patientId",
+                    "expectedType": "UUID",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-12-Discharge-record-creation",
+          "momentName": "Discharge record creation",
+          "assertions": [],
+          "setupSteps": []
+        },
+        {
+          "momentId": "moment-13-Discharge-finalization",
+          "momentName": "Discharge finalization",
+          "assertions": [],
+          "setupSteps": []
+        }
+      ],
+      "contextsCovered": [
+        "ctx-Reception",
+        "ctx-Intake Failure",
+        "ctx-Clinical",
+        "ctx-Vet Disagreement",
+        "ctx-Records Incomplete",
+        "ctx-Billing",
+        "ctx-Records"
+      ]
+    }
+  ],
+  "metadata": {
+    "sourceIrHash": "3b68e47c1d617a2380787e2330e1a1e8d3137fed2f10d4003152a5e47e8ed030",
+    "derivedAt": "2026-04-01T22:54:43.776Z"
+  }
+}

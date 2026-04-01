@@ -627,14 +627,27 @@ jobs:
           GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
 
       - name: Run E2E test harness
-        run: node e2e/harness.mjs --output-dir e2e/output
+        run: node e2e/harness.mjs
 
       - name: Upload E2E artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: e2e-output
-          path: e2e/output/
+          path: .moment/generated/
+
+      - name: Commit generated artifacts
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .moment/generated/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update .moment/generated from E2E harness [skip ci]"
+            git push
+          fi
 
       - name: Comment E2E results on PR
         if: github.event_name == 'pull_request' && always()
@@ -642,7 +655,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const summaryPath = 'e2e/output/summary.md';
+            const summaryPath = '.moment/generated/summary.md';
             if (!fs.existsSync(summaryPath)) {
               console.log('No E2E summary found — skipping comment');
               return;

@@ -34,7 +34,7 @@ const INVALID = resolve(ROOT, 'fixtures/invalid/no-declaration.moment');
 const args = process.argv.slice(2);
 const outputDirIdx = args.indexOf('--output-dir');
 const OUTPUT_DIR =
-  outputDirIdx >= 0 ? resolve(args[outputDirIdx + 1]) : resolve(ROOT, 'e2e/output');
+  outputDirIdx >= 0 ? resolve(args[outputDirIdx + 1]) : resolve(ROOT, '.moment/generated');
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 

@@ -1,0 +1,21 @@
+Dry run — would emit 20 file(s):
+src/reception/patient-intake.types.ts
+src/reception/patient-intake.aggregate.ts
+src/reception/index.ts
+src/clinical/visit-record.types.ts
+src/clinical/visit-record.aggregate.ts
+src/clinical/treatment-plan.types.ts
+src/clinical/treatment-plan.aggregate.ts
+src/clinical/index.ts
+src/billing/invoice.types.ts
+src/billing/invoice.aggregate.ts
+src/billing/index.ts
+src/records/discharge-record.types.ts
+src/records/discharge-record.aggregate.ts
+src/records/index.ts
+__tests__/flows/scheduled-visit-happy-path.spec.ts
+__tests__/reception/patient-intake.spec.ts
+__tests__/clinical/visit-record.spec.ts
+__tests__/clinical/treatment-plan.spec.ts
+__tests__/billing/invoice.spec.ts
+__tests__/records/discharge-record.spec.ts
