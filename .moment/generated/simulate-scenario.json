@@ -71,7 +71,9 @@
       "eventType": "PatientCheckedIn",
       "productSource": "reception",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -89,7 +91,9 @@
       "eventType": "SubmitValidateIntake",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -102,7 +106,9 @@
       "eventType": "IntakeValidated",
       "productSource": "reception",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -119,7 +125,10 @@
       "eventType": "RegisterPatientIntake",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -132,7 +141,10 @@
       "eventType": "PatientIntakeRegistered",
       "productSource": "reception",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -153,7 +165,11 @@
       "eventType": "CompleteTriage",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
@@ -166,7 +182,11 @@
       "eventType": "TriageCompleted",
       "productSource": "clinical",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
@@ -187,7 +207,12 @@
       "eventType": "PerformDualVetAssessment",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
@@ -200,7 +225,12 @@
       "eventType": "DualVetAssessmentCompleted",
       "productSource": "clinical",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
@@ -216,7 +246,13 @@
       "eventType": "RecordClinicalObservation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006", "evt-008", "evt-010"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006",
+        "evt-008",
+        "evt-010"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
@@ -229,7 +265,13 @@
       "eventType": "ClinicalObservationRecorded",
       "productSource": "clinical",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006", "evt-008", "evt-010"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006",
+        "evt-008",
+        "evt-010"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:11.000Z",
       "version": 1,
@@ -249,7 +291,14 @@
       "eventType": "NormalizeClinicalRecord",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006", "evt-008", "evt-010", "evt-012"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006",
+        "evt-008",
+        "evt-010",
+        "evt-012"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:12.000Z",
       "version": 1,
@@ -262,7 +311,14 @@
       "eventType": "ClinicalRecordNormalized",
       "productSource": "clinical",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
-      "causationEventIds": ["evt-002", "evt-004", "evt-006", "evt-008", "evt-010", "evt-012"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-004",
+        "evt-006",
+        "evt-008",
+        "evt-010",
+        "evt-012"
+      ],
       "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
       "timestamp": "2026-01-01T10:00:13.000Z",
       "version": 1,
