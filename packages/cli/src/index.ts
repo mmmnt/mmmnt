@@ -7,6 +7,7 @@ import { runEmitTs } from './commands/emit-ts.js';
 import { runTest } from './commands/test.js';
 import { runViz } from './commands/viz.js';
 import { runSyncStatus } from './commands/sync-status.js';
+import { runSimulate } from './commands/simulate.js';
 import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
 import { runAuthLogout } from './commands/auth-logout.js';
@@ -172,6 +173,22 @@ switch (command) {
     }
     break;
   }
+  case 'simulate': {
+    runSimulate(args)
+      .then((result) => {
+        if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
+          process.exitCode = 1;
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
   case 'auth': {
     const [subcommand] = args;
     const authHandler =
@@ -209,7 +226,7 @@ switch (command) {
     } else {
       console.error('Usage: moment <command> [options]');
       console.error(
-        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, sync, auth',
+        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, auth',
       );
     }
     process.exitCode = 1;

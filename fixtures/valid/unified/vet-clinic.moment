@@ -1,0 +1,381 @@
+// Veterinary Clinic Visit — Full Domain Specification
+// Demonstrates: multi-context, sagas, policies, branches, crossings, projections
+// Equivalent to the Facet simulation scenario "Happy Path: Scheduled Veterinary Visit"
+
+context "Reception" [Core]
+
+  aggregate "PatientIntake"
+    identity intakeId: UUID
+
+    command CheckInPatient
+      input patientId: UUID, ownerName: string, appointmentType: string
+      precondition appointmentExists: "Patient must have a scheduled appointment"
+      emits PatientCheckedIn
+
+    command SubmitValidateIntake
+      input intakeFormId: UUID, patientId: UUID
+      precondition intakeFormComplete: "Intake form must be fully completed"
+      emits IntakeValidated
+
+    command RegisterPatientIntake
+      input validatedIntakeId: UUID, patientId: UUID
+      emits PatientIntakeRegistered
+
+    event PatientCheckedIn
+      intakeId: UUID
+      patientId: UUID
+      ownerName: string
+      appointmentType: string
+      checkedInAt: DateTime
+
+    event IntakeValidated
+      intakeId: UUID
+      patientId: UUID
+      validationResult: string
+      validatedAt: DateTime
+
+    event PatientIntakeRegistered
+      intakeId: UUID
+      patientId: UUID
+      name: string
+      species: string
+      breed: string
+      ownerName: string
+      appointmentType: string
+      registeredAt: DateTime
+
+  value-object AppointmentDetails
+    appointmentId: UUID
+    scheduledAt: DateTime
+    appointmentType: string
+    veterinarianId: UUID
+
+  invariant REC-01 "Patient must have valid identification"
+    scope PatientIntake
+
+  invariant REC-02 "Intake form must pass completeness validation"
+    scope PatientIntake
+
+context "Clinical" [Core]
+
+  aggregate "VisitRecord"
+    identity visitId: UUID
+
+    command CompleteTriage
+      input patientId: UUID, weight: string, temperature: string, heartRate: string, chiefComplaint: string
+      precondition patientRegistered: "Patient must be registered through intake"
+      emits TriageCompleted
+
+    command PerformDualVetAssessment
+      input visitId: UUID, triageResults: TriageResults
+      emits DualVetAssessmentCompleted
+
+    command RecordClinicalObservation
+      input visitId: UUID, diagnosis: string, differentials: string[], confidence: number
+      emits ClinicalObservationRecorded
+
+    command NormalizeClinicalRecord
+      input visitId: UUID, symptoms: string[], vitalSigns: VitalSigns
+      precondition observationRecorded: "Clinical observation must be recorded"
+      emits ClinicalRecordNormalized
+
+    command RunClinicalAssessment
+      input visitId: UUID, recordId: UUID, patientId: UUID
+      emits ClinicalAssessmentCompleted
+
+    event TriageCompleted
+      visitId: UUID
+      patientId: UUID
+      weight: string
+      temperature: string
+      heartRate: string
+      chiefComplaint: string
+      urgency: string
+      completedAt: DateTime
+
+    event DualVetAssessmentCompleted
+      visitId: UUID
+      agreement: boolean
+      assessedAt: DateTime
+
+    event ClinicalObservationRecorded
+      visitId: UUID
+      observationId: UUID
+      patientId: UUID
+      diagnosis: string
+      differentials: string[]
+      confidence: number
+      recordedAt: DateTime
+
+    event ClinicalRecordNormalized
+      visitId: UUID
+      recordId: UUID
+      patientId: UUID
+      symptoms: string[]
+      vitalSigns: VitalSigns
+      vaccinationStatus: string
+      classification: string
+      normalizedAt: DateTime
+
+    event ClinicalAssessmentCompleted
+      visitId: UUID
+      assessmentResult: string
+      completedAt: DateTime
+
+  aggregate "TreatmentPlan"
+    identity planId: UUID
+
+    command CreateTreatmentPlan
+      input visitId: UUID, patientId: UUID, diagnosis: string, medications: Medication[]
+      precondition assessmentComplete: "Clinical assessment must be completed"
+      emits TreatmentPlanCreated
+
+    command ConfirmTreatment
+      input planId: UUID, confirmedBy: string, rationale: string
+      precondition planExists: "Treatment plan must exist"
+      emits TreatmentConfirmed
+
+    event TreatmentPlanCreated
+      planId: UUID
+      visitId: UUID
+      patientId: UUID
+      diagnosis: string
+      medications: Medication[]
+      instructions: string
+      createdAt: DateTime
+
+    event TreatmentConfirmed
+      planId: UUID
+      confirmedBy: string
+      rationale: string
+      confirmedAt: DateTime
+
+  value-object TriageResults
+    weight: string
+    temperature: string
+    heartRate: string
+    chiefComplaint: string
+    urgency: string
+
+  value-object VitalSigns
+    weight: string
+    temperature: string
+    heartRate: string
+
+  value-object Medication
+    name: string
+    dose: string
+    frequency: string
+
+  invariant CLN-01 "Triage must be completed before diagnosis"
+    scope VisitRecord
+
+  invariant CLN-02 "Dual-vet assessment must agree before proceeding"
+    scope VisitRecord
+
+  invariant CLN-03 "Treatment plan requires confirmed diagnosis"
+    scope TreatmentPlan
+
+  saga VisitLifecycle
+    trigger PatientIntakeRegistered
+    states Triaging -> Diagnosing -> Cataloging -> Treating -> Complete
+    compensation "Cancel visit and release appointment slot"
+    timeout visitTimeout
+
+  policy TriageOnIntakeRegistered
+    trigger PatientIntakeRegistered
+    action "Begin triage process for registered patient"
+    chains-to CompleteTriage
+
+  policy AssessOnTriageCompleted
+    trigger TriageCompleted
+    action "Initiate dual-vet assessment after triage"
+    chains-to PerformDualVetAssessment
+
+  policy NormalizeOnObservation
+    trigger ClinicalObservationRecorded
+    action "Normalize clinical record after observation"
+    chains-to NormalizeClinicalRecord
+
+  policy TreatOnAssessment
+    trigger ClinicalAssessmentCompleted
+    action "Create treatment plan after clinical assessment"
+    chains-to CreateTreatmentPlan
+
+context "Billing" [Supporting]
+
+  aggregate "Invoice"
+    identity invoiceId: UUID
+
+    command GenerateInvoice
+      input visitId: UUID, patientId: UUID, lineItems: LineItem[]
+      precondition visitComplete: "Visit must be marked complete"
+      emits InvoiceGenerated
+
+    command VerifyBilling
+      input invoiceId: UUID
+      emits BillingVerified
+
+    event InvoiceGenerated
+      invoiceId: UUID
+      visitId: UUID
+      patientId: UUID
+      lineItems: LineItem[]
+      total: Money
+      currency: string
+      generatedAt: DateTime
+
+    event BillingVerified
+      invoiceId: UUID
+      verifiedAt: DateTime
+
+  value-object LineItem
+    label: string
+    amount: Money
+
+  invariant BIL-01 "Invoice total must match sum of line items"
+    scope Invoice
+
+  policy BillOnVisitComplete
+    trigger TreatmentConfirmed
+    action "Generate invoice after treatment is confirmed"
+    chains-to GenerateInvoice
+
+context "Records" [Supporting]
+
+  aggregate "DischargeRecord"
+    identity dischargeId: UUID
+
+    command CreateDischargeRecord
+      input visitId: UUID, patientId: UUID, planId: UUID, invoiceId: UUID
+      emits DischargeRecordCreated
+
+    command FinalizeDischarge
+      input dischargeId: UUID
+      precondition billingVerified: "Billing must be verified before discharge"
+      emits DischargeFinalised
+
+    event DischargeRecordCreated
+      dischargeId: UUID
+      visitId: UUID
+      patientId: UUID
+      createdAt: DateTime
+
+    event DischargeFinalised
+      dischargeId: UUID
+      finalisedAt: DateTime
+
+  invariant REC-03 "Discharge requires verified billing"
+    scope DischargeRecord
+
+  policy DischargeOnBilling
+    trigger BillingVerified
+    action "Create discharge record after billing verification"
+    chains-to CreateDischargeRecord
+
+// ============================================================================
+// Flow: Scheduled Visit — Happy Path
+// ============================================================================
+
+flow "scheduled-visit-happy-path"
+  description "Pet owner arrives for a scheduled appointment. Full lifecycle through check-in, triage, diagnosis, treatment, billing, and discharge."
+
+  lane reception "Reception" [Core]
+  lane clinical "Clinical" [Core]
+  lane billing "Billing" [Supporting]
+  lane records "Records" [Supporting]
+  branch-lane intakeFailure "Intake Failure" [Terminal]
+  branch-lane vetDisagreement "Vet Disagreement" [Terminal]
+  branch-lane recordsIncomplete "Records Incomplete" [Terminal]
+
+  moment "Patient check-in"
+    reception: CheckInPatient
+    reception: PatientCheckedIn
+
+  moment "Intake validation"
+    reception: SubmitValidateIntake
+      triggered-by PatientCheckedIn
+    reception: IntakeValidated
+
+  moment "Intake validation outcome" [branch]
+    when valid
+      reception: RegisterPatientIntake
+        triggered-by IntakeValidated
+      reception: PatientIntakeRegistered crosses-to clinical via CustomerSupplier
+        contract
+          patientId: UUID [required]
+          name: string [required]
+          species: string [required]
+          ownerName: string [required]
+          appointmentType: string [required]
+    when invalid
+      intakeFailure: IntakeValidated [terminal]
+
+  moment "Triage"
+    clinical: CompleteTriage
+      triggered-by PatientIntakeRegistered
+    clinical: TriageCompleted
+
+  moment "Dual-vet assessment"
+    clinical: PerformDualVetAssessment
+      triggered-by TriageCompleted
+    clinical: DualVetAssessmentCompleted
+
+  moment "Assessment agreement" [branch]
+    when agree
+      clinical: RecordClinicalObservation
+        triggered-by DualVetAssessmentCompleted
+      clinical: ClinicalObservationRecorded
+    when disagree
+      vetDisagreement: DualVetAssessmentCompleted [terminal]
+
+  moment "Clinical record normalization"
+    clinical: NormalizeClinicalRecord
+      triggered-by ClinicalObservationRecorded
+    clinical: ClinicalRecordNormalized
+
+  moment "Records completeness check" [branch]
+    when complete
+      clinical: RunClinicalAssessment
+        triggered-by ClinicalRecordNormalized
+      clinical: ClinicalAssessmentCompleted
+    when incomplete
+      recordsIncomplete: ClinicalRecordNormalized [terminal]
+
+  moment "Treatment planning"
+    clinical: CreateTreatmentPlan
+      triggered-by ClinicalAssessmentCompleted
+    clinical: TreatmentPlanCreated
+
+  moment "Treatment confirmation"
+    clinical: ConfirmTreatment
+      triggered-by TreatmentPlanCreated
+    clinical: TreatmentConfirmed crosses-to billing via CustomerSupplier
+      contract
+        planId: UUID [required]
+        visitId: UUID [required]
+        patientId: UUID [required]
+
+  moment "Invoice generation"
+    billing: GenerateInvoice
+      triggered-by TreatmentConfirmed
+    billing: InvoiceGenerated
+
+  moment "Billing verification"
+    billing: VerifyBilling
+      triggered-by InvoiceGenerated
+    billing: BillingVerified crosses-to records via CustomerSupplier
+      contract
+        invoiceId: UUID [required]
+        visitId: UUID [required]
+        patientId: UUID [required]
+
+  moment "Discharge record creation"
+    records: CreateDischargeRecord
+      triggered-by BillingVerified
+    records: DischargeRecordCreated
+
+  moment "Discharge finalization"
+    records: FinalizeDischarge
+      triggered-by DischargeRecordCreated
+    records: DischargeFinalised

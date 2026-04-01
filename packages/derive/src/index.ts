@@ -12,6 +12,13 @@ export type {
 export { deriveTopology } from './engine/derivation-engine.js';
 
 export {
+  generateSimulationScenario,
+  type SimulationScenario,
+  type SimulationEvent,
+  type ActiveBranch,
+} from './engine/simulation-scenario-generator.js';
+
+export {
   DeriveOnSpecificationParsed,
   type DeriveOnSpecificationParsedOptions,
   type TopologyDerivedHook,
