@@ -194,7 +194,7 @@ export class MomentValidator {
   // =========================================================================
   checkMoment(moment: Moment, accept: ValidationAcceptor): void {
     if (moment.nodes.length === 0 && moment.whenBlocks.length === 0) {
-      accept('error', 'V10: Frame must contain at least one node or when block.', {
+      accept('error', 'V10: Moment must contain at least one node or when block.', {
         node: moment,
         property: 'label',
       });

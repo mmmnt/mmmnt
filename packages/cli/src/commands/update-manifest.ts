@@ -5,7 +5,7 @@
  * manifest stays in sync with the project's actual state.
  */
 
-import { dirname } from 'node:path';
+import { dirname, join, parse as parsePath } from 'node:path';
 import { existsSync } from 'node:fs';
 import { ManifestUpdater } from '@mmmnt/core';
 import type { IntermediateRepresentation } from '@mmmnt/core';
@@ -23,9 +23,9 @@ export function updateManifestFromIr(filePath: string, ir: IntermediateRepresent
 
 function findProjectRoot(filePath: string): string | undefined {
   let dir = dirname(filePath);
-  const root = '/';
+  const { root } = parsePath(dir);
   while (dir !== root) {
-    if (existsSync(dir + '/.manifest.yaml')) return dir;
+    if (existsSync(join(dir, '.manifest.yaml'))) return dir;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;

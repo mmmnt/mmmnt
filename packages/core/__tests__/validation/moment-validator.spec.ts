@@ -864,7 +864,7 @@ describe('MomentValidator', () => {
         laneId: 'x',
         nodeName: 'Y',
         connections: [],
-        $container: { $type: 'Frame' },
+        $container: { $type: 'Moment' },
       } as never;
       const diagnostics: string[] = [];
       validator.checkLaneIdExists(fakeNode, (severity, message) => {
@@ -986,14 +986,14 @@ describe('MomentValidator', () => {
         moments: [],
         lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
       };
-      const fakeFrame = { $type: 'Frame', $container: fakeFlow };
+      const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeNode = {
         $type: 'NodePlacement',
         laneId: 'nonexistent',
         nodeName: 'Evt',
         multiplicity: { count: 3 },
         connections: [],
-        $container: fakeFrame,
+        $container: fakeMoment,
       } as never;
       const diagnostics: string[] = [];
       validator.checkV11(
@@ -1014,7 +1014,7 @@ describe('MomentValidator', () => {
         moments: [],
         lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
       };
-      const fakeFrame = { $type: 'Frame', $container: fakeFlow };
+      const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeCrossing = {
         $type: 'ContextCrossing',
         targetLaneId: 'b',
@@ -1027,7 +1027,7 @@ describe('MomentValidator', () => {
         nodeName: 'Evt',
         crossing: fakeCrossing,
         connections: [],
-        $container: fakeFrame,
+        $container: fakeMoment,
       } as never;
       (fakeCrossing as Record<string, unknown>).$container = fakeNode;
       const diagnostics: string[] = [];
@@ -1049,7 +1049,7 @@ describe('MomentValidator', () => {
         nodeName: 'Evt',
         multiplicity: { count: 3 },
         connections: [],
-        $container: { $type: 'Frame', $container: { $type: 'Unknown' } },
+        $container: { $type: 'Moment', $container: { $type: 'Unknown' } },
       } as never;
       const diagnostics: string[] = [];
       validator.checkV11(

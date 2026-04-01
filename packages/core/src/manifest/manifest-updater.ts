@@ -40,11 +40,11 @@ export class ManifestUpdater {
     // Also scan root .moment/ for unified files
     const unifiedFiles = this.scanDirectory(projectDir, '.moment', '.moment', false);
     for (const ref of unifiedFiles) {
-      if (
-        !discoveredContexts.some((c) => c.path === ref.path) &&
-        !discoveredFlows.some((f) => f.path === ref.path)
-      ) {
+      if (!discoveredContexts.some((c) => c.path === ref.path)) {
         discoveredContexts.push(ref);
+      }
+      if (!discoveredFlows.some((f) => f.path === ref.path)) {
+        discoveredFlows.push(ref);
       }
     }
 

@@ -1,2 +1,0 @@
-No credentials found. Already logged out.
-exit: 0

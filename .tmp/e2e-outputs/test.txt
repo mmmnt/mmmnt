@@ -1,2 +1,0 @@
-Tests: 2 total, 2 passed, 0 failed, 0 skipped (1 suite(s))
-exit: 0

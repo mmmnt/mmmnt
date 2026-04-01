@@ -1,8 +1,0 @@
-Parse failed with 2 diagnostic(s)
-error: <unknown> — Expecting: expecting at least one iteration which starts with one of these possible Token sequences::
-  <[context] ,[flow]>
-but found: 'aggregate'
-error: <unknown> — Expecting: expecting at least one iteration which starts with one of these possible Token sequences::
-  <[context] ,[flow]>
-but found: 'aggregate'
-exit: 1

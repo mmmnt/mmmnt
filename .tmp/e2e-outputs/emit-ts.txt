@@ -1,2 +1,0 @@
-Emitted: 6 TypeScript file(s), 3 scaffold file(s)
-exit: 0
