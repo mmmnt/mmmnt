@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-01T23:40:25.837Z",
+  "timestamp": "2026-04-01T23:50:09.214Z",
   "fixture": "fixtures/valid/unified/vet-clinic.moment",
   "summary": {
     "tests": 21,
@@ -308,11 +308,11 @@
       "pass": true,
       "assertions": [
         {
-          "message": "exit code 0",
+          "message": "reports test summary",
           "pass": true
         },
         {
-          "message": "reports test summary",
+          "message": "reports suite count",
           "pass": true
         }
       ]

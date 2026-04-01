@@ -7,9 +7,7 @@ import type { Grammar } from 'langium';
 import { loadGrammarFromJson } from 'langium';
 
 let loadedMomentGrammar: Grammar | undefined;
-export const MomentGrammar = (): Grammar =>
-  loadedMomentGrammar ??
-  (loadedMomentGrammar = loadGrammarFromJson(`{
+export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMomentGrammar = loadGrammarFromJson(`{
   "$type": "Grammar",
   "isDeclared": true,
   "name": "Moment",

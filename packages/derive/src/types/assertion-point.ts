@@ -5,5 +5,5 @@ export interface AssertionPoint {
   readonly sourceContext: string;
   readonly targetContext: string;
   readonly schemaContract: PayloadValidationStep;
-  readonly assertionType: 'payload' | 'state';
+  readonly assertionType: 'payload' | 'state' | 'command' | 'event' | 'crossing';
 }
