@@ -406,7 +406,7 @@ describe('MomentValidator', () => {
               a: SomeEvent
         `);
         const validator = services.validation.MomentValidator;
-        const flow = result.document.parseResult.value.flow!;
+        const flow = result.document.parseResult.value.flows[0];
         const diagnostics: string[] = [];
         validator.checkSP01(
           flow,
@@ -426,7 +426,7 @@ describe('MomentValidator', () => {
               a: PlaceOrder
         `);
         const validator = services.validation.MomentValidator;
-        const flow = result.document.parseResult.value.flow!;
+        const flow = result.document.parseResult.value.flows[0];
         const diagnostics: string[] = [];
         validator.checkSP01(
           flow,
@@ -451,7 +451,7 @@ describe('MomentValidator', () => {
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const crossing = result.document.parseResult.value.flow!.frames[0].nodes[0].crossing!;
+        const crossing = result.document.parseResult.value.flows[0].frames[0].nodes[0].crossing!;
         const diagnostics: string[] = [];
         validator.checkSP02(
           crossing,
@@ -474,7 +474,7 @@ describe('MomentValidator', () => {
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const crossing = result.document.parseResult.value.flow!.frames[0].nodes[0].crossing!;
+        const crossing = result.document.parseResult.value.flows[0].frames[0].nodes[0].crossing!;
         const diagnostics: string[] = [];
         validator.checkSP02(
           crossing,
@@ -496,7 +496,7 @@ describe('MomentValidator', () => {
               a: NonExistentBlock
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV1(
           node,
@@ -516,7 +516,7 @@ describe('MomentValidator', () => {
               a: PlaceOrder
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV1(
           node,
@@ -541,7 +541,7 @@ describe('MomentValidator', () => {
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV9(
           node,
@@ -564,7 +564,7 @@ describe('MomentValidator', () => {
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV9(
           node,
@@ -586,7 +586,7 @@ describe('MomentValidator', () => {
               a: PlaceOrder (×3)
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV11(
           node,
@@ -606,7 +606,7 @@ describe('MomentValidator', () => {
               a: OrderPlaced (×3)
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV11(
           node,
@@ -631,7 +631,7 @@ describe('MomentValidator', () => {
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const flow = result.document.parseResult.value.flow!;
+        const flow = result.document.parseResult.value.flows[0];
         const diagnostics: { severity: string; message: string }[] = [];
         validator.checkV14(flow, (severity, message) => {
           diagnostics.push({ severity: severity as string, message: message as string });
@@ -656,7 +656,7 @@ describe('MomentValidator', () => {
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const flow = result.document.parseResult.value.flow!;
+        const flow = result.document.parseResult.value.flows[0];
         const diagnostics: { severity: string; message: string }[] = [];
         validator.checkV14(flow, (severity, message) => {
           diagnostics.push({ severity: severity as string, message: message as string });
@@ -681,7 +681,7 @@ describe('MomentValidator', () => {
                     id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const flow = result.document.parseResult.value.flow!;
+        const flow = result.document.parseResult.value.flows[0];
         const diagnostics: { severity: string; message: string }[] = [];
         validator.checkV14(flow, (severity, message) => {
           diagnostics.push({ severity: severity as string, message: message as string });
@@ -703,7 +703,7 @@ describe('MomentValidator', () => {
                 triggered-by NonExistent
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV5(node, (severity, message) => {
           if (severity === 'error') diagnostics.push(message as string);
@@ -722,7 +722,7 @@ describe('MomentValidator', () => {
                 triggered-by First
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flow!.frames[1].nodes[0];
+        const node = result.document.parseResult.value.flows[0].frames[1].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV5(node, (severity, message) => {
           if (severity === 'error') diagnostics.push(message as string);
@@ -883,7 +883,7 @@ describe('MomentValidator', () => {
                 id: UUID [required]
       `);
       const validator = services.validation.MomentValidator;
-      const crossing = result.document.parseResult.value.flow!.frames[0].nodes[0].crossing!;
+      const crossing = result.document.parseResult.value.flows[0].frames[0].nodes[0].crossing!;
       const diagnostics: string[] = [];
       validator.checkSP02(
         crossing,
@@ -904,7 +904,7 @@ describe('MomentValidator', () => {
             a: SomeNode
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       // Lane label "A" does not match any declaredContextNames ("Ordering", "Fulfillment")
       // so the contextName won't match, but the lane IS found
       const diagnostics: string[] = [];
@@ -927,7 +927,7 @@ describe('MomentValidator', () => {
             a: OrderPlaced
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV9(
         node,
@@ -947,7 +947,7 @@ describe('MomentValidator', () => {
             a: OrderPlaced
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV11(
         node,
@@ -1073,7 +1073,7 @@ describe('MomentValidator', () => {
                 id: UUID [required]
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV9(
         node,
@@ -1097,7 +1097,7 @@ describe('MomentValidator', () => {
                 id: UUID [required]
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV9(
         node,
@@ -1118,7 +1118,7 @@ describe('MomentValidator', () => {
             a: OrderPlaced (×3)
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV11(
         node,
@@ -1139,7 +1139,7 @@ describe('MomentValidator', () => {
             a: PlaceOrder (×3)
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flow!.frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV11(
         node,
@@ -1167,7 +1167,7 @@ describe('MomentValidator', () => {
             b: InitiateFulfillment
       `);
       const validator = services.validation.MomentValidator;
-      const flow = result.document.parseResult.value.flow!;
+      const flow = result.document.parseResult.value.flows[0];
       const diagnostics: { severity: string; message: string }[] = [];
       validator.checkV14(flow, (severity, message) => {
         diagnostics.push({ severity: severity as string, message: message as string });

@@ -396,8 +396,8 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
 
 export interface MomentFile extends langium.AstNode {
   readonly $type: 'MomentFile';
-  context?: ContextDeclaration;
-  flow?: FlowDeclaration;
+  contexts: Array<ContextDeclaration>;
+  flows: Array<FlowDeclaration>;
 }
 
 export const MomentFile = 'MomentFile';
@@ -844,7 +844,10 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
       case MomentFile: {
         return {
           name: MomentFile,
-          properties: [{ name: 'context' }, { name: 'flow' }],
+          properties: [
+            { name: 'contexts', defaultValue: [] },
+            { name: 'flows', defaultValue: [] },
+          ],
         };
       }
       case Multiplicity: {

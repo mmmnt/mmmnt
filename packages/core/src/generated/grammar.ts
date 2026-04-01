@@ -19,31 +19,33 @@ export const MomentGrammar = (): Grammar =>
       "entry": true,
       "name": "MomentFile",
       "definition": {
-        "$type": "Alternatives",
+        "$type": "Group",
         "elements": [
           {
             "$type": "Assignment",
-            "feature": "context",
-            "operator": "=",
+            "feature": "contexts",
+            "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
                 "$ref": "#/rules@1"
               },
               "arguments": []
-            }
+            },
+            "cardinality": "*"
           },
           {
             "$type": "Assignment",
-            "feature": "flow",
-            "operator": "=",
+            "feature": "flows",
+            "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
                 "$ref": "#/rules@17"
               },
               "arguments": []
-            }
+            },
+            "cardinality": "*"
           }
         ]
       },

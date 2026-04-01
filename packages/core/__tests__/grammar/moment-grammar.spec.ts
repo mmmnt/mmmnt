@@ -48,9 +48,9 @@ describe('Moment Grammar > Spatial Constructs', () => {
     expect(doc.parseResult.lexerErrors).toHaveLength(0);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
     const file = doc.parseResult.value;
-    expect(file.context).toBeDefined();
-    expect(file.context!.name).toBe('OrderManagement');
-    expect(file.context!.classification?.value).toBe('Core');
+    expect(file.contexts).toHaveLength(1);
+    expect(file.contexts[0].name).toBe('OrderManagement');
+    expect(file.contexts[0].classification?.value).toBe('Core');
   });
 
   it('parses aggregate with identity field', async () => {
@@ -60,7 +60,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
           identity orderId: UUID
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const ctx = doc.parseResult.value.context!;
+    const ctx = doc.parseResult.value.contexts[0];
     expect(ctx.members).toHaveLength(1);
     const agg = ctx.members[0];
     expect(agg.$type).toBe('AggregateDeclaration');
@@ -82,7 +82,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
             emits OrderPlaced
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const agg = doc.parseResult.value.context!.members[0];
+    const agg = doc.parseResult.value.contexts[0].members[0];
     if (agg.$type === 'AggregateDeclaration') {
       const cmd = agg.members[0];
       expect(cmd.$type).toBe('CommandDeclaration');
@@ -106,7 +106,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
             placedAt: DateTime
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const agg = doc.parseResult.value.context!.members[0];
+    const agg = doc.parseResult.value.contexts[0].members[0];
     if (agg.$type === 'AggregateDeclaration') {
       const evt = agg.members[0];
       expect(evt.$type).toBe('DomainEventDeclaration');
@@ -128,7 +128,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
             unitPrice: Money
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const agg = doc.parseResult.value.context!.members[0];
+    const agg = doc.parseResult.value.contexts[0].members[0];
     if (agg.$type === 'AggregateDeclaration') {
       const vo = agg.members[0];
       expect(vo.$type).toBe('ValueObjectDeclaration');
@@ -151,7 +151,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
             scope Order
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const agg = doc.parseResult.value.context!.members[0];
+    const agg = doc.parseResult.value.contexts[0].members[0];
     if (agg.$type === 'AggregateDeclaration') {
       const inv = agg.members[0];
       expect(inv.$type).toBe('InvariantDeclaration');
@@ -171,7 +171,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
           description "Validates specification structure"
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const member = doc.parseResult.value.context!.members[0];
+    const member = doc.parseResult.value.contexts[0].members[0];
     expect(member.$type).toBe('DomainServiceDeclaration');
     if (member.$type === 'DomainServiceDeclaration') {
       expect(member.name).toBe('SchemaValidator');
@@ -189,7 +189,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
           chains-to CheckInventory
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const member = doc.parseResult.value.context!.members[0];
+    const member = doc.parseResult.value.contexts[0].members[0];
     expect(member.$type).toBe('PolicyDeclaration');
     if (member.$type === 'PolicyDeclaration') {
       expect(member.name).toBe('OnOrderPlaced');
@@ -207,7 +207,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
           timeout "none"
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const member = doc.parseResult.value.context!.members[0];
+    const member = doc.parseResult.value.contexts[0].members[0];
     expect(member.$type).toBe('SagaDeclaration');
     if (member.$type === 'SagaDeclaration') {
       expect(member.name).toBe('OrderFulfillment');
@@ -223,7 +223,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
           contract "Supplier provides order data"
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const member = doc.parseResult.value.context!.members[0];
+    const member = doc.parseResult.value.contexts[0].members[0];
     expect(member.$type).toBe('ContextRelationshipDeclaration');
     if (member.$type === 'ContextRelationshipDeclaration') {
       expect(member.source).toBe('Ordering');
@@ -246,7 +246,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
           ordering: PlaceOrder
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const flow = doc.parseResult.value.flow!;
+    const flow = doc.parseResult.value.flows[0];
     expect(flow.name).toBe('order-placed');
     expect(flow.description).toBe('Order triggers fulfillment');
   });
@@ -260,7 +260,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
           ordering: DoSomething
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const flow = doc.parseResult.value.flow!;
+    const flow = doc.parseResult.value.flows[0];
     expect(flow.lanes).toHaveLength(2);
     expect(flow.lanes[0].id).toBe('ordering');
     expect(flow.lanes[0].label).toBe('Ordering');
@@ -277,7 +277,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
           main: DoSomething
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const flow = doc.parseResult.value.flow!;
+    const flow = doc.parseResult.value.flows[0];
     expect(flow.lanes).toHaveLength(2);
     expect(flow.lanes[1].isBranch).toBe(true);
     expect(flow.lanes[1].id).toBe('errors');
@@ -292,7 +292,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
           ordering: OrderPlaced
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const flow = doc.parseResult.value.flow!;
+    const flow = doc.parseResult.value.flows[0];
     expect(flow.frames).toHaveLength(1);
     expect(flow.frames[0].label).toBe('Order submission');
     expect(flow.frames[0].nodes).toHaveLength(2);
@@ -310,7 +310,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
           main: EventC [terminal]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const nodes = doc.parseResult.value.flow!.frames[0].nodes;
+    const nodes = doc.parseResult.value.flows[0].frames[0].nodes;
     expect(nodes).toHaveLength(3);
     expect(nodes[0].multiplicity?.count).toBe(3);
     expect(nodes[1].modifier?.type).toBe('optional');
@@ -332,7 +332,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
               items: OrderItem[]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flow!.frames[0].nodes[0];
+    const node = doc.parseResult.value.flows[0].frames[0].nodes[0];
     expect(node.crossing).toBeDefined();
     expect(node.crossing!.targetLaneId).toBe('fulfillment');
     expect(node.crossing!.relationshipType).toBe('CustomerSupplier');
@@ -352,7 +352,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
               items: Item[] [required]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const fields = doc.parseResult.value.flow!.frames[0].nodes[0].crossing!.fields;
+    const fields = doc.parseResult.value.flows[0].frames[0].nodes[0].crossing!.fields;
     expect(fields).toHaveLength(3);
     expect(fields[0].required).toBe(true);
     expect(fields[1].required).toBeFalsy();
@@ -369,7 +369,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
             triggered-by PriorEvent
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flow!.frames[0].nodes[0];
+    const node = doc.parseResult.value.flows[0].frames[0].nodes[0];
     expect(node.connections).toHaveLength(1);
     expect(node.connections[0].$type).toBe('TriggeredBy');
   });
@@ -383,7 +383,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
             triggers DownstreamProcess
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flow!.frames[0].nodes[0];
+    const node = doc.parseResult.value.flows[0].frames[0].nodes[0];
     expect(node.connections).toHaveLength(1);
     expect(node.connections[0].$type).toBe('Triggers');
   });
@@ -399,7 +399,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
             returns-to "Step 1"
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flow!.frames[1].nodes[0];
+    const node = doc.parseResult.value.flows[0].frames[1].nodes[0];
     expect(node.connections).toHaveLength(1);
     expect(node.connections[0].$type).toBe('ReturnsTo');
   });
@@ -419,7 +419,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
             errors: FailureEvent [terminal]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const frame = doc.parseResult.value.flow!.frames[0];
+    const frame = doc.parseResult.value.flows[0].frames[0];
     expect(frame.isBranch).toBe(true);
     expect(frame.whenBlocks).toHaveLength(2);
     expect(frame.whenBlocks[0].condition).toBe('success');
@@ -441,7 +441,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
             c: EventC
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const frame = doc.parseResult.value.flow!.frames[0];
+    const frame = doc.parseResult.value.flows[0].frames[0];
     expect(frame.whenBlocks).toHaveLength(3);
   });
 });
@@ -455,7 +455,7 @@ describe('Moment Grammar > Sample File Acceptance', () => {
     const doc = await parse(input);
     expect(doc.parseResult.lexerErrors).toHaveLength(0);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    expect(doc.parseResult.value.context).toBeDefined();
+    expect(doc.parseResult.value.contexts).toHaveLength(1);
   });
 
   it('parses minimal flow file without errors', async () => {
@@ -463,7 +463,7 @@ describe('Moment Grammar > Sample File Acceptance', () => {
     const doc = await parse(input);
     expect(doc.parseResult.lexerErrors).toHaveLength(0);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    expect(doc.parseResult.value.flow).toBeDefined();
+    expect(doc.parseResult.value.flows).toHaveLength(1);
   });
 
   it('parses multi-context ordering file without errors', async () => {
@@ -492,9 +492,65 @@ describe('Moment Grammar > Sample File Acceptance', () => {
     const doc = await parse(input);
     expect(doc.parseResult.lexerErrors).toHaveLength(0);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    expect(doc.parseResult.value.flow).toBeDefined();
-    expect(doc.parseResult.value.flow!.lanes.length).toBeGreaterThanOrEqual(3);
-    expect(doc.parseResult.value.flow!.frames.length).toBeGreaterThanOrEqual(4);
+    expect(doc.parseResult.value.flows).toHaveLength(1);
+    expect(doc.parseResult.value.flows[0].lanes.length).toBeGreaterThanOrEqual(3);
+    expect(doc.parseResult.value.flows[0].frames.length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ADR-027 — Unified File: Spatial + Temporal Coexistence
+// ---------------------------------------------------------------------------
+describe('Moment Grammar > Unified File (ADR-027)', () => {
+  it('parses a file with both context and flow', async () => {
+    const input = readFixture('valid/unified/ordering.moment');
+    const doc = await parse(input);
+    expect(doc.parseResult.lexerErrors).toHaveLength(0);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+
+    const file = doc.parseResult.value;
+    expect(file.contexts).toHaveLength(2);
+    expect(file.flows).toHaveLength(1);
+
+    expect(file.contexts[0].name).toBe('Ordering');
+    expect(file.contexts[1].name).toBe('Fulfillment');
+    expect(file.flows[0].name).toBe('order-placed');
+  });
+
+  it('parses multiple contexts in one file', async () => {
+    const doc = await parse(`
+      context "Alpha" [Core]
+        aggregate "A"
+          identity id: UUID
+
+      context "Beta" [Supporting]
+        aggregate "B"
+          identity id: UUID
+    `);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    expect(doc.parseResult.value.contexts).toHaveLength(2);
+    expect(doc.parseResult.value.contexts[0].name).toBe('Alpha');
+    expect(doc.parseResult.value.contexts[1].name).toBe('Beta');
+    expect(doc.parseResult.value.flows).toHaveLength(0);
+  });
+
+  it('still parses context-only files (backward compat)', async () => {
+    const doc = await parse(`
+      context "Solo" [Core]
+        aggregate "Thing"
+          identity id: UUID
+    `);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    expect(doc.parseResult.value.contexts).toHaveLength(1);
+    expect(doc.parseResult.value.flows).toHaveLength(0);
+  });
+
+  it('still parses flow-only files (backward compat)', async () => {
+    const input = readFixture('valid/minimal/flows/order-placed.moment');
+    const doc = await parse(input);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    expect(doc.parseResult.value.contexts).toHaveLength(0);
+    expect(doc.parseResult.value.flows).toHaveLength(1);
   });
 });
 

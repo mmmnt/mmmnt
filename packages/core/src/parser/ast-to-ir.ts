@@ -70,21 +70,16 @@ function unquote(s: string): string {
  * No I/O, no side effects.
  */
 export function astToIr(file: MomentFile): IntermediateRepresentation {
-  const contexts: ContextDefinition[] = [];
-  const flows: FlowDefinition[] = [];
+  const contexts: ContextDefinition[] = file.contexts.map(transformContext);
+  const flows: FlowDefinition[] = file.flows.map(transformFlow);
 
-  if (file.context) {
-    contexts.push(transformContext(file.context));
-  }
-  if (file.flow) {
-    flows.push(transformFlow(file.flow));
-  }
+  const relationships: ContextRelationship[] = file.contexts.flatMap(extractRelationships);
 
   return {
     contexts,
     flows,
     glossary: [],
-    relationships: file.context ? extractRelationships(file.context) : [],
+    relationships,
     metadata: { name: '', version: '0.0.0' },
   };
 }

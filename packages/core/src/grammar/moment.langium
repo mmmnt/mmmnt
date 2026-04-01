@@ -1,11 +1,12 @@
 grammar Moment
 
 // ============================================================================
-// Entry Rules — A .moment file is either a context file or a flow file
+// Entry Rules — A .moment file may contain contexts, flows, or both (ADR-027)
 // ============================================================================
 
 entry MomentFile:
-    (context=ContextDeclaration | flow=FlowDeclaration);
+    contexts+=ContextDeclaration*
+    flows+=FlowDeclaration*;
 
 // ============================================================================
 // Part I: Spatial Constructs (context files)
