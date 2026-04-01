@@ -21,7 +21,7 @@ export type {
 
 export type { FlowDefinition } from './flow-definition.js';
 
-export type { FrameDefinition, FrameEntry, BranchDefinition } from './frame-definition.js';
+export type { MomentDefinition, MomentEntry, BranchDefinition } from './frame-definition.js';
 
 export type { ConnectionDefinition, ConnectionType } from './connection-definition.js';
 

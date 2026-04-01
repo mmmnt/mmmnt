@@ -71,8 +71,8 @@ function makeAssertionPoint(overrides: Partial<AssertionPoint> = {}): AssertionP
 
 function makeTestCase(overrides: Partial<TestCaseDefinition> = {}): TestCaseDefinition {
   return {
-    frameId: 'frame-1',
-    frameName: 'Order Placement',
+    momentId: 'moment-1',
+    momentName: 'Order Placement',
     assertions: [makeAssertionPoint()],
     setupSteps: [makeSetupStep()],
     ...overrides,
@@ -213,7 +213,7 @@ describe('TestScaffoldEmitter', () => {
         flowName: 'Order Fulfillment Flow',
         testCases: [
           makeTestCase({
-            frameName: 'Order Placement',
+            momentName: 'Order Placement',
             assertions: [makeAssertionPoint()],
           }),
         ],
@@ -419,8 +419,8 @@ describe('TestScaffoldEmitter', () => {
             assertions: [makeAssertionPoint(), makeAssertionPoint({ crossingId: 'c2' })],
           }),
           makeTestCase({
-            frameId: 'f2',
-            frameName: 'Shipping',
+            momentId: 'f2',
+            momentName: 'Shipping',
             assertions: [makeAssertionPoint({ crossingId: 'c3' })],
           }),
         ],

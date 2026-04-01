@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type {
   IntermediateRepresentation,
   FlowDefinition,
-  FrameDefinition,
+  MomentDefinition,
   ConnectionDefinition,
   ContextDefinition,
   SchemaFieldDefinition,
@@ -42,7 +42,12 @@ function makeContext(id: string, name: string): ContextDefinition {
   };
 }
 
-function makeFrame(id: string, name: string, contextId: string, nodeName: string): FrameDefinition {
+function makeMoment(
+  id: string,
+  name: string,
+  contextId: string,
+  nodeName: string,
+): MomentDefinition {
   return {
     id,
     name,
@@ -52,14 +57,14 @@ function makeFrame(id: string, name: string, contextId: string, nodeName: string
 
 function makeCrossingConnection(
   id: string,
-  sourceFrameId: string,
+  sourceMomentId: string,
   targetContextId: string,
   eventType: string,
   fields: SchemaFieldDefinition[] = [{ name: 'id', type: 'string', required: true }],
 ): ConnectionDefinition {
   return {
     id,
-    sourceFrameId,
+    sourceMomentId,
     targetContextId,
     eventId: `${eventType}-event`,
     connectionType: 'crosses-to',
@@ -74,10 +79,10 @@ function makeCrossingConnection(
 function makeFlow(
   id: string,
   name: string,
-  frames: FrameDefinition[],
+  moments: MomentDefinition[],
   connections: ConnectionDefinition[],
 ): FlowDefinition {
-  return { id, name, frames, connections };
+  return { id, name, moments, connections };
 }
 
 function makeIR(overrides: Partial<IntermediateRepresentation> = {}): IntermediateRepresentation {
@@ -98,8 +103,8 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 1: IR triggers derivation and produces TestSuiteTopology
   it('produces a TestSuiteTopology from a valid IR', async () => {
     const ctx = makeContext('ctx-ordering', 'Ordering');
-    const frame = makeFrame('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-    const flow = makeFlow('flow-order', 'Order Flow', [frame], []);
+    const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+    const flow = makeFlow('flow-order', 'Order Flow', [moment], []);
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     const policy = new DeriveOnSpecificationParsed();
@@ -116,13 +121,13 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 2: Fresh topology produced on each invocation (different IR -> different topology)
   it('produces different topologies for different IRs', async () => {
     const ctxA = makeContext('ctx-a', 'Context A');
-    const frameA = makeFrame('fr-a', 'Frame A', 'ctx-a', 'CommandA');
-    const flowA = makeFlow('flow-a', 'Flow A', [frameA], []);
+    const momentA = makeMoment('fr-a', 'Moment A', 'ctx-a', 'CommandA');
+    const flowA = makeFlow('flow-a', 'Flow A', [momentA], []);
     const irA = makeIR({ contexts: [ctxA], flows: [flowA] });
 
     const ctxB = makeContext('ctx-b', 'Context B');
-    const frameB = makeFrame('fr-b', 'Frame B', 'ctx-b', 'CommandB');
-    const flowB = makeFlow('flow-b', 'Flow B', [frameB], []);
+    const momentB = makeMoment('fr-b', 'Moment B', 'ctx-b', 'CommandB');
+    const flowB = makeFlow('flow-b', 'Flow B', [momentB], []);
     const irB = makeIR({ contexts: [ctxB], flows: [flowB] });
 
     const policy = new DeriveOnSpecificationParsed();
@@ -137,8 +142,8 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 3: onTopologyDerived hook is called with topology and IR
   it('calls onTopologyDerived hook with correct topology and IR', async () => {
     const ctx = makeContext('ctx-ordering', 'Ordering');
-    const frame = makeFrame('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-    const flow = makeFlow('flow-order', 'Order Flow', [frame], []);
+    const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+    const flow = makeFlow('flow-order', 'Order Flow', [moment], []);
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     let receivedTopology: TestSuiteTopology | undefined;
@@ -162,8 +167,8 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 4: Multiple hooks fire in parallel (Promise.all)
   it('fires multiple hooks in parallel', async () => {
     const ctx = makeContext('ctx-ordering', 'Ordering');
-    const frame = makeFrame('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-    const flow = makeFlow('flow-order', 'Order Flow', [frame], []);
+    const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+    const flow = makeFlow('flow-order', 'Order Flow', [moment], []);
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     const callOrder: number[] = [];
@@ -206,7 +211,7 @@ describe('DeriveOnSpecificationParsed', () => {
 
   // Test 5: Failed derivation (invalid IR) surfaces error
   it('surfaces error when derivation fails with invalid IR', async () => {
-    // IR with a flow missing the frames property will cause deriveTopology to throw
+    // IR with a flow missing the moments property will cause deriveTopology to throw
     const brokenFlow = { id: 'flow-broken', name: 'Broken' } as unknown as FlowDefinition;
     const brokenIr: IntermediateRepresentation = {
       contexts: [],
@@ -224,9 +229,9 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 6: Policy works with no hooks configured
   it('works correctly with no hooks configured', async () => {
     const ctx = makeContext('ctx-ordering', 'Ordering');
-    const frame = makeFrame('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+    const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
     const crossing = makeCrossingConnection('conn-ship', 'fr-place', 'ctx-shipping', 'OrderPlaced');
-    const flow = makeFlow('flow-order', 'Order Flow', [frame], [crossing]);
+    const flow = makeFlow('flow-order', 'Order Flow', [moment], [crossing]);
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     const policy = new DeriveOnSpecificationParsed();
@@ -240,8 +245,8 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 7: Policy works with empty hooks array
   it('works correctly with empty hooks array', async () => {
     const ctx = makeContext('ctx-ordering', 'Ordering');
-    const frame = makeFrame('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-    const flow = makeFlow('flow-order', 'Order Flow', [frame], []);
+    const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+    const flow = makeFlow('flow-order', 'Order Flow', [moment], []);
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     const policy = new DeriveOnSpecificationParsed({
@@ -257,8 +262,8 @@ describe('DeriveOnSpecificationParsed', () => {
   // Test 8: Hook errors propagate to caller
   it('propagates hook errors to the caller', async () => {
     const ctx = makeContext('ctx-ordering', 'Ordering');
-    const frame = makeFrame('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-    const flow = makeFlow('flow-order', 'Order Flow', [frame], []);
+    const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+    const flow = makeFlow('flow-order', 'Order Flow', [moment], []);
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     const failingHook: TopologyDerivedHook = async () => {

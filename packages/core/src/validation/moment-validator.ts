@@ -11,11 +11,11 @@ import type {
   MomentAstType,
   ContextCrossing,
   FlowDeclaration,
-  Frame,
+  Moment,
   LaneDeclaration,
   NodePlacement,
 } from '../generated/ast.js';
-import { isReturnsTo, isFrame, isFlowDeclaration, isTriggeredBy } from '../generated/ast.js';
+import { isReturnsTo, isMoment, isFlowDeclaration, isTriggeredBy } from '../generated/ast.js';
 
 // ---------------------------------------------------------------------------
 // Cross-file context interface
@@ -50,7 +50,7 @@ export function registerMomentValidationChecks(
   const registry = services.validation.ValidationRegistry;
   const validator = services.validation.MomentValidator;
   const checks: ValidationChecks<MomentAstType> = {
-    Frame: validator.checkFrame,
+    Moment: validator.checkMoment,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
@@ -67,7 +67,7 @@ export function registerMomentValidationChecks(
 }
 
 // ---------------------------------------------------------------------------
-// Helpers: walk the $container chain to find the enclosing Flow/Frame
+// Helpers: walk the $container chain to find the enclosing Flow/Moment
 // ---------------------------------------------------------------------------
 
 function getFlowFromNode(node: { $container?: unknown }): FlowDeclaration | undefined {
@@ -81,11 +81,11 @@ function getFlowFromNode(node: { $container?: unknown }): FlowDeclaration | unde
   return undefined;
 }
 
-function getFrameFromNode(node: { $container?: unknown }): Frame | undefined {
+function getMomentFromNode(node: { $container?: unknown }): Moment | undefined {
   let current: unknown = node;
   while (current) {
-    if (isFrame(current as Record<string, unknown>)) {
-      return current as Frame;
+    if (isMoment(current as Record<string, unknown>)) {
+      return current as Moment;
     }
     current = (current as { $container?: unknown }).$container;
   }
@@ -190,12 +190,12 @@ export class MomentValidator {
   }
 
   // =========================================================================
-  // V10: Frame with zero nodes AND zero whenBlocks -> error
+  // V10: Moment with zero nodes AND zero whenBlocks -> error
   // =========================================================================
-  checkFrame(frame: Frame, accept: ValidationAcceptor): void {
-    if (frame.nodes.length === 0 && frame.whenBlocks.length === 0) {
+  checkMoment(moment: Moment, accept: ValidationAcceptor): void {
+    if (moment.nodes.length === 0 && moment.whenBlocks.length === 0) {
       accept('error', 'V10: Frame must contain at least one node or when block.', {
-        node: frame,
+        node: moment,
         property: 'label',
       });
     }
@@ -206,8 +206,8 @@ export class MomentValidator {
   // =========================================================================
   checkReturnsToDepth(flow: FlowDeclaration, accept: ValidationAcceptor): void {
     let returnsToCount = 0;
-    for (const frame of flow.frames) {
-      returnsToCount += this.countReturnsToInFrame(frame);
+    for (const moment of flow.moments) {
+      returnsToCount += this.countReturnsToInMoment(moment);
     }
     if (returnsToCount > 1) {
       accept('warning', 'V17: Flow contains more than one returns-to connection.', {
@@ -287,12 +287,12 @@ export class MomentValidator {
   // V5: triggered-by must reference a node that appeared earlier in the flow
   checkV5(node: NodePlacement, accept: ValidationAcceptor): void {
     const flow = getFlowFromNode(node);
-    const frame = getFrameFromNode(node);
-    if (!flow || !frame) return;
+    const moment = getMomentFromNode(node);
+    if (!flow || !moment) return;
 
     for (const conn of node.connections) {
       if (!isTriggeredBy(conn)) continue;
-      const priorNames = this.collectPriorNodeNames(flow, frame);
+      const priorNames = this.collectPriorNodeNames(flow, moment);
       if (!priorNames.has(conn.nodeName)) {
         accept('error', 'V5: triggered-by must reference a node from a prior frame.', {
           node: conn,
@@ -374,12 +374,12 @@ export class MomentValidator {
 
   private checkReturnsToLabel(node: NodePlacement, accept: ValidationAcceptor): void {
     const flow = getFlowFromNode(node);
-    const frame = getFrameFromNode(node);
-    if (!flow || !frame) return;
+    const moment = getMomentFromNode(node);
+    if (!flow || !moment) return;
 
     for (const conn of node.connections) {
       if (!isReturnsTo(conn)) continue;
-      const priorLabels = this.collectPriorFrameLabels(flow, frame);
+      const priorLabels = this.collectPriorMomentLabels(flow, moment);
       if (!priorLabels.has(conn.frameLabel)) {
         accept('error', 'V6: returns-to references a non-existent prior frame label.', {
           node: conn,
@@ -391,12 +391,12 @@ export class MomentValidator {
 
   private checkTriggeredByPrior(node: NodePlacement, accept: ValidationAcceptor): void {
     const flow = getFlowFromNode(node);
-    const frame = getFrameFromNode(node);
-    if (!flow || !frame) return;
+    const moment = getMomentFromNode(node);
+    if (!flow || !moment) return;
 
     for (const conn of node.connections) {
       if (!isTriggeredBy(conn)) continue;
-      const priorNames = this.collectPriorNodeNames(flow, frame);
+      const priorNames = this.collectPriorNodeNames(flow, moment);
       if (!priorNames.has(conn.nodeName)) {
         accept('error', 'V5: triggered-by must reference a node from a prior frame.', {
           node: conn,
@@ -413,23 +413,23 @@ export class MomentValidator {
     this.checkV11(node, accept, this.crossFileContext);
   }
 
-  private collectPriorFrameLabels(flow: FlowDeclaration, currentFrame: Frame): Set<string> {
+  private collectPriorMomentLabels(flow: FlowDeclaration, currentMoment: Moment): Set<string> {
     const labels = new Set<string>();
-    for (const frame of flow.frames) {
-      if (frame === currentFrame) break;
-      labels.add(frame.label);
+    for (const moment of flow.moments) {
+      if (moment === currentMoment) break;
+      labels.add(moment.label);
     }
     return labels;
   }
 
-  private collectPriorNodeNames(flow: FlowDeclaration, currentFrame: Frame): Set<string> {
+  private collectPriorNodeNames(flow: FlowDeclaration, currentMoment: Moment): Set<string> {
     const names = new Set<string>();
-    for (const frame of flow.frames) {
-      if (frame === currentFrame) break;
-      for (const n of frame.nodes) {
+    for (const moment of flow.moments) {
+      if (moment === currentMoment) break;
+      for (const n of moment.nodes) {
         names.add(n.nodeName);
       }
-      for (const wb of frame.whenBlocks) {
+      for (const wb of moment.whenBlocks) {
         for (const n of wb.nodes) {
           names.add(n.nodeName);
         }
@@ -438,14 +438,14 @@ export class MomentValidator {
     return names;
   }
 
-  private countReturnsToInFrame(frame: Frame): number {
+  private countReturnsToInMoment(moment: Moment): number {
     let count = 0;
-    for (const node of frame.nodes) {
+    for (const node of moment.nodes) {
       for (const conn of node.connections) {
         if (isReturnsTo(conn)) count++;
       }
     }
-    for (const wb of frame.whenBlocks) {
+    for (const wb of moment.whenBlocks) {
       for (const node of wb.nodes) {
         for (const conn of node.connections) {
           if (isReturnsTo(conn)) count++;
@@ -457,11 +457,11 @@ export class MomentValidator {
 
   private collectReferencedLaneIds(flow: FlowDeclaration): Set<string> {
     const ids = new Set<string>();
-    for (const frame of flow.frames) {
-      for (const node of frame.nodes) {
+    for (const moment of flow.moments) {
+      for (const node of moment.nodes) {
         ids.add(node.laneId);
       }
-      for (const wb of frame.whenBlocks) {
+      for (const wb of moment.whenBlocks) {
         for (const node of wb.nodes) {
           ids.add(node.laneId);
         }
@@ -472,13 +472,13 @@ export class MomentValidator {
 
   private collectPartnershipCrossings(flow: FlowDeclaration): ContextCrossing[] {
     const crossings: ContextCrossing[] = [];
-    for (const frame of flow.frames) {
-      for (const node of frame.nodes) {
+    for (const moment of flow.moments) {
+      for (const node of moment.nodes) {
         if (node.crossing?.relationshipType === 'Partnership') {
           crossings.push(node.crossing);
         }
       }
-      for (const wb of frame.whenBlocks) {
+      for (const wb of moment.whenBlocks) {
         for (const node of wb.nodes) {
           if (node.crossing?.relationshipType === 'Partnership') {
             crossings.push(node.crossing);
@@ -503,11 +503,11 @@ export class MomentValidator {
       );
     };
 
-    for (const frame of flow.frames) {
-      for (const node of frame.nodes) {
+    for (const moment of flow.moments) {
+      for (const node of moment.nodes) {
         if (checkNode(node)) return true;
       }
-      for (const wb of frame.whenBlocks) {
+      for (const wb of moment.whenBlocks) {
         for (const node of wb.nodes) {
           if (checkNode(node)) return true;
         }

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type {
   IntermediateRepresentation,
   FlowDefinition,
-  FrameDefinition,
+  MomentDefinition,
   ConnectionDefinition,
 } from '@mmmnt/core';
 import type {
@@ -31,7 +31,7 @@ export function deriveTopology(
 }
 
 function deriveTestSuite(flow: FlowDefinition): TestSuiteDefinition {
-  const testCases = flow.frames.flatMap((frame) => deriveTestCases(frame, flow.connections));
+  const testCases = flow.moments.flatMap((moment) => deriveTestCases(moment, flow.connections));
 
   const contextsCovered = collectContextIds(flow);
 
@@ -44,25 +44,25 @@ function deriveTestSuite(flow: FlowDefinition): TestSuiteDefinition {
 }
 
 function deriveTestCases(
-  frame: FrameDefinition,
+  moment: MomentDefinition,
   connections: ConnectionDefinition[],
 ): TestCaseDefinition[] {
   const crossings = connections.filter(
     (c): c is ConnectionDefinition & { connectionType: 'crosses-to' } =>
-      c.sourceFrameId === frame.id && c.connectionType === 'crosses-to',
+      c.sourceMomentId === moment.id && c.connectionType === 'crosses-to',
   );
 
-  const assertions = crossings.map((conn) => mapCrossingToAssertion(conn, frame));
+  const assertions = crossings.map((conn) => mapCrossingToAssertion(conn, moment));
 
   const baseCase: TestCaseDefinition = {
-    frameId: frame.id,
-    frameName: frame.name,
+    momentId: moment.id,
+    momentName: moment.name,
     assertions,
     setupSteps: [],
   };
 
-  if (frame.branches && frame.branches.length > 0) {
-    return frame.branches.map((branch) => ({
+  if (moment.branches && moment.branches.length > 0) {
+    return moment.branches.map((branch) => ({
       ...baseCase,
       variant: branch.condition,
     }));
@@ -73,10 +73,10 @@ function deriveTestCases(
 
 function resolveSourceContextId(
   conn: ConnectionDefinition & { connectionType: 'crosses-to' },
-  frame: FrameDefinition,
+  moment: MomentDefinition,
 ): string {
-  const branchEntries = (frame.branches ?? []).flatMap((b) => b.entries);
-  const allEntries = [...frame.contextEntries, ...branchEntries];
+  const branchEntries = (moment.branches ?? []).flatMap((b) => b.entries);
+  const allEntries = [...moment.contextEntries, ...branchEntries];
 
   // Single context — unambiguous
   if (allEntries.length === 1) {
@@ -101,9 +101,9 @@ function resolveSourceContextId(
 
 function mapCrossingToAssertion(
   conn: ConnectionDefinition & { connectionType: 'crosses-to' },
-  frame: FrameDefinition,
+  moment: MomentDefinition,
 ): AssertionPoint {
-  const sourceContextId = resolveSourceContextId(conn, frame);
+  const sourceContextId = resolveSourceContextId(conn, moment);
   const targetContextId = conn.targetContextId;
   const { schemaContract } = conn;
 
@@ -127,11 +127,11 @@ function mapCrossingToAssertion(
 
 function collectContextIds(flow: FlowDefinition): string[] {
   const ids = new Set<string>();
-  for (const frame of flow.frames) {
-    for (const entry of frame.contextEntries) {
+  for (const moment of flow.moments) {
+    for (const entry of moment.contextEntries) {
       ids.add(entry.contextId);
     }
-    for (const branch of frame.branches ?? []) {
+    for (const branch of moment.branches ?? []) {
       for (const entry of branch.entries) {
         ids.add(entry.contextId);
       }

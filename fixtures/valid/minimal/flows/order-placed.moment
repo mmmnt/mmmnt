@@ -4,14 +4,14 @@ flow "order-placed"
   lane ordering "Ordering" [Core]
   lane fulfillment "Fulfillment" [Supporting]
 
-  frame "Order submission"
+  moment "Order submission"
     ordering: PlaceOrder
     ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
       contract
         orderId: UUID [required]
         items: OrderItem[] [required]
 
-  frame "Fulfillment initiation"
+  moment "Fulfillment initiation"
     fulfillment: InitiateFulfillment
       triggered-by OrderPlaced
     fulfillment: FulfillmentInitiated

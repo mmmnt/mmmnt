@@ -86,8 +86,8 @@ function makeSetupStep(
 }
 
 function makeTestCase(
-  frameId: string,
-  frameName: string,
+  momentId: string,
+  momentName: string,
   opts: {
     assertions?: AssertionPoint[];
     setupSteps?: SetupStep[];
@@ -95,8 +95,8 @@ function makeTestCase(
   } = {},
 ): TestCaseDefinition {
   return {
-    frameId,
-    frameName,
+    momentId,
+    momentName,
     assertions: opts.assertions ?? [],
     setupSteps: opts.setupSteps ?? [],
     variant: opts.variant,
@@ -159,8 +159,8 @@ describe('GenerateGherkinOnTopologyDerived', () => {
 
   // 2. GenerationManifest includes .feature files + markdown docs
   it('GenerationManifest includes .feature files and markdown docs', () => {
-    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('fr1', 'Frame A')]);
-    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Frame B')]);
+    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('fr1', 'Moment A')]);
+    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Moment B')]);
     const topology = makeTopology([suiteA, suiteB]);
     const ir = makeIR({
       contexts: [makeContext('Sales')],
@@ -203,7 +203,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
 
   // 4. Works as a hook from DeriveOnSpecificationParsed (callable interface)
   it('works as a TopologyDerivedHook callback via handle method', () => {
-    const suite = makeSuite('f1', 'Hook Flow', [makeTestCase('fr1', 'Frame 1')]);
+    const suite = makeSuite('f1', 'Hook Flow', [makeTestCase('fr1', 'Moment 1')]);
     const topology = makeTopology([suite]);
     const ir = makeIR({
       contexts: [makeContext('Payments')],
@@ -223,7 +223,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
 
   // 5. Empty IR (no contexts) with topology produces features but no docs
   it('empty IR with topology produces features but no docs', () => {
-    const suite = makeSuite('f1', 'Lonely Flow', [makeTestCase('fr1', 'Frame 1')]);
+    const suite = makeSuite('f1', 'Lonely Flow', [makeTestCase('fr1', 'Moment 1')]);
     const topology = makeTopology([suite]);
     const ir = makeIR(); // no contexts
 

@@ -22,9 +22,9 @@ function makeIR(overrides: Partial<IntermediateRepresentation> = {}): Intermedia
       {
         id: 'flow-1',
         name: 'Place Order',
-        frames: [
+        moments: [
           {
-            id: 'frame-1',
+            id: 'moment-1',
             name: 'Accept Order',
             contextEntries: [
               { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
@@ -49,7 +49,7 @@ describe('FlowTimelineRenderer', () => {
     expect(layout.lanes).toHaveLength(1);
     expect(layout.lanes[0].contextId).toBe('ctx-ordering');
     expect(layout.entries).toHaveLength(1);
-    expect(layout.entries[0].frameId).toBe('frame-1');
+    expect(layout.entries[0].momentId).toBe('moment-1');
     expect(layout.entries[0].x).toBeGreaterThan(0);
     expect(layout.entries[0].width).toBeGreaterThan(0);
     expect(layout.connections).toHaveLength(0);
@@ -101,23 +101,23 @@ describe('FlowTimelineRenderer', () => {
         {
           id: 'flow-1',
           name: 'Full Order',
-          frames: [
+          moments: [
             {
-              id: 'frame-1',
+              id: 'moment-1',
               name: 'Order',
               contextEntries: [
                 { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
               ],
             },
             {
-              id: 'frame-2',
+              id: 'moment-2',
               name: 'Ship',
               contextEntries: [
                 { contextId: 'ctx-shipping', nodeName: 'ShipOrder', nodeKind: 'command' as const },
               ],
             },
             {
-              id: 'frame-3',
+              id: 'moment-3',
               name: 'Bill',
               contextEntries: [
                 {
@@ -179,16 +179,16 @@ describe('FlowTimelineRenderer', () => {
         {
           id: 'flow-1',
           name: 'Order to Ship',
-          frames: [
+          moments: [
             {
-              id: 'frame-1',
+              id: 'moment-1',
               name: 'Order',
               contextEntries: [
                 { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
               ],
             },
             {
-              id: 'frame-2',
+              id: 'moment-2',
               name: 'Ship',
               contextEntries: [
                 { contextId: 'ctx-shipping', nodeName: 'ShipOrder', nodeKind: 'command' as const },
@@ -198,7 +198,7 @@ describe('FlowTimelineRenderer', () => {
           connections: [
             {
               id: 'conn-1',
-              sourceFrameId: 'frame-1',
+              sourceMomentId: 'moment-1',
               targetContextId: 'ctx-shipping',
               eventId: 'evt-order-placed',
               connectionType: 'crosses-to' as const,
@@ -216,7 +216,7 @@ describe('FlowTimelineRenderer', () => {
     const layout = renderTimeline(ir);
 
     expect(layout.connections).toHaveLength(1);
-    expect(layout.connections[0].sourceFrameId).toBe('frame-1');
+    expect(layout.connections[0].sourceMomentId).toBe('moment-1');
     expect(layout.connections[0].targetContextId).toBe('ctx-shipping');
     // Source and target lanes have different Y
     expect(layout.connections[0].sourceLaneY).not.toBe(layout.connections[0].targetLaneY);
@@ -259,7 +259,7 @@ describe('FlowTimelineRenderer', () => {
     expect(layout.dimensions.height).toBe(0);
   });
 
-  it('handles crossing with missing source frame gracefully', () => {
+  it('handles crossing with missing source moment gracefully', () => {
     const ir = makeIR({
       contexts: [
         {
@@ -291,9 +291,9 @@ describe('FlowTimelineRenderer', () => {
         {
           id: 'flow-1',
           name: 'Test',
-          frames: [
+          moments: [
             {
-              id: 'frame-1',
+              id: 'moment-1',
               name: 'F1',
               contextEntries: [],
             },
@@ -301,7 +301,7 @@ describe('FlowTimelineRenderer', () => {
           connections: [
             {
               id: 'conn-1',
-              sourceFrameId: 'frame-1',
+              sourceMomentId: 'moment-1',
               targetContextId: 'ctx-b',
               eventId: 'evt-1',
               connectionType: 'crosses-to' as const,
@@ -318,7 +318,7 @@ describe('FlowTimelineRenderer', () => {
 
     const layout = renderTimeline(ir);
 
-    // Fallback: source frame has no context entries → uses targetContextId
+    // Fallback: source moment has no context entries → uses targetContextId
     expect(layout.connections).toHaveLength(1);
   });
 });

@@ -132,10 +132,10 @@ describe('SiftSpecificationImporter', () => {
     expect(content).toContain('description "Order triggers fulfillment"');
     expect(content).toContain('lane ordering "Ordering" [Core]');
     expect(content).toContain('lane fulfillment "Fulfillment" [Supporting]');
-    expect(content).toContain('frame "Order submission"');
+    expect(content).toContain('moment "Order submission"');
     expect(content).toContain('ordering: PlaceOrder');
     expect(content).toContain('ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier');
-    expect(content).toContain('frame "Fulfillment initiation"');
+    expect(content).toContain('moment "Fulfillment initiation"');
     expect(content).toContain('fulfillment: InitiateFulfillment');
   });
 

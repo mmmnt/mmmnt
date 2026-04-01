@@ -71,8 +71,8 @@ function makeSetupStep(
 }
 
 function makeTestCase(
-  frameId: string,
-  frameName: string,
+  momentId: string,
+  momentName: string,
   opts: {
     assertions?: AssertionPoint[];
     setupSteps?: SetupStep[];
@@ -80,8 +80,8 @@ function makeTestCase(
   } = {},
 ): TestCaseDefinition {
   return {
-    frameId,
-    frameName,
+    momentId,
+    momentName,
     assertions: opts.assertions ?? [],
     setupSteps: opts.setupSteps ?? [],
     variant: opts.variant,
@@ -117,7 +117,7 @@ describe('GherkinGenerator', () => {
 
   // 1. Single flow -> one .feature file with correct Feature title
   it('single flow produces one .feature file with correct Feature title', () => {
-    const suite = makeSuite('f1', 'Place Order', [makeTestCase('fr1', 'Accept Order')]);
+    const suite = makeSuite('f1', 'Place Order', [makeTestCase('mo1', 'Accept Order')]);
     const topology = makeTopology([suite]);
     const ir = makeIR();
 
@@ -130,9 +130,9 @@ describe('GherkinGenerator', () => {
 
   // 2. Multiple flows -> one .feature per flow (GN-01)
   it('multiple flows produce one .feature per flow (GN-01)', () => {
-    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('fr1', 'Frame A')]);
-    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Frame B')]);
-    const suiteC = makeSuite('f3', 'Flow Gamma', [makeTestCase('fr3', 'Frame C')]);
+    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('mo1', 'Moment A')]);
+    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('mo2', 'Moment B')]);
+    const suiteC = makeSuite('f3', 'Flow Gamma', [makeTestCase('mo3', 'Moment C')]);
     const topology = makeTopology([suiteA, suiteB, suiteC]);
     const ir = makeIR();
 
@@ -144,9 +144,9 @@ describe('GherkinGenerator', () => {
     expect(manifest.featuresGenerated[2].flowId).toBe('f3');
   });
 
-  // 3. Frame -> Scenario with frame name
-  it('frame produces Scenario with frame name', () => {
-    const suite = makeSuite('f1', 'Order Flow', [makeTestCase('fr1', 'Accept Order')]);
+  // 3. Moment -> Scenario with moment name
+  it('moment produces Scenario with moment name', () => {
+    const suite = makeSuite('f1', 'Order Flow', [makeTestCase('mo1', 'Accept Order')]);
     const topology = makeTopology([suite]);
     const ir = makeIR();
 
@@ -210,7 +210,7 @@ describe('GherkinGenerator', () => {
   // 7. Crossing assertion points -> cross-context verification Then steps
   it('crossing assertion points produce cross-context verification steps', () => {
     const suite = makeSuite('f1', 'Cross Flow', [
-      makeTestCase('fr1', 'Cross Frame', {
+      makeTestCase('fr1', 'Cross Moment', {
         assertions: [
           makeAssertion('c1', 'Sales', 'Fulfillment', 'OrderAccepted', [
             makeFieldConstraint('orderId', 'string', true),
@@ -231,7 +231,7 @@ describe('GherkinGenerator', () => {
   // 8. Schema contract fields -> Examples table parameters
   it('schema contract fields produce Examples table parameters', () => {
     const suite = makeSuite('f1', 'Contract Flow', [
-      makeTestCase('fr1', 'Contract Frame', {
+      makeTestCase('fr1', 'Contract Moment', {
         assertions: [
           makeAssertion('c1', 'Ordering', 'Billing', 'OrderPlaced', [
             makeFieldConstraint('orderId', 'string', true),
@@ -256,7 +256,7 @@ describe('GherkinGenerator', () => {
   // 9. Deterministic: same input twice -> identical output
   it('deterministic: same input twice produces identical output', () => {
     const suite = makeSuite('f1', 'Deterministic Flow', [
-      makeTestCase('fr1', 'Frame 1', {
+      makeTestCase('fr1', 'Moment 1', {
         setupSteps: [makeSetupStep('Ctx', 'Agg', 'state is ready')],
         assertions: [
           makeAssertion('c1', 'Ctx', 'Other', 'SomeEvent', [
@@ -264,7 +264,7 @@ describe('GherkinGenerator', () => {
           ]),
         ],
       }),
-      makeTestCase('fr2', 'Frame 2'),
+      makeTestCase('fr2', 'Moment 2'),
     ]);
     const topology = makeTopology([suite]);
     const ir = makeIR();
@@ -286,9 +286,9 @@ describe('GherkinGenerator', () => {
     expect(manifest.docsGenerated).toHaveLength(0);
   });
 
-  // 11. Flow with multiple frames -> multiple Scenarios
-  it('flow with multiple frames produces multiple Scenarios', () => {
-    const suite = makeSuite('f1', 'Multi Frame Flow', [
+  // 11. Flow with multiple moments -> multiple Scenarios
+  it('flow with multiple moments produces multiple Scenarios', () => {
+    const suite = makeSuite('f1', 'Multi Moment Flow', [
       makeTestCase('fr1', 'Step One'),
       makeTestCase('fr2', 'Step Two'),
       makeTestCase('fr3', 'Step Three'),
@@ -304,11 +304,11 @@ describe('GherkinGenerator', () => {
     expect(content).toContain('Scenario: Step Three');
   });
 
-  // 12. Branch frame -> multiple Scenarios for each branch (via variant)
-  it('branch frame produces multiple Scenarios for each branch variant', () => {
+  // 12. Branch moment -> multiple Scenarios for each branch (via variant)
+  it('branch moment produces multiple Scenarios for each branch variant', () => {
     const suite = makeSuite('f1', 'Branch Flow', [
-      makeTestCase('fr1', 'Decision Frame', { variant: 'order.amount > 100' }),
-      makeTestCase('fr1', 'Decision Frame', { variant: 'order.amount <= 100' }),
+      makeTestCase('fr1', 'Decision Moment', { variant: 'order.amount > 100' }),
+      makeTestCase('fr1', 'Decision Moment', { variant: 'order.amount <= 100' }),
     ]);
     const topology = makeTopology([suite]);
     const ir = makeIR();
@@ -316,18 +316,18 @@ describe('GherkinGenerator', () => {
     const manifest = generator.generate(ir, topology);
     const content = manifest.featuresGenerated[0].content;
 
-    expect(content).toContain('Scenario: Decision Frame [order.amount > 100]');
-    expect(content).toContain('Scenario: Decision Frame [order.amount <= 100]');
+    expect(content).toContain('Scenario: Decision Moment [order.amount > 100]');
+    expect(content).toContain('Scenario: Decision Moment [order.amount <= 100]');
     expect(manifest.featuresGenerated[0].scenarioCount).toBe(2);
   });
 
   // 13. GenerationManifest has correct scenarioCount
   it('GenerationManifest has correct scenarioCount', () => {
     const suite = makeSuite('f1', 'Count Flow', [
-      makeTestCase('fr1', 'Frame A'),
-      makeTestCase('fr2', 'Frame B'),
-      makeTestCase('fr3', 'Frame C'),
-      makeTestCase('fr4', 'Frame D'),
+      makeTestCase('fr1', 'Moment A'),
+      makeTestCase('fr2', 'Moment B'),
+      makeTestCase('fr3', 'Moment C'),
+      makeTestCase('fr4', 'Moment D'),
     ]);
     const topology = makeTopology([suite]);
     const ir = makeIR();
@@ -339,7 +339,7 @@ describe('GherkinGenerator', () => {
 
   // 14. Feature file path uses kebab-case
   it('feature file path uses kebab-case of flow name', () => {
-    const suite = makeSuite('f1', 'Place Order Flow', [makeTestCase('fr1', 'Frame 1')]);
+    const suite = makeSuite('f1', 'Place Order Flow', [makeTestCase('fr1', 'Moment 1')]);
     const topology = makeTopology([suite]);
     const ir = makeIR();
 
@@ -352,7 +352,7 @@ describe('GherkinGenerator', () => {
 describe('renderFeature (pure function)', () => {
   it('renders a complete feature file with Given/When/Then structure', () => {
     const suite = makeSuite('f1', 'Complete Flow', [
-      makeTestCase('fr1', 'Setup Frame', {
+      makeTestCase('fr1', 'Setup Moment', {
         setupSteps: [makeSetupStep('Ordering', 'Order', 'order is pending')],
         assertions: [
           makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced', [
@@ -365,7 +365,7 @@ describe('renderFeature (pure function)', () => {
     const content = renderFeature(suite);
 
     expect(content).toMatch(/^Feature: Complete Flow\n/);
-    expect(content).toContain('  Scenario: Setup Frame');
+    expect(content).toContain('  Scenario: Setup Moment');
     expect(content).toContain('    Given order is pending');
     expect(content).toContain('    When OrderPlaced crosses from Ordering to Shipping');
     expect(content).toContain('    Then OrderPlaced payload is valid');
@@ -375,7 +375,7 @@ describe('renderFeature (pure function)', () => {
 
   it('same-context assertion uses "is emitted" instead of "crosses from"', () => {
     const suite = makeSuite('f1', 'Same Context', [
-      makeTestCase('fr1', 'Internal Frame', {
+      makeTestCase('fr1', 'Internal Moment', {
         assertions: [makeAssertion('c1', 'Ordering', 'Ordering', 'OrderUpdated')],
       }),
     ]);
@@ -393,7 +393,7 @@ describe('Gherkin syntax validation (@cucumber/gherkin)', () => {
     const { IdGenerator } = await import('@cucumber/messages');
 
     const suite = makeSuite('f1', 'Valid Flow', [
-      makeTestCase('fr1', 'Step Frame', {
+      makeTestCase('fr1', 'Step Moment', {
         setupSteps: [makeSetupStep('Ordering', 'Order', 'order exists')],
         assertions: [makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced')],
       }),

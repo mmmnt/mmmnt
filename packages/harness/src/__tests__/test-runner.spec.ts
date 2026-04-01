@@ -39,16 +39,16 @@ function makeIR(overrides: Partial<IntermediateRepresentation> = {}): Intermedia
       {
         id: 'flow-1',
         name: 'Place Order',
-        frames: [
+        moments: [
           {
-            id: 'frame-1',
+            id: 'moment-1',
             name: 'Accept Order',
             contextEntries: [
               { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
             ],
           },
           {
-            id: 'frame-2',
+            id: 'moment-2',
             name: 'Ship Order',
             contextEntries: [
               { contextId: 'ctx-shipping', nodeName: 'ShipOrder', nodeKind: 'command' as const },
@@ -77,8 +77,8 @@ function makeTopology(overrides: Partial<TestSuiteTopology> = {}): TestSuiteTopo
         contextsCovered: ['Ordering', 'Shipping'],
         testCases: [
           {
-            frameId: 'frame-1',
-            frameName: 'Accept Order',
+            momentId: 'moment-1',
+            momentName: 'Accept Order',
             setupSteps: [
               { contextName: 'Ordering', aggregateName: 'Order', precondition: 'order exists' },
             ],
@@ -93,8 +93,8 @@ function makeTopology(overrides: Partial<TestSuiteTopology> = {}): TestSuiteTopo
             ],
           },
           {
-            frameId: 'frame-2',
-            frameName: 'Ship Order',
+            momentId: 'moment-2',
+            momentName: 'Ship Order',
             setupSteps: [],
             assertions: [],
           },
@@ -170,8 +170,8 @@ describe('TestRunner', () => {
           contextsCovered: ['Ordering'],
           testCases: [
             {
-              frameId: 'nonexistent-frame',
-              frameName: 'Ghost Frame',
+              momentId: 'nonexistent-frame',
+              momentName: 'Ghost Frame',
               setupSteps: [],
               assertions: [],
             },
@@ -197,8 +197,8 @@ describe('TestRunner', () => {
           contextsCovered: [],
           testCases: [
             {
-              frameId: 'frame-x',
-              frameName: 'Skipped Frame',
+              momentId: 'moment-x',
+              momentName: 'Skipped Frame',
               setupSteps: [],
               assertions: [],
             },
@@ -234,7 +234,7 @@ describe('TestRunner', () => {
         {
           id: 'flow-1',
           name: 'Place Order',
-          frames: [{ id: 'frame-1', name: 'Accept', contextEntries: [] }],
+          moments: [{ id: 'moment-1', name: 'Accept', contextEntries: [] }],
           connections: [],
         },
       ],
@@ -247,8 +247,8 @@ describe('TestRunner', () => {
           contextsCovered: [],
           testCases: [
             {
-              frameId: 'frame-1',
-              frameName: 'Accept',
+              momentId: 'moment-1',
+              momentName: 'Accept',
               setupSteps: [
                 { contextName: 'NonExistent', aggregateName: 'Agg', precondition: 'exists' },
               ],
@@ -283,7 +283,7 @@ describe('TestRunner', () => {
         {
           id: 'flow-1',
           name: 'Place Order',
-          frames: [{ id: 'frame-1', name: 'Accept', contextEntries: [] }],
+          moments: [{ id: 'moment-1', name: 'Accept', contextEntries: [] }],
           connections: [],
         },
       ],
@@ -296,8 +296,8 @@ describe('TestRunner', () => {
           contextsCovered: [],
           testCases: [
             {
-              frameId: 'frame-1',
-              frameName: 'Accept',
+              momentId: 'moment-1',
+              momentName: 'Accept',
               setupSteps: [],
               assertions: [
                 {
@@ -325,11 +325,11 @@ describe('TestRunner', () => {
     const result = runner.run(topology, ir);
 
     // First test case has an assertion → traceability maps to crossingId
-    const testId1 = 'flow-1::frame-1';
+    const testId1 = 'flow-1::moment-1';
     expect(result.traceabilityMap[testId1]).toBe('crossing-1');
 
     // Second test case has no assertions → maps to flowId/frameId
-    const testId2 = 'flow-1::frame-2';
-    expect(result.traceabilityMap[testId2]).toBe('flow-1/frame-2');
+    const testId2 = 'flow-1::moment-2';
+    expect(result.traceabilityMap[testId2]).toBe('flow-1/moment-2');
   });
 });

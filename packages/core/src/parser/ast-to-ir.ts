@@ -8,7 +8,7 @@ import type {
   DomainServiceDeclaration,
   FieldDeclaration,
   FlowDeclaration,
-  Frame,
+  Moment,
   InputField,
   InvariantDeclaration,
   MomentFile,
@@ -46,8 +46,8 @@ import type {
   PolicyDefinition,
   SagaDefinition,
   FlowDefinition,
-  FrameDefinition,
-  FrameEntry,
+  MomentDefinition,
+  MomentEntry,
   BranchDefinition,
   ConnectionDefinition,
   SchemaContract,
@@ -263,30 +263,30 @@ function transformFlow(flow: FlowDeclaration): FlowDefinition {
     id: `flow-${name}`,
     name,
     description: flow.description ? unquote(flow.description) : undefined,
-    frames: flow.frames.map((frame, idx) => transformFrame(frame, idx, laneContextMap)),
+    moments: flow.moments.map((moment, idx) => transformMoment(moment, idx, laneContextMap)),
     connections: extractConnections(flow, laneContextMap),
   };
 }
 
-function transformFrame(
-  frame: Frame,
+function transformMoment(
+  moment: Moment,
   index: number,
   laneContextMap?: Map<string, string>,
-): FrameDefinition {
-  const name = unquote(frame.label);
-  const contextEntries: FrameEntry[] = frame.nodes.map((n) =>
+): MomentDefinition {
+  const name = unquote(moment.label);
+  const contextEntries: MomentEntry[] = moment.nodes.map((n) =>
     transformNodeToEntry(n, laneContextMap),
   );
 
   const branches: BranchDefinition[] | undefined =
-    frame.whenBlocks.length > 0
-      ? frame.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap))
+    moment.whenBlocks.length > 0
+      ? moment.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap))
       : undefined;
 
   const hasTerminal = contextEntries.some((e) => e.terminal === true);
 
   return {
-    id: `frame-${index}-${name.replace(/\s+/g, '-')}`,
+    id: `moment-${index}-${name.replace(/\s+/g, '-')}`,
     name,
     contextEntries,
     branches,
@@ -307,9 +307,9 @@ function transformWhenBlock(
 function transformNodeToEntry(
   node: NodePlacement,
   laneContextMap?: Map<string, string>,
-): FrameEntry {
+): MomentEntry {
   const contextId = laneContextMap?.get(node.laneId) ?? node.laneId;
-  const entry: FrameEntry = {
+  const entry: MomentEntry = {
     contextId,
     nodeName: node.nodeName,
     nodeKind: 'event', // Default — kind resolution requires cross-file context (MMNT-27)
@@ -339,9 +339,9 @@ function extractConnections(
 
   const resolveCtx = (laneId: string): string => laneContextMap?.get(laneId) ?? laneId;
 
-  for (let frameIdx = 0; frameIdx < flow.frames.length; frameIdx++) {
-    const frame = flow.frames[frameIdx];
-    const frameId = `frame-${frameIdx}-${unquote(frame.label).replace(/\s+/g, '-')}`;
+  for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
+    const moment = flow.moments[momentIdx];
+    const momentId = `moment-${momentIdx}-${unquote(moment.label).replace(/\s+/g, '-')}`;
 
     const processNode = (node: NodePlacement): void => {
       // Context crossing -> crosses-to connection
@@ -349,7 +349,7 @@ function extractConnections(
         const contract = transformCrossingToContract(node);
         connections.push({
           id: `conn-${connectionCounter++}`,
-          sourceFrameId: frameId,
+          sourceMomentId: momentId,
           targetContextId: resolveCtx(node.crossing.targetLaneId),
           eventId: `evt-${node.nodeName}`,
           connectionType: 'crosses-to',
@@ -362,7 +362,7 @@ function extractConnections(
         if (isTriggeredBy(conn)) {
           connections.push({
             id: `conn-${connectionCounter++}`,
-            sourceFrameId: frameId,
+            sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${conn.nodeName}`,
             connectionType: 'triggered-by',
@@ -370,7 +370,7 @@ function extractConnections(
         } else if (isTriggers(conn)) {
           connections.push({
             id: `conn-${connectionCounter++}`,
-            sourceFrameId: frameId,
+            sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${conn.nodeName}`,
             connectionType: 'triggers',
@@ -378,21 +378,21 @@ function extractConnections(
         } else if (isReturnsTo(conn)) {
           connections.push({
             id: `conn-${connectionCounter++}`,
-            sourceFrameId: frameId,
+            sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${node.nodeName}`,
             connectionType: 'returns-to',
-            targetFrameLabel: unquote(conn.frameLabel),
+            targetMomentLabel: unquote(conn.frameLabel),
           });
         }
       }
     };
 
-    for (const node of frame.nodes) {
+    for (const node of moment.nodes) {
       processNode(node);
     }
 
-    for (const when of frame.whenBlocks) {
+    for (const when of moment.whenBlocks) {
       for (const node of when.nodes) {
         processNode(node);
       }

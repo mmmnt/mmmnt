@@ -72,8 +72,8 @@ function makeAssertionPoint(overrides: Partial<AssertionPoint> = {}): AssertionP
 
 function makeTestCase(overrides: Partial<TestCaseDefinition> = {}): TestCaseDefinition {
   return {
-    frameId: 'frame-1',
-    frameName: 'Order Placement',
+    momentId: 'moment-1',
+    momentName: 'Order Placement',
     assertions: [makeAssertionPoint()],
     setupSteps: [makeSetupStep()],
     ...overrides,

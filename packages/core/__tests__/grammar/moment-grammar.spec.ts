@@ -242,7 +242,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
       flow "order-placed"
         description "Order triggers fulfillment"
         lane ordering "Ordering" [Core]
-        frame "Step 1"
+        moment "Step 1"
           ordering: PlaceOrder
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
@@ -256,7 +256,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
       flow "test"
         lane ordering "Ordering" [Core]
         lane shipping "Shipping" [Supporting]
-        frame "Step"
+        moment "Step"
           ordering: DoSomething
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
@@ -273,7 +273,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
       flow "test"
         lane main "Main" [Core]
         branch-lane errors "Errors" [Terminal]
-        frame "Step"
+        moment "Step"
           main: DoSomething
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
@@ -287,30 +287,30 @@ describe('Moment Grammar > Temporal Constructs', () => {
     const doc = await parse(`
       flow "test"
         lane ordering "Ordering" [Core]
-        frame "Order submission"
+        moment "Order submission"
           ordering: PlaceOrder
           ordering: OrderPlaced
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
     const flow = doc.parseResult.value.flows[0];
-    expect(flow.frames).toHaveLength(1);
-    expect(flow.frames[0].label).toBe('Order submission');
-    expect(flow.frames[0].nodes).toHaveLength(2);
-    expect(flow.frames[0].nodes[0].laneId).toBe('ordering');
-    expect(flow.frames[0].nodes[0].nodeName).toBe('PlaceOrder');
+    expect(flow.moments).toHaveLength(1);
+    expect(flow.moments[0].label).toBe('Order submission');
+    expect(flow.moments[0].nodes).toHaveLength(2);
+    expect(flow.moments[0].nodes[0].laneId).toBe('ordering');
+    expect(flow.moments[0].nodes[0].nodeName).toBe('PlaceOrder');
   });
 
   it('parses node modifiers: multiplicity, optional, terminal', async () => {
     const doc = await parse(`
       flow "test"
         lane main "Main" [Core]
-        frame "Modifiers"
+        moment "Modifiers"
           main: EventA (×3)
           main: EventB [optional]
           main: EventC [terminal]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const nodes = doc.parseResult.value.flows[0].frames[0].nodes;
+    const nodes = doc.parseResult.value.flows[0].moments[0].nodes;
     expect(nodes).toHaveLength(3);
     expect(nodes[0].multiplicity?.count).toBe(3);
     expect(nodes[1].modifier?.type).toBe('optional');
@@ -325,14 +325,14 @@ describe('Moment Grammar > Temporal Constructs', () => {
       flow "test"
         lane ordering "Ordering" [Core]
         lane fulfillment "Fulfillment" [Supporting]
-        frame "Crossing"
+        moment "Crossing"
           ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
             contract
               orderId: UUID [required]
               items: OrderItem[]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flows[0].frames[0].nodes[0];
+    const node = doc.parseResult.value.flows[0].moments[0].nodes[0];
     expect(node.crossing).toBeDefined();
     expect(node.crossing!.targetLaneId).toBe('fulfillment');
     expect(node.crossing!.relationshipType).toBe('CustomerSupplier');
@@ -344,7 +344,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
       flow "test"
         lane a "A" [Core]
         lane b "B" [Supporting]
-        frame "Contract"
+        moment "Contract"
           a: Event crosses-to b via Partnership
             contract
               id: UUID [required]
@@ -352,7 +352,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
               items: Item[] [required]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const fields = doc.parseResult.value.flows[0].frames[0].nodes[0].crossing!.fields;
+    const fields = doc.parseResult.value.flows[0].moments[0].nodes[0].crossing!.fields;
     expect(fields).toHaveLength(3);
     expect(fields[0].required).toBe(true);
     expect(fields[1].required).toBeFalsy();
@@ -364,12 +364,12 @@ describe('Moment Grammar > Temporal Constructs', () => {
     const doc = await parse(`
       flow "test"
         lane a "A" [Core]
-        frame "Step"
+        moment "Step"
           a: DoSomething
             triggered-by PriorEvent
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flows[0].frames[0].nodes[0];
+    const node = doc.parseResult.value.flows[0].moments[0].nodes[0];
     expect(node.connections).toHaveLength(1);
     expect(node.connections[0].$type).toBe('TriggeredBy');
   });
@@ -378,12 +378,12 @@ describe('Moment Grammar > Temporal Constructs', () => {
     const doc = await parse(`
       flow "test"
         lane a "A" [Core]
-        frame "Step"
+        moment "Step"
           a: SomeEvent
             triggers DownstreamProcess
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flows[0].frames[0].nodes[0];
+    const node = doc.parseResult.value.flows[0].moments[0].nodes[0];
     expect(node.connections).toHaveLength(1);
     expect(node.connections[0].$type).toBe('Triggers');
   });
@@ -392,14 +392,14 @@ describe('Moment Grammar > Temporal Constructs', () => {
     const doc = await parse(`
       flow "test"
         lane a "A" [Core]
-        frame "Step 1"
+        moment "Step 1"
           a: First
-        frame "Step 2"
+        moment "Step 2"
           a: Second
             returns-to "Step 1"
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const node = doc.parseResult.value.flows[0].frames[1].nodes[0];
+    const node = doc.parseResult.value.flows[0].moments[1].nodes[0];
     expect(node.connections).toHaveLength(1);
     expect(node.connections[0].$type).toBe('ReturnsTo');
   });
@@ -412,14 +412,14 @@ describe('Moment Grammar > Temporal Constructs', () => {
       flow "test"
         lane main "Main" [Core]
         lane errors "Errors" [Supporting]
-        frame "Outcome" [branch]
+        moment "Outcome" [branch]
           when success
             main: SuccessEvent
           when failure
             errors: FailureEvent [terminal]
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const frame = doc.parseResult.value.flows[0].frames[0];
+    const frame = doc.parseResult.value.flows[0].moments[0];
     expect(frame.isBranch).toBe(true);
     expect(frame.whenBlocks).toHaveLength(2);
     expect(frame.whenBlocks[0].condition).toBe('success');
@@ -432,7 +432,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
         lane a "A" [Core]
         lane b "B" [Supporting]
         lane c "C" [Generic]
-        frame "Three-way" [branch]
+        moment "Three-way" [branch]
           when optionA
             a: EventA
           when optionB
@@ -441,7 +441,7 @@ describe('Moment Grammar > Temporal Constructs', () => {
             c: EventC
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const frame = doc.parseResult.value.flows[0].frames[0];
+    const frame = doc.parseResult.value.flows[0].moments[0];
     expect(frame.whenBlocks).toHaveLength(3);
   });
 });
@@ -494,7 +494,7 @@ describe('Moment Grammar > Sample File Acceptance', () => {
     expect(doc.parseResult.parserErrors).toHaveLength(0);
     expect(doc.parseResult.value.flows).toHaveLength(1);
     expect(doc.parseResult.value.flows[0].lanes.length).toBeGreaterThanOrEqual(3);
-    expect(doc.parseResult.value.flows[0].frames.length).toBeGreaterThanOrEqual(4);
+    expect(doc.parseResult.value.flows[0].moments.length).toBeGreaterThanOrEqual(4);
   });
 });
 
@@ -566,7 +566,7 @@ describe('Moment Grammar > Unified File (ADR-027)', () => {
 
       flow "middle-flow"
         lane a "First" [Core]
-        frame "Step"
+        moment "Step"
           a: SomeEvent crosses-to a via Partnership
             contract
               id: UUID [required]
@@ -641,7 +641,7 @@ describe('Moment Grammar > Generated Output', () => {
     // 11 temporal constructs
     expect(astContent).toContain('FlowDeclaration');
     expect(astContent).toContain('LaneDeclaration');
-    expect(astContent).toContain('Frame');
+    expect(astContent).toContain('Moment');
     expect(astContent).toContain('NodePlacement');
     expect(astContent).toContain('ContextCrossing');
     expect(astContent).toContain('TriggeredBy');

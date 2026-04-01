@@ -4,16 +4,16 @@ export type ConnectionType = 'crosses-to' | 'triggered-by' | 'triggers' | 'retur
 
 interface BaseConnectionDefinition {
   id: string;
-  sourceFrameId: string;
+  sourceMomentId: string;
   targetContextId: string;
   eventId: string;
   connectionType: Exclude<ConnectionType, 'crosses-to'>;
-  targetFrameLabel?: string;
+  targetMomentLabel?: string;
 }
 
 interface CrossingConnectionDefinition {
   id: string;
-  sourceFrameId: string;
+  sourceMomentId: string;
   targetContextId: string;
   eventId: string;
   connectionType: 'crosses-to';

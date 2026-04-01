@@ -6,7 +6,7 @@ flow "order-to-shipment"
   lane shipping "Shipping" [Supporting]
   branch-lane outOfStock "Out of Stock" [Terminal]
 
-  frame "Order placement"
+  moment "Order placement"
     ordering: PlaceOrder
     ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
       contract
@@ -14,12 +14,12 @@ flow "order-to-shipment"
         items: OrderItem[] [required]
         shippingAddress: Address [required]
 
-  frame "Inventory check"
+  moment "Inventory check"
     fulfillment: CheckInventory
       triggered-by OrderPlaced
     fulfillment: InventoryReserved (×N)
 
-  frame "Inventory check outcome" [branch]
+  moment "Inventory check outcome" [branch]
     when available
       fulfillment: FulfillmentReady crosses-to shipping via Partnership
         contract
@@ -28,12 +28,12 @@ flow "order-to-shipment"
     when unavailable
       outOfStock: BackorderCreated [terminal]
 
-  frame "Shipment creation"
+  moment "Shipment creation"
     shipping: CreateShipment
       triggered-by FulfillmentReady
     shipping: ShipmentCreated
 
-  frame "Dispatch"
+  moment "Dispatch"
     shipping: DispatchShipment
     shipping: ShipmentDispatched
     shipping: TrackingNumberAssigned [optional]

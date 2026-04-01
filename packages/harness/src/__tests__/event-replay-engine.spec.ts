@@ -48,16 +48,16 @@ function makeFlow(overrides: Partial<FlowDefinition> = {}): FlowDefinition {
   return {
     id: overrides.id ?? 'flow-1',
     name: overrides.name ?? 'Place Order',
-    frames: overrides.frames ?? [
+    moments: overrides.moments ?? [
       {
-        id: 'frame-1',
+        id: 'moment-1',
         name: 'Accept Order',
         contextEntries: [
           { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
         ],
       },
       {
-        id: 'frame-2',
+        id: 'moment-2',
         name: 'Ship Order',
         contextEntries: [
           { contextId: 'ctx-shipping', nodeName: 'ShipOrder', nodeKind: 'command' as const },
@@ -91,9 +91,9 @@ describe('EventReplayEngine', () => {
     const ir = makeIR();
     // Frame references a context that doesn't exist in the IR
     const flow = makeFlow({
-      frames: [
+      moments: [
         {
-          id: 'frame-1',
+          id: 'moment-1',
           name: 'Ghost Frame',
           contextEntries: [
             {
@@ -109,7 +109,7 @@ describe('EventReplayEngine', () => {
     const result = engine.replay(flow, ir);
 
     expect(result.divergencePoints).toHaveLength(1);
-    expect(result.divergencePoints[0].frameIndex).toBe(0);
+    expect(result.divergencePoints[0].momentIndex).toBe(0);
     expect(result.divergencePoints[0].expectedState).toContain('ctx-nonexistent');
     expect(result.divergencePoints[0].actualState).toContain('not found');
     expect(result.divergencePoints[0].eventThatCaused).toBe('DoSomething');
@@ -119,9 +119,9 @@ describe('EventReplayEngine', () => {
     const ir = makeIR();
     const flowValid = makeFlow();
     const flowInvalid = makeFlow({
-      frames: [
+      moments: [
         {
-          id: 'frame-bad',
+          id: 'moment-bad',
           name: 'Bad Frame',
           contextEntries: [
             { contextId: 'ctx-missing', nodeName: 'BadCmd', nodeKind: 'command' as const },
@@ -140,9 +140,9 @@ describe('EventReplayEngine', () => {
   it('detects divergence in branch entries', () => {
     const ir = makeIR();
     const flow = makeFlow({
-      frames: [
+      moments: [
         {
-          id: 'frame-1',
+          id: 'moment-1',
           name: 'Branched Frame',
           contextEntries: [
             { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
@@ -171,7 +171,7 @@ describe('EventReplayEngine', () => {
 
   it('handles empty flow (zero steps)', () => {
     const ir = makeIR();
-    const flow = makeFlow({ frames: [] });
+    const flow = makeFlow({ moments: [] });
 
     const result = engine.replay(flow, ir);
 

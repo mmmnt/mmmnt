@@ -1,5 +1,5 @@
 export interface DivergencePoint {
-  readonly frameIndex: number;
+  readonly momentIndex: number;
   readonly expectedState: string;
   readonly actualState: string;
   readonly eventThatCaused: string;

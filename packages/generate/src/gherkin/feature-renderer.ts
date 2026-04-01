@@ -26,8 +26,8 @@ export function renderFeature(suite: TestSuiteDefinition): string {
 
 function renderScenario(lines: string[], testCase: TestCaseDefinition): void {
   const label = testCase.variant
-    ? `${testCase.frameName} [${testCase.variant}]`
-    : testCase.frameName;
+    ? `${testCase.momentName} [${testCase.variant}]`
+    : testCase.momentName;
 
   lines.push(`  Scenario: ${label}`);
 

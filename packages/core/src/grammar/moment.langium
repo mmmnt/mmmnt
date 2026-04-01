@@ -94,13 +94,13 @@ FlowDeclaration:
     'flow' name=STRING
         ('description' description=STRING)?
         lanes+=LaneDeclaration*
-        frames+=Frame*;
+        moments+=Moment*;
 
 LaneDeclaration:
     ('lane' | isBranch?='branch-lane') id=ID label=STRING classification=Classification?;
 
-Frame:
-    'frame' label=STRING isBranch?='[branch]'?
+Moment:
+    'moment' label=STRING isBranch?='[branch]'?
         (nodes+=NodePlacement | whenBlocks+=WhenBlock)*;
 
 WhenBlock:

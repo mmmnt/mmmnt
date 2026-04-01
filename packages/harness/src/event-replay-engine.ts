@@ -1,8 +1,8 @@
 import type {
   IntermediateRepresentation,
   FlowDefinition,
-  FrameDefinition,
-  FrameEntry,
+  MomentDefinition,
+  MomentEntry,
 } from '@mmmnt/core';
 import type { ReplayResult, DivergencePoint } from './types/index.js';
 
@@ -15,7 +15,7 @@ import type { ReplayResult, DivergencePoint } from './types/index.js';
  */
 export class EventReplayEngine {
   replay(flow: FlowDefinition, ir: IntermediateRepresentation): ReplayResult {
-    if (flow.frames.length === 0) {
+    if (flow.moments.length === 0) {
       return {
         flowId: flow.id,
         stepsReplayed: 0,
@@ -28,11 +28,11 @@ export class EventReplayEngine {
     const divergencePoints: DivergencePoint[] = [];
     let stepsReplayed = 0;
 
-    for (let i = 0; i < flow.frames.length; i++) {
-      const frame = flow.frames[i];
+    for (let i = 0; i < flow.moments.length; i++) {
+      const m = flow.moments[i];
       stepsReplayed++;
 
-      const divergence = this.evaluateFrame(frame, i, contextIndex);
+      const divergence = this.evaluateMoment(m, i, contextIndex);
       if (divergence) {
         divergencePoints.push(divergence);
       }
@@ -48,21 +48,21 @@ export class EventReplayEngine {
     };
   }
 
-  private evaluateFrame(
-    frame: FrameDefinition,
-    frameIndex: number,
+  private evaluateMoment(
+    moment: MomentDefinition,
+    momentIndex: number,
     contextIndex: ReadonlyMap<string, { id: string; name: string }>,
   ): DivergencePoint | undefined {
     // Check main context entries
-    const mainDivergence = this.checkEntries(frame.contextEntries, frameIndex, contextIndex);
+    const mainDivergence = this.checkEntries(moment.contextEntries, momentIndex, contextIndex);
     if (mainDivergence) {
       return mainDivergence;
     }
 
     // Check branch entries
-    if (frame.branches) {
-      for (const branch of frame.branches) {
-        const branchDivergence = this.checkEntries(branch.entries, frameIndex, contextIndex);
+    if (moment.branches) {
+      for (const branch of moment.branches) {
+        const branchDivergence = this.checkEntries(branch.entries, momentIndex, contextIndex);
         if (branchDivergence) {
           return branchDivergence;
         }
@@ -73,15 +73,15 @@ export class EventReplayEngine {
   }
 
   private checkEntries(
-    entries: readonly FrameEntry[],
-    frameIndex: number,
+    entries: readonly MomentEntry[],
+    momentIndex: number,
     contextIndex: ReadonlyMap<string, { id: string; name: string }>,
   ): DivergencePoint | undefined {
     for (const entry of entries) {
       const context = contextIndex.get(entry.contextId);
       if (!context) {
         return {
-          frameIndex,
+          momentIndex,
           expectedState: `context ${entry.contextId} exists`,
           actualState: `context ${entry.contextId} not found`,
           eventThatCaused: entry.nodeName,

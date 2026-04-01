@@ -102,7 +102,7 @@ describe('Sift Import Round-Trip', () => {
     expect(result.success).toBe(true);
     const flow = result.ir!.flows[0];
     expect(flow.name).toBe('order-placed');
-    expect(flow.frames.length).toBeGreaterThan(0);
+    expect(flow.moments.length).toBeGreaterThan(0);
     expect(flow.connections.length).toBeGreaterThan(0);
   });
 

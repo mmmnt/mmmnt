@@ -6,7 +6,7 @@ import type {
   ContextDefinition,
   FlowDefinition,
   ConnectionDefinition,
-  FrameDefinition,
+  MomentDefinition,
 } from '../../src/ir/index.js';
 
 function makeMinimalContext(overrides: Partial<ContextDefinition> = {}): ContextDefinition {
@@ -38,9 +38,9 @@ function makeMinimalIR(
   };
 }
 
-function makeFrame(overrides: Partial<FrameDefinition> = {}): FrameDefinition {
+function makeMoment(overrides: Partial<MomentDefinition> = {}): MomentDefinition {
   return {
-    id: 'frame-1',
+    id: 'moment-1',
     name: 'Frame 1',
     contextEntries: [],
     ...overrides,
@@ -58,11 +58,11 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [],
+            moments: [],
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-nonexistent',
                 eventId: 'evt-1',
                 connectionType: 'crosses-to',
@@ -96,11 +96,11 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [],
+            moments: [],
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-target',
                 eventId: 'evt-1',
                 connectionType: 'crosses-to',
@@ -134,11 +134,11 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [],
+            moments: [],
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-target',
                 eventId: 'evt-nonexistent',
                 connectionType: 'crosses-to',
@@ -171,11 +171,11 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [],
+            moments: [],
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-target',
                 eventId: 'evt-1',
                 connectionType: 'crosses-to',
@@ -209,11 +209,11 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [],
+            moments: [],
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-target',
                 eventId: 'evt-1',
                 connectionType: 'crosses-to',
@@ -246,11 +246,11 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [],
+            moments: [],
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-target',
                 eventId: 'evt-1',
                 connectionType: 'crosses-to',
@@ -279,14 +279,14 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [
-              makeFrame({
-                id: 'frame-0',
+            moments: [
+              makeMoment({
+                id: 'moment-0',
                 name: 'Frame 0',
                 contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
               }),
-              makeFrame({
-                id: 'frame-1',
+              makeMoment({
+                id: 'moment-1',
                 name: 'Frame 1',
                 contextEntries: [{ contextId: 'ctx-b', nodeName: 'Evt', nodeKind: 'event' }],
               }),
@@ -294,7 +294,7 @@ describe('SchemaValidator', () => {
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-0',
+                sourceMomentId: 'moment-0',
                 targetContextId: 'ctx-b',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
@@ -317,14 +317,14 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [
-              makeFrame({
-                id: 'frame-0',
+            moments: [
+              makeMoment({
+                id: 'moment-0',
                 name: 'Frame 0',
                 contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
               }),
-              makeFrame({
-                id: 'frame-1',
+              makeMoment({
+                id: 'moment-1',
                 name: 'Frame 1',
                 contextEntries: [{ contextId: 'ctx-b', nodeName: 'Evt', nodeKind: 'event' }],
               }),
@@ -332,7 +332,7 @@ describe('SchemaValidator', () => {
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-1',
+                sourceMomentId: 'moment-1',
                 targetContextId: 'ctx-a',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
@@ -347,16 +347,16 @@ describe('SchemaValidator', () => {
       expect(sp04Diagnostics).toHaveLength(0);
     });
 
-    it('rejects returns-to with unresolvable source frame', () => {
+    it('rejects returns-to with unresolvable source moment', () => {
       const ir = makeMinimalIR({
         contexts: [makeMinimalContext({ id: 'ctx-a' })],
         flows: [
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [
-              makeFrame({
-                id: 'frame-0',
+            moments: [
+              makeMoment({
+                id: 'moment-0',
                 name: 'Frame 0',
                 contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
               }),
@@ -364,7 +364,7 @@ describe('SchemaValidator', () => {
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-nonexistent',
+                sourceMomentId: 'moment-nonexistent',
                 targetContextId: 'ctx-a',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
@@ -377,7 +377,7 @@ describe('SchemaValidator', () => {
       const result = validator.validate(ir);
       const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
       expect(sp04Diagnostics).toHaveLength(1);
-      expect(sp04Diagnostics[0].message).toContain('unresolvable source frame');
+      expect(sp04Diagnostics[0].message).toContain('unresolvable source moment');
     });
 
     it('rejects returns-to with target context not in any frame', () => {
@@ -387,9 +387,9 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
-            frames: [
-              makeFrame({
-                id: 'frame-0',
+            moments: [
+              makeMoment({
+                id: 'moment-0',
                 name: 'Frame 0',
                 contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
               }),
@@ -397,7 +397,7 @@ describe('SchemaValidator', () => {
             connections: [
               {
                 id: 'conn-1',
-                sourceFrameId: 'frame-0',
+                sourceMomentId: 'moment-0',
                 targetContextId: 'ctx-missing',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
@@ -410,7 +410,7 @@ describe('SchemaValidator', () => {
       const result = validator.validate(ir);
       const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
       expect(sp04Diagnostics).toHaveLength(1);
-      expect(sp04Diagnostics[0].message).toContain('does not appear in any frame');
+      expect(sp04Diagnostics[0].message).toContain('does not appear in any moment');
     });
   });
 
@@ -471,16 +471,16 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-order',
             name: 'Order Flow',
-            frames: [
-              makeFrame({
-                id: 'frame-0',
+            moments: [
+              makeMoment({
+                id: 'moment-0',
                 name: 'Place Order',
                 contextEntries: [
                   { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' },
                 ],
               }),
-              makeFrame({
-                id: 'frame-1',
+              makeMoment({
+                id: 'moment-1',
                 name: 'Ship Order',
                 contextEntries: [
                   { contextId: 'ctx-shipping', nodeName: 'ShipOrder', nodeKind: 'command' },
@@ -490,7 +490,7 @@ describe('SchemaValidator', () => {
             connections: [
               {
                 id: 'conn-cross',
-                sourceFrameId: 'frame-0',
+                sourceMomentId: 'moment-0',
                 targetContextId: 'ctx-shipping',
                 eventId: 'evt-shipped',
                 connectionType: 'crosses-to',
