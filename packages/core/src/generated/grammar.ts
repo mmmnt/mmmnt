@@ -23,8 +23,8 @@ export const MomentGrammar = (): Grammar =>
         "elements": [
           {
             "$type": "Assignment",
-            "feature": "context",
-            "operator": "=",
+            "feature": "contexts",
+            "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
@@ -35,8 +35,8 @@ export const MomentGrammar = (): Grammar =>
           },
           {
             "$type": "Assignment",
-            "feature": "flow",
-            "operator": "=",
+            "feature": "flows",
+            "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
@@ -45,7 +45,8 @@ export const MomentGrammar = (): Grammar =>
               "arguments": []
             }
           }
-        ]
+        ],
+        "cardinality": "+"
       },
       "definesHiddenTokens": false,
       "fragment": false,

@@ -214,6 +214,32 @@ describe('AstToIr', () => {
     expect(pol.chainsTo).toBe('CheckInventory');
   });
 
+  it('transforms policy with file-watcher trigger', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+        policy RegenerateOnChange
+          trigger "file-watcher"
+          action "Regenerate on file change"
+    `);
+
+    const pol = ir.contexts[0].policies[0];
+    expect(pol.trigger).toBe('file-watcher');
+    expect(pol.chainsTo).toBeUndefined();
+  });
+
+  it('transforms context without classification', async () => {
+    const ir = await toIr(`
+      context "Unclassified"
+        aggregate "Item"
+          identity id: UUID
+    `);
+
+    expect(ir.contexts[0].name).toBe('Unclassified');
+    expect(ir.contexts[0].classification).toBeUndefined();
+  });
+
   it('transforms saga declaration', async () => {
     const ir = await toIr(`
       context "Test"
@@ -495,5 +521,45 @@ describe('AstToIr', () => {
     const conn = ir.flows[0].connections.find((c) => c.connectionType === 'crosses-to');
     expect(conn).toBeDefined();
     expect(conn!.targetContextId).toBe('ctx-B');
+  });
+
+  it('transforms unified file with both contexts and flows (ADR-027)', async () => {
+    const ir = await toIr(`
+      context "Ordering" [Core]
+        aggregate "Order"
+          identity orderId: UUID
+          command PlaceOrder
+            input customerId: UUID
+            emits OrderPlaced
+          event OrderPlaced
+            orderId: UUID
+            customerId: UUID
+
+      context "Fulfillment" [Supporting]
+        aggregate "Request"
+          identity reqId: UUID
+
+      flow "order-flow"
+        description "Order triggers fulfillment"
+        lane ordering "Ordering" [Core]
+        lane fulfillment "Fulfillment" [Supporting]
+        frame "Place"
+          ordering: PlaceOrder
+          ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
+            contract
+              orderId: UUID [required]
+    `);
+
+    expect(ir.contexts).toHaveLength(2);
+    expect(ir.contexts[0].name).toBe('Ordering');
+    expect(ir.contexts[1].name).toBe('Fulfillment');
+
+    expect(ir.flows).toHaveLength(1);
+    expect(ir.flows[0].name).toBe('order-flow');
+    expect(ir.flows[0].frames).toHaveLength(1);
+    expect(ir.flows[0].connections.length).toBeGreaterThan(0);
+
+    expect(ir.contexts[0].aggregates[0].commands).toHaveLength(1);
+    expect(ir.contexts[0].aggregates[0].events).toHaveLength(1);
   });
 });
