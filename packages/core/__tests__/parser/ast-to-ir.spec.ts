@@ -214,6 +214,32 @@ describe('AstToIr', () => {
     expect(pol.chainsTo).toBe('CheckInventory');
   });
 
+  it('transforms policy with file-watcher trigger', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+        policy RegenerateOnChange
+          trigger "file-watcher"
+          action "Regenerate on file change"
+    `);
+
+    const pol = ir.contexts[0].policies[0];
+    expect(pol.trigger).toBe('file-watcher');
+    expect(pol.chainsTo).toBeUndefined();
+  });
+
+  it('transforms context without classification', async () => {
+    const ir = await toIr(`
+      context "Unclassified"
+        aggregate "Item"
+          identity id: UUID
+    `);
+
+    expect(ir.contexts[0].name).toBe('Unclassified');
+    expect(ir.contexts[0].classification).toBeUndefined();
+  });
+
   it('transforms saga declaration', async () => {
     const ir = await toIr(`
       context "Test"
