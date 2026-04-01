@@ -1,10 +1,4 @@
-import type {
-  BillingVerified,
-  GenerateInvoice,
-  InvoiceGenerated,
-  LineItem,
-  VerifyBilling,
-} from './invoice.types.js';
+import type { BillingVerified, GenerateInvoice, InvoiceGenerated, LineItem, VerifyBilling } from './invoice.types.js';
 
 /**
  * Aggregate root for Invoice.
