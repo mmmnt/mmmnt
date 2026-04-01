@@ -1,4 +1,4 @@
-# ECommerce Inventory
+# Ordering Inventory
 
 ## Aggregates
 
@@ -8,42 +8,15 @@
 
 - PlaceOrder
 - CancelOrder
-- ConfirmPayment
 
 **Events:**
 
 - OrderPlaced
 - OrderCancelled
-- PaymentConfirmed
-
-### Inventory
-
-**Commands:**
-
-- ReserveStock
-- ReleaseStock
-
-**Events:**
-
-- StockReserved
-- StockReleased
-
-### Shipment
-
-**Commands:**
-
-- CreateShipment
-- DispatchShipment
-
-**Events:**
-
-- ShipmentCreated
-- ShipmentDispatched
 
 **Value Objects:**
 
 - OrderItem
-- Address
 
 ## Commands
 

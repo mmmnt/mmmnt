@@ -9,7 +9,7 @@ describe('Order', () => {
     // TODO: implement
   });
 
-  it('should handle ConfirmPayment', () => {
-    // TODO: implement
+  it('should enforce invariant: Order must contain at least one item', () => {
+    // TODO: implement invariant violation test
   });
 });

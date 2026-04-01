@@ -1,5 +1,19 @@
-Initialized Moment project 'e-commerce-test' at /tmp/tmp.dzfTvX3cRh
-ASSERT: .manifest.yaml exists: PASS
-ASSERT: .moment/contexts dir exists: PASS
-ASSERT: .moment/flows dir exists: PASS
-ASSERT: manifest contains project name: PASS
+Initialized Moment project 'e2e-test' at /tmp/tmp.H47kIuL56e
+exit: 0
+name: e2e-test
+version: 0.0.0
+contexts: []
+flows: []
+generators:
+  - format: typescript
+    outputDir: src/generated
+  - format: gherkin
+    outputDir: tests/features
+  - format: markdown
+    outputDir: docs
+watch:
+  enabled: true
+  debounceMs: 300
+  paths:
+    - .moment/contexts
+    - .moment/flows

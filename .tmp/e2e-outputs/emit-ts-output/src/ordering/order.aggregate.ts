@@ -1,9 +1,8 @@
 import type {
   CancelOrder,
-  ConfirmPayment,
   OrderCancelled,
+  OrderItem,
   OrderPlaced,
-  PaymentConfirmed,
   PlaceOrder,
 } from './order.types.js';
 
@@ -14,5 +13,4 @@ export interface OrderAggregate {
   readonly orderId: string;
   placeOrder(command: PlaceOrder): OrderPlaced;
   cancelOrder(command: CancelOrder): OrderCancelled;
-  confirmPayment(command: ConfirmPayment): PaymentConfirmed;
 }

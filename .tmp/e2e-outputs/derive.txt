@@ -1,4 +1,2 @@
-Derived topology: 0 suite(s), 0 case(s)
+Derived topology: 1 suite(s), 2 case(s)
 exit: 0
-ASSERT: exit code 0: PASS
-ASSERT: outputs topology info: PASS

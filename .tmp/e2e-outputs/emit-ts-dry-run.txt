@@ -1,0 +1,10 @@
+Dry run — would emit 9 file(s):
+src/ordering/order.types.ts
+src/ordering/order.aggregate.ts
+src/ordering/index.ts
+src/fulfillment/fulfillment-request.types.ts
+src/fulfillment/fulfillment-request.aggregate.ts
+src/fulfillment/index.ts
+__tests__/flows/order-placed.spec.ts
+__tests__/ordering/order.spec.ts
+__tests__/fulfillment/fulfillment-request.spec.ts

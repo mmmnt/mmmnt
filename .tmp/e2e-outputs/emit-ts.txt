@@ -1,3 +1,2 @@
-Emitted: 7 TypeScript file(s), 3 scaffold file(s)
+Emitted: 6 TypeScript file(s), 3 scaffold file(s)
 exit: 0
-ASSERT: >=3 TypeScript files emitted (7): PASS

@@ -1,21 +1,31 @@
 {
   "type": "viz:initial-load",
   "session": {
-    "sessionId": "viz-1774995889786",
-    "specificationName": "e-commerce",
-    "startedAt": "2026-03-31T22:24:49.786Z"
+    "sessionId": "viz-1775010458122",
+    "specificationName": "ordering",
+    "startedAt": "2026-04-01T02:27:38.122Z"
   },
   "envelope": {
-    "sessionId": "viz-1774995889786",
-    "timestamp": "2026-03-31T22:24:49.787Z",
+    "sessionId": "viz-1775010458122",
+    "timestamp": "2026-04-01T02:27:38.123Z",
     "version": 1,
     "contextMap": {
       "nodes": [
         {
-          "contextId": "ctx-ECommerce",
-          "contextName": "ECommerce",
+          "contextId": "ctx-Ordering",
+          "contextName": "Ordering",
           "classification": "Core",
           "x": 40,
+          "y": 40,
+          "width": 160,
+          "height": 80,
+          "isExternal": false
+        },
+        {
+          "contextId": "ctx-Fulfillment",
+          "contextName": "Fulfillment",
+          "classification": "Supporting",
+          "x": 240,
           "y": 40,
           "width": 160,
           "height": 80,
@@ -24,31 +34,83 @@
       ],
       "edges": [],
       "dimensions": {
-        "width": 240,
+        "width": 440,
         "height": 160
       }
     },
     "timeline": {
       "lanes": [
         {
-          "contextId": "ctx-ECommerce",
-          "contextName": "ECommerce",
+          "contextId": "ctx-Ordering",
+          "contextName": "Ordering",
           "y": 0,
+          "height": 80
+        },
+        {
+          "contextId": "ctx-Fulfillment",
+          "contextName": "Fulfillment",
+          "y": 100,
           "height": 80
         }
       ],
-      "entries": [],
-      "connections": [],
+      "entries": [
+        {
+          "frameId": "frame-0-Order-submission",
+          "frameName": "Order submission",
+          "contextId": "ctx-Ordering",
+          "x": 20,
+          "y": 20,
+          "width": 120,
+          "height": 40
+        },
+        {
+          "frameId": "frame-0-Order-submission",
+          "frameName": "Order submission",
+          "contextId": "ctx-Ordering",
+          "x": 20,
+          "y": 20,
+          "width": 120,
+          "height": 40
+        },
+        {
+          "frameId": "frame-1-Fulfillment-initiation",
+          "frameName": "Fulfillment initiation",
+          "contextId": "ctx-Fulfillment",
+          "x": 160,
+          "y": 120,
+          "width": 120,
+          "height": 40
+        },
+        {
+          "frameId": "frame-1-Fulfillment-initiation",
+          "frameName": "Fulfillment initiation",
+          "contextId": "ctx-Fulfillment",
+          "x": 160,
+          "y": 120,
+          "width": 120,
+          "height": 40
+        }
+      ],
+      "connections": [
+        {
+          "connectionId": "conn-0",
+          "sourceFrameId": "frame-0-Order-submission",
+          "targetContextId": "ctx-Fulfillment",
+          "sourceLaneY": 40,
+          "targetLaneY": 140,
+          "x": 80
+        }
+      ],
       "dimensions": {
-        "width": 40,
-        "height": 80
+        "width": 300,
+        "height": 180
       }
     },
     "metadata": {
-      "contextCount": 1,
-      "flowCount": 0,
+      "contextCount": 2,
+      "flowCount": 1,
       "relationshipCount": 0,
-      "generatedAt": "2026-03-31T22:24:49.787Z"
+      "generatedAt": "2026-04-01T02:27:38.123Z"
     }
   }
 }

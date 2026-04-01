@@ -1,0 +1,48 @@
+=== ASSERTIONS ===
+
+--- init ---
+PASS: project initialized
+PASS: manifest contains project name
+
+--- parse (unified) ---
+PASS: reports 2 contexts + 1 flow from unified file
+PASS: exit 0
+
+--- parse (invalid) ---
+PASS: reports diagnostics
+PASS: exit 1
+
+--- derive ---
+PASS: 1 suite derived from unified file
+PASS: topology.json is valid JSON
+
+--- generate ---
+PASS: 1 .feature file generated
+PASS: .spec.ts files generated
+PASS: documents generated
+
+--- emit-ts ---
+PASS: 6 TypeScript files emitted
+PASS: 3 scaffold files emitted
+PASS: order.types.ts exists on disk
+PASS: fulfillment-request.types.ts exists on disk
+PASS: flow test scaffold exists
+PASS: .feature file exists on disk
+
+--- test ---
+PASS: test summary reported
+
+--- viz ---
+PASS: viz.json is valid JSON
+PASS: viz has >=2 context nodes (unified)
+
+--- sync status ---
+PASS: drift detected
+PASS: sync-status.json is valid JSON
+
+--- auth ---
+PASS: auth status reports state
+PASS: auth logout reports result
+
+--- watch ---
+PASS: watch started

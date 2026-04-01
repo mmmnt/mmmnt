@@ -1,7 +1,49 @@
 {
-  "suites": [],
+  "suites": [
+    {
+      "flowId": "flow-order-placed",
+      "flowName": "order-placed",
+      "testCases": [
+        {
+          "frameId": "frame-0-Order-submission",
+          "frameName": "Order submission",
+          "assertions": [
+            {
+              "crossingId": "conn-0",
+              "sourceContext": "ctx-Ordering",
+              "targetContext": "ctx-Fulfillment",
+              "schemaContract": {
+                "eventType": "OrderPlaced",
+                "expectedFields": [
+                  {
+                    "fieldName": "orderId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "items",
+                    "expectedType": "OrderItem[]",
+                    "required": true
+                  }
+                ]
+              },
+              "assertionType": "payload"
+            }
+          ],
+          "setupSteps": []
+        },
+        {
+          "frameId": "frame-1-Fulfillment-initiation",
+          "frameName": "Fulfillment initiation",
+          "assertions": [],
+          "setupSteps": []
+        }
+      ],
+      "contextsCovered": ["ctx-Ordering", "ctx-Fulfillment"]
+    }
+  ],
   "metadata": {
-    "sourceIrHash": "f55624189598f3a958e8fe4ef734646ae65a483da583c5986176514920c9b02c",
-    "derivedAt": "2026-03-31T22:35:03.037Z"
+    "sourceIrHash": "86357c0cbd1d82f2975e042f3379825c8b61bda2a2e79cbee5a61ed3edd28675",
+    "derivedAt": "2026-04-01T02:27:34.997Z"
   }
 }
