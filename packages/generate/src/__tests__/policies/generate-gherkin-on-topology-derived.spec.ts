@@ -154,7 +154,6 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(1);
     const docTypes = manifest.docsGenerated.map((d) => d.documentType);
     expect(docTypes).toContain('specification');
-    expect(docTypes).toContain('architecture-palette');
   });
 
   // 2. GenerationManifest includes .feature files + markdown docs
@@ -173,11 +172,9 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.featuresGenerated[0].filePath).toContain('.feature');
     expect(manifest.featuresGenerated[1].filePath).toContain('.feature');
 
-    // Docs include specification.md + architecture-palette.md + per-context inventory
-    const filePaths = manifest.docsGenerated.map((d) => d.filePath);
-    expect(filePaths).toContain('specification.md');
-    expect(filePaths).toContain('architecture-palette.md');
-    expect(filePaths).toContain('sales/inventory.md');
+    // Single consolidated specification document
+    expect(manifest.docsGenerated).toHaveLength(1);
+    expect(manifest.docsGenerated[0].filePath).toBe('specification.md');
   });
 
   // 3. Empty topology with contexts -> no features but still produces spec docs
@@ -193,12 +190,11 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.featuresGenerated).toHaveLength(0);
 
     // Spec docs are still generated from the IR
-    expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(2);
+    expect(manifest.docsGenerated.length).toBe(1);
     const docTypes = manifest.docsGenerated.map((d) => d.documentType);
     expect(docTypes).toContain('specification');
-    expect(docTypes).toContain('architecture-palette');
+
     // Per-context inventories
-    expect(manifest.docsGenerated.some((d) => d.documentType === 'context-inventory')).toBe(true);
   });
 
   // 4. Works as a hook from DeriveOnSpecificationParsed (callable interface)

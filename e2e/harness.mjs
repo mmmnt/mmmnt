@@ -342,7 +342,7 @@ const genCode = [
   'for(const f of gm.featuresGenerated||[]){const n=f.fileName||f.name||"feature";const o=join(od,"gherkin",n+".feature");mkdirSync(dirname(o),{recursive:true});writeFileSync(o,f.content||JSON.stringify(f,null,2));}',
   'console.log("  Gherkin: "+(gm.featuresGenerated?.length??0)+" features");',
   'const docs=new SpecificationDocumentGenerator().generate(ir);',
-  'for(let i=0;i<docs.length;i++){const d=docs[i];const n=d.fileName||d.title||("doc-"+i);const o=join(od,"docs",n+".md");mkdirSync(dirname(o),{recursive:true});writeFileSync(o,d.content||JSON.stringify(d,null,2));}',
+  'for(let i=0;i<docs.length;i++){const d=docs[i];const o=join(od,"docs",d.filePath||("doc-"+i+".md"));mkdirSync(dirname(o),{recursive:true});writeFileSync(o,d.content||JSON.stringify(d,null,2));}',
   'console.log("  Docs: "+docs.length+" documents");',
 ].join('\n');
 writeFileSync(tmpScript, genCode);
