@@ -1,9 +1,4 @@
-import type {
-  CreateDischargeRecord,
-  DischargeFinalised,
-  DischargeRecordCreated,
-  FinalizeDischarge,
-} from './discharge-record.types.js';
+import type { CreateDischargeRecord, DischargeFinalised, DischargeRecordCreated, FinalizeDischarge } from './discharge-record.types.js';
 
 /**
  * Aggregate root for DischargeRecord.

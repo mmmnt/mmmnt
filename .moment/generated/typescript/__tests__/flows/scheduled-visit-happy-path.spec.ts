@@ -1,22 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
 describe('scheduled-visit-happy-path', () => {
-  describe('Patient check-in', () => {});
+  describe('Patient check-in', () => {
+  });
 
-  describe('Intake validation', () => {});
-
-  describe('Intake validation outcome', () => {
-    it('should verify PatientIntakeRegistered crosses from ctx-Reception to ctx-Clinical', () => {
-      // Crossing: conn-2
-      // Assertion type: payload
-      // Expected fields:
-      //   patientId: UUID (required)
-      //   name: string (required)
-      //   species: string (required)
-      //   ownerName: string (required)
-      //   appointmentType: string (required)
-      // TODO: implement assertion
-    });
+  describe('Intake validation', () => {
   });
 
   describe('Intake validation outcome', () => {
@@ -33,21 +21,43 @@ describe('scheduled-visit-happy-path', () => {
     });
   });
 
-  describe('Triage', () => {});
+  describe('Intake validation outcome', () => {
+    it('should verify PatientIntakeRegistered crosses from ctx-Reception to ctx-Clinical', () => {
+      // Crossing: conn-2
+      // Assertion type: payload
+      // Expected fields:
+      //   patientId: UUID (required)
+      //   name: string (required)
+      //   species: string (required)
+      //   ownerName: string (required)
+      //   appointmentType: string (required)
+      // TODO: implement assertion
+    });
+  });
 
-  describe('Dual-vet assessment', () => {});
+  describe('Triage', () => {
+  });
 
-  describe('Assessment agreement', () => {});
+  describe('Dual-vet assessment', () => {
+  });
 
-  describe('Assessment agreement', () => {});
+  describe('Assessment agreement', () => {
+  });
 
-  describe('Clinical record normalization', () => {});
+  describe('Assessment agreement', () => {
+  });
 
-  describe('Records completeness check', () => {});
+  describe('Clinical record normalization', () => {
+  });
 
-  describe('Records completeness check', () => {});
+  describe('Records completeness check', () => {
+  });
 
-  describe('Treatment planning', () => {});
+  describe('Records completeness check', () => {
+  });
+
+  describe('Treatment planning', () => {
+  });
 
   describe('Treatment confirmation', () => {
     it('should verify TreatmentConfirmed crosses from ctx-Clinical to ctx-Billing', () => {
@@ -61,7 +71,8 @@ describe('scheduled-visit-happy-path', () => {
     });
   });
 
-  describe('Invoice generation', () => {});
+  describe('Invoice generation', () => {
+  });
 
   describe('Billing verification', () => {
     it('should verify BillingVerified crosses from ctx-Billing to ctx-Records', () => {
@@ -75,7 +86,9 @@ describe('scheduled-visit-happy-path', () => {
     });
   });
 
-  describe('Discharge record creation', () => {});
+  describe('Discharge record creation', () => {
+  });
 
-  describe('Discharge finalization', () => {});
+  describe('Discharge finalization', () => {
+  });
 });

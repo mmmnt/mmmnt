@@ -1,12 +1,4 @@
-import type {
-  AppointmentDetails,
-  CheckInPatient,
-  IntakeValidated,
-  PatientCheckedIn,
-  PatientIntakeRegistered,
-  RegisterPatientIntake,
-  SubmitValidateIntake,
-} from './patient-intake.types.js';
+import type { AppointmentDetails, CheckInPatient, IntakeValidated, PatientCheckedIn, PatientIntakeRegistered, RegisterPatientIntake, SubmitValidateIntake } from './patient-intake.types.js';
 
 /**
  * Aggregate root for PatientIntake.

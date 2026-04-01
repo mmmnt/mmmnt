@@ -1,15 +1,4 @@
-import type {
-  ClinicalAssessmentCompleted,
-  ClinicalObservationRecorded,
-  ClinicalRecordNormalized,
-  CompleteTriage,
-  DualVetAssessmentCompleted,
-  NormalizeClinicalRecord,
-  PerformDualVetAssessment,
-  RecordClinicalObservation,
-  RunClinicalAssessment,
-  TriageCompleted,
-} from './visit-record.types.js';
+import type { ClinicalAssessmentCompleted, ClinicalObservationRecorded, ClinicalRecordNormalized, CompleteTriage, DualVetAssessmentCompleted, NormalizeClinicalRecord, PerformDualVetAssessment, RecordClinicalObservation, RunClinicalAssessment, TriageCompleted } from './visit-record.types.js';
 
 /**
  * Aggregate root for VisitRecord.

@@ -1,12 +1,4 @@
-import type {
-  ConfirmTreatment,
-  CreateTreatmentPlan,
-  Medication,
-  TreatmentConfirmed,
-  TreatmentPlanCreated,
-  TriageResults,
-  VitalSigns,
-} from './treatment-plan.types.js';
+import type { ConfirmTreatment, CreateTreatmentPlan, Medication, TreatmentConfirmed, TreatmentPlanCreated, TriageResults, VitalSigns } from './treatment-plan.types.js';
 
 /**
  * Aggregate root for TreatmentPlan.
