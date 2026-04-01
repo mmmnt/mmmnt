@@ -22,8 +22,9 @@ Feature: scheduled-visit-happy-path
       | UUID | string | string | string | string |
 
   Scenario: Intake validation outcome [invalid]
-    Then Intake Failure emits IntakeValidated (terminal)
-
+    Given the intake validation outcome is evaluated
+    When the outcome is invalid
+    Then the flow terminates
   Scenario: Triage
     Given Patient must be registered through intake
     Given PatientIntakeRegistered has occurred
@@ -44,8 +45,9 @@ Feature: scheduled-visit-happy-path
       carrying visitId, observationId, patientId, diagnosis, differentials, confidence, recordedAt
 
   Scenario: Assessment agreement [disagree]
-    Then Vet Disagreement emits DualVetAssessmentCompleted (terminal)
-
+    Given the assessment agreement is evaluated
+    When the outcome is disagree
+    Then the flow terminates
   Scenario: Clinical record normalization
     Given Clinical observation must be recorded
     Given ClinicalObservationRecorded has occurred
@@ -60,8 +62,9 @@ Feature: scheduled-visit-happy-path
       carrying visitId, assessmentResult, completedAt
 
   Scenario: Records completeness check [incomplete]
-    Then Records Incomplete emits ClinicalRecordNormalized (terminal)
-
+    Given the records completeness check is evaluated
+    When the outcome is incomplete
+    Then the flow terminates
   Scenario: Treatment planning
     Given Clinical assessment must be completed
     Given ClinicalAssessmentCompleted has occurred

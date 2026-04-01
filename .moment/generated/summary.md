@@ -35,7 +35,6 @@
 | `simulate-scenario.json` | Facet-compatible simulation (28 events, causation chains) |
 | `derive-topology.json` | Test suite topology (17 cases, assertion points) |
 | `viz-envelope.json` | Visualization data envelope (context map + timeline) |
-| `sync-status.json` | Drift report (spec vs implementation) |
 
 **TypeScript** (`typescript/`)
 | File | Description |

@@ -53,6 +53,17 @@ function renderMomentScenario(
     ? (moment.branches?.find((b) => b.condition === variant)?.entries ?? [])
     : moment.contextEntries;
 
+  // Check if this is a terminal branch (flow ends)
+  const isTerminalBranch = variant && entries.some((e) => e.terminal);
+  if (isTerminalBranch) {
+    lines.push(`    Given the ${moment.name.toLowerCase()} is evaluated`);
+    lines.push(`    When the outcome is ${variant}`);
+    for (const entry of entries) {
+      lines.push(`    Then the flow terminates`);
+    }
+    return;
+  }
+
   // Include parent moment entries for branch scenarios
   const allEntries = variant ? [...moment.contextEntries, ...entries] : entries;
 
