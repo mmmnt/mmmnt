@@ -1,1 +1,0 @@
-Not authenticated. Run `moment auth login` to authenticate.

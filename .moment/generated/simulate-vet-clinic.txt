@@ -1,6 +1,0 @@
-Generated 1 simulation scenario(s), 28 events
-
-Scenario: Happy Path: scheduled-visit-happy-path
-  Path: 28 nodes
-  Events: 28
-  Branches: 3

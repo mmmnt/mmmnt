@@ -98,7 +98,6 @@ test('parse: vet-clinic (4 contexts, 1 flow)', (assert) => {
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('4 context(s)'), 'reports 4 contexts');
   assert(r.stdout.includes('1 flow(s)'), 'reports 1 flow');
-  saveOutput('parse-vet-clinic.txt', r.stdout);
 });
 
 test('parse: unified ordering (2 contexts, 1 flow)', (assert) => {
@@ -126,7 +125,6 @@ test('derive: vet-clinic produces 1 suite, 17 cases', (assert) => {
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('1 suite'), 'reports 1 suite');
   assert(r.stdout.includes('17 case'), 'reports 17 cases');
-  saveOutput('derive-vet-clinic.txt', r.stdout);
 });
 
 test('derive: --json outputs valid topology JSON', (assert) => {
@@ -153,7 +151,6 @@ test('generate: vet-clinic produces features + specs + docs', (assert) => {
   assert(r.stdout.includes('.feature'), 'produces .feature files');
   assert(r.stdout.includes('.spec.ts'), 'produces .spec.ts files');
   assert(r.stdout.includes('document'), 'produces documents');
-  saveOutput('generate-vet-clinic.txt', r.stdout);
 });
 
 console.log('\n=== Emit TypeScript ===');
@@ -163,7 +160,6 @@ test('emit-ts: vet-clinic produces 14 TS + 6 scaffolds', (assert) => {
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('14 TypeScript'), '14 TypeScript files');
   assert(r.stdout.includes('6 scaffold'), '6 scaffold files');
-  saveOutput('emit-ts-vet-clinic.txt', r.stdout);
 });
 
 test('emit-ts: --dry-run lists files without writing', (assert) => {
@@ -171,7 +167,6 @@ test('emit-ts: --dry-run lists files without writing', (assert) => {
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('Dry run'), 'reports dry run');
   assert(r.stdout.includes('.ts'), 'lists .ts files');
-  saveOutput('emit-ts-dry-run.txt', r.stdout);
 });
 
 console.log('\n=== Simulate ===');
@@ -181,7 +176,6 @@ test('simulate: vet-clinic produces 28 events, 3 branches', (assert) => {
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('28 events'), '28 events');
   assert(r.stdout.includes('Branches: 3'), '3 branches');
-  saveOutput('simulate-vet-clinic.txt', r.stdout);
 });
 
 test('simulate: --json outputs valid Facet scenario', (assert) => {
@@ -237,7 +231,6 @@ test('sync status: vet-clinic detects drift', (assert) => {
   const r = run('sync', ['status', VET_CLINIC]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('drifted'), 'reports drift');
-  saveOutput('sync-status.txt', r.stdout);
 });
 
 test('sync status: --json outputs DriftReport', (assert) => {
@@ -261,7 +254,6 @@ test('test: vet-clinic runs harness', (assert) => {
   const r = run('test', [VET_CLINIC]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('Tests:'), 'reports test summary');
-  saveOutput('test-vet-clinic.txt', r.stdout);
 });
 
 console.log('\n=== Init ===');
@@ -273,7 +265,6 @@ test('init: creates project structure', (assert) => {
     assert(r.exitCode === 0, 'exit code 0');
     assert(existsSync(join(tmpDir, '.manifest.yaml')), '.manifest.yaml exists');
     assert(existsSync(join(tmpDir, '.moment', 'contexts')), '.moment/contexts exists');
-    saveOutput('init.txt', r.stdout);
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -311,7 +302,6 @@ test('auth status: reports not authenticated', (assert) => {
     r.stdout.includes('Not authenticated') || r.stdout.includes('Authenticated'),
     'reports auth state',
   );
-  saveOutput('auth-status.txt', r.stdout);
 });
 
 test('auth logout: reports result', (assert) => {
@@ -324,6 +314,47 @@ test('auth logout: reports result', (assert) => {
     'reports logout result',
   );
 });
+
+// ============================================================================
+// Generate Artifacts — Real output files for .moment/generated/
+// ============================================================================
+
+console.log('\n=== Generating Artifacts ===');
+
+// Write temp script inside packages/cli for @mmmnt/* resolution
+const tmpScript = resolve(ROOT, 'packages/cli', '_e2e_gen.mjs');
+const genCode = [
+  'import{mkdirSync,writeFileSync,readFileSync}from"node:fs";',
+  'import{join,dirname}from"node:path";',
+  'import{MomentParser}from"@mmmnt/core";',
+  'import{deriveTopology}from"@mmmnt/derive";',
+  'import{TypeScriptEmitter,TestScaffoldEmitter}from"@mmmnt/emit-ts";',
+  'import{GherkinGenerator,SpecificationDocumentGenerator}from"@mmmnt/generate";',
+  'const[mf,od]=process.argv.slice(2);',
+  'const ir=(await new MomentParser().parseContent(readFileSync(mf,"utf-8"))).ir;',
+  'const topo=deriveTopology(ir);',
+  'const ts=new TypeScriptEmitter().emit(ir,{scope:{level:"system"}});',
+  'const sc=new TestScaffoldEmitter().emit(ir,topo);',
+  'for(const[p,c]of ts.files){const o=join(od,"typescript",p);mkdirSync(dirname(o),{recursive:true});writeFileSync(o,c);}',
+  'for(const[p,c]of sc.files){const o=join(od,"typescript",p);mkdirSync(dirname(o),{recursive:true});writeFileSync(o,c);}',
+  'console.log("  TS: "+ts.files.size+" + "+sc.files.size+" scaffolds");',
+  'const gm=new GherkinGenerator().generate(ir,topo);',
+  'for(const f of gm.featuresGenerated||[]){const n=f.fileName||f.name||"feature";const o=join(od,"gherkin",n+".feature");mkdirSync(dirname(o),{recursive:true});writeFileSync(o,f.content||JSON.stringify(f,null,2));}',
+  'console.log("  Gherkin: "+(gm.featuresGenerated?.length??0)+" features");',
+  'const docs=new SpecificationDocumentGenerator().generate(ir);',
+  'for(let i=0;i<docs.length;i++){const d=docs[i];const n=d.fileName||d.title||("doc-"+i);const o=join(od,"docs",n+".md");mkdirSync(dirname(o),{recursive:true});writeFileSync(o,d.content||JSON.stringify(d,null,2));}',
+  'console.log("  Docs: "+docs.length+" documents");',
+].join('\n');
+writeFileSync(tmpScript, genCode);
+try {
+  execFileSync('node', [tmpScript, VET_CLINIC, OUTPUT_DIR], {
+    cwd: resolve(ROOT, 'packages/cli'),
+    timeout: 30000,
+    stdio: 'inherit',
+  });
+} finally {
+  rmSync(tmpScript, { force: true });
+}
 
 // ============================================================================
 // Report
@@ -375,12 +406,33 @@ const md = [
   '<details>',
   '<summary>Generated Artifacts</summary>',
   '',
+  '**JSON Outputs**',
   '| File | Description |',
   '|------|-------------|',
-  '| `simulate-scenario.json` | Facet-compatible simulation (28 events) |',
-  '| `derive-topology.json` | Test suite topology (17 cases) |',
-  '| `viz-envelope.json` | Visualization data envelope |',
-  '| `sync-status.json` | Drift report |',
+  '| `simulate-scenario.json` | Facet-compatible simulation (28 events, causation chains) |',
+  '| `derive-topology.json` | Test suite topology (17 cases, assertion points) |',
+  '| `viz-envelope.json` | Visualization data envelope (context map + timeline) |',
+  '| `sync-status.json` | Drift report (spec vs implementation) |',
+  '',
+  '**TypeScript** (`typescript/`)',
+  '| File | Description |',
+  '|------|-------------|',
+  '| `src/{context}/{aggregate}.types.ts` | Command, event, value object interfaces |',
+  '| `src/{context}/{aggregate}.aggregate.ts` | Aggregate root interface |',
+  '| `src/{context}/index.ts` | Barrel exports |',
+  '| `__tests__/flows/{flow}.spec.ts` | Flow test scaffold |',
+  '| `__tests__/{context}/{aggregate}.spec.ts` | Aggregate test scaffold |',
+  '',
+  '**Gherkin** (`gherkin/`)',
+  '| File | Description |',
+  '|------|-------------|',
+  '| `{flow}.feature` | BDD scenarios from temporal flows |',
+  '',
+  '**Documentation** (`docs/`)',
+  '| File | Description |',
+  '|------|-------------|',
+  '| `specification.md` | Context overview with counts |',
+  '| `{context}/inventory.md` | Detailed aggregate inventory |',
   '',
   '</details>',
 ];

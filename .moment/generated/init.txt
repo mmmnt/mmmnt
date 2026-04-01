@@ -1,1 +1,0 @@
-Initialized Moment project 'e2e-test' at /tmp/moment-e2e-UnOdDs

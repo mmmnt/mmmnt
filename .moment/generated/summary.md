@@ -29,11 +29,32 @@
 <details>
 <summary>Generated Artifacts</summary>
 
+**JSON Outputs**
 | File | Description |
 |------|-------------|
-| `simulate-scenario.json` | Facet-compatible simulation (28 events) |
-| `derive-topology.json` | Test suite topology (17 cases) |
-| `viz-envelope.json` | Visualization data envelope |
-| `sync-status.json` | Drift report |
+| `simulate-scenario.json` | Facet-compatible simulation (28 events, causation chains) |
+| `derive-topology.json` | Test suite topology (17 cases, assertion points) |
+| `viz-envelope.json` | Visualization data envelope (context map + timeline) |
+| `sync-status.json` | Drift report (spec vs implementation) |
+
+**TypeScript** (`typescript/`)
+| File | Description |
+|------|-------------|
+| `src/{context}/{aggregate}.types.ts` | Command, event, value object interfaces |
+| `src/{context}/{aggregate}.aggregate.ts` | Aggregate root interface |
+| `src/{context}/index.ts` | Barrel exports |
+| `__tests__/flows/{flow}.spec.ts` | Flow test scaffold |
+| `__tests__/{context}/{aggregate}.spec.ts` | Aggregate test scaffold |
+
+**Gherkin** (`gherkin/`)
+| File | Description |
+|------|-------------|
+| `{flow}.feature` | BDD scenarios from temporal flows |
+
+**Documentation** (`docs/`)
+| File | Description |
+|------|-------------|
+| `specification.md` | Context overview with counts |
+| `{context}/inventory.md` | Detailed aggregate inventory |
 
 </details>

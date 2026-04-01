@@ -1,1 +1,0 @@
-Drift detected: 14 drifted, 0 aligned
