@@ -128,8 +128,8 @@ describe('Derive Pipeline Integration', () => {
   describe('DV-01: single-flow IR -> one TestSuiteDefinition', () => {
     it('single-flow IR produces topology with exactly one TestSuiteDefinition', () => {
       const ctx = makeContext('ctx-ordering', 'Ordering');
-      const frame = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-      const flow = makeFlow('flow-order', 'Order Flow', [frame], []);
+      const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+      const flow = makeFlow('flow-order', 'Order Flow', [moment], []);
       const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -200,8 +200,8 @@ describe('Derive Pipeline Integration', () => {
       const ctxShipping = makeContext('ctx-shipping', 'Shipping');
       const ctxBilling = makeContext('ctx-billing', 'Billing');
 
-      const frame1 = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
-      const frame2 = makeMoment('fr-ship', 'Ship Order', 'ctx-shipping', 'ShipOrder');
+      const moment1 = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+      const moment2 = makeMoment('fr-ship', 'Ship Order', 'ctx-shipping', 'ShipOrder');
 
       const crossToShipping = makeCrossingConnection(
         'conn-to-ship',
@@ -231,7 +231,7 @@ describe('Derive Pipeline Integration', () => {
       const flow = makeFlow(
         'flow-full',
         'Full Order Flow',
-        [frame1, frame2],
+        [moment1, moment2],
         [crossToShipping, crossToBilling, crossBackToOrdering],
       );
 
@@ -266,10 +266,10 @@ describe('Derive Pipeline Integration', () => {
   });
 
   // -------------------------------------------------------------------------
-  // DV-03: Frame ordering — test cases match frame temporal ordering
+  // DV-03: Moment ordering -- test cases match moment temporal ordering
   // -------------------------------------------------------------------------
-  describe('DV-03: frame ordering preserved in test cases', () => {
-    it('test cases are produced in the same order as frames in the flow', () => {
+  describe('DV-03: moment ordering preserved in test cases', () => {
+    it('test cases are produced in the same order as moments in the flow', () => {
       const ctx = makeContext('ctx-ordering', 'Ordering');
 
       const moments: MomentDefinition[] = [
@@ -305,7 +305,7 @@ describe('Derive Pipeline Integration', () => {
       const ctxOrdering = makeContext('ctx-ordering', 'Ordering');
       const ctxFulfillment = makeContext('ctx-fulfillment', 'Fulfillment');
 
-      const frame = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+      const moment = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
 
       const schemaFields: SchemaFieldDefinition[] = [
         { name: 'orderId', type: 'string', required: true },
@@ -323,7 +323,7 @@ describe('Derive Pipeline Integration', () => {
         schemaFields,
       );
 
-      const flow = makeFlow('flow-fulfill', 'Fulfillment Flow', [frame], [crossing]);
+      const flow = makeFlow('flow-fulfill', 'Fulfillment Flow', [moment], [crossing]);
 
       const ir = makeIR({
         contexts: [ctxOrdering, ctxFulfillment],
@@ -393,7 +393,7 @@ describe('Derive Pipeline Integration', () => {
       expect(topology.suites[0].flowId).toBe('flow-internal');
       expect(topology.suites[0].flowName).toBe('Internal Processing');
 
-      // 3 frames => 3 test cases
+      // 3 moments => 3 test cases
       expect(topology.suites[0].testCases).toHaveLength(3);
 
       // No crossings => all test cases should have empty assertion arrays
@@ -416,9 +416,9 @@ describe('Derive Pipeline Integration', () => {
       const ctxPayment = makeContext('ctx-payment', 'Payment');
       const ctxShipping = makeContext('ctx-shipping', 'Shipping');
 
-      const framePlace = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
+      const momentPlace = makeMoment('fr-place', 'Place Order', 'ctx-ordering', 'PlaceOrder');
 
-      const frameBranch: MomentDefinition = {
+      const momentBranch: MomentDefinition = {
         id: 'fr-decide',
         name: 'Payment Decision',
         contextEntries: [
@@ -438,7 +438,7 @@ describe('Derive Pipeline Integration', () => {
         ],
       };
 
-      const frameShip = makeMoment('fr-ship', 'Ship Order', 'ctx-shipping', 'ShipOrder');
+      const momentShip = makeMoment('fr-ship', 'Ship Order', 'ctx-shipping', 'ShipOrder');
 
       const crossToPayment = makeCrossingConnection(
         'conn-pay',
@@ -462,7 +462,7 @@ describe('Derive Pipeline Integration', () => {
       const flow = makeFlow(
         'flow-complex',
         'Complex Order Flow',
-        [framePlace, frameBranch, frameShip],
+        [momentPlace, momentBranch, momentShip],
         [crossToPayment, crossToShipping],
       );
 
@@ -476,10 +476,10 @@ describe('Derive Pipeline Integration', () => {
       expect(topology.suites).toHaveLength(1);
       const suite = topology.suites[0];
 
-      // framePlace => 1 test case, frameBranch => 2 (one per branch), frameShip => 1
+      // momentPlace => 1 test case, momentBranch => 2 (one per branch), momentShip => 1
       expect(suite.testCases).toHaveLength(4);
 
-      // Frame ordering preserved: place first, then branch variants (any order), then ship
+      // Moment ordering preserved: place first, then branch variants (any order), then ship
       expect(suite.testCases[0].momentId).toBe('fr-place');
       expect(suite.testCases[1].momentId).toBe('fr-decide');
       expect(suite.testCases[2].momentId).toBe('fr-decide');
