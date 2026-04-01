@@ -1096,7 +1096,7 @@ export const MomentGrammar = (): Grammar =>
           },
           {
             "$type": "Assignment",
-            "feature": "frames",
+            "feature": "moments",
             "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
@@ -1188,13 +1188,13 @@ export const MomentGrammar = (): Grammar =>
     },
     {
       "$type": "ParserRule",
-      "name": "Frame",
+      "name": "Moment",
       "definition": {
         "$type": "Group",
         "elements": [
           {
             "$type": "Keyword",
-            "value": "frame"
+            "value": "moment"
           },
           {
             "$type": "Assignment",

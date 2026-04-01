@@ -60,11 +60,11 @@ export type MomentKeywordNames =
   | 'emits'
   | 'event'
   | 'flow'
-  | 'frame'
   | 'identity'
   | 'input'
   | 'invariant'
   | 'lane'
+  | 'moment'
   | 'number'
   | 'optional'
   | 'policy'
@@ -326,8 +326,8 @@ export interface FlowDeclaration extends langium.AstNode {
   readonly $container: MomentFile;
   readonly $type: 'FlowDeclaration';
   description?: string;
-  frames: Array<Frame>;
   lanes: Array<LaneDeclaration>;
+  moments: Array<Moment>;
   name: string;
 }
 
@@ -335,21 +335,6 @@ export const FlowDeclaration = 'FlowDeclaration';
 
 export function isFlowDeclaration(item: unknown): item is FlowDeclaration {
   return reflection.isInstance(item, FlowDeclaration);
-}
-
-export interface Frame extends langium.AstNode {
-  readonly $container: FlowDeclaration;
-  readonly $type: 'Frame';
-  isBranch: boolean;
-  label: string;
-  nodes: Array<NodePlacement>;
-  whenBlocks: Array<WhenBlock>;
-}
-
-export const Frame = 'Frame';
-
-export function isFrame(item: unknown): item is Frame {
-  return reflection.isInstance(item, Frame);
 }
 
 export interface InputField extends langium.AstNode {
@@ -394,6 +379,21 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
   return reflection.isInstance(item, LaneDeclaration);
 }
 
+export interface Moment extends langium.AstNode {
+  readonly $container: FlowDeclaration;
+  readonly $type: 'Moment';
+  isBranch: boolean;
+  label: string;
+  nodes: Array<NodePlacement>;
+  whenBlocks: Array<WhenBlock>;
+}
+
+export const Moment = 'Moment';
+
+export function isMoment(item: unknown): item is Moment {
+  return reflection.isInstance(item, Moment);
+}
+
 export interface MomentFile extends langium.AstNode {
   readonly $type: 'MomentFile';
   contexts: Array<ContextDeclaration>;
@@ -432,7 +432,7 @@ export function isNodeModifier(item: unknown): item is NodeModifier {
 }
 
 export interface NodePlacement extends langium.AstNode {
-  readonly $container: Frame | WhenBlock;
+  readonly $container: Moment | WhenBlock;
   readonly $type: 'NodePlacement';
   connections: Array<Connection>;
   crossing?: ContextCrossing;
@@ -581,7 +581,7 @@ export function isValueObjectDeclaration(item: unknown): item is ValueObjectDecl
 }
 
 export interface WhenBlock extends langium.AstNode {
-  readonly $container: Frame;
+  readonly $container: Moment;
   readonly $type: 'WhenBlock';
   condition: string;
   nodes: Array<NodePlacement>;
@@ -608,10 +608,10 @@ export type MomentAstType = {
   DomainServiceDeclaration: DomainServiceDeclaration;
   FieldDeclaration: FieldDeclaration;
   FlowDeclaration: FlowDeclaration;
-  Frame: Frame;
   InputField: InputField;
   InvariantDeclaration: InvariantDeclaration;
   LaneDeclaration: LaneDeclaration;
+  Moment: Moment;
   MomentFile: MomentFile;
   Multiplicity: Multiplicity;
   NodeModifier: NodeModifier;
@@ -646,10 +646,10 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
       DomainServiceDeclaration,
       FieldDeclaration,
       FlowDeclaration,
-      Frame,
       InputField,
       InvariantDeclaration,
       LaneDeclaration,
+      Moment,
       MomentFile,
       Multiplicity,
       NodeModifier,
@@ -801,20 +801,9 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
           name: FlowDeclaration,
           properties: [
             { name: 'description' },
-            { name: 'frames', defaultValue: [] },
             { name: 'lanes', defaultValue: [] },
+            { name: 'moments', defaultValue: [] },
             { name: 'name' },
-          ],
-        };
-      }
-      case Frame: {
-        return {
-          name: Frame,
-          properties: [
-            { name: 'isBranch', defaultValue: false },
-            { name: 'label' },
-            { name: 'nodes', defaultValue: [] },
-            { name: 'whenBlocks', defaultValue: [] },
           ],
         };
       }
@@ -838,6 +827,17 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             { name: 'id' },
             { name: 'isBranch', defaultValue: false },
             { name: 'label' },
+          ],
+        };
+      }
+      case Moment: {
+        return {
+          name: Moment,
+          properties: [
+            { name: 'isBranch', defaultValue: false },
+            { name: 'label' },
+            { name: 'nodes', defaultValue: [] },
+            { name: 'whenBlocks', defaultValue: [] },
           ],
         };
       }
