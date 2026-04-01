@@ -245,7 +245,7 @@ test('sync status: --json outputs DriftReport', (assert) => {
   assert(parsed !== null, 'valid JSON');
   assert(parsed?.totalDrifted > 0, 'totalDrifted > 0');
   assert(parsed?.driftPoints?.length > 0, 'has drift points');
-  saveOutput('sync-status.json', JSON.stringify(parsed, null, 2));
+  // sync-status.json not saved — drift report is a workflow tool, not a showcase artifact
 });
 
 console.log('\n=== Test ===');
@@ -413,7 +413,6 @@ const md = [
   '| `simulate-scenario.json` | Facet-compatible simulation (28 events, causation chains) |',
   '| `derive-topology.json` | Test suite topology (17 cases, assertion points) |',
   '| `viz-envelope.json` | Visualization data envelope (context map + timeline) |',
-  '| `sync-status.json` | Drift report (spec vs implementation) |',
   '',
   '**TypeScript** (`typescript/`)',
   '| File | Description |',
