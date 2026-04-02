@@ -7,6 +7,8 @@ import type {
   ContextDefinition,
   CommandDefinition,
   EventDefinition,
+  PreconditionDefinition,
+  SagaDefinition,
 } from '@mmmnt/core';
 
 /**
@@ -62,7 +64,6 @@ function renderMomentsByContext(
   ir: IntermediateRepresentation,
   ctxMap: Map<string, ContextDefinition>,
 ): void {
-  // Group moments into Rules by primary context
   const contextGroups = groupMomentsByContext(flow);
 
   for (const [ctxId, moments] of contextGroups) {
@@ -73,15 +74,20 @@ function renderMomentsByContext(
     lines.push(`  Rule: ${ctxName}${classification}`);
     lines.push('');
 
+    const sharedPreconditions = extractSharedPreconditions(moments, ctxMap);
+    renderBackgroundBlock(lines, sharedPreconditions);
+
     for (const moment of moments) {
       if (moment.branches && moment.branches.length > 0) {
         for (const branch of moment.branches) {
-          renderBranchScenario(lines, moment, branch.condition, branch.entries, flow, ctxMap, ir);
+          renderBranchScenario(lines, moment, branch.condition, branch.entries, flow, ctxMap, ir, sharedPreconditions);
         }
       } else {
-        renderScenario(lines, moment, moment.contextEntries, flow, ctxMap, ir, undefined);
+        renderScenario(lines, moment, moment.contextEntries, flow, ctxMap, ir, undefined, sharedPreconditions);
       }
     }
+
+    renderSagaScenarios(lines, ctxId, ir);
   }
 }
 
@@ -93,6 +99,7 @@ function renderScenario(
   ctxMap: Map<string, ContextDefinition>,
   ir: IntermediateRepresentation,
   variant: string | undefined,
+  sharedPreconditions: Set<string> = new Set(),
 ): void {
   const label = variant ? `${moment.name} [${variant}]` : moment.name;
   const tags = buildScenarioTags(entries, flow, ctxMap, ir, variant);
@@ -101,7 +108,7 @@ function renderScenario(
   lines.push(`    Scenario: ${label}`);
 
   for (const entry of entries) {
-    renderEntrySteps(lines, entry, flow, ctxMap);
+    renderEntrySteps(lines, entry, flow, ctxMap, sharedPreconditions);
   }
 
   lines.push('');
@@ -115,17 +122,12 @@ function renderBranchScenario(
   flow: FlowDefinition,
   ctxMap: Map<string, ContextDefinition>,
   ir: IntermediateRepresentation,
+  sharedPreconditions: Set<string> = new Set(),
 ): void {
   const isTerminal = branchEntries.some((e) => e.terminal);
 
   if (isTerminal) {
-    const tags = ['@terminal', `@failure-path`];
-    lines.push(`    ${tags.join(' ')}`);
-    lines.push(`    Scenario: ${moment.name} [${condition}]`);
-    lines.push(`      Given the ${moment.name.toLowerCase()} is evaluated`);
-    lines.push(`      When the outcome is ${condition}`);
-    lines.push(`      Then the flow terminates`);
-    lines.push('');
+    renderTerminalBranchScenario(lines, moment, condition, flow, ctxMap, ir);
     return;
   }
 
@@ -137,7 +139,38 @@ function renderBranchScenario(
   lines.push(`    Scenario: ${moment.name} [${condition}]`);
 
   for (const entry of allEntries) {
-    renderEntrySteps(lines, entry, flow, ctxMap);
+    renderEntrySteps(lines, entry, flow, ctxMap, sharedPreconditions);
+  }
+
+  lines.push('');
+}
+
+function renderTerminalBranchScenario(
+  lines: string[],
+  moment: MomentDefinition,
+  condition: string,
+  flow: FlowDefinition,
+  ctxMap: Map<string, ContextDefinition>,
+  ir: IntermediateRepresentation,
+): void {
+  const tags = ['@terminal', '@failure-path'];
+  lines.push(`    ${tags.join(' ')}`);
+  lines.push(`    Scenario: ${moment.name} [${condition}]`);
+
+  const failedPrecondition = findFailedPrecondition(moment, condition, ctxMap);
+  if (failedPrecondition) {
+    lines.push(`      Given the ${moment.name.toLowerCase()} is evaluated`);
+    lines.push(`      When ${failedPrecondition.name} is not satisfied`);
+    lines.push(`      Then the flow terminates because ${failedPrecondition.description}`);
+  } else {
+    lines.push(`      Given the ${moment.name.toLowerCase()} is evaluated`);
+    lines.push(`      When the outcome is ${condition}`);
+    lines.push(`      Then the flow terminates`);
+  }
+
+  const compensation = findCompensationForMoment(moment, ir);
+  if (compensation) {
+    lines.push(`      And saga ${compensation.sagaName} compensation is triggered: ${compensation.compensation}`);
   }
 
   lines.push('');
@@ -203,12 +236,13 @@ function renderEntrySteps(
   entry: MomentEntry,
   flow: FlowDefinition,
   ctxMap: Map<string, ContextDefinition>,
+  sharedPreconditions: Set<string> = new Set(),
 ): void {
   const ctx = ctxMap.get(entry.contextId);
   const ctxName = entry.contextId.replace(/^ctx-/, '');
 
   if (isCommand(entry.nodeName, ctx)) {
-    renderCommandStep(lines, entry, ctx, ctxName, flow);
+    renderCommandStep(lines, entry, ctx, ctxName, flow, sharedPreconditions);
   } else {
     renderEventStep(lines, entry, ctx, ctxName, flow);
   }
@@ -220,12 +254,15 @@ function renderCommandStep(
   ctx: ContextDefinition | undefined,
   ctxName: string,
   flow: FlowDefinition,
+  sharedPreconditions: Set<string> = new Set(),
 ): void {
   const cmd = findCommand(ctx, entry.nodeName);
 
   if (cmd) {
     for (const pre of cmd.preconditions) {
-      lines.push(`      Given ${pre.description}`);
+      if (!sharedPreconditions.has(pre.description)) {
+        lines.push(`      Given ${pre.description}`);
+      }
     }
   }
 
@@ -286,6 +323,155 @@ function renderEventStep(
   } else {
     renderInternalEventStep(lines, entry, findEvent(ctx, entry.nodeName), ctxName);
   }
+}
+
+// ============================================================================
+// Background & Saga helpers
+// ============================================================================
+
+/**
+ * Collects all precondition descriptions from all scenarios in a Rule,
+ * then returns those that appear in every scenario.
+ */
+function extractSharedPreconditions(
+  moments: MomentDefinition[],
+  ctxMap: Map<string, ContextDefinition>,
+): Set<string> {
+  const scenarioPreconditions = collectAllScenarioPreconditions(moments, ctxMap);
+  if (scenarioPreconditions.length === 0) return new Set();
+
+  const first = scenarioPreconditions[0];
+  const shared = [...first].filter((desc) =>
+    scenarioPreconditions.every((s) => s.has(desc)),
+  );
+  return new Set(shared);
+}
+
+function collectAllScenarioPreconditions(
+  moments: MomentDefinition[],
+  ctxMap: Map<string, ContextDefinition>,
+): Set<string>[] {
+  const result: Set<string>[] = [];
+
+  for (const moment of moments) {
+    if (moment.branches && moment.branches.length > 0) {
+      for (const branch of moment.branches) {
+        const isTerminal = branch.entries.some((e) => e.terminal);
+        if (isTerminal) continue;
+        const allEntries = [...moment.contextEntries, ...branch.entries];
+        result.push(collectPreconditionsFromEntries(allEntries, ctxMap));
+      }
+    } else {
+      result.push(collectPreconditionsFromEntries(moment.contextEntries, ctxMap));
+    }
+  }
+
+  return result;
+}
+
+function collectPreconditionsFromEntries(
+  entries: readonly MomentEntry[],
+  ctxMap: Map<string, ContextDefinition>,
+): Set<string> {
+  const preconditions = new Set<string>();
+  for (const entry of entries) {
+    const ctx = ctxMap.get(entry.contextId);
+    const cmd = findCommand(ctx, entry.nodeName);
+    if (cmd) {
+      for (const pre of cmd.preconditions) {
+        preconditions.add(pre.description);
+      }
+    }
+  }
+  return preconditions;
+}
+
+function renderBackgroundBlock(lines: string[], sharedPreconditions: Set<string>): void {
+  if (sharedPreconditions.size === 0) return;
+  lines.push('    Background:');
+  for (const desc of sharedPreconditions) {
+    lines.push(`      Given ${desc}`);
+  }
+  lines.push('');
+}
+
+function renderSagaScenarios(
+  lines: string[],
+  ctxId: string,
+  ir: IntermediateRepresentation,
+): void {
+  const ctx = ir.contexts.find((c) => c.id === ctxId);
+  if (!ctx) return;
+  for (const saga of ctx.sagas) {
+    renderSagaTransitionScenario(lines, saga);
+    renderSagaCompensationScenario(lines, saga);
+  }
+}
+
+function renderSagaTransitionScenario(lines: string[], saga: SagaDefinition): void {
+  lines.push(`    @saga:${saga.name}`);
+  lines.push(`    Scenario: ${saga.name} state transitions`);
+  lines.push(`      Given the saga is triggered by ${saga.trigger}`);
+  const stateChain = saga.states.join(' \u2192 ');
+  lines.push(`      Then states progress: ${stateChain}`);
+  lines.push('');
+}
+
+function renderSagaCompensationScenario(lines: string[], saga: SagaDefinition): void {
+  lines.push(`    @saga:${saga.name} @compensation`);
+  lines.push(`    Scenario: ${saga.name} compensation`);
+  lines.push(`      When ${saga.timeout} is exceeded`);
+  lines.push(`      Then ${saga.compensation} is executed`);
+  lines.push('');
+}
+
+/**
+ * For a terminal branch, find which precondition failed by looking at the
+ * non-terminal sibling branches' command preconditions.
+ */
+function findFailedPrecondition(
+  moment: MomentDefinition,
+  _condition: string,
+  ctxMap: Map<string, ContextDefinition>,
+): PreconditionDefinition | undefined {
+  if (!moment.branches) return undefined;
+
+  const nonTerminalBranches = moment.branches.filter(
+    (b) => !b.entries.some((e) => e.terminal),
+  );
+
+  for (const branch of nonTerminalBranches) {
+    for (const entry of branch.entries) {
+      const ctx = ctxMap.get(entry.contextId);
+      const cmd = findCommand(ctx, entry.nodeName);
+      if (cmd && cmd.preconditions.length > 0) {
+        return cmd.preconditions[0];
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function findCompensationForMoment(
+  moment: MomentDefinition,
+  ir: IntermediateRepresentation,
+): { sagaName: string; compensation: string } | undefined {
+  const primaryCtxId = moment.contextEntries[0]?.contextId;
+  if (!primaryCtxId) return undefined;
+
+  const ctx = ir.contexts.find((c) => c.id === primaryCtxId);
+  if (!ctx || ctx.sagas.length === 0) return undefined;
+
+  for (const saga of ctx.sagas) {
+    const hasTrigger = moment.contextEntries.some((e) => e.nodeName === saga.trigger)
+      || moment.branches?.some((b) => b.entries.some((e) => e.nodeName === saga.trigger));
+    if (hasTrigger) {
+      return { sagaName: saga.name, compensation: saga.compensation };
+    }
+  }
+
+  return undefined;
 }
 
 // ============================================================================

@@ -7,6 +7,7 @@ import type {
   ConnectionDefinition,
   EventDefinition,
   ValueObjectDefinition,
+  SagaDefinition,
 } from '@mmmnt/core';
 import type { GeneratedDocument } from '../types/index.js';
 
@@ -34,6 +35,7 @@ export class SpecificationDocumentGenerator {
     this.renderTitle(lines, ir);
     this.renderToc(lines, ir);
     this.renderAtAGlance(lines, ir);
+    this.renderMermaidDiagrams(lines, ir);
     this.renderWhatHappens(lines, ir);
     this.renderContextBoundaries(lines, ir);
     this.renderDomainModel(lines, ir);
@@ -102,12 +104,13 @@ export class SpecificationDocumentGenerator {
     lines.push('');
 
     // Context cards
-    lines.push('| Context | Role | Aggregates | Commands | Events |');
-    lines.push('|---------|------|:----------:|:--------:|:------:|');
+    lines.push('| Context | Role | Description | Aggregates | Commands | Events |');
+    lines.push('|---------|------|-------------|:----------:|:--------:|:------:|');
     for (const ctx of ir.contexts) {
       const role = ctx.classification ?? '—';
+      const desc = ctx.description ?? '—';
       lines.push(
-        `| **${ctx.name}** | ${role} | ${ctx.aggregates.length} | ${ctx.commands.length} | ${ctx.events.length} |`,
+        `| **${ctx.name}** | ${role} | ${desc} | ${ctx.aggregates.length} | ${ctx.commands.length} | ${ctx.events.length} |`,
       );
     }
     lines.push('');
@@ -180,8 +183,10 @@ export class SpecificationDocumentGenerator {
     const ctxName = primaryCtxId ? this.resolveCtxName(primaryCtxId, ir) : '';
     const ctxLabel = ctxName ? ` *(${ctxName})*` : '';
 
-    // Step header with context
-    lines.push(`**${step}. ${moment.name}**${ctxLabel}`);
+    // Step header with context and saga state
+    const sagaLabel = this.findSagaStateForMoment(moment, step, flow, ir);
+    const sagaSuffix = sagaLabel ? ` — *${sagaLabel}*` : '';
+    lines.push(`**${step}. ${moment.name}**${ctxLabel}${sagaSuffix}`);
     lines.push('');
 
     // Render entries
@@ -315,6 +320,11 @@ export class SpecificationDocumentGenerator {
     lines.push(`### ${ctx.name}${tag}`);
     lines.push('');
 
+    if (ctx.description) {
+      lines.push(`> ${ctx.description}`);
+      lines.push('');
+    }
+
     for (const agg of ctx.aggregates) {
       this.renderAggregateModel(lines, agg);
     }
@@ -409,6 +419,262 @@ export class SpecificationDocumentGenerator {
         `${ir.flows.length} flow${ir.flows.length !== 1 ? 's' : ''}.*`,
     );
     lines.push('');
+  }
+
+  // ===========================================================================
+  // Mermaid Diagrams
+  // ===========================================================================
+
+  private renderMermaidDiagrams(lines: string[], ir: IntermediateRepresentation): void {
+    this.renderContextMapDiagram(lines, ir);
+    this.renderFlowSequenceDiagram(lines, ir);
+  }
+
+  private renderContextMapDiagram(lines: string[], ir: IntermediateRepresentation): void {
+    const edges = this.buildContextMapEdges(ir);
+    if (ir.contexts.length === 0) return;
+
+    lines.push('```mermaid');
+    lines.push('graph LR');
+
+    for (const ctx of ir.contexts) {
+      const classification = ctx.classification ?? 'Generic';
+      const nodeId = this.mermaidNodeId(ctx.name);
+      lines.push(`  ${nodeId}["${ctx.name}<br/><i>${classification}</i>"]`);
+    }
+
+    for (const edge of edges) {
+      lines.push(`  ${edge.source} -->|${edge.label}| ${edge.target}`);
+    }
+
+    lines.push('```');
+    lines.push('');
+  }
+
+  private buildContextMapEdges(
+    ir: IntermediateRepresentation,
+  ): { source: string; target: string; label: string }[] {
+    const edges: { source: string; target: string; label: string }[] = [];
+    const seen = new Set<string>();
+
+    for (const flow of ir.flows) {
+      for (const conn of flow.connections) {
+        if (conn.connectionType !== 'crosses-to') continue;
+        const moment = flow.moments.find((m) => m.id === conn.sourceMomentId);
+        const sourceCtxId = this.resolveSourceContextId(moment);
+        if (!sourceCtxId) continue;
+
+        const sourceNode = this.mermaidNodeId(this.resolveCtxName(sourceCtxId, ir));
+        const targetNode = this.mermaidNodeId(this.resolveCtxName(conn.targetContextId, ir));
+        const label = conn.schemaContract.relationshipType;
+        const key = `${sourceNode}-${targetNode}-${label}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          edges.push({ source: sourceNode, target: targetNode, label });
+        }
+      }
+    }
+    return edges;
+  }
+
+  private renderFlowSequenceDiagram(lines: string[], ir: IntermediateRepresentation): void {
+    if (ir.flows.length === 0) return;
+
+    for (const flow of ir.flows) {
+      this.renderSingleFlowSequence(lines, flow, ir);
+    }
+  }
+
+  private renderSingleFlowSequence(
+    lines: string[],
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const participants = this.collectFlowParticipants(flow, ir);
+    if (participants.length === 0) return;
+
+    lines.push('```mermaid');
+    lines.push('sequenceDiagram');
+
+    for (const p of participants) {
+      lines.push(`  participant ${p}`);
+    }
+
+    for (const moment of flow.moments) {
+      this.renderMomentSequenceMessages(lines, moment, flow, ir);
+    }
+
+    lines.push('```');
+    lines.push('');
+  }
+
+  private collectFlowParticipants(flow: FlowDefinition, ir: IntermediateRepresentation): string[] {
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    for (const moment of flow.moments) {
+      for (const entry of moment.contextEntries) {
+        const name = this.resolveCtxName(entry.contextId, ir);
+        if (!seen.has(name)) {
+          seen.add(name);
+          result.push(name);
+        }
+      }
+      if (moment.branches) {
+        for (const branch of moment.branches) {
+          for (const entry of branch.entries) {
+            const name = this.resolveCtxName(entry.contextId, ir);
+            if (!seen.has(name)) {
+              seen.add(name);
+              result.push(name);
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  private renderMomentSequenceMessages(
+    lines: string[],
+    moment: MomentDefinition,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const ctxName = this.resolveMomentCtxName(moment, ir);
+
+    // Render command -> event pairs
+    this.renderSequenceEntries(lines, moment.contextEntries, ctxName, flow, ir);
+
+    // Branches as alt blocks
+    if (moment.branches && moment.branches.length > 0) {
+      for (let i = 0; i < moment.branches.length; i++) {
+        const branch = moment.branches[i];
+        const keyword = i === 0 ? 'alt' : 'else';
+        lines.push(`  ${keyword} ${branch.condition}`);
+        const branchCtx = branch.entries[0]
+          ? this.resolveCtxName(branch.entries[0].contextId, ir)
+          : ctxName;
+        this.renderSequenceEntries(lines, branch.entries, branchCtx, flow, ir);
+      }
+      lines.push('  end');
+    }
+  }
+
+  private renderSequenceEntries(
+    lines: string[],
+    entries: MomentEntry[],
+    ctxName: string,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const commands = entries.filter((e) => e.nodeKind === 'command');
+    const events = entries.filter((e) => e.nodeKind === 'event');
+
+    for (const cmd of commands) {
+      const cmdCtx = this.resolveCtxName(cmd.contextId, ir);
+      const matchedEvent = events.find((e) => e.contextId === cmd.contextId);
+      const eventLabel = matchedEvent ? ` → ${matchedEvent.nodeName}` : '';
+      lines.push(`  ${cmdCtx}->>${cmdCtx}: ${cmd.nodeName}${eventLabel}`);
+    }
+
+    // Crossings as notes
+    for (const entry of entries) {
+      const crossing = this.findCrossing(entry.nodeName, flow);
+      if (crossing) {
+        const source = this.resolveCtxName(entry.contextId, ir);
+        const target = this.resolveCtxName(crossing.targetContextId, ir);
+        lines.push(`  ${source}->>${target}: ${entry.nodeName} (crosses)`);
+      }
+    }
+  }
+
+  private resolveMomentCtxName(moment: MomentDefinition, ir: IntermediateRepresentation): string {
+    const entry = moment.contextEntries[0] ?? moment.branches?.[0]?.entries?.[0];
+    return entry ? this.resolveCtxName(entry.contextId, ir) : '';
+  }
+
+  private mermaidNodeId(name: string): string {
+    return name.replace(/[^a-zA-Z0-9]/g, '');
+  }
+
+  private resolveSourceContextId(moment: MomentDefinition | undefined): string | undefined {
+    if (!moment) return undefined;
+    const entry = moment.contextEntries[0] ?? moment.branches?.[0]?.entries?.[0];
+    return entry?.contextId;
+  }
+
+  // ===========================================================================
+  // Saga Helpers
+  // ===========================================================================
+
+  private findSagaStateForMoment(
+    moment: MomentDefinition,
+    step: number,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): string | undefined {
+    const matchedSaga = this.findSagaForMoment(moment, step, flow, ir);
+    if (!matchedSaga) return undefined;
+
+    const stateIndex = this.computeSagaStateIndex(matchedSaga.saga, matchedSaga.triggerStep, step);
+    if (stateIndex < 0 || stateIndex >= matchedSaga.saga.states.length) return undefined;
+
+    return `${matchedSaga.saga.name}: ${matchedSaga.saga.states[stateIndex]}`;
+  }
+
+  private findSagaForMoment(
+    _moment: MomentDefinition,
+    step: number,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): { saga: SagaDefinition; triggerStep: number } | undefined {
+    // Collect all events emitted up to and including this moment
+    const eventsUpTo = this.collectEventsUpToStep(flow, step);
+
+    for (const ctx of ir.contexts) {
+      for (const saga of ctx.sagas) {
+        const triggerStep = this.findSagaTriggerStep(saga, flow);
+        if (triggerStep >= 1 && triggerStep <= step) {
+          // Verify the trigger event is in the events we've seen
+          if (eventsUpTo.has(saga.trigger)) {
+            return { saga, triggerStep };
+          }
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private findSagaTriggerStep(saga: SagaDefinition, flow: FlowDefinition): number {
+    for (let i = 0; i < flow.moments.length; i++) {
+      const moment = flow.moments[i];
+      const hasEvent = moment.contextEntries.some(
+        (e) => e.nodeKind === 'event' && e.nodeName === saga.trigger,
+      );
+      if (hasEvent) return i + 1;
+    }
+    return -1;
+  }
+
+  private collectEventsUpToStep(flow: FlowDefinition, step: number): Set<string> {
+    const events = new Set<string>();
+    for (let i = 0; i < step && i < flow.moments.length; i++) {
+      for (const entry of flow.moments[i].contextEntries) {
+        if (entry.nodeKind === 'event') events.add(entry.nodeName);
+      }
+    }
+    return events;
+  }
+
+  private computeSagaStateIndex(
+    saga: SagaDefinition,
+    triggerStep: number,
+    currentStep: number,
+  ): number {
+    const elapsed = currentStep - triggerStep;
+    return Math.min(elapsed, saga.states.length - 1);
   }
 
   // ===========================================================================

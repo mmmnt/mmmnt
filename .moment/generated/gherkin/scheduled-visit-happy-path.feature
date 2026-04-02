@@ -101,6 +101,16 @@ Feature: scheduled-visit-happy-path
         | planId | visitId | patientId |
         | UUID | UUID | UUID |
 
+    @saga:VisitLifecycle
+    Scenario: VisitLifecycle state transitions
+      Given the saga is triggered by PatientIntakeRegistered
+      Then states progress: Triaging → Diagnosing → Cataloging → Treating → Complete
+
+    @saga:VisitLifecycle @compensation
+    Scenario: VisitLifecycle compensation
+      When visitTimeout is exceeded
+      Then Cancel visit and release appointment slot is executed
+
   Rule: Billing [Supporting]
 
     @aggregate:Invoice @policy:BillOnVisitComplete @invariant:BIL-01

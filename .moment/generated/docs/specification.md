@@ -14,14 +14,48 @@
 
 ## At a Glance
 
-| Context | Role | Aggregates | Commands | Events |
-|---------|------|:----------:|:--------:|:------:|
-| **Reception** | Core | 1 | 3 | 3 |
-| **Clinical** | Core | 2 | 7 | 7 |
-| **Billing** | Supporting | 1 | 2 | 2 |
-| **Records** | Supporting | 1 | 2 | 2 |
+| Context | Role | Description | Aggregates | Commands | Events |
+|---------|------|-------------|:----------:|:--------:|:------:|
+| **Reception** | Core | Manages patient check-in, intake validation, and registration for veterinary visits | 1 | 3 | 3 |
+| **Clinical** | Core | Handles triage, diagnosis, clinical assessment, and treatment planning for patient visits | 2 | 7 | 7 |
+| **Billing** | Supporting | Generates invoices and verifies billing after treatment is confirmed | 1 | 2 | 2 |
+| **Records** | Supporting | Creates and finalizes discharge records after billing verification | 1 | 2 | 2 |
 
 **1 flow** · 14 moments · 3 context crossings · 7 business rules · 6 policies
+
+```mermaid
+graph LR
+  Reception["Reception<br/><i>Core</i>"]
+  Clinical["Clinical<br/><i>Core</i>"]
+  Billing["Billing<br/><i>Supporting</i>"]
+  Records["Records<br/><i>Supporting</i>"]
+  Reception -->|CustomerSupplier| Clinical
+  Clinical -->|CustomerSupplier| Billing
+  Billing -->|CustomerSupplier| Records
+```
+
+```mermaid
+sequenceDiagram
+  participant Reception
+  participant Intake Failure
+  participant Clinical
+  participant Vet Disagreement
+  participant Records Incomplete
+  participant Billing
+  participant Records
+  alt valid
+  Reception->>Clinical: PatientIntakeRegistered (crosses)
+  else invalid
+  end
+  alt agree
+  else disagree
+  end
+  alt complete
+  else incomplete
+  end
+  Clinical->>Billing: TreatmentConfirmed (crosses)
+  Billing->>Records: BillingVerified (crosses)
+```
 
 ## What Happens
 
@@ -171,6 +205,8 @@ These are the points where data crosses from one bounded context to another. Eac
 
 ### Reception [Core]
 
+> Manages patient check-in, intake validation, and registration for veterinary visits
+
 #### PatientIntake
 
 *Identity:* `intakeId: UUID`
@@ -205,6 +241,8 @@ These are the points where data crosses from one bounded context to another. Eac
 - `registeredAt`: *DateTime*
 
 ### Clinical [Core]
+
+> Handles triage, diagnosis, clinical assessment, and treatment planning for patient visits
 
 #### VisitRecord
 
@@ -289,6 +327,8 @@ These are the points where data crosses from one bounded context to another. Eac
 
 ### Billing [Supporting]
 
+> Generates invoices and verifies billing after treatment is confirmed
+
 #### Invoice
 
 *Identity:* `invoiceId: UUID`
@@ -312,6 +352,8 @@ These are the points where data crosses from one bounded context to another. Eac
 - `verifiedAt`: *DateTime*
 
 ### Records [Supporting]
+
+> Creates and finalizes discharge records after billing verification
 
 #### DischargeRecord
 
