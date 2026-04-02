@@ -49,6 +49,27 @@ describe('AstToIr', () => {
     expect(ir.contexts[0].classification).toBe('Core');
   });
 
+  it('transforms context with description', async () => {
+    const ir = await toIr(`
+      context "Sales" [Core]
+        description "Handles all sales operations"
+        aggregate "Order"
+          identity orderId: UUID
+    `);
+
+    expect(ir.contexts[0].description).toBe('Handles all sales operations');
+  });
+
+  it('transforms context without description', async () => {
+    const ir = await toIr(`
+      context "Sales" [Core]
+        aggregate "Order"
+          identity orderId: UUID
+    `);
+
+    expect(ir.contexts[0].description).toBeUndefined();
+  });
+
   it('transforms aggregate with identity to AggregateDefinition', async () => {
     const ir = await toIr(`
       context "Test"
