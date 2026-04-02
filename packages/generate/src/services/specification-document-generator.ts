@@ -387,8 +387,8 @@ export class SpecificationDocumentGenerator {
         lines.push(`**${evt.name}:**`);
         for (const f of evt.fields) {
           const arr = f.isArray ? '[]' : '';
-          const fieldLabel = f.deprecated ? `~~${f.name}~~ (deprecated)` : f.name;
-          lines.push(`- \`${fieldLabel}\`: *${f.type}${arr}*`);
+          const fieldLabel = f.deprecated ? `~~\`${f.name}\`~~ (deprecated)` : `\`${f.name}\``;
+          lines.push(`- ${fieldLabel}: *${f.type}${arr}*`);
         }
         lines.push('');
       }
@@ -435,8 +435,10 @@ export class SpecificationDocumentGenerator {
     lines.push('|-------|------|');
     for (const f of vo.fields) {
       const arr = f.isArray ? '[]' : '';
-      const fieldLabel = f.deprecated ? `~~${f.name}~~ (deprecated)` : f.name;
-      lines.push(`| \`${fieldLabel}\` | ${f.type}${arr} |`);
+      const fieldLabel = f.deprecated
+        ? `~~\`${f.name}\`~~ (deprecated)`
+        : `\`${f.name}\``;
+      lines.push(`| ${fieldLabel} | ${f.type}${arr} |`);
     }
     lines.push('');
   }

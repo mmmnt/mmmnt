@@ -60,9 +60,13 @@ export interface SiftImportOptions {
   importedAt?: string;
 }
 
+function escapeMomentString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+}
+
 function formatDeprecated(deprecated: { reason: string; replacement: string } | undefined): string {
   if (!deprecated) return '';
-  return ` [deprecated "${deprecated.reason}" -> "${deprecated.replacement}"]`;
+  return ` [deprecated "${escapeMomentString(deprecated.reason)}" -> "${escapeMomentString(deprecated.replacement)}"]`;
 }
 
 export class SiftSpecificationImporter {

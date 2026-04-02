@@ -281,7 +281,7 @@ export function isFieldDeclaration(item: unknown): item is FieldDeclaration {
 }
 
 export interface FieldDeprecation extends langium.AstNode {
-    readonly $container: FieldDeclaration;
+    readonly $container: FieldDeclaration | InputField;
     readonly $type: 'FieldDeprecation';
     reason: string;
     replacement: string;
@@ -311,6 +311,7 @@ export function isFlowDeclaration(item: unknown): item is FlowDeclaration {
 export interface InputField extends langium.AstNode {
     readonly $container: CommandDeclaration;
     readonly $type: 'InputField';
+    deprecation?: FieldDeprecation;
     name: string;
     type: TypeReference;
 }
@@ -769,6 +770,7 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 return {
                     name: InputField,
                     properties: [
+                        { name: 'deprecation' },
                         { name: 'name' },
                         { name: 'type' }
                     ]

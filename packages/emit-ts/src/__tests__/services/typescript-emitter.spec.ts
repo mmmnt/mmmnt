@@ -461,4 +461,56 @@ describe('TypeScriptEmitter', () => {
     expect(paths.some((p) => p.includes('order.'))).toBe(true);
     expect(paths.some((p) => p.includes('invoice.'))).toBe(false);
   });
+
+  it('emits @deprecated JSDoc for deprecated fields', () => {
+    const ctx = makeContext({
+      aggregates: [{
+        id: 'agg-1', name: 'Order',
+        identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+        commands: [],
+        events: [{
+          id: 'evt-1', name: 'OrderPlaced',
+          fields: [
+            { name: 'orderId', type: 'UUID', isArray: false, required: true },
+            { name: 'legacyId', type: 'string', isArray: false, required: true, deprecated: { reason: 'Use orderId', replacement: 'orderId' } },
+          ],
+        }],
+        valueObjects: [],
+        invariants: [],
+      }],
+    });
+    const ir = makeIR([ctx]);
+
+    const output = emitter.emit(ir, { scope: { level: 'system' } });
+    const typesFile = [...output.files.entries()].find(([k]) => k.includes('.types.ts'));
+    expect(typesFile).toBeDefined();
+    const content = typesFile![1];
+    expect(content).toContain('@deprecated');
+    expect(content).toContain('Use orderId instead.');
+  });
+
+  it('emits @deprecated with empty reason/replacement gracefully', () => {
+    const ctx = makeContext({
+      aggregates: [{
+        id: 'agg-1', name: 'Order',
+        identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+        commands: [],
+        events: [{
+          id: 'evt-1', name: 'OrderPlaced',
+          fields: [
+            { name: 'old', type: 'string', isArray: false, required: true, deprecated: { reason: '', replacement: '' } },
+          ],
+        }],
+        valueObjects: [],
+        invariants: [],
+      }],
+    });
+    const ir = makeIR([ctx]);
+
+    const output = emitter.emit(ir, { scope: { level: 'system' } });
+    const typesFile = [...output.files.entries()].find(([k]) => k.includes('.types.ts'));
+    const content = typesFile![1];
+    expect(content).toContain('@deprecated');
+    expect(content).not.toContain('Use  instead.');
+  });
 });

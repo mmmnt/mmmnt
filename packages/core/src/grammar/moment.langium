@@ -36,7 +36,7 @@ CommandDeclaration:
         'emits' emits=ID;
 
 InputField:
-    name=ID ':' type=TypeReference;
+    name=ID ':' type=TypeReference deprecation=FieldDeprecation?;
 
 Precondition:
     'precondition' name=ID ':' description=STRING;

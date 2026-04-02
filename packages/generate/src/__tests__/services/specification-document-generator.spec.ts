@@ -385,9 +385,9 @@ describe('SpecificationDocumentGenerator', () => {
     const ir = makeIR({ contexts: [makeContext('Ordering', { aggregates: [agg] })] });
 
     const content = generator.generate(ir)[0].content;
-    expect(content).toContain('~~legacyCurrency~~ (deprecated)');
-    expect(content).toContain('~~oldField~~ (deprecated)');
-    expect(content).not.toContain('~~orderId~~');
+    expect(content).toContain('~~`legacyCurrency`~~ (deprecated)');
+    expect(content).toContain('~~`oldField`~~ (deprecated)');
+    expect(content).not.toContain('~~`orderId`~~');
   });
 
   it('renders moment branches with terminal and non-terminal paths', () => {

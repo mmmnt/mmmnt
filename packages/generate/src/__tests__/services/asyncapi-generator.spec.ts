@@ -499,6 +499,10 @@ describe('generateAsyncApiSpec', () => {
     });
 
     const output = generateAsyncApiSpec(ir);
-    expect(output).toContain('deprecated');
+    // legacyId property should have deprecated: true
+    expect(output).toContain("legacyId:");
+    expect(output).toMatch(/legacyId:\n\s+type:.*\n\s+deprecated:\s*true/);
+    // orderId property should NOT have deprecated line immediately after it
+    expect(output).not.toMatch(/orderId:\n\s+type:.*\n\s+deprecated:/);
   });
 });

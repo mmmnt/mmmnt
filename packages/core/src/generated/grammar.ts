@@ -421,6 +421,19 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
               },
               "arguments": []
             }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "deprecation",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@32"
+              },
+              "arguments": []
+            },
+            "cardinality": "?"
           }
         ]
       },

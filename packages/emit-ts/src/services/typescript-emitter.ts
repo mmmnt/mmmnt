@@ -72,9 +72,13 @@ function generateJsDoc(description: string, indent: string): string {
 
 function generateDeprecatedJsDoc(field: FieldDefinition, indent: string): string {
   if (!field.deprecated) return '';
-  const reason = sanitizeJsDoc(field.deprecated.reason);
-  const replacement = sanitizeJsDoc(field.deprecated.replacement);
-  return `${indent}/** @deprecated ${reason} Use ${replacement} instead. */\n`;
+  const reason = field.deprecated.reason.trim() ? sanitizeJsDoc(field.deprecated.reason.trim()) : '';
+  const replacement = field.deprecated.replacement.trim() ? sanitizeJsDoc(field.deprecated.replacement.trim()) : '';
+  let doc = `${indent}/**\n${indent} * @deprecated\n`;
+  if (reason) doc += `${indent} * ${reason}\n`;
+  if (replacement) doc += `${indent} * Use ${replacement} instead.\n`;
+  doc += `${indent} */\n`;
+  return doc;
 }
 
 function generateValueObjectInterface(vo: ValueObjectDefinition): string {
