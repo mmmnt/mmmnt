@@ -10,6 +10,7 @@ import { runSyncStatus } from './commands/sync-status.js';
 import { runSyncPropose } from './commands/sync-propose.js';
 import { runSyncAccept } from './commands/sync-accept.js';
 import { runSchemaStatus } from './commands/schema-status.js';
+import { runLint } from './commands/lint.js';
 import { runSimulate } from './commands/simulate.js';
 import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
@@ -253,6 +254,22 @@ switch (command) {
     }
     break;
   }
+  case 'lint': {
+    runLint(args)
+      .then((result) => {
+        if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
+          process.exitCode = 1;
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
   case 'auth': {
     const [subcommand] = args;
     const authHandler =
@@ -290,7 +307,7 @@ switch (command) {
     } else {
       console.error('Usage: moment <command> [options]');
       console.error(
-        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, auth',
+        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, auth',
       );
     }
     process.exitCode = 1;
