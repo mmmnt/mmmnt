@@ -149,7 +149,10 @@ ReturnsTo:
 // ============================================================================
 
 FieldDeclaration:
-    name=ID ':' type=TypeReference;
+    name=ID ':' type=TypeReference deprecation=FieldDeprecation?;
+
+FieldDeprecation:
+    '[' 'deprecated' reason=STRING '->' replacement=STRING ']';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;

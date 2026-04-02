@@ -56,6 +56,7 @@ export type MomentKeywordNames =
     | "context"
     | "contract"
     | "crosses-to"
+    | "deprecated"
     | "description"
     | "emits"
     | "event"
@@ -268,6 +269,7 @@ export function isDomainServiceDeclaration(item: unknown): item is DomainService
 export interface FieldDeclaration extends langium.AstNode {
     readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
     readonly $type: 'FieldDeclaration';
+    deprecation?: FieldDeprecation;
     name: string;
     type: TypeReference;
 }
@@ -276,6 +278,19 @@ export const FieldDeclaration = 'FieldDeclaration';
 
 export function isFieldDeclaration(item: unknown): item is FieldDeclaration {
     return reflection.isInstance(item, FieldDeclaration);
+}
+
+export interface FieldDeprecation extends langium.AstNode {
+    readonly $container: FieldDeclaration;
+    readonly $type: 'FieldDeprecation';
+    reason: string;
+    replacement: string;
+}
+
+export const FieldDeprecation = 'FieldDeprecation';
+
+export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
+    return reflection.isInstance(item, FieldDeprecation);
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -563,6 +578,7 @@ export type MomentAstType = {
     DomainEventDeclaration: DomainEventDeclaration
     DomainServiceDeclaration: DomainServiceDeclaration
     FieldDeclaration: FieldDeclaration
+    FieldDeprecation: FieldDeprecation
     FlowDeclaration: FlowDeclaration
     InputField: InputField
     InvariantDeclaration: InvariantDeclaration
@@ -588,7 +604,7 @@ export type MomentAstType = {
 export class MomentAstReflection extends langium.AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return [AggregateDeclaration, AggregateMember, Classification, CommandDeclaration, Connection, ContextCrossing, ContextDeclaration, ContextMember, ContextRelationshipDeclaration, ContractField, DomainEventDeclaration, DomainServiceDeclaration, FieldDeclaration, FlowDeclaration, InputField, InvariantDeclaration, LaneDeclaration, Moment, MomentFile, Multiplicity, NodeModifier, NodePlacement, PolicyDeclaration, PolicyTrigger, Precondition, ReturnsTo, SagaDeclaration, SagaTimeout, TriggeredBy, Triggers, TypeReference, ValueObjectDeclaration, WhenBlock];
+        return [AggregateDeclaration, AggregateMember, Classification, CommandDeclaration, Connection, ContextCrossing, ContextDeclaration, ContextMember, ContextRelationshipDeclaration, ContractField, DomainEventDeclaration, DomainServiceDeclaration, FieldDeclaration, FieldDeprecation, FlowDeclaration, InputField, InvariantDeclaration, LaneDeclaration, Moment, MomentFile, Multiplicity, NodeModifier, NodePlacement, PolicyDeclaration, PolicyTrigger, Precondition, ReturnsTo, SagaDeclaration, SagaTimeout, TriggeredBy, Triggers, TypeReference, ValueObjectDeclaration, WhenBlock];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -723,8 +739,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 return {
                     name: FieldDeclaration,
                     properties: [
+                        { name: 'deprecation' },
                         { name: 'name' },
                         { name: 'type' }
+                    ]
+                };
+            }
+            case FieldDeprecation: {
+                return {
+                    name: FieldDeprecation,
+                    properties: [
+                        { name: 'reason' },
+                        { name: 'replacement' }
                     ]
                 };
             }

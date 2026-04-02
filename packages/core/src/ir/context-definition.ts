@@ -53,6 +53,7 @@ export interface FieldDefinition {
   type: string;
   isArray: boolean;
   required: boolean;
+  deprecated?: { reason: string; replacement: string };
 }
 
 export interface InvariantDefinition {

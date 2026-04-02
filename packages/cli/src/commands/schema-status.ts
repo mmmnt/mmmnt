@@ -128,7 +128,7 @@ function collectFieldEntries(
   const fields = findEventFields(eventType, ir);
 
   for (const field of fields) {
-    const phase = registry.getFieldPhase(eventType, field.name);
+    const phase = field.deprecated ? 'deprecated' : (registry.getFieldPhase(eventType, field.name) ?? 'active');
     const consumers = manifest.getConsumers(eventType, field.name);
 
     entries.push({
@@ -136,7 +136,7 @@ function collectFieldEntries(
       fieldName: field.name,
       fieldType: field.type,
       required: field.required,
-      phase: phase ?? 'active',
+      phase,
       consumers: consumers.length,
     });
   }
@@ -145,7 +145,7 @@ function collectFieldEntries(
 function findEventFields(
   eventType: string,
   ir: IntermediateRepresentation,
-): readonly { name: string; type: string; required: boolean }[] {
+): readonly { name: string; type: string; required: boolean; deprecated?: { reason: string; replacement: string } }[] {
   for (const ctx of ir.contexts) {
     for (const agg of ctx.aggregates) {
       const evt = agg.events.find((e) => e.name === eventType);

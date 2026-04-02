@@ -14,11 +14,11 @@ export interface SiftBuildingBlock {
     }>;
     events: Array<{
       name: string;
-      fields: Array<{ name: string; type: string }>;
+      fields: Array<{ name: string; type: string; deprecated?: { reason: string; replacement: string } }>;
     }>;
     valueObjects: Array<{
       name: string;
-      fields: Array<{ name: string; type: string }>;
+      fields: Array<{ name: string; type: string; deprecated?: { reason: string; replacement: string } }>;
     }>;
   }>;
 }
@@ -58,6 +58,11 @@ export interface SiftImportInput {
 
 export interface SiftImportOptions {
   importedAt?: string;
+}
+
+function formatDeprecated(deprecated: { reason: string; replacement: string } | undefined): string {
+  if (!deprecated) return '';
+  return ` [deprecated "${deprecated.reason}" -> "${deprecated.replacement}"]`;
 }
 
 export class SiftSpecificationImporter {
@@ -106,38 +111,42 @@ export class SiftSpecificationImporter {
     lines.push('');
 
     for (const agg of block.aggregates) {
-      lines.push(`  aggregate "${agg.name}"`);
-      lines.push(`    identity ${agg.identityField.name}: ${agg.identityField.type}`);
-      lines.push('');
-
-      for (const cmd of agg.commands) {
-        lines.push(`    command ${cmd.name}`);
-        if (cmd.inputs.length > 0) {
-          const inputStr = cmd.inputs.map((i) => `${i.name}: ${i.type}`).join(', ');
-          lines.push(`      input ${inputStr}`);
-        }
-        lines.push(`      emits ${cmd.emitsEvent}`);
-        lines.push('');
-      }
-
-      for (const evt of agg.events) {
-        lines.push(`    event ${evt.name}`);
-        for (const field of evt.fields) {
-          lines.push(`      ${field.name}: ${field.type}`);
-        }
-        lines.push('');
-      }
-
-      for (const vo of agg.valueObjects) {
-        lines.push(`    value-object ${vo.name}`);
-        for (const field of vo.fields) {
-          lines.push(`      ${field.name}: ${field.type}`);
-        }
-        lines.push('');
-      }
+      this.renderAggregate(lines, agg);
     }
 
     return lines.join('\n');
+  }
+
+  private renderAggregate(lines: string[], agg: SiftBuildingBlock['aggregates'][number]): void {
+    lines.push(`  aggregate "${agg.name}"`);
+    lines.push(`    identity ${agg.identityField.name}: ${agg.identityField.type}`);
+    lines.push('');
+
+    for (const cmd of agg.commands) {
+      lines.push(`    command ${cmd.name}`);
+      if (cmd.inputs.length > 0) {
+        const inputStr = cmd.inputs.map((i) => `${i.name}: ${i.type}`).join(', ');
+        lines.push(`      input ${inputStr}`);
+      }
+      lines.push(`      emits ${cmd.emitsEvent}`);
+      lines.push('');
+    }
+
+    for (const evt of agg.events) {
+      lines.push(`    event ${evt.name}`);
+      for (const field of evt.fields) {
+        lines.push(`      ${field.name}: ${field.type}${formatDeprecated(field.deprecated)}`);
+      }
+      lines.push('');
+    }
+
+    for (const vo of agg.valueObjects) {
+      lines.push(`    value-object ${vo.name}`);
+      for (const field of vo.fields) {
+        lines.push(`      ${field.name}: ${field.type}${formatDeprecated(field.deprecated)}`);
+      }
+      lines.push('');
+    }
   }
 
   generateFlowFile(event: SiftTimelineEvent): string {

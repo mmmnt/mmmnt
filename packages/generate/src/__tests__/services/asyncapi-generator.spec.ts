@@ -461,4 +461,44 @@ describe('generateAsyncApiSpec', () => {
     const output = generateAsyncApiSpec(ir);
     expect(output).not.toContain('channels:');
   });
+
+  it('marks deprecated fields in message schema', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          ...makeIR().contexts[0],
+          id: 'ctx-A',
+          name: 'A',
+          aggregates: [{
+            id: 'agg-1', name: 'Order', identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+            commands: [], events: [{
+              id: 'evt-1', name: 'OrderPlaced',
+              fields: [
+                { name: 'orderId', type: 'UUID', isArray: false, required: true },
+                { name: 'legacyId', type: 'string', isArray: false, required: true, deprecated: { reason: 'Use orderId', replacement: 'orderId' } },
+              ],
+            }], valueObjects: [], invariants: [],
+          }],
+          domainServices: [], commands: [], events: [], policies: [], sagas: [], valueObjects: [], invariants: [],
+        },
+        {
+          ...makeIR().contexts[0],
+          id: 'ctx-B', name: 'B',
+          aggregates: [], domainServices: [], commands: [], events: [], policies: [], sagas: [], valueObjects: [], invariants: [],
+        },
+      ],
+      flows: [{
+        id: 'f1', name: 'Flow',
+        moments: [{ id: 'm1', name: 'M1', contextEntries: [{ contextId: 'ctx-A', nodeName: 'OrderPlaced', nodeKind: 'event' }] }],
+        connections: [{
+          id: 'c1', sourceMomentId: 'm1', targetContextId: 'ctx-B', eventId: 'evt-1',
+          connectionType: 'crosses-to' as const,
+          schemaContract: { eventType: 'OrderPlaced', fields: [{ name: 'orderId', type: 'UUID', required: true }], relationshipType: 'Partnership' },
+        }],
+      }],
+    });
+
+    const output = generateAsyncApiSpec(ir);
+    expect(output).toContain('deprecated');
+  });
 });

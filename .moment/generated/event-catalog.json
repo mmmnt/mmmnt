@@ -17,7 +17,11 @@
           {
             "name": "ownerName",
             "type": "string",
-            "isArray": false
+            "isArray": false,
+            "deprecated": {
+              "reason": "Use ownerRef composite key",
+              "replacement": "ownerRef"
+            }
           },
           {
             "name": "appointmentType",
@@ -615,7 +619,7 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-04-02T06:59:32.985Z",
+    "generatedAt": "2026-04-02T07:23:23.652Z",
     "totalEvents": 14
   }
 }

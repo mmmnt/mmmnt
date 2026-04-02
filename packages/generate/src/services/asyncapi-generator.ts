@@ -6,7 +6,7 @@ import type {
 
 interface CrossingInfo {
   readonly eventName: string;
-  readonly eventFields: readonly { readonly name: string; readonly type: string }[];
+  readonly eventFields: readonly { readonly name: string; readonly type: string; readonly deprecated?: boolean }[];
   readonly producerContext: string;
   readonly consumerContext: string;
 }
@@ -64,7 +64,7 @@ function collectCrossings(ir: IntermediateRepresentation): CrossingInfo[] {
 
       crossings.push({
         eventName: event.name,
-        eventFields: event.fields.map((f) => ({ name: f.name, type: f.type })),
+        eventFields: event.fields.map((f) => ({ name: f.name, type: f.type, deprecated: f.deprecated ? true : undefined })),
         producerContext: producerCtx.name,
         consumerContext: consumerCtx.name,
       });
@@ -135,6 +135,9 @@ function buildMessageYaml(crossings: readonly CrossingInfo[]): string {
     for (const field of crossing.eventFields) {
       lines.push(`          ${field.name}:`);
       lines.push(`            type: '${mapAsyncApiType(field.type)}'`);
+      if (field.deprecated) {
+        lines.push(`            deprecated: true`);
+      }
     }
   }
 

@@ -70,6 +70,28 @@ describe('AstToIr', () => {
     expect(ir.contexts[0].description).toBeUndefined();
   });
 
+  it('transforms deprecated field with reason and replacement', async () => {
+    const ir = await toIr(`
+      context "Sales" [Core]
+        aggregate "Order"
+          identity orderId: UUID
+          event OrderPlaced
+            orderId: UUID
+            legacyId: string [deprecated "Use orderId instead" -> "orderId"]
+    `);
+
+    const event = ir.contexts[0].aggregates[0].events[0];
+    const legacyField = event.fields.find((f) => f.name === 'legacyId');
+    expect(legacyField).toBeDefined();
+    expect(legacyField!.deprecated).toEqual({
+      reason: 'Use orderId instead',
+      replacement: 'orderId',
+    });
+
+    const normalField = event.fields.find((f) => f.name === 'orderId');
+    expect(normalField!.deprecated).toBeUndefined();
+  });
+
   it('transforms aggregate with identity to AggregateDefinition', async () => {
     const ir = await toIr(`
       context "Test"
