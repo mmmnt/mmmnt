@@ -55,7 +55,7 @@
   "events": [
     {
       "eventId": "evt-001",
-      "eventType": "CheckInPatient",
+      "eventType": "SimProcess.CheckInPatient",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [],
@@ -63,7 +63,11 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-CheckInPatient"
+        "nodeId": "n00-CheckInPatient",
+        "processName": "CheckInPatient",
+        "patientId": "patientId-001",
+        "ownerName": "sample-ownerName",
+        "appointmentType": "sample-appointmentType"
       }
     },
     {
@@ -88,7 +92,7 @@
     },
     {
       "eventId": "evt-003",
-      "eventType": "SubmitValidateIntake",
+      "eventType": "SimProcess.SubmitValidateIntake",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -98,7 +102,10 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-SubmitValidateIntake"
+        "nodeId": "n01-SubmitValidateIntake",
+        "processName": "SubmitValidateIntake",
+        "intakeFormId": "intakeFormId-001",
+        "patientId": "patientId-001"
       }
     },
     {
@@ -122,7 +129,7 @@
     },
     {
       "eventId": "evt-005",
-      "eventType": "RegisterPatientIntake",
+      "eventType": "SimProcess.RegisterPatientIntake",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -133,7 +140,10 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-RegisterPatientIntake"
+        "nodeId": "n02-RegisterPatientIntake",
+        "processName": "RegisterPatientIntake",
+        "validatedIntakeId": "validatedIntakeId-001",
+        "patientId": "patientId-001"
       }
     },
     {
@@ -161,8 +171,25 @@
       }
     },
     {
+      "eventId": "evt-029",
+      "eventType": "SimSaga.VisitLifecycle.Triaging",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-scheduled-visit-happy-path",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "VisitLifecycle",
+        "state": "Triaging",
+        "triggeredBy": "PatientIntakeRegistered"
+      }
+    },
+    {
       "eventId": "evt-007",
-      "eventType": "CompleteTriage",
+      "eventType": "SimProcess.CompleteTriage",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -174,7 +201,13 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-CompleteTriage"
+        "nodeId": "n03-CompleteTriage",
+        "processName": "CompleteTriage",
+        "patientId": "patientId-001",
+        "weight": "sample-weight",
+        "temperature": "sample-temperature",
+        "heartRate": "sample-heartRate",
+        "chiefComplaint": "sample-chiefComplaint"
       }
     },
     {
@@ -204,7 +237,7 @@
     },
     {
       "eventId": "evt-009",
-      "eventType": "PerformDualVetAssessment",
+      "eventType": "SimProcess.PerformDualVetAssessment",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -217,7 +250,10 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-PerformDualVetAssessment"
+        "nodeId": "n04-PerformDualVetAssessment",
+        "processName": "PerformDualVetAssessment",
+        "visitId": "visitId-001",
+        "triageResults": {}
       }
     },
     {
@@ -243,7 +279,7 @@
     },
     {
       "eventId": "evt-011",
-      "eventType": "RecordClinicalObservation",
+      "eventType": "SimProcess.RecordClinicalObservation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -257,7 +293,12 @@
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-RecordClinicalObservation"
+        "nodeId": "n05-RecordClinicalObservation",
+        "processName": "RecordClinicalObservation",
+        "visitId": "visitId-001",
+        "diagnosis": "sample-diagnosis",
+        "differentials": "sample-differentials",
+        "confidence": 0
       }
     },
     {
@@ -288,7 +329,7 @@
     },
     {
       "eventId": "evt-013",
-      "eventType": "NormalizeClinicalRecord",
+      "eventType": "SimProcess.NormalizeClinicalRecord",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -303,7 +344,11 @@
       "timestamp": "2026-01-01T10:00:12.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n06-NormalizeClinicalRecord"
+        "nodeId": "n06-NormalizeClinicalRecord",
+        "processName": "NormalizeClinicalRecord",
+        "visitId": "visitId-001",
+        "symptoms": "sample-symptoms",
+        "vitalSigns": {}
       }
     },
     {
@@ -336,7 +381,7 @@
     },
     {
       "eventId": "evt-015",
-      "eventType": "RunClinicalAssessment",
+      "eventType": "SimProcess.RunClinicalAssessment",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -352,7 +397,11 @@
       "timestamp": "2026-01-01T10:00:14.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n07-RunClinicalAssessment"
+        "nodeId": "n07-RunClinicalAssessment",
+        "processName": "RunClinicalAssessment",
+        "visitId": "visitId-001",
+        "recordId": "recordId-001",
+        "patientId": "patientId-001"
       }
     },
     {
@@ -381,7 +430,7 @@
     },
     {
       "eventId": "evt-017",
-      "eventType": "CreateTreatmentPlan",
+      "eventType": "SimProcess.CreateTreatmentPlan",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -398,7 +447,12 @@
       "timestamp": "2026-01-01T10:00:16.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n08-CreateTreatmentPlan"
+        "nodeId": "n08-CreateTreatmentPlan",
+        "processName": "CreateTreatmentPlan",
+        "visitId": "visitId-001",
+        "patientId": "patientId-001",
+        "diagnosis": "sample-diagnosis",
+        "medications": {}
       }
     },
     {
@@ -432,7 +486,7 @@
     },
     {
       "eventId": "evt-019",
-      "eventType": "ConfirmTreatment",
+      "eventType": "SimProcess.ConfirmTreatment",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -450,7 +504,11 @@
       "timestamp": "2026-01-01T10:00:18.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n09-ConfirmTreatment"
+        "nodeId": "n09-ConfirmTreatment",
+        "processName": "ConfirmTreatment",
+        "planId": "planId-001",
+        "confirmedBy": "sample-confirmedBy",
+        "rationale": "sample-rationale"
       }
     },
     {
@@ -482,7 +540,7 @@
     },
     {
       "eventId": "evt-021",
-      "eventType": "GenerateInvoice",
+      "eventType": "SimProcess.GenerateInvoice",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -501,7 +559,11 @@
       "timestamp": "2026-01-01T10:00:20.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n10-GenerateInvoice"
+        "nodeId": "n10-GenerateInvoice",
+        "processName": "GenerateInvoice",
+        "visitId": "visitId-001",
+        "patientId": "patientId-001",
+        "lineItems": {}
       }
     },
     {
@@ -537,7 +599,7 @@
     },
     {
       "eventId": "evt-023",
-      "eventType": "VerifyBilling",
+      "eventType": "SimProcess.VerifyBilling",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -557,7 +619,9 @@
       "timestamp": "2026-01-01T10:00:22.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n11-VerifyBilling"
+        "nodeId": "n11-VerifyBilling",
+        "processName": "VerifyBilling",
+        "invoiceId": "invoiceId-001"
       }
     },
     {
@@ -589,7 +653,7 @@
     },
     {
       "eventId": "evt-025",
-      "eventType": "CreateDischargeRecord",
+      "eventType": "SimProcess.CreateDischargeRecord",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -610,7 +674,12 @@
       "timestamp": "2026-01-01T10:00:24.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n12-CreateDischargeRecord"
+        "nodeId": "n12-CreateDischargeRecord",
+        "processName": "CreateDischargeRecord",
+        "visitId": "visitId-001",
+        "patientId": "patientId-001",
+        "planId": "planId-001",
+        "invoiceId": "invoiceId-001"
       }
     },
     {
@@ -645,7 +714,7 @@
     },
     {
       "eventId": "evt-027",
-      "eventType": "FinalizeDischarge",
+      "eventType": "SimProcess.FinalizeDischarge",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-scheduled-visit-happy-path",
       "causationEventIds": [
@@ -667,7 +736,9 @@
       "timestamp": "2026-01-01T10:00:26.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n13-FinalizeDischarge"
+        "nodeId": "n13-FinalizeDischarge",
+        "processName": "FinalizeDischarge",
+        "dischargeId": "dischargeId-001"
       }
     },
     {

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-02T01:04:20.868Z",
+  "timestamp": "2026-04-02T01:10:09.033Z",
   "fixture": "fixtures/valid/unified/vet-clinic.moment",
   "summary": {
     "tests": 21,
@@ -180,7 +180,7 @@
           "pass": true
         },
         {
-          "message": "28 events",
+          "message": "reports events",
           "pass": true
         },
         {
@@ -206,7 +206,7 @@
           "pass": true
         },
         {
-          "message": "28-node expected path",
+          "message": ">=28 node path",
           "pass": true
         },
         {
@@ -220,7 +220,7 @@
       "pass": true,
       "assertions": [
         {
-          "message": "28 events",
+          "message": ">=28 events",
           "pass": true
         },
         {

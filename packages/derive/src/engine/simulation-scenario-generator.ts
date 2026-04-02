@@ -726,6 +726,9 @@ function findCommand(ctx: ContextDefinition, name: string): CommandDefinition | 
 }
 
 function findEvent(ctx: ContextDefinition, name: string): EventDefinition | undefined {
+  const topLevel = ctx.events.find((e) => e.name === name);
+  if (topLevel) return topLevel;
+
   for (const agg of ctx.aggregates) {
     const evt = agg.events.find((e) => e.name === name);
     if (evt) return evt;
