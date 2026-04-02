@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-02T01:10:09.033Z",
+  "timestamp": "2026-04-02T01:14:59.926Z",
   "fixture": "fixtures/valid/unified/vet-clinic.moment",
   "summary": {
     "tests": 21,
@@ -82,7 +82,7 @@
           "pass": true
         },
         {
-          "message": "reports 17 cases",
+          "message": "reports test cases",
           "pass": true
         }
       ]
@@ -104,7 +104,7 @@
           "pass": true
         },
         {
-          "message": "17 test cases",
+          "message": ">=17 test cases",
           "pass": true
         },
         {

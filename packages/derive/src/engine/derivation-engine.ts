@@ -42,12 +42,108 @@ function deriveTestSuite(
     deriveTestCases(moment, flow, ctxMap),
   );
 
+  // Saga test cases
+  const sagaCases = deriveSagaTestCases(flow, ctxMap);
+  testCases.push(...sagaCases);
+
+  // Policy chain assertions
+  const policyCases = derivePolicyChainTestCases(flow, ctxMap);
+  testCases.push(...policyCases);
+
   return {
     flowId: flow.id,
     flowName: flow.name,
     testCases,
     contextsCovered: collectContextIds(flow),
   };
+}
+
+function deriveSagaTestCases(
+  flow: FlowDefinition,
+  ctxMap: Map<string, ContextDefinition>,
+): TestCaseDefinition[] {
+  const cases: TestCaseDefinition[] = [];
+
+  for (const [, ctx] of ctxMap) {
+    for (const saga of ctx.sagas) {
+      // Saga initiated
+      cases.push({
+        momentId: `saga-${saga.name}-initiated`,
+        momentName: `Saga: ${saga.name} initiated`,
+        assertions: [{
+          crossingId: `saga-init-${saga.name}`,
+          sourceContext: ctx.id,
+          targetContext: ctx.id,
+          schemaContract: { eventType: saga.trigger, expectedFields: [] },
+          assertionType: 'saga',
+        }],
+        setupSteps: [{ contextName: ctx.name, aggregateName: saga.name, precondition: `${saga.trigger} occurs` }],
+      });
+
+      // State transitions
+      for (let i = 0; i < saga.states.length - 1; i++) {
+        cases.push({
+          momentId: `saga-${saga.name}-${saga.states[i]}-to-${saga.states[i + 1]}`,
+          momentName: `Saga: ${saga.name} ${saga.states[i]} → ${saga.states[i + 1]}`,
+          assertions: [{
+            crossingId: `saga-transition-${saga.name}-${i}`,
+            sourceContext: ctx.id,
+            targetContext: ctx.id,
+            schemaContract: { eventType: `${saga.name}.${saga.states[i + 1]}`, expectedFields: [] },
+            assertionType: 'saga',
+          }],
+          setupSteps: [{ contextName: ctx.name, aggregateName: saga.name, precondition: `Saga is in ${saga.states[i]} state` }],
+        });
+      }
+
+      // Compensation
+      cases.push({
+        momentId: `saga-${saga.name}-compensation`,
+        momentName: `Saga: ${saga.name} compensation`,
+        assertions: [{
+          crossingId: `saga-comp-${saga.name}`,
+          sourceContext: ctx.id,
+          targetContext: ctx.id,
+          schemaContract: { eventType: `${saga.name}.Compensated`, expectedFields: [] },
+          assertionType: 'saga',
+        }],
+        setupSteps: [{ contextName: ctx.name, aggregateName: saga.name, precondition: saga.compensation }],
+      });
+    }
+  }
+
+  return cases;
+}
+
+function derivePolicyChainTestCases(
+  flow: FlowDefinition,
+  ctxMap: Map<string, ContextDefinition>,
+): TestCaseDefinition[] {
+  const cases: TestCaseDefinition[] = [];
+
+  for (const [, ctx] of ctxMap) {
+    for (const pol of ctx.policies) {
+      if (!pol.chainsTo) continue;
+      cases.push({
+        momentId: `policy-${pol.name}`,
+        momentName: `Policy: ${pol.name}`,
+        assertions: [{
+          crossingId: `policy-chain-${pol.name}`,
+          sourceContext: ctx.id,
+          targetContext: ctx.id,
+          schemaContract: { eventType: pol.chainsTo, expectedFields: [] },
+          assertionType: 'policy-chain',
+        }],
+        setupSteps: [{
+          contextName: ctx.name,
+          aggregateName: pol.name,
+          precondition: `${pol.trigger} occurs → ${pol.chainsTo} must follow`,
+        }],
+      });
+    }
+  }
+
+  return cases;
 }
 
 function deriveTestCases(
