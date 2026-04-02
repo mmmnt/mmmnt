@@ -32,7 +32,7 @@
 **JSON Outputs**
 | File | Description |
 |------|-------------|
-| `simulate-scenario.json` | Facet-compatible simulation (28 events, causation chains) |
+| `facet.json` | Facet-compatible simulation (28 events, causation chains) |
 | `derive-topology.json` | Test suite topology (17 cases, assertion points) |
 | `viz-envelope.json` | Visualization data envelope (context map + timeline) |
 

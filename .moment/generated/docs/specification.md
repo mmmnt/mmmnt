@@ -1,337 +1,383 @@
-# Domain Specification
-
-This document describes the domain model, business rules, and behavioral flows defined in the Moment specification. It is generated from the `.moment` source files and reflects the current state of the domain design.
-
----
-
-## Executive Summary
-
-This domain is organized into **4 bounded contexts**, containing **5 aggregates** that handle **14 commands** and produce **14 events**.
-
-**1 behavioral flow** describe how these contexts interact across **14 moments** in time.
-
-| | Count |
-|---|---:|
-| Bounded Contexts | 4 |
-| Aggregates | 5 |
-| Commands | 14 |
-| Events | 14 |
-| Value Objects | 5 |
-| Business Rules | 7 |
-| Policies | 6 |
-| Behavioral Flows | 1 |
-
-## Domain Model
-
-### Reception — Core
-
-*1 aggregate, 3 commands, 3 events*
-
-#### PatientIntake
-
-Identified by `intakeId` (UUID)
-
-| Operation | What It Does | Produces |
-|-----------|-------------|----------|
-| **CheckInPatient** | Accepts: patientId, ownerName, appointmentType | PatientCheckedIn |
-| **SubmitValidateIntake** | Accepts: intakeFormId, patientId | IntakeValidated |
-| **RegisterPatientIntake** | Accepts: validatedIntakeId, patientId | PatientIntakeRegistered |
-
-**PatientCheckedIn** carries:
-
-- intakeId — *UUID*
-- patientId — *UUID*
-- ownerName — *string*
-- appointmentType — *string*
-- checkedInAt — *DateTime*
-
-**IntakeValidated** carries:
-
-- intakeId — *UUID*
-- patientId — *UUID*
-- validationResult — *string*
-- validatedAt — *DateTime*
-
-**PatientIntakeRegistered** carries:
-
-- intakeId — *UUID*
-- patientId — *UUID*
-- name — *string*
-- species — *string*
-- breed — *string*
-- ownerName — *string*
-- appointmentType — *string*
-- registeredAt — *DateTime*
-
-**Data structures:**
-
-- **AppointmentDetails**: appointmentId, scheduledAt, appointmentType, veterinarianId
-
-### Clinical — Core
-
-*2 aggregates, 7 commands, 7 events*
-
-#### VisitRecord
-
-Identified by `visitId` (UUID)
-
-| Operation | What It Does | Produces |
-|-----------|-------------|----------|
-| **CompleteTriage** | Accepts: patientId, weight, temperature, heartRate, chiefComplaint | TriageCompleted |
-| **PerformDualVetAssessment** | Accepts: visitId, triageResults | DualVetAssessmentCompleted |
-| **RecordClinicalObservation** | Accepts: visitId, diagnosis, differentials, confidence | ClinicalObservationRecorded |
-| **NormalizeClinicalRecord** | Accepts: visitId, symptoms, vitalSigns | ClinicalRecordNormalized |
-| **RunClinicalAssessment** | Accepts: visitId, recordId, patientId | ClinicalAssessmentCompleted |
-
-**TriageCompleted** carries:
-
-- visitId — *UUID*
-- patientId — *UUID*
-- weight — *string*
-- temperature — *string*
-- heartRate — *string*
-- chiefComplaint — *string*
-- urgency — *string*
-- completedAt — *DateTime*
-
-**DualVetAssessmentCompleted** carries:
-
-- visitId — *UUID*
-- agreement — *boolean*
-- assessedAt — *DateTime*
-
-**ClinicalObservationRecorded** carries:
-
-- visitId — *UUID*
-- observationId — *UUID*
-- patientId — *UUID*
-- diagnosis — *string*
-- differentials — *string (list)*
-- confidence — *number*
-- recordedAt — *DateTime*
-
-**ClinicalRecordNormalized** carries:
-
-- visitId — *UUID*
-- recordId — *UUID*
-- patientId — *UUID*
-- symptoms — *string (list)*
-- vitalSigns — *VitalSigns*
-- vaccinationStatus — *string*
-- classification — *string*
-- normalizedAt — *DateTime*
-
-**ClinicalAssessmentCompleted** carries:
-
-- visitId — *UUID*
-- assessmentResult — *string*
-- completedAt — *DateTime*
-
-#### TreatmentPlan
-
-Identified by `planId` (UUID)
-
-| Operation | What It Does | Produces |
-|-----------|-------------|----------|
-| **CreateTreatmentPlan** | Accepts: visitId, patientId, diagnosis, medications | TreatmentPlanCreated |
-| **ConfirmTreatment** | Accepts: planId, confirmedBy, rationale | TreatmentConfirmed |
-
-**TreatmentPlanCreated** carries:
-
-- planId — *UUID*
-- visitId — *UUID*
-- patientId — *UUID*
-- diagnosis — *string*
-- medications — *Medication (list)*
-- instructions — *string*
-- createdAt — *DateTime*
-
-**TreatmentConfirmed** carries:
-
-- planId — *UUID*
-- confirmedBy — *string*
-- rationale — *string*
-- confirmedAt — *DateTime*
-
-**Data structures:**
-
-- **TriageResults**: weight, temperature, heartRate, chiefComplaint, urgency
-- **VitalSigns**: weight, temperature, heartRate
-- **Medication**: name, dose, frequency
-
-### Billing — Supporting
-
-*1 aggregate, 2 commands, 2 events*
-
-#### Invoice
-
-Identified by `invoiceId` (UUID)
-
-| Operation | What It Does | Produces |
-|-----------|-------------|----------|
-| **GenerateInvoice** | Accepts: visitId, patientId, lineItems | InvoiceGenerated |
-| **VerifyBilling** | Accepts: invoiceId | BillingVerified |
-
-**InvoiceGenerated** carries:
-
-- invoiceId — *UUID*
-- visitId — *UUID*
-- patientId — *UUID*
-- lineItems — *LineItem (list)*
-- total — *Money*
-- currency — *string*
-- generatedAt — *DateTime*
-
-**BillingVerified** carries:
-
-- invoiceId — *UUID*
-- verifiedAt — *DateTime*
-
-**Data structures:**
-
-- **LineItem**: label, amount
-
-### Records — Supporting
-
-*1 aggregate, 2 commands, 2 events*
-
-#### DischargeRecord
-
-Identified by `dischargeId` (UUID)
-
-| Operation | What It Does | Produces |
-|-----------|-------------|----------|
-| **CreateDischargeRecord** | Accepts: visitId, patientId, planId, invoiceId | DischargeRecordCreated |
-| **FinalizeDischarge** | Accepts: dischargeId | DischargeFinalised |
-
-**DischargeRecordCreated** carries:
-
-- dischargeId — *UUID*
-- visitId — *UUID*
-- patientId — *UUID*
-- createdAt — *DateTime*
-
-**DischargeFinalised** carries:
-
-- dischargeId — *UUID*
-- finalisedAt — *DateTime*
-
-## How Contexts Communicate
-
-Context boundaries are crossed at these points:
-
-| Event | From | To | Relationship | Required Fields |
-|-------|------|----|-------------|-----------------|
-| PatientIntakeRegistered | Reception | Clinical | CustomerSupplier | patientId, name, species, ownerName, appointmentType |
-| TreatmentConfirmed | Clinical | Billing | CustomerSupplier | planId, visitId, patientId |
-| BillingVerified | Billing | Records | CustomerSupplier | invoiceId, visitId, patientId |
-
-## Behavioral Flows
-
-Flows describe what happens over time — the sequence of operations and events that move through the domain. Each **moment** is a point in time where something significant occurs.
-
-### scheduled-visit-happy-path
+# Pet owner arrives for a scheduled appointment
 
 > Pet owner arrives for a scheduled appointment. Full lifecycle through check-in, triage, diagnosis, treatment, billing, and discharge.
 
-This flow progresses through **14 moments** with **3 decision points**.
+---
 
-**Step 1: Patient check-in**
+## Table of Contents
 
-- Reception performs **CheckInPatient**
-- Reception performs **PatientCheckedIn**
+1. [At a Glance](#at-a-glance)
+2. [What Happens](#what-happens)
+3. [Context Boundaries](#context-boundaries)
+4. [Domain Model](#domain-model)
+5. [Data Glossary](#data-glossary)
 
-**Step 2: Intake validation**
+## At a Glance
 
-- Reception performs **SubmitValidateIntake**
-- Reception performs **IntakeValidated**
+| Context | Role | Aggregates | Commands | Events |
+|---------|------|:----------:|:--------:|:------:|
+| **Reception** | Core | 1 | 3 | 3 |
+| **Clinical** | Core | 2 | 7 | 7 |
+| **Billing** | Supporting | 1 | 2 | 2 |
+| **Records** | Supporting | 1 | 2 | 2 |
 
-**Step 3: Intake validation outcome *(decision point)***
+**1 flow** · 14 moments · 3 context crossings · 7 business rules · 6 policies
 
-- *If valid:*
-  - Reception: **RegisterPatientIntake**
-  - Reception: **PatientIntakeRegistered**
-- *If invalid:*
-  - Intake Failure: **IntakeValidated** *(flow ends)*
-- → *Crosses to **Clinical***
+## What Happens
 
-**Step 4: Triage**
+**1. Patient check-in** *(Reception)*
 
-- Clinical performs **CompleteTriage**
-- Clinical performs **TriageCompleted**
+  - *Requires:* Patient must have a scheduled appointment
+  - Reception performs **CheckInPatient** → produces **PatientCheckedIn**
+  - Reception emits **PatientCheckedIn**
+  - 📋 *Rule REC-01:* Patient must have valid identification
+  - 📋 *Rule REC-02:* Intake form must pass completeness validation
 
-**Step 5: Dual-vet assessment**
+**2. Intake validation** *(Reception)*
 
-- Clinical performs **PerformDualVetAssessment**
-- Clinical performs **DualVetAssessmentCompleted**
+  - *Requires:* Intake form must be fully completed
+  - Reception performs **SubmitValidateIntake** → produces **IntakeValidated**
+  - Reception emits **IntakeValidated**
+  - 📋 *Rule REC-01:* Patient must have valid identification
+  - 📋 *Rule REC-02:* Intake form must pass completeness validation
 
-**Step 6: Assessment agreement *(decision point)***
+**3. Intake validation outcome** *(Reception)*
 
-- *If agree:*
-  - Clinical: **RecordClinicalObservation**
-  - Clinical: **ClinicalObservationRecorded**
-- *If disagree:*
-  - Vet Disagreement: **DualVetAssessmentCompleted** *(flow ends)*
+  - ✅ **If valid:**
+    - Reception performs **RegisterPatientIntake** → produces **PatientIntakeRegistered**
+    - **PatientIntakeRegistered** → crosses to **Clinical**
+  - ❌ **If invalid** → flow terminates
 
-**Step 7: Clinical record normalization**
+**4. Triage** *(Clinical)*
 
-- Clinical performs **NormalizeClinicalRecord**
-- Clinical performs **ClinicalRecordNormalized**
+  - *Requires:* Patient must be registered through intake
+  - Clinical performs **CompleteTriage** → produces **TriageCompleted**
+  - Clinical emits **TriageCompleted**
+  - 🔗 *Policy: AssessOnTriageCompleted* — Initiate dual-vet assessment after triage
+  - 📋 *Rule CLN-01:* Triage must be completed before diagnosis
+  - 📋 *Rule CLN-02:* Dual-vet assessment must agree before proceeding
 
-**Step 8: Records completeness check *(decision point)***
+**5. Dual-vet assessment** *(Clinical)*
 
-- *If complete:*
-  - Clinical: **RunClinicalAssessment**
-  - Clinical: **ClinicalAssessmentCompleted**
-- *If incomplete:*
-  - Records Incomplete: **ClinicalRecordNormalized** *(flow ends)*
+  - Clinical performs **PerformDualVetAssessment** → produces **DualVetAssessmentCompleted**
+  - Clinical emits **DualVetAssessmentCompleted**
+  - 📋 *Rule CLN-01:* Triage must be completed before diagnosis
+  - 📋 *Rule CLN-02:* Dual-vet assessment must agree before proceeding
 
-**Step 9: Treatment planning**
+**6. Assessment agreement** *(Clinical)*
 
-- Clinical performs **CreateTreatmentPlan**
-- Clinical performs **TreatmentPlanCreated**
+  - ✅ **If agree:**
+    - Clinical performs **RecordClinicalObservation** → produces **ClinicalObservationRecorded**
+    - Clinical emits **ClinicalObservationRecorded**
+  - ❌ **If disagree** → flow terminates
 
-**Step 10: Treatment confirmation**
+**7. Clinical record normalization** *(Clinical)*
 
-- Clinical performs **ConfirmTreatment**
-- Clinical performs **TreatmentConfirmed**
-- → *Crosses to **Billing***
+  - *Requires:* Clinical observation must be recorded
+  - Clinical performs **NormalizeClinicalRecord** → produces **ClinicalRecordNormalized**
+  - Clinical emits **ClinicalRecordNormalized**
+  - 📋 *Rule CLN-01:* Triage must be completed before diagnosis
+  - 📋 *Rule CLN-02:* Dual-vet assessment must agree before proceeding
 
-**Step 11: Invoice generation**
+**8. Records completeness check** *(Clinical)*
 
-- Billing performs **GenerateInvoice**
-- Billing performs **InvoiceGenerated**
+  - ✅ **If complete:**
+    - Clinical performs **RunClinicalAssessment** → produces **ClinicalAssessmentCompleted**
+    - Clinical emits **ClinicalAssessmentCompleted**
+  - ❌ **If incomplete** → flow terminates
 
-**Step 12: Billing verification**
+**9. Treatment planning** *(Clinical)*
 
-- Billing performs **VerifyBilling**
-- Billing performs **BillingVerified**
-- → *Crosses to **Records***
+  - *Requires:* Clinical assessment must be completed
+  - Clinical performs **CreateTreatmentPlan** → produces **TreatmentPlanCreated**
+  - Clinical emits **TreatmentPlanCreated**
+  - 📋 *Rule CLN-03:* Treatment plan requires confirmed diagnosis
 
-**Step 13: Discharge record creation**
+**10. Treatment confirmation** *(Clinical)*
 
-- Records performs **CreateDischargeRecord**
-- Records performs **DischargeRecordCreated**
+  - *Requires:* Treatment plan must exist
+  - Clinical performs **ConfirmTreatment** → produces **TreatmentConfirmed**
+  - **TreatmentConfirmed** → crosses to **Billing**
+  - 🔗 *Policy: BillOnVisitComplete* — Generate invoice after treatment is confirmed
+  - 📋 *Rule CLN-03:* Treatment plan requires confirmed diagnosis
 
-**Step 14: Discharge finalization**
+**11. Invoice generation** *(Billing)*
 
-- Records performs **FinalizeDischarge**
-- Records performs **DischargeFinalised**
+  - *Requires:* Visit must be marked complete
+  - Billing performs **GenerateInvoice** → produces **InvoiceGenerated**
+  - Billing emits **InvoiceGenerated**
+  - 📋 *Rule BIL-01:* Invoice total must match sum of line items
 
-## Business Rules
+**12. Billing verification** *(Billing)*
 
-These rules must hold true at all times:
+  - Billing performs **VerifyBilling** → produces **BillingVerified**
+  - **BillingVerified** → crosses to **Records**
+  - 🔗 *Policy: DischargeOnBilling* — Create discharge record after billing verification
+  - 📋 *Rule BIL-01:* Invoice total must match sum of line items
 
-| Rule | Description | Applies To |
-|------|-------------|------------|
-| REC-01 | Patient must have valid identification | Reception / PatientIntake |
-| REC-02 | Intake form must pass completeness validation | Reception / PatientIntake |
-| CLN-01 | Triage must be completed before diagnosis | Clinical / VisitRecord |
-| CLN-02 | Dual-vet assessment must agree before proceeding | Clinical / VisitRecord |
-| CLN-03 | Treatment plan requires confirmed diagnosis | Clinical / TreatmentPlan |
-| BIL-01 | Invoice total must match sum of line items | Billing / Invoice |
-| REC-03 | Discharge requires verified billing | Records / DischargeRecord |
+**13. Discharge record creation** *(Records)*
+
+  - Records performs **CreateDischargeRecord** → produces **DischargeRecordCreated**
+  - Records emits **DischargeRecordCreated**
+  - 📋 *Rule REC-03:* Discharge requires verified billing
+
+**14. Discharge finalization** *(Records)*
+
+  - *Requires:* Billing must be verified before discharge
+  - Records performs **FinalizeDischarge** → produces **DischargeFinalised**
+  - Records emits **DischargeFinalised**
+  - 📋 *Rule REC-03:* Discharge requires verified billing
+
+## Context Boundaries
+
+These are the points where data crosses from one bounded context to another. Each crossing defines a contract — the required fields that the receiving context depends on.
+
+### PatientIntakeRegistered
+
+**Reception** → **Clinical** via CustomerSupplier
+*Occurs during: Intake validation outcome*
+
+| Field | Type | Required |
+|-------|------|:--------:|
+| `patientId` | UUID | ✓ |
+| `name` | string | ✓ |
+| `species` | string | ✓ |
+| `ownerName` | string | ✓ |
+| `appointmentType` | string | ✓ |
+
+### TreatmentConfirmed
+
+**Clinical** → **Billing** via CustomerSupplier
+*Occurs during: Treatment confirmation*
+
+| Field | Type | Required |
+|-------|------|:--------:|
+| `planId` | UUID | ✓ |
+| `visitId` | UUID | ✓ |
+| `patientId` | UUID | ✓ |
+
+### BillingVerified
+
+**Billing** → **Records** via CustomerSupplier
+*Occurs during: Billing verification*
+
+| Field | Type | Required |
+|-------|------|:--------:|
+| `invoiceId` | UUID | ✓ |
+| `visitId` | UUID | ✓ |
+| `patientId` | UUID | ✓ |
+
+## Domain Model
+
+### Reception [Core]
+
+#### PatientIntake
+
+*Identity:* `intakeId: UUID`
+
+| Command | Purpose | Produces |
+|---------|---------|----------|
+| **CheckInPatient** | Patient must have a scheduled appointment | PatientCheckedIn |
+| **SubmitValidateIntake** | Intake form must be fully completed | IntakeValidated |
+| **RegisterPatientIntake** | Accepts validatedIntakeId, patientId | PatientIntakeRegistered |
+
+**PatientCheckedIn:**
+- `intakeId`: *UUID*
+- `patientId`: *UUID*
+- `ownerName`: *string*
+- `appointmentType`: *string*
+- `checkedInAt`: *DateTime*
+
+**IntakeValidated:**
+- `intakeId`: *UUID*
+- `patientId`: *UUID*
+- `validationResult`: *string*
+- `validatedAt`: *DateTime*
+
+**PatientIntakeRegistered:**
+- `intakeId`: *UUID*
+- `patientId`: *UUID*
+- `name`: *string*
+- `species`: *string*
+- `breed`: *string*
+- `ownerName`: *string*
+- `appointmentType`: *string*
+- `registeredAt`: *DateTime*
+
+### Clinical [Core]
+
+#### VisitRecord
+
+*Identity:* `visitId: UUID`
+
+| Command | Purpose | Produces |
+|---------|---------|----------|
+| **CompleteTriage** | Patient must be registered through intake | TriageCompleted |
+| **PerformDualVetAssessment** | Accepts visitId, triageResults | DualVetAssessmentCompleted |
+| **RecordClinicalObservation** | Accepts visitId, diagnosis, differentials, confidence | ClinicalObservationRecorded |
+| **NormalizeClinicalRecord** | Clinical observation must be recorded | ClinicalRecordNormalized |
+| **RunClinicalAssessment** | Accepts visitId, recordId, patientId | ClinicalAssessmentCompleted |
+
+**TriageCompleted:**
+- `visitId`: *UUID*
+- `patientId`: *UUID*
+- `weight`: *string*
+- `temperature`: *string*
+- `heartRate`: *string*
+- `chiefComplaint`: *string*
+- `urgency`: *string*
+- `completedAt`: *DateTime*
+
+**DualVetAssessmentCompleted:**
+- `visitId`: *UUID*
+- `agreement`: *boolean*
+- `assessedAt`: *DateTime*
+
+**ClinicalObservationRecorded:**
+- `visitId`: *UUID*
+- `observationId`: *UUID*
+- `patientId`: *UUID*
+- `diagnosis`: *string*
+- `differentials`: *string[]*
+- `confidence`: *number*
+- `recordedAt`: *DateTime*
+
+**ClinicalRecordNormalized:**
+- `visitId`: *UUID*
+- `recordId`: *UUID*
+- `patientId`: *UUID*
+- `symptoms`: *string[]*
+- `vitalSigns`: *VitalSigns*
+- `vaccinationStatus`: *string*
+- `classification`: *string*
+- `normalizedAt`: *DateTime*
+
+**ClinicalAssessmentCompleted:**
+- `visitId`: *UUID*
+- `assessmentResult`: *string*
+- `completedAt`: *DateTime*
+
+#### TreatmentPlan
+
+*Identity:* `planId: UUID`
+
+| Command | Purpose | Produces |
+|---------|---------|----------|
+| **CreateTreatmentPlan** | Clinical assessment must be completed | TreatmentPlanCreated |
+| **ConfirmTreatment** | Treatment plan must exist | TreatmentConfirmed |
+
+**TreatmentPlanCreated:**
+- `planId`: *UUID*
+- `visitId`: *UUID*
+- `patientId`: *UUID*
+- `diagnosis`: *string*
+- `medications`: *Medication[]*
+- `instructions`: *string*
+- `createdAt`: *DateTime*
+
+**TreatmentConfirmed:**
+- `planId`: *UUID*
+- `confirmedBy`: *string*
+- `rationale`: *string*
+- `confirmedAt`: *DateTime*
+
+**Sagas:**
+
+- **VisitLifecycle**: Triaging → Diagnosing → Cataloging → Treating → Complete
+  - Triggered by: PatientIntakeRegistered
+  - Compensation: Cancel visit and release appointment slot
+
+### Billing [Supporting]
+
+#### Invoice
+
+*Identity:* `invoiceId: UUID`
+
+| Command | Purpose | Produces |
+|---------|---------|----------|
+| **GenerateInvoice** | Visit must be marked complete | InvoiceGenerated |
+| **VerifyBilling** | Accepts invoiceId | BillingVerified |
+
+**InvoiceGenerated:**
+- `invoiceId`: *UUID*
+- `visitId`: *UUID*
+- `patientId`: *UUID*
+- `lineItems`: *LineItem[]*
+- `total`: *Money*
+- `currency`: *string*
+- `generatedAt`: *DateTime*
+
+**BillingVerified:**
+- `invoiceId`: *UUID*
+- `verifiedAt`: *DateTime*
+
+### Records [Supporting]
+
+#### DischargeRecord
+
+*Identity:* `dischargeId: UUID`
+
+| Command | Purpose | Produces |
+|---------|---------|----------|
+| **CreateDischargeRecord** | Accepts visitId, patientId, planId, invoiceId | DischargeRecordCreated |
+| **FinalizeDischarge** | Billing must be verified before discharge | DischargeFinalised |
+
+**DischargeRecordCreated:**
+- `dischargeId`: *UUID*
+- `visitId`: *UUID*
+- `patientId`: *UUID*
+- `createdAt`: *DateTime*
+
+**DischargeFinalised:**
+- `dischargeId`: *UUID*
+- `finalisedAt`: *DateTime*
+
+## Data Glossary
+
+Shared data structures used across the domain:
+
+**AppointmentDetails**
+
+| Field | Type |
+|-------|------|
+| `appointmentId` | UUID |
+| `scheduledAt` | DateTime |
+| `appointmentType` | string |
+| `veterinarianId` | UUID |
+
+**TriageResults**
+
+| Field | Type |
+|-------|------|
+| `weight` | string |
+| `temperature` | string |
+| `heartRate` | string |
+| `chiefComplaint` | string |
+| `urgency` | string |
+
+**VitalSigns**
+
+| Field | Type |
+|-------|------|
+| `weight` | string |
+| `temperature` | string |
+| `heartRate` | string |
+
+**Medication**
+
+| Field | Type |
+|-------|------|
+| `name` | string |
+| `dose` | string |
+| `frequency` | string |
+
+**LineItem**
+
+| Field | Type |
+|-------|------|
+| `label` | string |
+| `amount` | Money |
 
 ---
 
-*This specification was generated by [Moment](https://github.com/mmmnt/mmmnt) from 4 bounded contexts and 1 behavioral flow.*
+*Generated by [Moment](https://github.com/mmmnt/mmmnt) from 4 contexts and 1 flow.*
