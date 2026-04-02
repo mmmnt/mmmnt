@@ -1,60 +1,69 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { runSchemaStatus } from './schema-status.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
-const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment');
 const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
+// Fixture with no events (context with aggregate but no events)
+const EMPTY_SCHEMA_DIR = join(tmpdir(), 'schema-status-empty-' + Date.now());
+const EMPTY_SCHEMA_FIXTURE = join(EMPTY_SCHEMA_DIR, 'empty.moment');
+mkdirSync(EMPTY_SCHEMA_DIR, { recursive: true });
+writeFileSync(EMPTY_SCHEMA_FIXTURE, 'context "Empty" [Generic]\n  aggregate "Stub"\n    identity id: UUID\n');
+
 describe('moment schema status', () => {
-  it('outputs schema lifecycle table for valid spec', async () => {
+  it('outputs schema lifecycle table for valid spec with events', async () => {
     const result = await runSchemaStatus([UNIFIED_FIXTURE]);
 
     expect(result.success).toBe(true);
     expect(result.entries).toBeDefined();
     expect(result.entries!.length).toBeGreaterThan(0);
     expect(result.message).toContain('Schema Status');
+    expect(result.message).toContain('Phase');
   });
 
-  it('shows four-phase lifecycle phases (SR-04)', async () => {
+  it('entries have per-field granularity with real field names', async () => {
     const result = await runSchemaStatus([UNIFIED_FIXTURE]);
 
     expect(result.success).toBe(true);
-    // All entries from IR start as 'active'
     for (const entry of result.entries ?? []) {
+      expect(entry.fieldName).not.toBe('*');
+      expect(entry.fieldType).toBeTruthy();
       expect(['active', 'deprecated', 'end-of-life', 'removed']).toContain(entry.phase);
     }
   });
 
-  it('--json outputs structured JSON', async () => {
+  it('--json outputs structured JSON with schemas and total', async () => {
     const result = await runSchemaStatus(['--json', UNIFIED_FIXTURE]);
 
     expect(result.success).toBe(true);
     expect(result.json).toBeDefined();
     const parsed = JSON.parse(result.json!);
     expect(Array.isArray(parsed.schemas)).toBe(true);
+    expect(parsed.schemas.length).toBeGreaterThan(0);
     expect(typeof parsed.total).toBe('number');
+    expect(parsed.total).toBe(parsed.schemas.length);
   });
 
-  it('empty spec outputs "No schemas registered"', async () => {
-    const result = await runSchemaStatus([VALID_FIXTURE]);
+  it('empty spec (no events) outputs "No schemas registered"', async () => {
+    const result = await runSchemaStatus([EMPTY_SCHEMA_FIXTURE]);
 
     expect(result.success).toBe(true);
-    // Minimal fixture may have schemas or not — check shape
-    if (result.entries && result.entries.length === 0) {
-      expect(result.message).toContain('No schemas registered');
-    }
+    expect(result.entries).toHaveLength(0);
+    expect(result.message).toBe('No schemas registered');
   });
 
-  it('--json with no schemas outputs empty array', async () => {
-    const result = await runSchemaStatus(['--json', VALID_FIXTURE]);
+  it('--json with no schemas outputs empty array and total 0', async () => {
+    const result = await runSchemaStatus(['--json', EMPTY_SCHEMA_FIXTURE]);
 
     expect(result.success).toBe(true);
     expect(result.json).toBeDefined();
     const parsed = JSON.parse(result.json!);
-    expect(Array.isArray(parsed.schemas)).toBe(true);
+    expect(parsed.schemas).toHaveLength(0);
+    expect(parsed.total).toBe(0);
   });
 
   it('no arguments returns failure with usage message', async () => {
@@ -83,7 +92,6 @@ describe('moment schema status', () => {
     const result = await runSchemaStatus([UNIFIED_FIXTURE]);
     expect(result.success).toBe(true);
     expect(result.diagnostics).toHaveLength(0);
-    // Entries come from SchemaRegistry, not hardcoded
     expect(typeof result.entries!.length).toBe('number');
   });
 });

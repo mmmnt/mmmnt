@@ -6,10 +6,9 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
-import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import {
   SchemaRegistry,
   ConsumptionManifest,
@@ -87,14 +86,12 @@ function buildSchemaEntries(ir: IntermediateRepresentation): SchemaStatusEntry[]
   const manifest = new ConsumptionManifest();
   const entries: SchemaStatusEntry[] = [];
 
-  // Register schemas from IR events
   for (const ctx of ir.contexts) {
     registerContextEvents(registry, ctx);
   }
 
-  // Build status entries for each registered event's fields
   for (const eventType of registry.getRegisteredEventTypes()) {
-    collectFieldEntries(entries, registry, manifest, eventType);
+    collectFieldEntries(entries, registry, manifest, eventType, ir);
   }
 
   return entries;
@@ -126,36 +123,51 @@ function collectFieldEntries(
   registry: SchemaRegistry,
   manifest: ConsumptionManifest,
   eventType: string,
+  ir: IntermediateRepresentation,
 ): void {
-  const consumers = manifest.getConsumers(eventType, '*');
-  const consumerCount = consumers.length;
+  const fields = findEventFields(eventType, ir);
 
-  // We need to get fields — re-derive from the phase query
-  // For each field that was registered, check its phase
-  const phase = registry.getFieldPhase(eventType, '*');
-  entries.push({
-    eventType,
-    fieldName: '*',
-    fieldType: 'schema',
-    required: true,
-    phase: phase ?? 'active',
-    consumers: consumerCount,
-  });
+  for (const field of fields) {
+    const phase = registry.getFieldPhase(eventType, field.name);
+    const consumers = manifest.getConsumers(eventType, field.name);
+
+    entries.push({
+      eventType,
+      fieldName: field.name,
+      fieldType: field.type,
+      required: field.required,
+      phase: phase ?? 'active',
+      consumers: consumers.length,
+    });
+  }
+}
+
+function findEventFields(
+  eventType: string,
+  ir: IntermediateRepresentation,
+): readonly { name: string; type: string; required: boolean }[] {
+  for (const ctx of ir.contexts) {
+    for (const agg of ctx.aggregates) {
+      const evt = agg.events.find((e) => e.name === eventType);
+      if (evt) return evt.fields;
+    }
+  }
+  return [];
 }
 
 function formatSchemaTable(entries: SchemaStatusEntry[]): string {
   const lines: string[] = [];
   lines.push('Schema Status:');
   lines.push('');
-  lines.push('| Event Type | Phase | Consumers |');
-  lines.push('|------------|-------|-----------|');
+  lines.push('| Event Type | Field | Type | Phase | Consumers |');
+  lines.push('|------------|-------|------|-------|-----------|');
 
   for (const e of entries) {
-    lines.push(`| ${e.eventType} | ${e.phase} | ${e.consumers} |`);
+    lines.push(`| ${e.eventType} | ${e.fieldName} | ${e.fieldType} | ${e.phase} | ${e.consumers} |`);
   }
 
   lines.push('');
-  lines.push(`Total: ${entries.length} schema(s)`);
+  lines.push(`Total: ${entries.length} field(s)`);
   return lines.join('\n');
 }
 
