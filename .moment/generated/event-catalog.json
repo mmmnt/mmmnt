@@ -24,6 +24,11 @@
             }
           },
           {
+            "name": "ownerRef",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
             "name": "appointmentType",
             "type": "string",
             "isArray": false
@@ -619,7 +624,7 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-04-02T07:40:01.741Z",
+    "generatedAt": "2026-04-02T07:52:10.175Z",
     "totalEvents": 14
   }
 }

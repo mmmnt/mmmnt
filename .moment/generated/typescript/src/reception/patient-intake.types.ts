@@ -34,6 +34,7 @@ export interface PatientCheckedIn {
    * Use ownerRef instead.
    */
   readonly ownerName: string;
+  readonly ownerRef: string;
   readonly appointmentType: string;
   readonly checkedInAt: DateTime;
 }

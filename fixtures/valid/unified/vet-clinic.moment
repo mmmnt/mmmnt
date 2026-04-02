@@ -26,6 +26,7 @@ context "Reception" [Core]
       intakeId: UUID
       patientId: UUID
       ownerName: string [deprecated "Use ownerRef composite key" -> "ownerRef"]
+      ownerRef: UUID
       appointmentType: string
       checkedInAt: DateTime
 

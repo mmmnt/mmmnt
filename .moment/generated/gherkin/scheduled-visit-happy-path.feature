@@ -9,7 +9,7 @@ Feature: scheduled-visit-happy-path
       Given Patient must have a scheduled appointment
       When Reception performs CheckInPatient with patientId, ownerName, appointmentType
       Then Reception emits PatientCheckedIn
-        carrying intakeId, patientId, ownerName, appointmentType, checkedInAt
+        carrying intakeId, patientId, ownerName, ownerRef, appointmentType, checkedInAt
 
     @aggregate:PatientIntake @invariant:REC-01 @invariant:REC-02
     Scenario: Intake validation

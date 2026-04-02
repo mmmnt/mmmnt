@@ -246,6 +246,7 @@ These are the points where data crosses from one bounded context to another. Eac
 - `intakeId`: *UUID*
 - `patientId`: *UUID*
 - ~~`ownerName`~~ (deprecated): *string*
+- `ownerRef`: *UUID*
 - `appointmentType`: *string*
 - `checkedInAt`: *DateTime*
 

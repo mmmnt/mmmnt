@@ -86,6 +86,7 @@
         "intakeId": "intakeId-001",
         "patientId": "patientId-001",
         "ownerName": "sample-ownerName",
+        "ownerRef": "ownerRef-001",
         "appointmentType": "sample-appointmentType",
         "checkedInAt": "2026-01-01T10:00:00.000Z"
       }
