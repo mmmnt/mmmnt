@@ -349,7 +349,8 @@ describe('TypeScriptEmitter', () => {
     });
 
     const paths = output.result.filesWritten;
-    expect(paths.every((p) => p.startsWith('src/shipping/'))).toBe(true);
+    // All context-specific files should be under src/shipping/; the root barrel src/index.ts is also emitted
+    expect(paths.every((p) => p.startsWith('src/shipping/') || p === 'src/index.ts')).toBe(true);
     expect(paths.some((p) => p.startsWith('src/order-management/'))).toBe(false);
   });
 

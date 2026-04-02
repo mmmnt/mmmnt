@@ -268,7 +268,9 @@ describe('renderFeatureFromIr', () => {
     const ir = makeBasicIR();
     const output = renderFeatureFromIr(ir.flows[0], ir);
 
-    expect(output).toMatch(/^Feature: order-placed/);
+    expect(output).toContain('Feature: order-placed');
+    // Tags now precede the Feature line
+    expect(output).toContain('@context:Ordering');
   });
 
   it('every moment produces a non-empty scenario', () => {

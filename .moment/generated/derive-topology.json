@@ -7,173 +7,19 @@
         {
           "momentId": "moment-0-Patient-check-in",
           "momentName": "Patient check-in",
-          "assertions": [
-            {
-              "crossingId": "cmd-CheckInPatient",
-              "sourceContext": "ctx-Reception",
-              "targetContext": "ctx-Reception",
-              "schemaContract": {
-                "eventType": "CheckInPatient",
-                "expectedFields": [
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "ownerName",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "appointmentType",
-                    "expectedType": "string",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-PatientCheckedIn",
-              "sourceContext": "ctx-Reception",
-              "targetContext": "ctx-Reception",
-              "schemaContract": {
-                "eventType": "PatientCheckedIn",
-                "expectedFields": [
-                  {
-                    "fieldName": "intakeId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "ownerName",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "appointmentType",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "checkedInAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Reception",
-              "aggregateName": "PatientIntake",
-              "precondition": "Patient must have a scheduled appointment"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-1-Intake-validation",
           "momentName": "Intake validation",
-          "assertions": [
-            {
-              "crossingId": "cmd-SubmitValidateIntake",
-              "sourceContext": "ctx-Reception",
-              "targetContext": "ctx-Reception",
-              "schemaContract": {
-                "eventType": "SubmitValidateIntake",
-                "expectedFields": [
-                  {
-                    "fieldName": "intakeFormId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-IntakeValidated",
-              "sourceContext": "ctx-Reception",
-              "targetContext": "ctx-Reception",
-              "schemaContract": {
-                "eventType": "IntakeValidated",
-                "expectedFields": [
-                  {
-                    "fieldName": "intakeId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "validationResult",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "validatedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Reception",
-              "aggregateName": "PatientIntake",
-              "precondition": "Intake form must be fully completed"
-            },
-            {
-              "contextName": "Reception",
-              "aggregateName": "PatientIntake",
-              "precondition": "PatientCheckedIn has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-2-Intake-validation-outcome",
           "momentName": "Intake validation outcome",
           "assertions": [
-            {
-              "crossingId": "cmd-RegisterPatientIntake",
-              "sourceContext": "ctx-Reception",
-              "targetContext": "ctx-Reception",
-              "schemaContract": {
-                "eventType": "RegisterPatientIntake",
-                "expectedFields": [
-                  {
-                    "fieldName": "validatedIntakeId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
             {
               "crossingId": "conn-2",
               "sourceContext": "ctx-Reception",
@@ -208,16 +54,10 @@
                   }
                 ]
               },
-              "assertionType": "crossing"
+              "assertionType": "payload"
             }
           ],
-          "setupSteps": [
-            {
-              "contextName": "Reception",
-              "aggregateName": "PatientIntake",
-              "precondition": "IntakeValidated has occurred"
-            }
-          ],
+          "setupSteps": [],
           "variant": "valid"
         },
         {
@@ -225,14 +65,40 @@
           "momentName": "Intake validation outcome",
           "assertions": [
             {
-              "crossingId": "evt-IntakeValidated",
-              "sourceContext": "ctx-Intake Failure",
-              "targetContext": "ctx-Intake Failure",
+              "crossingId": "conn-2",
+              "sourceContext": "ctx-Reception",
+              "targetContext": "ctx-Clinical",
               "schemaContract": {
-                "eventType": "IntakeValidated",
-                "expectedFields": []
+                "eventType": "PatientIntakeRegistered",
+                "expectedFields": [
+                  {
+                    "fieldName": "patientId",
+                    "expectedType": "UUID",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "name",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "species",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "ownerName",
+                    "expectedType": "string",
+                    "required": true
+                  },
+                  {
+                    "fieldName": "appointmentType",
+                    "expectedType": "string",
+                    "required": true
+                  }
+                ]
               },
-              "assertionType": "event"
+              "assertionType": "payload"
             }
           ],
           "setupSteps": [],
@@ -241,581 +107,59 @@
         {
           "momentId": "moment-3-Triage",
           "momentName": "Triage",
-          "assertions": [
-            {
-              "crossingId": "cmd-CompleteTriage",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "CompleteTriage",
-                "expectedFields": [
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "weight",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "temperature",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "heartRate",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "chiefComplaint",
-                    "expectedType": "string",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-TriageCompleted",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "TriageCompleted",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "weight",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "temperature",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "heartRate",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "chiefComplaint",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "urgency",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "completedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "Patient must be registered through intake"
-            },
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "PatientIntakeRegistered has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-4-Dual-vet-assessment",
           "momentName": "Dual-vet assessment",
-          "assertions": [
-            {
-              "crossingId": "cmd-PerformDualVetAssessment",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "PerformDualVetAssessment",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "triageResults",
-                    "expectedType": "TriageResults",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-DualVetAssessmentCompleted",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "DualVetAssessmentCompleted",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "agreement",
-                    "expectedType": "boolean",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "assessedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "TriageCompleted has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-5-Assessment-agreement",
           "momentName": "Assessment agreement",
-          "assertions": [
-            {
-              "crossingId": "cmd-RecordClinicalObservation",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "RecordClinicalObservation",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "diagnosis",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "differentials",
-                    "expectedType": "string[]",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "confidence",
-                    "expectedType": "number",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-ClinicalObservationRecorded",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "ClinicalObservationRecorded",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "observationId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "diagnosis",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "differentials",
-                    "expectedType": "string[]",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "confidence",
-                    "expectedType": "number",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "recordedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "DualVetAssessmentCompleted has occurred"
-            }
-          ],
+          "assertions": [],
+          "setupSteps": [],
           "variant": "agree"
         },
         {
           "momentId": "moment-5-Assessment-agreement",
           "momentName": "Assessment agreement",
-          "assertions": [
-            {
-              "crossingId": "evt-DualVetAssessmentCompleted",
-              "sourceContext": "ctx-Vet Disagreement",
-              "targetContext": "ctx-Vet Disagreement",
-              "schemaContract": {
-                "eventType": "DualVetAssessmentCompleted",
-                "expectedFields": []
-              },
-              "assertionType": "event"
-            }
-          ],
+          "assertions": [],
           "setupSteps": [],
           "variant": "disagree"
         },
         {
           "momentId": "moment-6-Clinical-record-normalization",
           "momentName": "Clinical record normalization",
-          "assertions": [
-            {
-              "crossingId": "cmd-NormalizeClinicalRecord",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "NormalizeClinicalRecord",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "symptoms",
-                    "expectedType": "string[]",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "vitalSigns",
-                    "expectedType": "VitalSigns",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-ClinicalRecordNormalized",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "ClinicalRecordNormalized",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "recordId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "symptoms",
-                    "expectedType": "string[]",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "vitalSigns",
-                    "expectedType": "VitalSigns",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "vaccinationStatus",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "classification",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "normalizedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "Clinical observation must be recorded"
-            },
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "ClinicalObservationRecorded has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-7-Records-completeness-check",
           "momentName": "Records completeness check",
-          "assertions": [
-            {
-              "crossingId": "cmd-RunClinicalAssessment",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "RunClinicalAssessment",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "recordId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-ClinicalAssessmentCompleted",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "ClinicalAssessmentCompleted",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "assessmentResult",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "completedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "VisitRecord",
-              "precondition": "ClinicalRecordNormalized has occurred"
-            }
-          ],
+          "assertions": [],
+          "setupSteps": [],
           "variant": "complete"
         },
         {
           "momentId": "moment-7-Records-completeness-check",
           "momentName": "Records completeness check",
-          "assertions": [
-            {
-              "crossingId": "evt-ClinicalRecordNormalized",
-              "sourceContext": "ctx-Records Incomplete",
-              "targetContext": "ctx-Records Incomplete",
-              "schemaContract": {
-                "eventType": "ClinicalRecordNormalized",
-                "expectedFields": []
-              },
-              "assertionType": "event"
-            }
-          ],
+          "assertions": [],
           "setupSteps": [],
           "variant": "incomplete"
         },
         {
           "momentId": "moment-8-Treatment-planning",
           "momentName": "Treatment planning",
-          "assertions": [
-            {
-              "crossingId": "cmd-CreateTreatmentPlan",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "CreateTreatmentPlan",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "diagnosis",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "medications",
-                    "expectedType": "Medication[]",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-TreatmentPlanCreated",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "TreatmentPlanCreated",
-                "expectedFields": [
-                  {
-                    "fieldName": "planId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "diagnosis",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "medications",
-                    "expectedType": "Medication[]",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "instructions",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "createdAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "TreatmentPlan",
-              "precondition": "Clinical assessment must be completed"
-            },
-            {
-              "contextName": "Clinical",
-              "aggregateName": "TreatmentPlan",
-              "precondition": "ClinicalAssessmentCompleted has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-9-Treatment-confirmation",
           "momentName": "Treatment confirmation",
           "assertions": [
-            {
-              "crossingId": "cmd-ConfirmTreatment",
-              "sourceContext": "ctx-Clinical",
-              "targetContext": "ctx-Clinical",
-              "schemaContract": {
-                "eventType": "ConfirmTreatment",
-                "expectedFields": [
-                  {
-                    "fieldName": "planId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "confirmedBy",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "rationale",
-                    "expectedType": "string",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
             {
               "crossingId": "conn-10",
               "sourceContext": "ctx-Clinical",
@@ -840,132 +184,21 @@
                   }
                 ]
               },
-              "assertionType": "crossing"
+              "assertionType": "payload"
             }
           ],
-          "setupSteps": [
-            {
-              "contextName": "Clinical",
-              "aggregateName": "TreatmentPlan",
-              "precondition": "Treatment plan must exist"
-            },
-            {
-              "contextName": "Clinical",
-              "aggregateName": "TreatmentPlan",
-              "precondition": "TreatmentPlanCreated has occurred"
-            }
-          ]
+          "setupSteps": []
         },
         {
           "momentId": "moment-10-Invoice-generation",
           "momentName": "Invoice generation",
-          "assertions": [
-            {
-              "crossingId": "cmd-GenerateInvoice",
-              "sourceContext": "ctx-Billing",
-              "targetContext": "ctx-Billing",
-              "schemaContract": {
-                "eventType": "GenerateInvoice",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "lineItems",
-                    "expectedType": "LineItem[]",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-InvoiceGenerated",
-              "sourceContext": "ctx-Billing",
-              "targetContext": "ctx-Billing",
-              "schemaContract": {
-                "eventType": "InvoiceGenerated",
-                "expectedFields": [
-                  {
-                    "fieldName": "invoiceId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "lineItems",
-                    "expectedType": "LineItem[]",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "total",
-                    "expectedType": "Money",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "currency",
-                    "expectedType": "string",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "generatedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Billing",
-              "aggregateName": "Invoice",
-              "precondition": "Visit must be marked complete"
-            },
-            {
-              "contextName": "Billing",
-              "aggregateName": "Invoice",
-              "precondition": "TreatmentConfirmed has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-11-Billing-verification",
           "momentName": "Billing verification",
           "assertions": [
-            {
-              "crossingId": "cmd-VerifyBilling",
-              "sourceContext": "ctx-Billing",
-              "targetContext": "ctx-Billing",
-              "schemaContract": {
-                "eventType": "VerifyBilling",
-                "expectedFields": [
-                  {
-                    "fieldName": "invoiceId",
-                    "expectedType": "UUID",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
             {
               "crossingId": "conn-13",
               "sourceContext": "ctx-Billing",
@@ -990,146 +223,22 @@
                   }
                 ]
               },
-              "assertionType": "crossing"
+              "assertionType": "payload"
             }
           ],
-          "setupSteps": [
-            {
-              "contextName": "Billing",
-              "aggregateName": "Invoice",
-              "precondition": "InvoiceGenerated has occurred"
-            }
-          ]
+          "setupSteps": []
         },
         {
           "momentId": "moment-12-Discharge-record-creation",
           "momentName": "Discharge record creation",
-          "assertions": [
-            {
-              "crossingId": "cmd-CreateDischargeRecord",
-              "sourceContext": "ctx-Records",
-              "targetContext": "ctx-Records",
-              "schemaContract": {
-                "eventType": "CreateDischargeRecord",
-                "expectedFields": [
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "planId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "invoiceId",
-                    "expectedType": "UUID",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-DischargeRecordCreated",
-              "sourceContext": "ctx-Records",
-              "targetContext": "ctx-Records",
-              "schemaContract": {
-                "eventType": "DischargeRecordCreated",
-                "expectedFields": [
-                  {
-                    "fieldName": "dischargeId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "visitId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "patientId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "createdAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Records",
-              "aggregateName": "DischargeRecord",
-              "precondition": "BillingVerified has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "moment-13-Discharge-finalization",
           "momentName": "Discharge finalization",
-          "assertions": [
-            {
-              "crossingId": "cmd-FinalizeDischarge",
-              "sourceContext": "ctx-Records",
-              "targetContext": "ctx-Records",
-              "schemaContract": {
-                "eventType": "FinalizeDischarge",
-                "expectedFields": [
-                  {
-                    "fieldName": "dischargeId",
-                    "expectedType": "UUID",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "command"
-            },
-            {
-              "crossingId": "evt-DischargeFinalised",
-              "sourceContext": "ctx-Records",
-              "targetContext": "ctx-Records",
-              "schemaContract": {
-                "eventType": "DischargeFinalised",
-                "expectedFields": [
-                  {
-                    "fieldName": "dischargeId",
-                    "expectedType": "UUID",
-                    "required": true
-                  },
-                  {
-                    "fieldName": "finalisedAt",
-                    "expectedType": "DateTime",
-                    "required": true
-                  }
-                ]
-              },
-              "assertionType": "event"
-            }
-          ],
-          "setupSteps": [
-            {
-              "contextName": "Records",
-              "aggregateName": "DischargeRecord",
-              "precondition": "Billing must be verified before discharge"
-            },
-            {
-              "contextName": "Records",
-              "aggregateName": "DischargeRecord",
-              "precondition": "DischargeRecordCreated has occurred"
-            }
-          ]
+          "assertions": [],
+          "setupSteps": []
         },
         {
           "momentId": "saga-VisitLifecycle-initiated",
@@ -1421,6 +530,6 @@
   ],
   "metadata": {
     "sourceIrHash": "1b29aec7ca6af6b4970eb30ed499b1072427caa8ca30df160db7f4e21cab3881",
-    "derivedAt": "2026-04-02T01:52:23.415Z"
+    "derivedAt": "2026-04-02T02:04:11.071Z"
   }
 }

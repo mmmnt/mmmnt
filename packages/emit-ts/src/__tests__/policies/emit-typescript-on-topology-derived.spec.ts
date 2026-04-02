@@ -207,10 +207,10 @@ describe('EmitTypeScriptOnTopologyDerived', () => {
 
     const result = policy.execute(ir, topology);
 
-    // TypeScriptEmitter produces types, aggregate, and index files per context/aggregate
-    // For 1 context with 1 aggregate: types.ts + aggregate.ts + index.ts = 3 files
-    expect(result.typeScriptOutput.result.filesWritten).toHaveLength(3);
-    expect(result.typeScriptOutput.files.size).toBe(3);
+    // TypeScriptEmitter produces types, aggregate, index, and root barrel files per context/aggregate
+    // For 1 context with 1 aggregate: types.ts + aggregate.ts + index.ts + root index.ts = 4 files
+    expect(result.typeScriptOutput.result.filesWritten).toHaveLength(4);
+    expect(result.typeScriptOutput.files.size).toBe(4);
 
     // TestScaffoldEmitter produces 1 flow spec + 1 aggregate spec = 2 files
     expect(result.scaffoldOutput.result.specFilesWritten).toHaveLength(2);
