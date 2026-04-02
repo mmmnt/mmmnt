@@ -26,11 +26,11 @@ describe('moment import --from-sift', () => {
     expect(result.message).toContain('Imported');
 
     // Verify .moment file created under .moment/contexts/
-    const contextFile = join(outDir, '.moment', 'contexts', 'ordering.moment');
+    const contextFile = join(outDir, '.moment', 'contexts', 'reception.moment');
     expect(existsSync(contextFile)).toBe(true);
     const content = readFileSync(contextFile, 'utf-8');
-    expect(content).toContain('context "Ordering"');
-    expect(content).toContain('aggregate "Order"');
+    expect(content).toContain('context "Reception"');
+    expect(content).toContain('aggregate "PatientIntake"');
   });
 
   it('writes .upstream-fingerprint.json with sift envelope (EXIT-B2)', async () => {
@@ -123,14 +123,20 @@ describe('moment import --from-sift', () => {
     expect(JSON.parse(fp1).sift.importedAt).toBe(JSON.parse(fp2).sift.importedAt);
   });
 
-  it('replays events with full ComplaiEventEnvelope fields', async () => {
+  it('replays events from all 4 context JSONL files', async () => {
     const outDir = join(tmpBase, 'out6');
     mkdirSync(outDir, { recursive: true });
 
     const result = await runImportFromSift([SIFT_DOMAIN_DIR, '--output-dir', outDir]);
 
     expect(result.success).toBe(true);
-    // 6 events in the ordering.jsonl fixture
-    expect(result.eventsProcessed).toBe(6);
+    // 4 JSONL files: reception (11), clinical (28), billing (9), records (8) = 56 events
+    expect(result.eventsProcessed).toBeGreaterThan(40);
+
+    // All 4 contexts should have .moment files
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'reception.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'clinical.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'billing.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'records.moment'))).toBe(true);
   });
 });
