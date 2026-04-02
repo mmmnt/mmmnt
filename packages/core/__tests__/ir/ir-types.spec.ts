@@ -23,8 +23,8 @@ import type {
   PolicyDefinition,
   SagaDefinition,
   FlowDefinition,
-  FrameDefinition,
-  FrameEntry,
+  MomentDefinition,
+  MomentEntry,
   BranchDefinition,
   ConnectionDefinition,
   SchemaContract,
@@ -287,22 +287,22 @@ describe('IR Types', () => {
         id: 'flow-1',
         name: 'OrderFlow',
         description: 'The main order processing flow',
-        frames: [],
+        moments: [],
         connections: [],
       };
 
       expect(flow.id).toBe('flow-1');
       expect(flow.name).toBe('OrderFlow');
       expect(flow.description).toBe('The main order processing flow');
-      expect(flow.frames).toEqual([]);
+      expect(flow.moments).toEqual([]);
       expect(flow.connections).toEqual([]);
     });
   });
 
-  describe('FrameDefinition', () => {
+  describe('MomentDefinition', () => {
     it('has id, name, contextEntries, optional branches and terminal', () => {
-      const frame: FrameDefinition = {
-        id: 'frame-1',
+      const frame: MomentDefinition = {
+        id: 'moment-1',
         name: 'InitiateOrder',
         contextEntries: [
           {
@@ -320,7 +320,7 @@ describe('IR Types', () => {
         terminal: false,
       };
 
-      expect(frame.id).toBe('frame-1');
+      expect(frame.id).toBe('moment-1');
       expect(frame.name).toBe('InitiateOrder');
       expect(frame.contextEntries).toHaveLength(1);
       expect(frame.contextEntries[0].nodeKind).toBe('command');
@@ -329,9 +329,9 @@ describe('IR Types', () => {
     });
   });
 
-  describe('FrameEntry', () => {
+  describe('MomentEntry', () => {
     it('has contextId, nodeName, nodeKind, and optional multiplicity, optional, terminal', () => {
-      const entry: FrameEntry = {
+      const entry: MomentEntry = {
         contextId: 'ctx-1',
         nodeName: 'ProcessPayment',
         nodeKind: 'saga',
@@ -365,7 +365,7 @@ describe('IR Types', () => {
     it('has crossing connection with required schemaContract', () => {
       const conn: ConnectionDefinition = {
         id: 'conn-1',
-        sourceFrameId: 'frame-1',
+        sourceMomentId: 'moment-1',
         targetContextId: 'ctx-2',
         eventId: 'evt-1',
         connectionType: 'crosses-to',
@@ -388,7 +388,7 @@ describe('IR Types', () => {
     it('has non-crossing connection without schemaContract', () => {
       const conn: ConnectionDefinition = {
         id: 'conn-2',
-        sourceFrameId: 'frame-1',
+        sourceMomentId: 'moment-1',
         targetContextId: 'ctx-1',
         eventId: 'evt-2',
         connectionType: 'triggered-by',

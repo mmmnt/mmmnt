@@ -39,7 +39,7 @@ export function renderTimeline(ir: IntermediateRepresentation): TimelineLayout {
 
 function processFlow(
   flow: {
-    frames: readonly {
+    moments: readonly {
       id: string;
       name: string;
       contextEntries: readonly { contextId: string; nodeName: string }[];
@@ -52,20 +52,22 @@ function processFlow(
   connections: TimelineConnection[],
   xOffset: number,
 ): number {
-  for (const frame of flow.frames) {
-    for (const entry of frame.contextEntries) {
-      const lane = laneIndex.get(entry.contextId);
-      if (!lane) continue;
-
-      entries.push({
-        frameId: frame.id,
-        frameName: frame.name,
-        contextId: entry.contextId,
-        x: xOffset,
-        y: lane.y + LANE_PADDING,
-        width: ENTRY_WIDTH,
-        height: ENTRY_HEIGHT,
-      });
+  for (const moment of flow.moments) {
+    // Deduplicate: one timeline entry per moment (pick first context entry for placement)
+    const firstEntry = moment.contextEntries[0];
+    if (firstEntry) {
+      const lane = laneIndex.get(firstEntry.contextId);
+      if (lane) {
+        entries.push({
+          momentId: moment.id,
+          momentName: moment.name,
+          contextId: firstEntry.contextId,
+          x: xOffset,
+          y: lane.y + LANE_PADDING,
+          width: ENTRY_WIDTH,
+          height: ENTRY_HEIGHT,
+        });
+      }
     }
     xOffset += ENTRY_SPACING;
   }
@@ -76,12 +78,12 @@ function processFlow(
     const targetLane = laneIndex.get(conn.targetContextId);
     if (!sourceLane || !targetLane) continue;
 
-    const sourceEntry = entries.find((e) => e.frameId === conn.sourceFrameId);
+    const sourceEntry = entries.find((e) => e.momentId === conn.sourceMomentId);
     const connectionX = sourceEntry != null ? sourceEntry.x + sourceEntry.width / 2 : LANE_PADDING;
 
     connections.push({
       connectionId: conn.id,
-      sourceFrameId: conn.sourceFrameId,
+      sourceMomentId: conn.sourceMomentId,
       targetContextId: conn.targetContextId,
       sourceLaneY: sourceLane.y + LANE_HEIGHT / 2,
       targetLaneY: targetLane.y + LANE_HEIGHT / 2,
@@ -119,7 +121,7 @@ function isCrossing(conn: ConnectionDefinition): boolean {
 
 function findSourceContext(
   conn: ConnectionDefinition,
-  flow: { frames: readonly { id: string; contextEntries: readonly { contextId: string }[] }[] },
+  flow: { moments: readonly { id: string; contextEntries: readonly { contextId: string }[] }[] },
   ir: IntermediateRepresentation,
 ): string {
   // Resolve source context from eventId by searching IR contexts/aggregates
@@ -134,10 +136,10 @@ function findSourceContext(
     }
   }
 
-  // Fallback: infer from source frame's first context entry
-  const sourceFrame = flow.frames.find((f) => f.id === conn.sourceFrameId);
-  if (sourceFrame && sourceFrame.contextEntries.length > 0) {
-    return sourceFrame.contextEntries[0].contextId;
+  // Fallback: infer from source moment's first context entry
+  const sourceMoment = flow.moments.find((f) => f.id === conn.sourceMomentId);
+  if (sourceMoment && sourceMoment.contextEntries.length > 0) {
+    return sourceMoment.contextEntries[0].contextId;
   }
 
   return conn.targetContextId;

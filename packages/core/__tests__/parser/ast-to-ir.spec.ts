@@ -49,6 +49,27 @@ describe('AstToIr', () => {
     expect(ir.contexts[0].classification).toBe('Core');
   });
 
+  it('transforms context with description', async () => {
+    const ir = await toIr(`
+      context "Sales" [Core]
+        description "Handles all sales operations"
+        aggregate "Order"
+          identity orderId: UUID
+    `);
+
+    expect(ir.contexts[0].description).toBe('Handles all sales operations');
+  });
+
+  it('transforms context without description', async () => {
+    const ir = await toIr(`
+      context "Sales" [Core]
+        aggregate "Order"
+          identity orderId: UUID
+    `);
+
+    expect(ir.contexts[0].description).toBeUndefined();
+  });
+
   it('transforms aggregate with identity to AggregateDefinition', async () => {
     const ir = await toIr(`
       context "Test"
@@ -267,7 +288,7 @@ describe('AstToIr', () => {
         description "Order submission flow"
         lane ordering "Ordering" [Core]
         lane fulfillment "Fulfillment" [Supporting]
-        frame "Order submission"
+        moment "Order submission"
           ordering: PlaceOrder
           ordering: OrderPlaced
     `);
@@ -279,17 +300,17 @@ describe('AstToIr', () => {
     expect(flow.description).toBe('Order submission flow');
   });
 
-  it('transforms frames with node placements to FrameDefinitions', async () => {
+  it('transforms frames with node placements to MomentDefinitions', async () => {
     const ir = await toIr(`
       flow "test"
         lane a "A" [Core]
-        frame "Step 1"
+        moment "Step 1"
           a: PlaceOrder
           a: OrderPlaced
     `);
 
-    const frame = ir.flows[0].frames[0];
-    expect(frame.id).toBe('frame-0-Step-1');
+    const frame = ir.flows[0].moments[0];
+    expect(frame.id).toBe('moment-0-Step-1');
     expect(frame.name).toBe('Step 1');
     expect(frame.contextEntries).toHaveLength(2);
     expect(frame.contextEntries[0].contextId).toBe('ctx-A');
@@ -302,7 +323,7 @@ describe('AstToIr', () => {
       flow "test"
         lane a "A" [Core]
         lane b "B" [Supporting]
-        frame "Step"
+        moment "Step"
           a: OrderPlaced crosses-to b via CustomerSupplier
             contract
               orderId: UUID [required]
@@ -338,14 +359,14 @@ describe('AstToIr', () => {
       flow "test"
         lane a "A" [Core]
         branch-lane b "B" [Terminal]
-        frame "Decision" [branch]
+        moment "Decision" [branch]
           when available
             a: FulfillmentReady
           when unavailable
             b: BackorderCreated [terminal]
     `);
 
-    const frame = ir.flows[0].frames[0];
+    const frame = ir.flows[0].moments[0];
     expect(frame.branches).toHaveLength(2);
     expect(frame.branches![0].condition).toBe('available');
     expect(frame.branches![0].entries).toHaveLength(1);
@@ -359,13 +380,13 @@ describe('AstToIr', () => {
     const ir = await toIr(`
       flow "test"
         lane a "A" [Core]
-        frame "Step"
+        moment "Step"
           a: EventA (×3)
           a: EventB [optional]
           a: EventC [terminal]
     `);
 
-    const entries = ir.flows[0].frames[0].contextEntries;
+    const entries = ir.flows[0].moments[0].contextEntries;
     expect(entries[0].multiplicity).toBe(3);
     expect(entries[1].optional).toBe(true);
     expect(entries[2].terminal).toBe(true);
@@ -376,7 +397,7 @@ describe('AstToIr', () => {
       flow "test"
         lane a "A" [Core]
         lane b "B" [Supporting]
-        frame "Step"
+        moment "Step"
           b: InitiateFulfillment
             triggered-by OrderPlaced
           b: FulfillmentInitiated
@@ -397,9 +418,9 @@ describe('AstToIr', () => {
     const ir = await toIr(`
       flow "test"
         lane a "A" [Core]
-        frame "Step 1"
+        moment "Step 1"
           a: EventA
-        frame "Step 2"
+        moment "Step 2"
           a: EventB
             returns-to "Step 1"
     `);
@@ -408,7 +429,7 @@ describe('AstToIr', () => {
     const returnsTo = connections.find((c) => c.connectionType === 'returns-to');
     expect(returnsTo).toBeDefined();
     expect(returnsTo!.eventId).toBe('evt-EventB');
-    expect(returnsTo!.sourceFrameId).toBe('frame-1-Step-2');
+    expect(returnsTo!.sourceMomentId).toBe('moment-1-Step-2');
   });
 
   it('collects commands, events, value objects, invariants at context level', async () => {
@@ -468,11 +489,11 @@ describe('AstToIr', () => {
     const ir = await toIr(`
       flow "test"
         lane a "A" [Core]
-        frame "Step"
+        moment "Step"
           a: InventoryReserved (×N)
     `);
 
-    const entry = ir.flows[0].frames[0].contextEntries[0];
+    const entry = ir.flows[0].moments[0].contextEntries[0];
     expect(entry.multiplicity).toBe('N');
   });
 
@@ -499,7 +520,7 @@ describe('AstToIr', () => {
     const ir = await toIr(`
       flow "nodesc"
         lane a "A" [Core]
-        frame "Step"
+        moment "Step"
           a: EventA
     `);
 
@@ -511,7 +532,7 @@ describe('AstToIr', () => {
       flow "test"
         lane a "A" [Core]
         lane b "B" [Supporting]
-        frame "Decision" [branch]
+        moment "Decision" [branch]
           when available
             a: FulfillmentReady crosses-to b via Partnership
               contract
@@ -543,7 +564,7 @@ describe('AstToIr', () => {
         description "Order triggers fulfillment"
         lane ordering "Ordering" [Core]
         lane fulfillment "Fulfillment" [Supporting]
-        frame "Place"
+        moment "Place"
           ordering: PlaceOrder
           ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
             contract
@@ -556,7 +577,7 @@ describe('AstToIr', () => {
 
     expect(ir.flows).toHaveLength(1);
     expect(ir.flows[0].name).toBe('order-flow');
-    expect(ir.flows[0].frames).toHaveLength(1);
+    expect(ir.flows[0].moments).toHaveLength(1);
     expect(ir.flows[0].connections.length).toBeGreaterThan(0);
 
     expect(ir.contexts[0].aggregates[0].commands).toHaveLength(1);

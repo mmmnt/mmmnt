@@ -1,4 +1,0 @@
-Tests: 0 total, 0 passed, 0 failed, 0 skipped (0 suite(s))
-exit: 0
-ASSERT: exit code 0: PASS
-ASSERT: reports test summary: PASS

@@ -42,7 +42,7 @@ describe('MomentParser', () => {
     expect(result.ir).toBeDefined();
     expect(result.ir!.flows).toHaveLength(1);
     expect(result.ir!.flows[0].name).toBe('order-placed');
-    expect(result.ir!.flows[0].frames).toHaveLength(2);
+    expect(result.ir!.flows[0].moments).toHaveLength(2);
 
     // Check crossing connection exists
     const crossings = result.ir!.flows[0].connections.filter(
@@ -91,7 +91,7 @@ describe('MomentParser', () => {
     expect(fulfillmentResult.ir!.contexts[0].policies).toHaveLength(1);
 
     // Flow
-    expect(flowResult.ir!.flows[0].frames).toHaveLength(5);
+    expect(flowResult.ir!.flows[0].moments).toHaveLength(5);
     expect(flowResult.ir!.flows[0].connections.length).toBeGreaterThan(0);
   });
 

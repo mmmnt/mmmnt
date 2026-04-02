@@ -1,50 +1,44 @@
 import type { IntermediateRepresentation } from '@mmmnt/core';
-import type { TestSuiteTopology, TestSuiteDefinition } from '@mmmnt/derive';
+import type { TestSuiteTopology } from '@mmmnt/derive';
 import type {
   GenerationManifest,
   GeneratedFeatureFile,
   GeneratedDocument,
 } from '../types/index.js';
-import { renderFeature } from './feature-renderer.js';
+import { renderFeatureFromIr } from './feature-renderer.js';
 
 /**
- * GherkinGenerator consumes an IntermediateRepresentation and a TestSuiteTopology
- * and produces a GenerationManifest containing .feature files and documents.
+ * GherkinGenerator produces .feature files from the IR's flows.
  *
  * Domain rules:
  *  - GN-01: Every flow produces a .feature file
- *  - GN-02: Step keywords match node types (Given=precondition, When=command, Then=event/assertion)
+ *  - GN-02: Given=precondition, When=command, Then=event
  *  - GN-03: Exact specification vocabulary preserved
- *  - Deterministic: same IR+topology yields the same output
+ *  - Deterministic: same IR yields the same output
  */
 export class GherkinGenerator {
   generate(ir: IntermediateRepresentation, topology: TestSuiteTopology): GenerationManifest {
-    // IR is accepted for API stability — future use for glossary/vocabulary lookups.
-    // Currently topology carries all data needed for generation.
-    void ir;
-    const featuresGenerated: GeneratedFeatureFile[] = topology.suites.map((suite) =>
-      this.generateFeatureFile(suite),
-    );
+    // topology accepted for API compatibility
+    void topology;
+
+    const featuresGenerated: GeneratedFeatureFile[] = ir.flows.map((flow) => {
+      const content = renderFeatureFromIr(flow, ir);
+      const scenarioCount = flow.moments.reduce((sum, m) => {
+        if (m.branches && m.branches.length > 0) return sum + m.branches.length;
+        return sum + 1;
+      }, 0);
+
+      return {
+        flowId: flow.id,
+        filePath: `features/${safeFileName(flow.name)}.feature`,
+        content,
+        scenarioCount,
+        name: flow.name,
+      };
+    });
 
     const docsGenerated: GeneratedDocument[] = [];
-
     return { featuresGenerated, docsGenerated };
-  }
-
-  private generateFeatureFile(suite: TestSuiteDefinition): GeneratedFeatureFile {
-    const content = renderFeature(suite);
-    const scenarioCount = this.countScenarios(suite);
-
-    return {
-      flowId: suite.flowId,
-      filePath: `features/${safeFileName(suite.flowName)}.feature`,
-      content,
-      scenarioCount,
-    };
-  }
-
-  private countScenarios(suite: TestSuiteDefinition): number {
-    return suite.testCases.length;
   }
 }
 

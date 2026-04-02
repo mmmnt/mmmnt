@@ -95,42 +95,42 @@ export class SchemaValidator {
 
   private checkSP04(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
     for (const flow of ir.flows) {
-      const frameIndexMap = new Map<string, number>();
-      flow.frames.forEach((frame, index) => {
-        frameIndexMap.set(frame.id, index);
+      const momentIndexMap = new Map<string, number>();
+      flow.moments.forEach((m, index) => {
+        momentIndexMap.set(m.id, index);
       });
 
       for (const conn of flow.connections) {
         if (conn.connectionType === 'returns-to') {
-          const sourceIndex = frameIndexMap.get(conn.sourceFrameId);
+          const sourceIndex = momentIndexMap.get(conn.sourceMomentId);
           if (sourceIndex === undefined) {
             diagnostics.push({
               severity: 'error',
-              message: `SP-04: Connection '${conn.id}' references unresolvable source frame '${conn.sourceFrameId}'.`,
+              message: `SP-04: Connection '${conn.id}' references unresolvable source moment '${conn.sourceMomentId}'.`,
               ruleId: 'SP-04',
             });
             continue;
           }
 
-          const targetFrameIds = flow.frames
-            .filter((f) => f.contextEntries.some((e) => e.contextId === conn.targetContextId))
-            .map((f) => f.id);
+          const targetMomentIds = flow.moments
+            .filter((m) => m.contextEntries.some((e) => e.contextId === conn.targetContextId))
+            .map((m) => m.id);
 
-          if (targetFrameIds.length === 0) {
+          if (targetMomentIds.length === 0) {
             diagnostics.push({
               severity: 'error',
-              message: `SP-04: Connection '${conn.id}' returns-to target context '${conn.targetContextId}' which does not appear in any frame.`,
+              message: `SP-04: Connection '${conn.id}' returns-to target context '${conn.targetContextId}' which does not appear in any moment.`,
               ruleId: 'SP-04',
             });
             continue;
           }
 
-          for (const targetFrameId of targetFrameIds) {
-            const targetIndex = frameIndexMap.get(targetFrameId);
+          for (const targetMomentId of targetMomentIds) {
+            const targetIndex = momentIndexMap.get(targetMomentId);
             if (targetIndex !== undefined && targetIndex >= sourceIndex) {
               diagnostics.push({
                 severity: 'error',
-                message: `SP-04: Connection '${conn.id}' returns-to a frame that is not prior (source frame index ${sourceIndex}, target frame index ${targetIndex}).`,
+                message: `SP-04: Connection '${conn.id}' returns-to a moment that is not prior (source moment index ${sourceIndex}, target moment index ${targetIndex}).`,
                 ruleId: 'SP-04',
               });
             }

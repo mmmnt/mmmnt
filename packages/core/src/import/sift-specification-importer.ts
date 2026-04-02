@@ -155,7 +155,7 @@ export class SiftSpecificationImporter {
     lines.push('');
 
     for (const frame of event.frames) {
-      lines.push(`  frame "${frame.label}"`);
+      lines.push(`  moment "${frame.label}"`);
       for (const node of frame.nodes) {
         let nodeLine = `    ${node.laneId}: ${node.nodeName}`;
         if (node.crossing) {

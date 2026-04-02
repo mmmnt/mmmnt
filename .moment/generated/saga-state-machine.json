@@ -1,0 +1,59 @@
+[
+  {
+    "sagaName": "VisitLifecycle",
+    "context": "Clinical",
+    "initialState": "Triaging",
+    "finalState": "Complete",
+    "states": [
+      {
+        "name": "Triaging",
+        "isInitial": true,
+        "isFinal": false
+      },
+      {
+        "name": "Diagnosing",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Cataloging",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Treating",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Complete",
+        "isInitial": false,
+        "isFinal": true
+      }
+    ],
+    "transitions": [
+      {
+        "from": "Triaging",
+        "to": "Diagnosing"
+      },
+      {
+        "from": "Diagnosing",
+        "to": "Cataloging"
+      },
+      {
+        "from": "Cataloging",
+        "to": "Treating"
+      },
+      {
+        "from": "Treating",
+        "to": "Complete"
+      }
+    ],
+    "compensation": "Cancel visit and release appointment slot",
+    "timeout": "visitTimeout",
+    "reachability": {
+      "allReachable": true,
+      "unreachableStates": []
+    }
+  }
+]

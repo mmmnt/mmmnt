@@ -99,7 +99,7 @@ describe('WatchModePublisher', () => {
 
   it('pushes topology with productSource moment:topology', async () => {
     const target = makeTarget();
-    const topology = { lanes: [], frames: [], connections: [] };
+    const topology = { lanes: [], moments: [], connections: [] };
     const options = makeOptions({
       target,
       buildTopology: async () => topology,

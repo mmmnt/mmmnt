@@ -41,28 +41,70 @@ function buildEdges(
   ir: IntermediateRepresentation,
   nodeIndex: ReadonlyMap<string, ContextMapNode>,
 ): ContextMapEdge[] {
+  const seen = new Set<string>();
   const edges: ContextMapEdge[] = [];
 
-  for (const rel of ir.relationships) {
-    const sourceNode = nodeIndex.get(rel.sourceContextId);
-    const targetNode = nodeIndex.get(rel.targetContextId);
-
-    // Skip edges referencing missing contexts
-    if (!sourceNode || !targetNode) continue;
-
+  const addEdge = (
+    sourceId: string,
+    targetId: string,
+    relType: string,
+    label: string,
+  ): void => {
+    const key = `${sourceId}|${targetId}|${relType}`;
+    if (seen.has(key)) return;
+    const sourceNode = nodeIndex.get(sourceId);
+    const targetNode = nodeIndex.get(targetId);
+    if (!sourceNode || !targetNode) return;
+    seen.add(key);
     edges.push({
-      sourceContextId: rel.sourceContextId,
-      targetContextId: rel.targetContextId,
-      relationshipType: rel.relationshipType,
-      label: rel.relationshipType,
+      sourceContextId: sourceId,
+      targetContextId: targetId,
+      relationshipType: relType,
+      label,
       points: [
         { x: sourceNode.x + sourceNode.width, y: sourceNode.y + sourceNode.height / 2 },
         { x: targetNode.x, y: targetNode.y + targetNode.height / 2 },
       ],
     });
+  };
+
+  for (const rel of ir.relationships) {
+    addEdge(rel.sourceContextId, rel.targetContextId, rel.relationshipType, rel.relationshipType);
+  }
+
+  // Derive edges from flow crossings
+  for (const flow of ir.flows) {
+    for (const conn of flow.connections) {
+      if (conn.connectionType !== 'crosses-to') continue;
+      const sourceContextId = resolveSourceContextFromEvent(conn.eventId, conn.sourceMomentId, flow, ir);
+      if (sourceContextId) {
+        addEdge(sourceContextId, conn.targetContextId, 'crosses-to', 'crosses-to');
+      }
+    }
   }
 
   return edges;
+}
+
+function resolveSourceContextFromEvent(
+  eventId: string,
+  sourceMomentId: string,
+  flow: { moments: readonly { id: string; contextEntries: readonly { contextId: string }[] }[] },
+  ir: IntermediateRepresentation,
+): string | undefined {
+  for (const ctx of ir.contexts) {
+    if (ctx.events.some((e) => e.id === eventId)) {
+      return ctx.id;
+    }
+    for (const agg of ctx.aggregates) {
+      if (agg.events.some((e) => e.id === eventId)) {
+        return ctx.id;
+      }
+    }
+  }
+  // Fallback: resolve from the source moment's context entries
+  const sourceMoment = flow.moments.find((m) => m.id === sourceMomentId);
+  return sourceMoment?.contextEntries[0]?.contextId;
 }
 
 function computeDimensions(nodes: readonly ContextMapNode[]): { width: number; height: number } {

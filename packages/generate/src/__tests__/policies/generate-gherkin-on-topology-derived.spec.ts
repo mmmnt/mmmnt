@@ -46,6 +46,23 @@ function makeContext(name: string, id?: string): ContextDefinition {
   };
 }
 
+function makeFlow(id: string, name: string) {
+  return {
+    id,
+    name,
+    moments: [
+      {
+        id: 'moment-0',
+        name: 'Step',
+        contextEntries: [
+          { contextId: 'ctx-Ordering', nodeName: 'DoSomething', nodeKind: 'command' as const },
+        ],
+      },
+    ],
+    connections: [],
+  };
+}
+
 function makeFieldConstraint(
   fieldName: string,
   expectedType: string,
@@ -86,8 +103,8 @@ function makeSetupStep(
 }
 
 function makeTestCase(
-  frameId: string,
-  frameName: string,
+  momentId: string,
+  momentName: string,
   opts: {
     assertions?: AssertionPoint[];
     setupSteps?: SetupStep[];
@@ -95,8 +112,8 @@ function makeTestCase(
   } = {},
 ): TestCaseDefinition {
   return {
-    frameId,
-    frameName,
+    momentId,
+    momentName,
     assertions: opts.assertions ?? [],
     setupSteps: opts.setupSteps ?? [],
     variant: opts.variant,
@@ -141,6 +158,7 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     const topology = makeTopology([suite]);
     const ir = makeIR({
       contexts: [makeContext('Ordering'), makeContext('Shipping')],
+      flows: [makeFlow('f1', 'Place Order')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -154,16 +172,16 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(1);
     const docTypes = manifest.docsGenerated.map((d) => d.documentType);
     expect(docTypes).toContain('specification');
-    expect(docTypes).toContain('architecture-palette');
   });
 
   // 2. GenerationManifest includes .feature files + markdown docs
   it('GenerationManifest includes .feature files and markdown docs', () => {
-    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('fr1', 'Frame A')]);
-    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Frame B')]);
+    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('fr1', 'Moment A')]);
+    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Moment B')]);
     const topology = makeTopology([suiteA, suiteB]);
     const ir = makeIR({
       contexts: [makeContext('Sales')],
+      flows: [makeFlow('f1', 'Flow Alpha'), makeFlow('f2', 'Flow Beta')],
     });
 
     const manifest = policy.execute(ir, topology);
@@ -173,11 +191,9 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.featuresGenerated[0].filePath).toContain('.feature');
     expect(manifest.featuresGenerated[1].filePath).toContain('.feature');
 
-    // Docs include specification.md + architecture-palette.md + per-context inventory
-    const filePaths = manifest.docsGenerated.map((d) => d.filePath);
-    expect(filePaths).toContain('specification.md');
-    expect(filePaths).toContain('architecture-palette.md');
-    expect(filePaths).toContain('sales/inventory.md');
+    // Single consolidated specification document
+    expect(manifest.docsGenerated).toHaveLength(1);
+    expect(manifest.docsGenerated[0].filePath).toBe('specification.md');
   });
 
   // 3. Empty topology with contexts -> no features but still produces spec docs
@@ -193,20 +209,20 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.featuresGenerated).toHaveLength(0);
 
     // Spec docs are still generated from the IR
-    expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(2);
+    expect(manifest.docsGenerated.length).toBe(1);
     const docTypes = manifest.docsGenerated.map((d) => d.documentType);
     expect(docTypes).toContain('specification');
-    expect(docTypes).toContain('architecture-palette');
+
     // Per-context inventories
-    expect(manifest.docsGenerated.some((d) => d.documentType === 'context-inventory')).toBe(true);
   });
 
   // 4. Works as a hook from DeriveOnSpecificationParsed (callable interface)
   it('works as a TopologyDerivedHook callback via handle method', () => {
-    const suite = makeSuite('f1', 'Hook Flow', [makeTestCase('fr1', 'Frame 1')]);
+    const suite = makeSuite('f1', 'Hook Flow', [makeTestCase('fr1', 'Moment 1')]);
     const topology = makeTopology([suite]);
     const ir = makeIR({
       contexts: [makeContext('Payments')],
+      flows: [makeFlow('f1', 'Hook Flow')],
     });
 
     // Type-safe: policy.handle conforms to TopologyDerivedHook signature
@@ -221,15 +237,14 @@ describe('GenerateGherkinOnTopologyDerived', () => {
     expect(manifest.docsGenerated.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 5. Empty IR (no contexts) with topology produces features but no docs
-  it('empty IR with topology produces features but no docs', () => {
-    const suite = makeSuite('f1', 'Lonely Flow', [makeTestCase('fr1', 'Frame 1')]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR(); // no contexts
+  // 5. Empty IR (no contexts, no flows) produces nothing
+  it('empty IR produces no features and no docs', () => {
+    const topology = makeTopology([]);
+    const ir = makeIR(); // no contexts, no flows
 
     const manifest = policy.execute(ir, topology);
 
-    expect(manifest.featuresGenerated).toHaveLength(1);
+    expect(manifest.featuresGenerated).toHaveLength(0);
     expect(manifest.docsGenerated).toHaveLength(0);
   });
 });

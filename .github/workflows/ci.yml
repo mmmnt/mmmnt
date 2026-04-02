@@ -599,6 +599,96 @@ jobs:
       - name: Dependency audit
         run: pnpm audit --audit-level=moderate || true
 
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: pnpm turbo build --filter=@mmmnt/cli
+        env:
+          GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
+
+      - name: Run E2E test harness
+        run: node e2e/harness.mjs
+
+      - name: Upload E2E artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-output
+          path: .moment/generated/
+
+      - name: Commit generated artifacts
+        if: success() && github.event.pull_request.head.repo.fork == false
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .moment/generated/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit --no-verify -m "chore: update .moment/generated from E2E harness [skip ci]"
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          fi
+
+      - name: Comment E2E results on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summaryPath = '.moment/generated/summary.md';
+            if (!fs.existsSync(summaryPath)) {
+              console.log('No E2E summary found — skipping comment');
+              return;
+            }
+            const body = fs.readFileSync(summaryPath, 'utf-8');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.body?.includes('## Moment E2E Test Results') &&
+              c.user?.login === 'github-actions[bot]'
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
   security:
     runs-on: ubuntu-latest
     needs: [build]

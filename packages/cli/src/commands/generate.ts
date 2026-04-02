@@ -10,6 +10,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
+import { updateManifestFromIr } from './update-manifest.js';
 import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator, SpecificationDocumentGenerator } from '@mmmnt/generate';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
@@ -71,6 +72,7 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
   }
 
   const ir = parseResult.ir!;
+  updateManifestFromIr(resolvedPath, ir);
 
   // Step 2: Derive
   const topology = deriveTopology(ir);

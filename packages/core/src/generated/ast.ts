@@ -7,105 +7,101 @@
 import * as langium from 'langium';
 
 export const MomentTerminals = {
-  ID: /[a-zA-Z_][a-zA-Z0-9_-]*/,
-  STRING: /"[^"]*"/,
-  INT: /[0-9]+/,
-  WS: /\s+/,
-  SL_COMMENT: /\/\/[^\n\r]*/,
-  ML_COMMENT: /\/\*[\s\S]*?\*\//,
+    ID: /[a-zA-Z_][a-zA-Z0-9_-]*/,
+    STRING: /"[^"]*"/,
+    INT: /[0-9]+/,
+    WS: /\s+/,
+    SL_COMMENT: /\/\/[^\n\r]*/,
+    ML_COMMENT: /\/\*[\s\S]*?\*\//,
 };
 
 export type MomentTerminalNames = keyof typeof MomentTerminals;
 
 export type MomentKeywordNames =
-  | '"file-watcher"'
-  | '"none"'
-  | '('
-  | ')'
-  | ','
-  | '->'
-  | ':'
-  | 'AnticorruptionLayer'
-  | 'Conformist'
-  | 'Core'
-  | 'CustomerSupplier'
-  | 'Date'
-  | 'DateTime'
-  | 'Generic'
-  | 'Money'
-  | 'OpenHostService'
-  | 'Partnership'
-  | 'PublishedLanguage'
-  | 'SeparateWays'
-  | 'Supporting'
-  | 'Terminal'
-  | 'UUID'
-  | '['
-  | '[]'
-  | '[branch]'
-  | '[required]'
-  | ']'
-  | 'action'
-  | 'aggregate'
-  | 'boolean'
-  | 'branch-lane'
-  | 'chains-to'
-  | 'command'
-  | 'compensation'
-  | 'consumes'
-  | 'context'
-  | 'contract'
-  | 'crosses-to'
-  | 'description'
-  | 'emits'
-  | 'event'
-  | 'flow'
-  | 'frame'
-  | 'identity'
-  | 'input'
-  | 'invariant'
-  | 'lane'
-  | 'number'
-  | 'optional'
-  | 'policy'
-  | 'precondition'
-  | 'produces'
-  | 'relationship'
-  | 'returns-to'
-  | 'saga'
-  | 'scope'
-  | 'service'
-  | 'states'
-  | 'string'
-  | 'terminal'
-  | 'timeout'
-  | 'trigger'
-  | 'triggered-by'
-  | 'triggers'
-  | 'type'
-  | 'value-object'
-  | 'via'
-  | 'when'
-  | '×';
+    | "\"file-watcher\""
+    | "\"none\""
+    | "("
+    | ")"
+    | ","
+    | "->"
+    | ":"
+    | "AnticorruptionLayer"
+    | "Conformist"
+    | "Core"
+    | "CustomerSupplier"
+    | "Date"
+    | "DateTime"
+    | "Generic"
+    | "Money"
+    | "OpenHostService"
+    | "Partnership"
+    | "PublishedLanguage"
+    | "SeparateWays"
+    | "Supporting"
+    | "Terminal"
+    | "UUID"
+    | "["
+    | "[]"
+    | "[branch]"
+    | "[required]"
+    | "]"
+    | "action"
+    | "aggregate"
+    | "boolean"
+    | "branch-lane"
+    | "chains-to"
+    | "command"
+    | "compensation"
+    | "consumes"
+    | "context"
+    | "contract"
+    | "crosses-to"
+    | "description"
+    | "emits"
+    | "event"
+    | "flow"
+    | "identity"
+    | "input"
+    | "invariant"
+    | "lane"
+    | "moment"
+    | "number"
+    | "optional"
+    | "policy"
+    | "precondition"
+    | "produces"
+    | "relationship"
+    | "returns-to"
+    | "saga"
+    | "scope"
+    | "service"
+    | "states"
+    | "string"
+    | "terminal"
+    | "timeout"
+    | "trigger"
+    | "triggered-by"
+    | "triggers"
+    | "type"
+    | "value-object"
+    | "via"
+    | "when"
+    | "×";
 
 export type MomentTokenNames = MomentTerminalNames | MomentKeywordNames;
 
-export type AggregateMember =
-  | CommandDeclaration
-  | DomainEventDeclaration
-  | InvariantDeclaration
-  | ValueObjectDeclaration;
+export type AggregateMember = CommandDeclaration | DomainEventDeclaration | InvariantDeclaration | ValueObjectDeclaration;
 
 export const AggregateMember = 'AggregateMember';
 
 export function isAggregateMember(item: unknown): item is AggregateMember {
-  return reflection.isInstance(item, AggregateMember);
+    return reflection.isInstance(item, AggregateMember);
 }
 
 export type ClassificationValue = 'Core' | 'Generic' | 'Supporting' | 'Terminal';
 
 export function isClassificationValue(item: unknown): item is ClassificationValue {
-  return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal';
+    return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal';
 }
 
 export type Connection = ReturnsTo | TriggeredBy | Triggers;
@@ -113,853 +109,825 @@ export type Connection = ReturnsTo | TriggeredBy | Triggers;
 export const Connection = 'Connection';
 
 export function isConnection(item: unknown): item is Connection {
-  return reflection.isInstance(item, Connection);
+    return reflection.isInstance(item, Connection);
 }
 
-export type ContextMember =
-  | AggregateDeclaration
-  | ContextRelationshipDeclaration
-  | DomainServiceDeclaration
-  | PolicyDeclaration
-  | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | SagaDeclaration;
 
 export const ContextMember = 'ContextMember';
 
 export function isContextMember(item: unknown): item is ContextMember {
-  return reflection.isInstance(item, ContextMember);
+    return reflection.isInstance(item, ContextMember);
 }
 
 export type ModifierType = 'optional' | 'terminal';
 
 export function isModifierType(item: unknown): item is ModifierType {
-  return item === 'optional' || item === 'terminal';
+    return item === 'optional' || item === 'terminal';
 }
 
-export type RelationshipType =
-  | 'AnticorruptionLayer'
-  | 'Conformist'
-  | 'CustomerSupplier'
-  | 'OpenHostService'
-  | 'Partnership'
-  | 'PublishedLanguage'
-  | 'SeparateWays'
-  | string;
+export type RelationshipType = 'AnticorruptionLayer' | 'Conformist' | 'CustomerSupplier' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' | 'SeparateWays' | string;
 
 export function isRelationshipType(item: unknown): item is RelationshipType {
-  return (
-    item === 'CustomerSupplier' ||
-    item === 'Partnership' ||
-    item === 'Conformist' ||
-    item === 'AnticorruptionLayer' ||
-    item === 'OpenHostService' ||
-    item === 'PublishedLanguage' ||
-    item === 'SeparateWays' ||
-    (typeof item === 'string' && /[a-zA-Z_][a-zA-Z0-9_-]*/.test(item))
-  );
+    return item === 'CustomerSupplier' || item === 'Partnership' || item === 'Conformist' || item === 'AnticorruptionLayer' || item === 'OpenHostService' || item === 'PublishedLanguage' || item === 'SeparateWays' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
-export type TypeName =
-  | 'Date'
-  | 'DateTime'
-  | 'Money'
-  | 'UUID'
-  | 'boolean'
-  | 'number'
-  | 'string'
-  | string;
+export type TypeName = 'Date' | 'DateTime' | 'Money' | 'UUID' | 'boolean' | 'number' | 'string' | string;
 
 export function isTypeName(item: unknown): item is TypeName {
-  return (
-    item === 'string' ||
-    item === 'number' ||
-    item === 'boolean' ||
-    item === 'UUID' ||
-    item === 'DateTime' ||
-    item === 'Date' ||
-    item === 'Money' ||
-    (typeof item === 'string' && /[a-zA-Z_][a-zA-Z0-9_-]*/.test(item))
-  );
+    return item === 'string' || item === 'number' || item === 'boolean' || item === 'UUID' || item === 'DateTime' || item === 'Date' || item === 'Money' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface AggregateDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'AggregateDeclaration';
-  identityField: FieldDeclaration;
-  members: Array<AggregateMember>;
-  name: string;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'AggregateDeclaration';
+    identityField: FieldDeclaration;
+    members: Array<AggregateMember>;
+    name: string;
 }
 
 export const AggregateDeclaration = 'AggregateDeclaration';
 
 export function isAggregateDeclaration(item: unknown): item is AggregateDeclaration {
-  return reflection.isInstance(item, AggregateDeclaration);
+    return reflection.isInstance(item, AggregateDeclaration);
 }
 
 export interface Classification extends langium.AstNode {
-  readonly $container: ContextDeclaration | LaneDeclaration;
-  readonly $type: 'Classification';
-  value: ClassificationValue;
+    readonly $container: ContextDeclaration | LaneDeclaration;
+    readonly $type: 'Classification';
+    value: ClassificationValue;
 }
 
 export const Classification = 'Classification';
 
 export function isClassification(item: unknown): item is Classification {
-  return reflection.isInstance(item, Classification);
+    return reflection.isInstance(item, Classification);
 }
 
 export interface CommandDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'CommandDeclaration';
-  emits: string;
-  inputs: Array<InputField>;
-  name: string;
-  preconditions: Array<Precondition>;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'CommandDeclaration';
+    emits: string;
+    inputs: Array<InputField>;
+    name: string;
+    preconditions: Array<Precondition>;
 }
 
 export const CommandDeclaration = 'CommandDeclaration';
 
 export function isCommandDeclaration(item: unknown): item is CommandDeclaration {
-  return reflection.isInstance(item, CommandDeclaration);
+    return reflection.isInstance(item, CommandDeclaration);
 }
 
 export interface ContextCrossing extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'ContextCrossing';
-  fields: Array<ContractField>;
-  relationshipType: RelationshipType;
-  targetLaneId: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'ContextCrossing';
+    fields: Array<ContractField>;
+    relationshipType: RelationshipType;
+    targetLaneId: string;
 }
 
 export const ContextCrossing = 'ContextCrossing';
 
 export function isContextCrossing(item: unknown): item is ContextCrossing {
-  return reflection.isInstance(item, ContextCrossing);
+    return reflection.isInstance(item, ContextCrossing);
 }
 
 export interface ContextDeclaration extends langium.AstNode {
-  readonly $container: MomentFile;
-  readonly $type: 'ContextDeclaration';
-  classification?: Classification;
-  members: Array<ContextMember>;
-  name: string;
+    readonly $container: MomentFile;
+    readonly $type: 'ContextDeclaration';
+    classification?: Classification;
+    description?: string;
+    members: Array<ContextMember>;
+    name: string;
 }
 
 export const ContextDeclaration = 'ContextDeclaration';
 
 export function isContextDeclaration(item: unknown): item is ContextDeclaration {
-  return reflection.isInstance(item, ContextDeclaration);
+    return reflection.isInstance(item, ContextDeclaration);
 }
 
 export interface ContextRelationshipDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'ContextRelationshipDeclaration';
-  contract: string;
-  source: string;
-  target: string;
-  type: RelationshipType;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'ContextRelationshipDeclaration';
+    contract: string;
+    source: string;
+    target: string;
+    type: RelationshipType;
 }
 
 export const ContextRelationshipDeclaration = 'ContextRelationshipDeclaration';
 
-export function isContextRelationshipDeclaration(
-  item: unknown,
-): item is ContextRelationshipDeclaration {
-  return reflection.isInstance(item, ContextRelationshipDeclaration);
+export function isContextRelationshipDeclaration(item: unknown): item is ContextRelationshipDeclaration {
+    return reflection.isInstance(item, ContextRelationshipDeclaration);
 }
 
 export interface ContractField extends langium.AstNode {
-  readonly $container: ContextCrossing;
-  readonly $type: 'ContractField';
-  name: string;
-  required: boolean;
-  type: TypeReference;
+    readonly $container: ContextCrossing;
+    readonly $type: 'ContractField';
+    name: string;
+    required: boolean;
+    type: TypeReference;
 }
 
 export const ContractField = 'ContractField';
 
 export function isContractField(item: unknown): item is ContractField {
-  return reflection.isInstance(item, ContractField);
+    return reflection.isInstance(item, ContractField);
 }
 
 export interface DomainEventDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'DomainEventDeclaration';
-  fields: Array<FieldDeclaration>;
-  name: string;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'DomainEventDeclaration';
+    fields: Array<FieldDeclaration>;
+    name: string;
 }
 
 export const DomainEventDeclaration = 'DomainEventDeclaration';
 
 export function isDomainEventDeclaration(item: unknown): item is DomainEventDeclaration {
-  return reflection.isInstance(item, DomainEventDeclaration);
+    return reflection.isInstance(item, DomainEventDeclaration);
 }
 
 export interface DomainServiceDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'DomainServiceDeclaration';
-  consumes: string;
-  description: string;
-  name: string;
-  produces: string;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'DomainServiceDeclaration';
+    consumes: string;
+    description: string;
+    name: string;
+    produces: string;
 }
 
 export const DomainServiceDeclaration = 'DomainServiceDeclaration';
 
 export function isDomainServiceDeclaration(item: unknown): item is DomainServiceDeclaration {
-  return reflection.isInstance(item, DomainServiceDeclaration);
+    return reflection.isInstance(item, DomainServiceDeclaration);
 }
 
 export interface FieldDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
-  readonly $type: 'FieldDeclaration';
-  name: string;
-  type: TypeReference;
+    readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
+    readonly $type: 'FieldDeclaration';
+    name: string;
+    type: TypeReference;
 }
 
 export const FieldDeclaration = 'FieldDeclaration';
 
 export function isFieldDeclaration(item: unknown): item is FieldDeclaration {
-  return reflection.isInstance(item, FieldDeclaration);
+    return reflection.isInstance(item, FieldDeclaration);
 }
 
 export interface FlowDeclaration extends langium.AstNode {
-  readonly $container: MomentFile;
-  readonly $type: 'FlowDeclaration';
-  description?: string;
-  frames: Array<Frame>;
-  lanes: Array<LaneDeclaration>;
-  name: string;
+    readonly $container: MomentFile;
+    readonly $type: 'FlowDeclaration';
+    description?: string;
+    lanes: Array<LaneDeclaration>;
+    moments: Array<Moment>;
+    name: string;
 }
 
 export const FlowDeclaration = 'FlowDeclaration';
 
 export function isFlowDeclaration(item: unknown): item is FlowDeclaration {
-  return reflection.isInstance(item, FlowDeclaration);
-}
-
-export interface Frame extends langium.AstNode {
-  readonly $container: FlowDeclaration;
-  readonly $type: 'Frame';
-  isBranch: boolean;
-  label: string;
-  nodes: Array<NodePlacement>;
-  whenBlocks: Array<WhenBlock>;
-}
-
-export const Frame = 'Frame';
-
-export function isFrame(item: unknown): item is Frame {
-  return reflection.isInstance(item, Frame);
+    return reflection.isInstance(item, FlowDeclaration);
 }
 
 export interface InputField extends langium.AstNode {
-  readonly $container: CommandDeclaration;
-  readonly $type: 'InputField';
-  name: string;
-  type: TypeReference;
+    readonly $container: CommandDeclaration;
+    readonly $type: 'InputField';
+    name: string;
+    type: TypeReference;
 }
 
 export const InputField = 'InputField';
 
 export function isInputField(item: unknown): item is InputField {
-  return reflection.isInstance(item, InputField);
+    return reflection.isInstance(item, InputField);
 }
 
 export interface InvariantDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'InvariantDeclaration';
-  description: string;
-  id: string;
-  scope: string;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'InvariantDeclaration';
+    description: string;
+    id: string;
+    scope: string;
 }
 
 export const InvariantDeclaration = 'InvariantDeclaration';
 
 export function isInvariantDeclaration(item: unknown): item is InvariantDeclaration {
-  return reflection.isInstance(item, InvariantDeclaration);
+    return reflection.isInstance(item, InvariantDeclaration);
 }
 
 export interface LaneDeclaration extends langium.AstNode {
-  readonly $container: FlowDeclaration;
-  readonly $type: 'LaneDeclaration';
-  classification?: Classification;
-  id: string;
-  isBranch: boolean;
-  label: string;
+    readonly $container: FlowDeclaration;
+    readonly $type: 'LaneDeclaration';
+    classification?: Classification;
+    id: string;
+    isBranch: boolean;
+    label: string;
 }
 
 export const LaneDeclaration = 'LaneDeclaration';
 
 export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
-  return reflection.isInstance(item, LaneDeclaration);
+    return reflection.isInstance(item, LaneDeclaration);
+}
+
+export interface Moment extends langium.AstNode {
+    readonly $container: FlowDeclaration;
+    readonly $type: 'Moment';
+    isBranch: boolean;
+    label: string;
+    nodes: Array<NodePlacement>;
+    whenBlocks: Array<WhenBlock>;
+}
+
+export const Moment = 'Moment';
+
+export function isMoment(item: unknown): item is Moment {
+    return reflection.isInstance(item, Moment);
 }
 
 export interface MomentFile extends langium.AstNode {
-  readonly $type: 'MomentFile';
-  contexts: Array<ContextDeclaration>;
-  flows: Array<FlowDeclaration>;
+    readonly $type: 'MomentFile';
+    contexts: Array<ContextDeclaration>;
+    flows: Array<FlowDeclaration>;
 }
 
 export const MomentFile = 'MomentFile';
 
 export function isMomentFile(item: unknown): item is MomentFile {
-  return reflection.isInstance(item, MomentFile);
+    return reflection.isInstance(item, MomentFile);
 }
 
 export interface Multiplicity extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'Multiplicity';
-  count?: number;
-  countVar?: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'Multiplicity';
+    count?: number;
+    countVar?: string;
 }
 
 export const Multiplicity = 'Multiplicity';
 
 export function isMultiplicity(item: unknown): item is Multiplicity {
-  return reflection.isInstance(item, Multiplicity);
+    return reflection.isInstance(item, Multiplicity);
 }
 
 export interface NodeModifier extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'NodeModifier';
-  type: ModifierType;
+    readonly $container: NodePlacement;
+    readonly $type: 'NodeModifier';
+    type: ModifierType;
 }
 
 export const NodeModifier = 'NodeModifier';
 
 export function isNodeModifier(item: unknown): item is NodeModifier {
-  return reflection.isInstance(item, NodeModifier);
+    return reflection.isInstance(item, NodeModifier);
 }
 
 export interface NodePlacement extends langium.AstNode {
-  readonly $container: Frame | WhenBlock;
-  readonly $type: 'NodePlacement';
-  connections: Array<Connection>;
-  crossing?: ContextCrossing;
-  laneId: string;
-  modifier?: NodeModifier;
-  multiplicity?: Multiplicity;
-  nodeName: string;
+    readonly $container: Moment | WhenBlock;
+    readonly $type: 'NodePlacement';
+    connections: Array<Connection>;
+    crossing?: ContextCrossing;
+    laneId: string;
+    modifier?: NodeModifier;
+    multiplicity?: Multiplicity;
+    nodeName: string;
 }
 
 export const NodePlacement = 'NodePlacement';
 
 export function isNodePlacement(item: unknown): item is NodePlacement {
-  return reflection.isInstance(item, NodePlacement);
+    return reflection.isInstance(item, NodePlacement);
 }
 
 export interface PolicyDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'PolicyDeclaration';
-  action: string;
-  chainsTo?: string;
-  name: string;
-  trigger: PolicyTrigger;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'PolicyDeclaration';
+    action: string;
+    chainsTo?: string;
+    name: string;
+    trigger: PolicyTrigger;
 }
 
 export const PolicyDeclaration = 'PolicyDeclaration';
 
 export function isPolicyDeclaration(item: unknown): item is PolicyDeclaration {
-  return reflection.isInstance(item, PolicyDeclaration);
+    return reflection.isInstance(item, PolicyDeclaration);
 }
 
 export interface PolicyTrigger extends langium.AstNode {
-  readonly $container: PolicyDeclaration;
-  readonly $type: 'PolicyTrigger';
-  eventName?: string;
-  fileWatcher?: '"file-watcher"';
+    readonly $container: PolicyDeclaration;
+    readonly $type: 'PolicyTrigger';
+    eventName?: string;
+    fileWatcher?: '"file-watcher"';
 }
 
 export const PolicyTrigger = 'PolicyTrigger';
 
 export function isPolicyTrigger(item: unknown): item is PolicyTrigger {
-  return reflection.isInstance(item, PolicyTrigger);
+    return reflection.isInstance(item, PolicyTrigger);
 }
 
 export interface Precondition extends langium.AstNode {
-  readonly $container: CommandDeclaration;
-  readonly $type: 'Precondition';
-  description: string;
-  name: string;
+    readonly $container: CommandDeclaration;
+    readonly $type: 'Precondition';
+    description: string;
+    name: string;
 }
 
 export const Precondition = 'Precondition';
 
 export function isPrecondition(item: unknown): item is Precondition {
-  return reflection.isInstance(item, Precondition);
+    return reflection.isInstance(item, Precondition);
 }
 
 export interface ReturnsTo extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'ReturnsTo';
-  frameLabel: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'ReturnsTo';
+    frameLabel: string;
 }
 
 export const ReturnsTo = 'ReturnsTo';
 
 export function isReturnsTo(item: unknown): item is ReturnsTo {
-  return reflection.isInstance(item, ReturnsTo);
+    return reflection.isInstance(item, ReturnsTo);
 }
 
 export interface SagaDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'SagaDeclaration';
-  compensation: string;
-  name: string;
-  states: Array<string>;
-  timeout: SagaTimeout;
-  trigger: string;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'SagaDeclaration';
+    compensation: string;
+    name: string;
+    states: Array<string>;
+    timeout: SagaTimeout;
+    trigger: string;
 }
 
 export const SagaDeclaration = 'SagaDeclaration';
 
 export function isSagaDeclaration(item: unknown): item is SagaDeclaration {
-  return reflection.isInstance(item, SagaDeclaration);
+    return reflection.isInstance(item, SagaDeclaration);
 }
 
 export interface SagaTimeout extends langium.AstNode {
-  readonly $container: SagaDeclaration;
-  readonly $type: 'SagaTimeout';
-  duration?: string;
-  none?: '"none"';
+    readonly $container: SagaDeclaration;
+    readonly $type: 'SagaTimeout';
+    duration?: string;
+    none?: '"none"';
 }
 
 export const SagaTimeout = 'SagaTimeout';
 
 export function isSagaTimeout(item: unknown): item is SagaTimeout {
-  return reflection.isInstance(item, SagaTimeout);
+    return reflection.isInstance(item, SagaTimeout);
 }
 
 export interface TriggeredBy extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'TriggeredBy';
-  nodeName: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'TriggeredBy';
+    nodeName: string;
 }
 
 export const TriggeredBy = 'TriggeredBy';
 
 export function isTriggeredBy(item: unknown): item is TriggeredBy {
-  return reflection.isInstance(item, TriggeredBy);
+    return reflection.isInstance(item, TriggeredBy);
 }
 
 export interface Triggers extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'Triggers';
-  nodeName: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'Triggers';
+    nodeName: string;
 }
 
 export const Triggers = 'Triggers';
 
 export function isTriggers(item: unknown): item is Triggers {
-  return reflection.isInstance(item, Triggers);
+    return reflection.isInstance(item, Triggers);
 }
 
 export interface TypeReference extends langium.AstNode {
-  readonly $container: ContractField | FieldDeclaration | InputField;
-  readonly $type: 'TypeReference';
-  isArray: boolean;
-  typeName: TypeName;
+    readonly $container: ContractField | FieldDeclaration | InputField;
+    readonly $type: 'TypeReference';
+    isArray: boolean;
+    typeName: TypeName;
 }
 
 export const TypeReference = 'TypeReference';
 
 export function isTypeReference(item: unknown): item is TypeReference {
-  return reflection.isInstance(item, TypeReference);
+    return reflection.isInstance(item, TypeReference);
 }
 
 export interface ValueObjectDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'ValueObjectDeclaration';
-  fields: Array<FieldDeclaration>;
-  name: string;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'ValueObjectDeclaration';
+    fields: Array<FieldDeclaration>;
+    name: string;
 }
 
 export const ValueObjectDeclaration = 'ValueObjectDeclaration';
 
 export function isValueObjectDeclaration(item: unknown): item is ValueObjectDeclaration {
-  return reflection.isInstance(item, ValueObjectDeclaration);
+    return reflection.isInstance(item, ValueObjectDeclaration);
 }
 
 export interface WhenBlock extends langium.AstNode {
-  readonly $container: Frame;
-  readonly $type: 'WhenBlock';
-  condition: string;
-  nodes: Array<NodePlacement>;
+    readonly $container: Moment;
+    readonly $type: 'WhenBlock';
+    condition: string;
+    nodes: Array<NodePlacement>;
 }
 
 export const WhenBlock = 'WhenBlock';
 
 export function isWhenBlock(item: unknown): item is WhenBlock {
-  return reflection.isInstance(item, WhenBlock);
+    return reflection.isInstance(item, WhenBlock);
 }
 
 export type MomentAstType = {
-  AggregateDeclaration: AggregateDeclaration;
-  AggregateMember: AggregateMember;
-  Classification: Classification;
-  CommandDeclaration: CommandDeclaration;
-  Connection: Connection;
-  ContextCrossing: ContextCrossing;
-  ContextDeclaration: ContextDeclaration;
-  ContextMember: ContextMember;
-  ContextRelationshipDeclaration: ContextRelationshipDeclaration;
-  ContractField: ContractField;
-  DomainEventDeclaration: DomainEventDeclaration;
-  DomainServiceDeclaration: DomainServiceDeclaration;
-  FieldDeclaration: FieldDeclaration;
-  FlowDeclaration: FlowDeclaration;
-  Frame: Frame;
-  InputField: InputField;
-  InvariantDeclaration: InvariantDeclaration;
-  LaneDeclaration: LaneDeclaration;
-  MomentFile: MomentFile;
-  Multiplicity: Multiplicity;
-  NodeModifier: NodeModifier;
-  NodePlacement: NodePlacement;
-  PolicyDeclaration: PolicyDeclaration;
-  PolicyTrigger: PolicyTrigger;
-  Precondition: Precondition;
-  ReturnsTo: ReturnsTo;
-  SagaDeclaration: SagaDeclaration;
-  SagaTimeout: SagaTimeout;
-  TriggeredBy: TriggeredBy;
-  Triggers: Triggers;
-  TypeReference: TypeReference;
-  ValueObjectDeclaration: ValueObjectDeclaration;
-  WhenBlock: WhenBlock;
-};
+    AggregateDeclaration: AggregateDeclaration
+    AggregateMember: AggregateMember
+    Classification: Classification
+    CommandDeclaration: CommandDeclaration
+    Connection: Connection
+    ContextCrossing: ContextCrossing
+    ContextDeclaration: ContextDeclaration
+    ContextMember: ContextMember
+    ContextRelationshipDeclaration: ContextRelationshipDeclaration
+    ContractField: ContractField
+    DomainEventDeclaration: DomainEventDeclaration
+    DomainServiceDeclaration: DomainServiceDeclaration
+    FieldDeclaration: FieldDeclaration
+    FlowDeclaration: FlowDeclaration
+    InputField: InputField
+    InvariantDeclaration: InvariantDeclaration
+    LaneDeclaration: LaneDeclaration
+    Moment: Moment
+    MomentFile: MomentFile
+    Multiplicity: Multiplicity
+    NodeModifier: NodeModifier
+    NodePlacement: NodePlacement
+    PolicyDeclaration: PolicyDeclaration
+    PolicyTrigger: PolicyTrigger
+    Precondition: Precondition
+    ReturnsTo: ReturnsTo
+    SagaDeclaration: SagaDeclaration
+    SagaTimeout: SagaTimeout
+    TriggeredBy: TriggeredBy
+    Triggers: Triggers
+    TypeReference: TypeReference
+    ValueObjectDeclaration: ValueObjectDeclaration
+    WhenBlock: WhenBlock
+}
 
 export class MomentAstReflection extends langium.AbstractAstReflection {
-  getAllTypes(): string[] {
-    return [
-      AggregateDeclaration,
-      AggregateMember,
-      Classification,
-      CommandDeclaration,
-      Connection,
-      ContextCrossing,
-      ContextDeclaration,
-      ContextMember,
-      ContextRelationshipDeclaration,
-      ContractField,
-      DomainEventDeclaration,
-      DomainServiceDeclaration,
-      FieldDeclaration,
-      FlowDeclaration,
-      Frame,
-      InputField,
-      InvariantDeclaration,
-      LaneDeclaration,
-      MomentFile,
-      Multiplicity,
-      NodeModifier,
-      NodePlacement,
-      PolicyDeclaration,
-      PolicyTrigger,
-      Precondition,
-      ReturnsTo,
-      SagaDeclaration,
-      SagaTimeout,
-      TriggeredBy,
-      Triggers,
-      TypeReference,
-      ValueObjectDeclaration,
-      WhenBlock,
-    ];
-  }
 
-  protected override computeIsSubtype(subtype: string, supertype: string): boolean {
-    switch (subtype) {
-      case AggregateDeclaration:
-      case ContextRelationshipDeclaration:
-      case DomainServiceDeclaration:
-      case PolicyDeclaration:
-      case SagaDeclaration: {
-        return this.isSubtype(ContextMember, supertype);
-      }
-      case CommandDeclaration:
-      case DomainEventDeclaration:
-      case InvariantDeclaration:
-      case ValueObjectDeclaration: {
-        return this.isSubtype(AggregateMember, supertype);
-      }
-      case ReturnsTo:
-      case TriggeredBy:
-      case Triggers: {
-        return this.isSubtype(Connection, supertype);
-      }
-      default: {
-        return false;
-      }
+    getAllTypes(): string[] {
+        return [AggregateDeclaration, AggregateMember, Classification, CommandDeclaration, Connection, ContextCrossing, ContextDeclaration, ContextMember, ContextRelationshipDeclaration, ContractField, DomainEventDeclaration, DomainServiceDeclaration, FieldDeclaration, FlowDeclaration, InputField, InvariantDeclaration, LaneDeclaration, Moment, MomentFile, Multiplicity, NodeModifier, NodePlacement, PolicyDeclaration, PolicyTrigger, Precondition, ReturnsTo, SagaDeclaration, SagaTimeout, TriggeredBy, Triggers, TypeReference, ValueObjectDeclaration, WhenBlock];
     }
-  }
 
-  getReferenceType(refInfo: langium.ReferenceInfo): string {
-    const referenceId = `${refInfo.container.$type}:${refInfo.property}`;
-    switch (referenceId) {
-      default: {
-        throw new Error(`${referenceId} is not a valid reference id.`);
-      }
+    protected override computeIsSubtype(subtype: string, supertype: string): boolean {
+        switch (subtype) {
+            case AggregateDeclaration:
+            case ContextRelationshipDeclaration:
+            case DomainServiceDeclaration:
+            case PolicyDeclaration:
+            case SagaDeclaration: {
+                return this.isSubtype(ContextMember, supertype);
+            }
+            case CommandDeclaration:
+            case DomainEventDeclaration:
+            case InvariantDeclaration:
+            case ValueObjectDeclaration: {
+                return this.isSubtype(AggregateMember, supertype);
+            }
+            case ReturnsTo:
+            case TriggeredBy:
+            case Triggers: {
+                return this.isSubtype(Connection, supertype);
+            }
+            default: {
+                return false;
+            }
+        }
     }
-  }
 
-  getTypeMetaData(type: string): langium.TypeMetaData {
-    switch (type) {
-      case AggregateDeclaration: {
-        return {
-          name: AggregateDeclaration,
-          properties: [
-            { name: 'identityField' },
-            { name: 'members', defaultValue: [] },
-            { name: 'name' },
-          ],
-        };
-      }
-      case Classification: {
-        return {
-          name: Classification,
-          properties: [{ name: 'value' }],
-        };
-      }
-      case CommandDeclaration: {
-        return {
-          name: CommandDeclaration,
-          properties: [
-            { name: 'emits' },
-            { name: 'inputs', defaultValue: [] },
-            { name: 'name' },
-            { name: 'preconditions', defaultValue: [] },
-          ],
-        };
-      }
-      case ContextCrossing: {
-        return {
-          name: ContextCrossing,
-          properties: [
-            { name: 'fields', defaultValue: [] },
-            { name: 'relationshipType' },
-            { name: 'targetLaneId' },
-          ],
-        };
-      }
-      case ContextDeclaration: {
-        return {
-          name: ContextDeclaration,
-          properties: [
-            { name: 'classification' },
-            { name: 'members', defaultValue: [] },
-            { name: 'name' },
-          ],
-        };
-      }
-      case ContextRelationshipDeclaration: {
-        return {
-          name: ContextRelationshipDeclaration,
-          properties: [
-            { name: 'contract' },
-            { name: 'source' },
-            { name: 'target' },
-            { name: 'type' },
-          ],
-        };
-      }
-      case ContractField: {
-        return {
-          name: ContractField,
-          properties: [
-            { name: 'name' },
-            { name: 'required', defaultValue: false },
-            { name: 'type' },
-          ],
-        };
-      }
-      case DomainEventDeclaration: {
-        return {
-          name: DomainEventDeclaration,
-          properties: [{ name: 'fields', defaultValue: [] }, { name: 'name' }],
-        };
-      }
-      case DomainServiceDeclaration: {
-        return {
-          name: DomainServiceDeclaration,
-          properties: [
-            { name: 'consumes' },
-            { name: 'description' },
-            { name: 'name' },
-            { name: 'produces' },
-          ],
-        };
-      }
-      case FieldDeclaration: {
-        return {
-          name: FieldDeclaration,
-          properties: [{ name: 'name' }, { name: 'type' }],
-        };
-      }
-      case FlowDeclaration: {
-        return {
-          name: FlowDeclaration,
-          properties: [
-            { name: 'description' },
-            { name: 'frames', defaultValue: [] },
-            { name: 'lanes', defaultValue: [] },
-            { name: 'name' },
-          ],
-        };
-      }
-      case Frame: {
-        return {
-          name: Frame,
-          properties: [
-            { name: 'isBranch', defaultValue: false },
-            { name: 'label' },
-            { name: 'nodes', defaultValue: [] },
-            { name: 'whenBlocks', defaultValue: [] },
-          ],
-        };
-      }
-      case InputField: {
-        return {
-          name: InputField,
-          properties: [{ name: 'name' }, { name: 'type' }],
-        };
-      }
-      case InvariantDeclaration: {
-        return {
-          name: InvariantDeclaration,
-          properties: [{ name: 'description' }, { name: 'id' }, { name: 'scope' }],
-        };
-      }
-      case LaneDeclaration: {
-        return {
-          name: LaneDeclaration,
-          properties: [
-            { name: 'classification' },
-            { name: 'id' },
-            { name: 'isBranch', defaultValue: false },
-            { name: 'label' },
-          ],
-        };
-      }
-      case MomentFile: {
-        return {
-          name: MomentFile,
-          properties: [
-            { name: 'contexts', defaultValue: [] },
-            { name: 'flows', defaultValue: [] },
-          ],
-        };
-      }
-      case Multiplicity: {
-        return {
-          name: Multiplicity,
-          properties: [{ name: 'count' }, { name: 'countVar' }],
-        };
-      }
-      case NodeModifier: {
-        return {
-          name: NodeModifier,
-          properties: [{ name: 'type' }],
-        };
-      }
-      case NodePlacement: {
-        return {
-          name: NodePlacement,
-          properties: [
-            { name: 'connections', defaultValue: [] },
-            { name: 'crossing' },
-            { name: 'laneId' },
-            { name: 'modifier' },
-            { name: 'multiplicity' },
-            { name: 'nodeName' },
-          ],
-        };
-      }
-      case PolicyDeclaration: {
-        return {
-          name: PolicyDeclaration,
-          properties: [
-            { name: 'action' },
-            { name: 'chainsTo' },
-            { name: 'name' },
-            { name: 'trigger' },
-          ],
-        };
-      }
-      case PolicyTrigger: {
-        return {
-          name: PolicyTrigger,
-          properties: [{ name: 'eventName' }, { name: 'fileWatcher' }],
-        };
-      }
-      case Precondition: {
-        return {
-          name: Precondition,
-          properties: [{ name: 'description' }, { name: 'name' }],
-        };
-      }
-      case ReturnsTo: {
-        return {
-          name: ReturnsTo,
-          properties: [{ name: 'frameLabel' }],
-        };
-      }
-      case SagaDeclaration: {
-        return {
-          name: SagaDeclaration,
-          properties: [
-            { name: 'compensation' },
-            { name: 'name' },
-            { name: 'states', defaultValue: [] },
-            { name: 'timeout' },
-            { name: 'trigger' },
-          ],
-        };
-      }
-      case SagaTimeout: {
-        return {
-          name: SagaTimeout,
-          properties: [{ name: 'duration' }, { name: 'none' }],
-        };
-      }
-      case TriggeredBy: {
-        return {
-          name: TriggeredBy,
-          properties: [{ name: 'nodeName' }],
-        };
-      }
-      case Triggers: {
-        return {
-          name: Triggers,
-          properties: [{ name: 'nodeName' }],
-        };
-      }
-      case TypeReference: {
-        return {
-          name: TypeReference,
-          properties: [{ name: 'isArray', defaultValue: false }, { name: 'typeName' }],
-        };
-      }
-      case ValueObjectDeclaration: {
-        return {
-          name: ValueObjectDeclaration,
-          properties: [{ name: 'fields', defaultValue: [] }, { name: 'name' }],
-        };
-      }
-      case WhenBlock: {
-        return {
-          name: WhenBlock,
-          properties: [{ name: 'condition' }, { name: 'nodes', defaultValue: [] }],
-        };
-      }
-      default: {
-        return {
-          name: type,
-          properties: [],
-        };
-      }
+    getReferenceType(refInfo: langium.ReferenceInfo): string {
+        const referenceId = `${refInfo.container.$type}:${refInfo.property}`;
+        switch (referenceId) {
+            default: {
+                throw new Error(`${referenceId} is not a valid reference id.`);
+            }
+        }
     }
-  }
+
+    getTypeMetaData(type: string): langium.TypeMetaData {
+        switch (type) {
+            case AggregateDeclaration: {
+                return {
+                    name: AggregateDeclaration,
+                    properties: [
+                        { name: 'identityField' },
+                        { name: 'members', defaultValue: [] },
+                        { name: 'name' }
+                    ]
+                };
+            }
+            case Classification: {
+                return {
+                    name: Classification,
+                    properties: [
+                        { name: 'value' }
+                    ]
+                };
+            }
+            case CommandDeclaration: {
+                return {
+                    name: CommandDeclaration,
+                    properties: [
+                        { name: 'emits' },
+                        { name: 'inputs', defaultValue: [] },
+                        { name: 'name' },
+                        { name: 'preconditions', defaultValue: [] }
+                    ]
+                };
+            }
+            case ContextCrossing: {
+                return {
+                    name: ContextCrossing,
+                    properties: [
+                        { name: 'fields', defaultValue: [] },
+                        { name: 'relationshipType' },
+                        { name: 'targetLaneId' }
+                    ]
+                };
+            }
+            case ContextDeclaration: {
+                return {
+                    name: ContextDeclaration,
+                    properties: [
+                        { name: 'classification' },
+                        { name: 'description' },
+                        { name: 'members', defaultValue: [] },
+                        { name: 'name' }
+                    ]
+                };
+            }
+            case ContextRelationshipDeclaration: {
+                return {
+                    name: ContextRelationshipDeclaration,
+                    properties: [
+                        { name: 'contract' },
+                        { name: 'source' },
+                        { name: 'target' },
+                        { name: 'type' }
+                    ]
+                };
+            }
+            case ContractField: {
+                return {
+                    name: ContractField,
+                    properties: [
+                        { name: 'name' },
+                        { name: 'required', defaultValue: false },
+                        { name: 'type' }
+                    ]
+                };
+            }
+            case DomainEventDeclaration: {
+                return {
+                    name: DomainEventDeclaration,
+                    properties: [
+                        { name: 'fields', defaultValue: [] },
+                        { name: 'name' }
+                    ]
+                };
+            }
+            case DomainServiceDeclaration: {
+                return {
+                    name: DomainServiceDeclaration,
+                    properties: [
+                        { name: 'consumes' },
+                        { name: 'description' },
+                        { name: 'name' },
+                        { name: 'produces' }
+                    ]
+                };
+            }
+            case FieldDeclaration: {
+                return {
+                    name: FieldDeclaration,
+                    properties: [
+                        { name: 'name' },
+                        { name: 'type' }
+                    ]
+                };
+            }
+            case FlowDeclaration: {
+                return {
+                    name: FlowDeclaration,
+                    properties: [
+                        { name: 'description' },
+                        { name: 'lanes', defaultValue: [] },
+                        { name: 'moments', defaultValue: [] },
+                        { name: 'name' }
+                    ]
+                };
+            }
+            case InputField: {
+                return {
+                    name: InputField,
+                    properties: [
+                        { name: 'name' },
+                        { name: 'type' }
+                    ]
+                };
+            }
+            case InvariantDeclaration: {
+                return {
+                    name: InvariantDeclaration,
+                    properties: [
+                        { name: 'description' },
+                        { name: 'id' },
+                        { name: 'scope' }
+                    ]
+                };
+            }
+            case LaneDeclaration: {
+                return {
+                    name: LaneDeclaration,
+                    properties: [
+                        { name: 'classification' },
+                        { name: 'id' },
+                        { name: 'isBranch', defaultValue: false },
+                        { name: 'label' }
+                    ]
+                };
+            }
+            case Moment: {
+                return {
+                    name: Moment,
+                    properties: [
+                        { name: 'isBranch', defaultValue: false },
+                        { name: 'label' },
+                        { name: 'nodes', defaultValue: [] },
+                        { name: 'whenBlocks', defaultValue: [] }
+                    ]
+                };
+            }
+            case MomentFile: {
+                return {
+                    name: MomentFile,
+                    properties: [
+                        { name: 'contexts', defaultValue: [] },
+                        { name: 'flows', defaultValue: [] }
+                    ]
+                };
+            }
+            case Multiplicity: {
+                return {
+                    name: Multiplicity,
+                    properties: [
+                        { name: 'count' },
+                        { name: 'countVar' }
+                    ]
+                };
+            }
+            case NodeModifier: {
+                return {
+                    name: NodeModifier,
+                    properties: [
+                        { name: 'type' }
+                    ]
+                };
+            }
+            case NodePlacement: {
+                return {
+                    name: NodePlacement,
+                    properties: [
+                        { name: 'connections', defaultValue: [] },
+                        { name: 'crossing' },
+                        { name: 'laneId' },
+                        { name: 'modifier' },
+                        { name: 'multiplicity' },
+                        { name: 'nodeName' }
+                    ]
+                };
+            }
+            case PolicyDeclaration: {
+                return {
+                    name: PolicyDeclaration,
+                    properties: [
+                        { name: 'action' },
+                        { name: 'chainsTo' },
+                        { name: 'name' },
+                        { name: 'trigger' }
+                    ]
+                };
+            }
+            case PolicyTrigger: {
+                return {
+                    name: PolicyTrigger,
+                    properties: [
+                        { name: 'eventName' },
+                        { name: 'fileWatcher' }
+                    ]
+                };
+            }
+            case Precondition: {
+                return {
+                    name: Precondition,
+                    properties: [
+                        { name: 'description' },
+                        { name: 'name' }
+                    ]
+                };
+            }
+            case ReturnsTo: {
+                return {
+                    name: ReturnsTo,
+                    properties: [
+                        { name: 'frameLabel' }
+                    ]
+                };
+            }
+            case SagaDeclaration: {
+                return {
+                    name: SagaDeclaration,
+                    properties: [
+                        { name: 'compensation' },
+                        { name: 'name' },
+                        { name: 'states', defaultValue: [] },
+                        { name: 'timeout' },
+                        { name: 'trigger' }
+                    ]
+                };
+            }
+            case SagaTimeout: {
+                return {
+                    name: SagaTimeout,
+                    properties: [
+                        { name: 'duration' },
+                        { name: 'none' }
+                    ]
+                };
+            }
+            case TriggeredBy: {
+                return {
+                    name: TriggeredBy,
+                    properties: [
+                        { name: 'nodeName' }
+                    ]
+                };
+            }
+            case Triggers: {
+                return {
+                    name: Triggers,
+                    properties: [
+                        { name: 'nodeName' }
+                    ]
+                };
+            }
+            case TypeReference: {
+                return {
+                    name: TypeReference,
+                    properties: [
+                        { name: 'isArray', defaultValue: false },
+                        { name: 'typeName' }
+                    ]
+                };
+            }
+            case ValueObjectDeclaration: {
+                return {
+                    name: ValueObjectDeclaration,
+                    properties: [
+                        { name: 'fields', defaultValue: [] },
+                        { name: 'name' }
+                    ]
+                };
+            }
+            case WhenBlock: {
+                return {
+                    name: WhenBlock,
+                    properties: [
+                        { name: 'condition' },
+                        { name: 'nodes', defaultValue: [] }
+                    ]
+                };
+            }
+            default: {
+                return {
+                    name: type,
+                    properties: []
+                };
+            }
+        }
+    }
 }
 
 export const reflection = new MomentAstReflection();

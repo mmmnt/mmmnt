@@ -6,8 +6,8 @@ export interface TimelineLane {
 }
 
 export interface TimelineEntry {
-  readonly frameId: string;
-  readonly frameName: string;
+  readonly momentId: string;
+  readonly momentName: string;
   readonly contextId: string;
   readonly x: number;
   readonly y: number;
@@ -17,7 +17,7 @@ export interface TimelineEntry {
 
 export interface TimelineConnection {
   readonly connectionId: string;
-  readonly sourceFrameId: string;
+  readonly sourceMomentId: string;
   readonly targetContextId: string;
   readonly sourceLaneY: number;
   readonly targetLaneY: number;

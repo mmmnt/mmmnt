@@ -1,12 +1,12 @@
-export interface FrameDefinition {
+export interface MomentDefinition {
   id: string;
   name: string;
-  contextEntries: FrameEntry[];
+  contextEntries: MomentEntry[];
   branches?: BranchDefinition[];
   terminal?: boolean;
 }
 
-export interface FrameEntry {
+export interface MomentEntry {
   contextId: string;
   nodeName: string;
   nodeKind: 'command' | 'event' | 'policy' | 'saga' | 'projection';
@@ -17,5 +17,5 @@ export interface FrameEntry {
 
 export interface BranchDefinition {
   condition: string;
-  entries: FrameEntry[];
+  entries: MomentEntry[];
 }

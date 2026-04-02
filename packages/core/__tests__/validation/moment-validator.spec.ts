@@ -60,7 +60,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             lane b "B" [Supporting]
-            frame "Step"
+            moment "Step"
               a: SomeEvent crosses-to b via Partnership
                 contract
         `);
@@ -73,7 +73,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             lane b "B" [Supporting]
-            frame "Step"
+            moment "Step"
               a: SomeEvent crosses-to b via Partnership
                 contract
                   orderId: UUID [required]
@@ -106,7 +106,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             branch-lane errors "Errors" [Terminal]
-            frame "Step"
+            moment "Step"
               a: SomeEvent crosses-to errors via Partnership
                 contract
                   id: UUID [required]
@@ -120,7 +120,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             lane b "B" [Supporting]
-            frame "Step"
+            moment "Step"
               a: SomeEvent crosses-to b via CustomerSupplier
                 contract
                   id: UUID [required]
@@ -135,7 +135,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: DoSomething
                 triggered-by NonExistent
         `);
@@ -147,9 +147,9 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: OrderPlaced
-            frame "Step 2"
+            moment "Step 2"
               a: CheckInventory
                 triggered-by OrderPlaced
         `);
@@ -163,9 +163,9 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: First
-            frame "Step 2"
+            moment "Step 2"
               a: Second
                 returns-to "Non-existent"
         `);
@@ -177,9 +177,9 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: First
-            frame "Step 2"
+            moment "Step 2"
               a: Second
                 returns-to "Step 1"
         `);
@@ -194,7 +194,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             lane b "B" [Supporting]
-            frame "Step"
+            moment "Step"
               a: SomeEvent [optional] crosses-to b via Partnership
                 contract
                   id: UUID [required]
@@ -207,7 +207,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step"
+            moment "Step"
               a: SomeEvent [optional]
         `);
         const errors = errorMessages(result);
@@ -220,7 +220,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step"
+            moment "Step"
               a: First [terminal]
               a: Second
         `);
@@ -232,7 +232,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step"
+            moment "Step"
               a: First
               a: Second [terminal]
         `);
@@ -246,7 +246,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Empty"
+            moment "Empty"
         `);
         const errors = errorMessages(result);
         expect(errors.some((m) => m.includes('V10'))).toBe(true);
@@ -256,7 +256,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Filled"
+            moment "Filled"
               a: SomeEvent
         `);
         const errors = errorMessages(result);
@@ -267,7 +267,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Branch" [branch]
+            moment "Branch" [branch]
               when success
                 a: SuccessEvent
         `);
@@ -281,7 +281,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step"
+            moment "Step"
               nonexistent: SomeEvent
         `);
         const errors = errorMessages(result);
@@ -292,7 +292,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step"
+            moment "Step"
               a: SomeEvent
         `);
         const errors = errorMessages(result);
@@ -311,7 +311,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             branch-lane errors "Errors" [Terminal]
-            frame "Step"
+            moment "Step"
               a: SomeEvent
         `);
         const warnings = warningMessages(result);
@@ -323,9 +323,9 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "A" [Core]
             branch-lane errors "Errors" [Terminal]
-            frame "Step"
+            moment "Step"
               a: SomeEvent
-            frame "Outcome" [branch]
+            moment "Outcome" [branch]
               when failure
                 errors: FailEvent [terminal]
         `);
@@ -339,12 +339,12 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: First
-            frame "Step 2"
+            moment "Step 2"
               a: Second
                 returns-to "Step 1"
-            frame "Step 3"
+            moment "Step 3"
               a: Third
                 returns-to "Step 1"
         `);
@@ -356,9 +356,9 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: First
-            frame "Step 2"
+            moment "Step 2"
               a: Second
                 returns-to "Step 1"
         `);
@@ -402,7 +402,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "NonExistent" [Core]
-            frame "Step"
+            moment "Step"
               a: SomeEvent
         `);
         const validator = services.validation.MomentValidator;
@@ -422,7 +422,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: PlaceOrder
         `);
         const validator = services.validation.MomentValidator;
@@ -445,13 +445,13 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step"
+            moment "Step"
               a: NonExistentEvent crosses-to b via CustomerSupplier
                 contract
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const crossing = result.document.parseResult.value.flows[0].frames[0].nodes[0].crossing!;
+        const crossing = result.document.parseResult.value.flows[0].moments[0].nodes[0].crossing!;
         const diagnostics: string[] = [];
         validator.checkSP02(
           crossing,
@@ -468,13 +468,13 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step"
+            moment "Step"
               a: OrderPlaced crosses-to b via CustomerSupplier
                 contract
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const crossing = result.document.parseResult.value.flows[0].frames[0].nodes[0].crossing!;
+        const crossing = result.document.parseResult.value.flows[0].moments[0].nodes[0].crossing!;
         const diagnostics: string[] = [];
         validator.checkSP02(
           crossing,
@@ -492,11 +492,11 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: NonExistentBlock
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV1(
           node,
@@ -512,11 +512,11 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: PlaceOrder
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV1(
           node,
@@ -535,13 +535,13 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step"
+            moment "Step"
               a: PlaceOrder crosses-to b via CustomerSupplier
                 contract
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV9(
           node,
@@ -558,13 +558,13 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step"
+            moment "Step"
               a: OrderPlaced crosses-to b via CustomerSupplier
                 contract
                   id: UUID [required]
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV9(
           node,
@@ -582,11 +582,11 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: PlaceOrder (×3)
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV11(
           node,
@@ -602,11 +602,11 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: OrderPlaced (×3)
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV11(
           node,
@@ -625,7 +625,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step"
+            moment "Step"
               a: OrderPlaced crosses-to b via Partnership
                 contract
                   id: UUID [required]
@@ -646,11 +646,11 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step 1"
+            moment "Step 1"
               a: OrderPlaced crosses-to b via Partnership
                 contract
                   id: UUID [required]
-            frame "Step 2"
+            moment "Step 2"
               b: FulfillmentReady crosses-to a via Partnership
                 contract
                   id: UUID [required]
@@ -670,7 +670,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Outcome" [branch]
+            moment "Outcome" [branch]
               when success
                 a: OrderPlaced crosses-to b via Partnership
                   contract
@@ -698,12 +698,12 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: DoSomething
                 triggered-by NonExistent
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV5(node, (severity, message) => {
           if (severity === 'error') diagnostics.push(message as string);
@@ -715,14 +715,14 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
-            frame "Step 1"
+            moment "Step 1"
               a: First
-            frame "Step 2"
+            moment "Step 2"
               a: Second
                 triggered-by First
         `);
         const validator = services.validation.MomentValidator;
-        const node = result.document.parseResult.value.flows[0].frames[1].nodes[0];
+        const node = result.document.parseResult.value.flows[0].moments[1].nodes[0];
         const diagnostics: string[] = [];
         validator.checkV5(node, (severity, message) => {
           if (severity === 'error') diagnostics.push(message as string);
@@ -738,7 +738,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: NonExistentBlock
         `);
         validator.clearCrossFileContext();
@@ -753,7 +753,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: NonExistentBlock
         `);
         // V1 should NOT fire since cross-file context is not set
@@ -768,7 +768,7 @@ describe('MomentValidator', () => {
           flow "test"
             lane a "Ordering" [Core]
             lane b "Fulfillment" [Supporting]
-            frame "Step"
+            moment "Step"
               a: PlaceOrder crosses-to b via CustomerSupplier
                 contract
                   id: UUID [required]
@@ -784,7 +784,7 @@ describe('MomentValidator', () => {
         const result = await validate(`
           flow "test"
             lane a "Ordering" [Core]
-            frame "Step"
+            moment "Step"
               a: PlaceOrder (×3)
         `);
         validator.clearCrossFileContext();
@@ -802,9 +802,9 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "A" [Core]
-          frame "Step 1"
+          moment "Step 1"
             a: First
-          frame "Step 2" [branch]
+          moment "Step 2" [branch]
             when optionA
               a: PathA
                 returns-to "Step 1"
@@ -864,7 +864,7 @@ describe('MomentValidator', () => {
         laneId: 'x',
         nodeName: 'Y',
         connections: [],
-        $container: { $type: 'Frame' },
+        $container: { $type: 'Moment' },
       } as never;
       const diagnostics: string[] = [];
       validator.checkLaneIdExists(fakeNode, (severity, message) => {
@@ -877,13 +877,13 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "A" [Core]
-          frame "Step"
+          moment "Step"
             a: Evt crosses-to nonexistent via CustomerSupplier
               contract
                 id: UUID [required]
       `);
       const validator = services.validation.MomentValidator;
-      const crossing = result.document.parseResult.value.flows[0].frames[0].nodes[0].crossing!;
+      const crossing = result.document.parseResult.value.flows[0].moments[0].nodes[0].crossing!;
       const diagnostics: string[] = [];
       validator.checkSP02(
         crossing,
@@ -900,11 +900,11 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "A" [Core]
-          frame "Step"
+          moment "Step"
             a: SomeNode
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       // Lane label "A" does not match any declaredContextNames ("Ordering", "Fulfillment")
       // so the contextName won't match, but the lane IS found
       const diagnostics: string[] = [];
@@ -923,11 +923,11 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "Ordering" [Core]
-          frame "Step"
+          moment "Step"
             a: OrderPlaced
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV9(
         node,
@@ -943,11 +943,11 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "Ordering" [Core]
-          frame "Step"
+          moment "Step"
             a: OrderPlaced
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV11(
         node,
@@ -969,7 +969,7 @@ describe('MomentValidator', () => {
         crossing: undefined,
         modifier: undefined,
         multiplicity: undefined,
-        $container: { $type: 'FlowDeclaration', frames: [], lanes: [] },
+        $container: { $type: 'FlowDeclaration', moments: [], lanes: [] },
       } as never;
       const diagnostics: string[] = [];
       validator.checkNodePlacement(orphanNode, (severity, message) => {
@@ -983,17 +983,17 @@ describe('MomentValidator', () => {
       // Create a node with multiplicity but whose laneId doesn't match any lane
       const fakeFlow = {
         $type: 'FlowDeclaration',
-        frames: [],
+        moments: [],
         lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
       };
-      const fakeFrame = { $type: 'Frame', $container: fakeFlow };
+      const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeNode = {
         $type: 'NodePlacement',
         laneId: 'nonexistent',
         nodeName: 'Evt',
         multiplicity: { count: 3 },
         connections: [],
-        $container: fakeFrame,
+        $container: fakeMoment,
       } as never;
       const diagnostics: string[] = [];
       validator.checkV11(
@@ -1011,10 +1011,10 @@ describe('MomentValidator', () => {
       const validator = services.validation.MomentValidator;
       const fakeFlow = {
         $type: 'FlowDeclaration',
-        frames: [],
+        moments: [],
         lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
       };
-      const fakeFrame = { $type: 'Frame', $container: fakeFlow };
+      const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeCrossing = {
         $type: 'ContextCrossing',
         targetLaneId: 'b',
@@ -1027,7 +1027,7 @@ describe('MomentValidator', () => {
         nodeName: 'Evt',
         crossing: fakeCrossing,
         connections: [],
-        $container: fakeFrame,
+        $container: fakeMoment,
       } as never;
       (fakeCrossing as Record<string, unknown>).$container = fakeNode;
       const diagnostics: string[] = [];
@@ -1049,7 +1049,7 @@ describe('MomentValidator', () => {
         nodeName: 'Evt',
         multiplicity: { count: 3 },
         connections: [],
-        $container: { $type: 'Frame', $container: { $type: 'Unknown' } },
+        $container: { $type: 'Moment', $container: { $type: 'Unknown' } },
       } as never;
       const diagnostics: string[] = [];
       validator.checkV11(
@@ -1067,13 +1067,13 @@ describe('MomentValidator', () => {
         flow "test"
           lane a "Ordering" [Core]
           lane b "Fulfillment" [Supporting]
-          frame "Step"
+          moment "Step"
             a: OrderPlaced crosses-to b via CustomerSupplier
               contract
                 id: UUID [required]
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV9(
         node,
@@ -1091,13 +1091,13 @@ describe('MomentValidator', () => {
         flow "test"
           lane a "Ordering" [Core]
           lane b "Fulfillment" [Supporting]
-          frame "Step"
+          moment "Step"
             a: PlaceOrder crosses-to b via CustomerSupplier
               contract
                 id: UUID [required]
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV9(
         node,
@@ -1114,11 +1114,11 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "Ordering" [Core]
-          frame "Step"
+          moment "Step"
             a: OrderPlaced (×3)
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV11(
         node,
@@ -1135,11 +1135,11 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "Ordering" [Core]
-          frame "Step"
+          moment "Step"
             a: PlaceOrder (×3)
       `);
       const validator = services.validation.MomentValidator;
-      const node = result.document.parseResult.value.flows[0].frames[0].nodes[0];
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
       const diagnostics: string[] = [];
       validator.checkV11(
         node,
@@ -1158,12 +1158,12 @@ describe('MomentValidator', () => {
         flow "test"
           lane a "Ordering" [Core]
           lane b "Fulfillment" [Supporting]
-          frame "Step 1"
+          moment "Step 1"
             a: PlaceOrder
             a: OrderPlaced crosses-to b via Partnership
               contract
                 id: UUID [required]
-          frame "Step 2"
+          moment "Step 2"
             b: InitiateFulfillment
       `);
       const validator = services.validation.MomentValidator;
@@ -1184,7 +1184,7 @@ describe('MomentValidator', () => {
         $type: 'FlowDeclaration',
         name: '"test"',
         lanes: [{ $type: 'LaneDeclaration', id: 'a', label: '"A"', isBranch: false }],
-        frames: [],
+        moments: [],
         whenBlocks: [],
       } as never;
       const diagnostics: string[] = [];
@@ -1198,7 +1198,7 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "A" [Core]
-          frame "Step"
+          moment "Step"
             a: Simple
       `);
       const errors = errorMessages(result);
@@ -1217,13 +1217,13 @@ describe('MomentValidator', () => {
           description "Order triggers fulfillment"
           lane ordering "Ordering" [Core]
           lane fulfillment "Fulfillment" [Supporting]
-          frame "Order submission"
+          moment "Order submission"
             ordering: PlaceOrder
             ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
               contract
                 orderId: UUID [required]
                 items: OrderItem[] [required]
-          frame "Fulfillment initiation"
+          moment "Fulfillment initiation"
             fulfillment: InitiateFulfillment
               triggered-by OrderPlaced
             fulfillment: FulfillmentInitiated
@@ -1240,18 +1240,18 @@ describe('MomentValidator', () => {
           lane fulfillment "Fulfillment" [Supporting]
           lane shipping "Shipping" [Supporting]
           branch-lane outOfStock "Out of Stock" [Terminal]
-          frame "Order placement"
+          moment "Order placement"
             ordering: PlaceOrder
             ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
               contract
                 orderId: UUID [required]
                 items: OrderItem[] [required]
                 shippingAddress: Address [required]
-          frame "Inventory check"
+          moment "Inventory check"
             fulfillment: CheckInventory
               triggered-by OrderPlaced
             fulfillment: InventoryReserved
-          frame "Inventory check outcome" [branch]
+          moment "Inventory check outcome" [branch]
             when available
               fulfillment: FulfillmentReady crosses-to shipping via Partnership
                 contract
@@ -1259,11 +1259,11 @@ describe('MomentValidator', () => {
                   reservedItems: ReservedItem[] [required]
             when unavailable
               outOfStock: BackorderCreated [terminal]
-          frame "Shipment creation"
+          moment "Shipment creation"
             shipping: CreateShipment
               triggered-by FulfillmentReady
             shipping: ShipmentCreated
-          frame "Dispatch"
+          moment "Dispatch"
             shipping: DispatchShipment
             shipping: ShipmentDispatched
             shipping: TrackingNumberAssigned [optional]
@@ -1282,7 +1282,7 @@ describe('MomentValidator', () => {
       const result = await validate(`
         flow "test"
           lane a "A" [Core]
-          frame "Empty"
+          moment "Empty"
       `);
       for (const d of result.diagnostics) {
         expect(d.range).toBeDefined();

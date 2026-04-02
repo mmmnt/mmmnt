@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type {
   IntermediateRepresentation,
   FlowDefinition,
-  FrameDefinition,
+  MomentDefinition,
   ConnectionDefinition,
   ContextDefinition,
   SchemaContract,
@@ -61,7 +61,12 @@ function makeContext(
   };
 }
 
-function makeFrame(id: string, name: string, contextId: string, nodeName: string): FrameDefinition {
+function makeMoment(
+  id: string,
+  name: string,
+  contextId: string,
+  nodeName: string,
+): MomentDefinition {
   return {
     id,
     name,
@@ -77,7 +82,7 @@ function makeFrame(id: string, name: string, contextId: string, nodeName: string
 
 function makeCrossingConnection(
   id: string,
-  sourceFrameId: string,
+  sourceMomentId: string,
   targetContextId: string,
   eventType: string,
   fields: SchemaContract['fields'] = [{ name: 'id', type: 'string', required: true }],
@@ -85,7 +90,7 @@ function makeCrossingConnection(
 ): ConnectionDefinition {
   return {
     id,
-    sourceFrameId,
+    sourceMomentId,
     targetContextId,
     eventId: `${eventType}-event`,
     connectionType: 'crosses-to',
@@ -100,10 +105,10 @@ function makeCrossingConnection(
 function makeFlow(
   id: string,
   name: string,
-  frames: FrameDefinition[],
+  moments: MomentDefinition[],
   connections: ConnectionDefinition[],
 ): FlowDefinition {
-  return { id, name, frames, connections };
+  return { id, name, moments, connections };
 }
 
 function makeIR(overrides: Partial<IntermediateRepresentation> = {}): IntermediateRepresentation {
@@ -128,9 +133,9 @@ describe('DerivationEngine', () => {
     it('IR with 3 flows produces topology with 3 suites', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const flows = [
-        makeFlow('f1', 'Flow A', [makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder')], []),
-        makeFlow('f2', 'Flow B', [makeFrame('fr2', 'Frame 2', 'ctx-1', 'ShipOrder')], []),
-        makeFlow('f3', 'Flow C', [makeFrame('fr3', 'Frame 3', 'ctx-1', 'CancelOrder')], []),
+        makeFlow('f1', 'Flow A', [makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder')], []),
+        makeFlow('f2', 'Flow B', [makeMoment('fr2', 'Moment 2', 'ctx-1', 'ShipOrder')], []),
+        makeFlow('f3', 'Flow C', [makeMoment('fr3', 'Moment 3', 'ctx-1', 'CancelOrder')], []),
       ];
       const ir = makeIR({ contexts: [ctx], flows });
 
@@ -152,18 +157,18 @@ describe('DerivationEngine', () => {
   // DV-02: One AssertionPoint per crossing
   // -----------------------------------------------------------------------
   describe('DV-02', () => {
-    it('flow with 2 crossings in separate frames produces 2 assertion points total', () => {
+    it('flow with 2 crossings in separate moments produces 2 assertion points total', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering', [
         makeEvent('OrderShipped-event', 'OrderShipped'),
       ]);
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame1 = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
-      const frame2 = makeFrame('fr2', 'Frame 2', 'ctx-2', 'ShipOrder');
+      const moment1 = makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder');
+      const moment2 = makeMoment('fr2', 'Moment 2', 'ctx-2', 'ShipOrder');
       const conn1 = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
       const conn2 = makeCrossingConnection('c2', 'fr2', 'ctx-1', 'OrderShipped');
-      const flow = makeFlow('f1', 'Order Flow', [frame1, frame2], [conn1, conn2]);
+      const flow = makeFlow('f1', 'Order Flow', [moment1, moment2], [conn1, conn2]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -176,41 +181,41 @@ describe('DerivationEngine', () => {
   });
 
   // -----------------------------------------------------------------------
-  // DV-03: TestCaseDefinitions ordered by frame position
+  // DV-03: TestCaseDefinitions ordered by moment position
   // -----------------------------------------------------------------------
   describe('DV-03', () => {
-    it('multi-frame flow produces TestCaseDefinitions ordered by frame position', () => {
+    it('multi-moment flow produces TestCaseDefinitions ordered by moment position', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
-      const frames = [
-        makeFrame('fr1', 'First Frame', 'ctx-1', 'Step1'),
-        makeFrame('fr2', 'Second Frame', 'ctx-1', 'Step2'),
-        makeFrame('fr3', 'Third Frame', 'ctx-1', 'Step3'),
+      const moments = [
+        makeMoment('fr1', 'First Moment', 'ctx-1', 'Step1'),
+        makeMoment('fr2', 'Second Moment', 'ctx-1', 'Step2'),
+        makeMoment('fr3', 'Third Moment', 'ctx-1', 'Step3'),
       ];
-      const flow = makeFlow('f1', 'Sequence Flow', frames, []);
+      const flow = makeFlow('f1', 'Sequence Flow', moments, []);
       const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
       const topology = deriveTopology(ir);
 
       const suite = topology.suites[0];
-      expect(suite.testCases[0].frameId).toBe('fr1');
-      expect(suite.testCases[1].frameId).toBe('fr2');
-      expect(suite.testCases[2].frameId).toBe('fr3');
+      expect(suite.testCases[0].momentId).toBe('fr1');
+      expect(suite.testCases[1].momentId).toBe('fr2');
+      expect(suite.testCases[2].momentId).toBe('fr3');
     });
   });
 
   // -----------------------------------------------------------------------
-  // DV-04: Schema contract → FieldConstraint entries
+  // DV-04: Schema contract -> FieldConstraint entries
   // -----------------------------------------------------------------------
   describe('DV-04', () => {
     it('crossing with schema contract maps required fields to FieldConstraint entries', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Billing', [makeEvent('OrderPlaced-event', 'OrderPlaced')]);
-      const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
+      const moment = makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', [
         { name: 'orderId', type: 'string', required: true },
         { name: 'amount', type: 'number', required: true },
       ]);
-      const flow = makeFlow('f1', 'Billing Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Billing Flow', [moment], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -230,11 +235,11 @@ describe('DerivationEngine', () => {
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
+      const moment = makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', [
         { name: 'orderId', type: 'string', required: true },
       ]);
-      const flow = makeFlow('f1', 'Minimal-Contract Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Minimal-Contract Flow', [moment], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -250,15 +255,15 @@ describe('DerivationEngine', () => {
   // deriveTopology operation tests
   // -----------------------------------------------------------------------
   describe('deriveTopology', () => {
-    it('single flow, 2 lanes, 2 frames, 1 crossing produces 1 suite, 2 cases, 1 assertion point', () => {
+    it('single flow, 2 lanes, 2 moments, 1 crossing produces 1 suite, 2 cases, 1 assertion point', () => {
       const ctx1 = makeContext('ctx-1', 'Sales');
       const ctx2 = makeContext('ctx-2', 'Fulfillment', [
         makeEvent('OrderAccepted-event', 'OrderAccepted'),
       ]);
-      const frame1 = makeFrame('fr1', 'Accept Order', 'ctx-1', 'AcceptOrder');
-      const frame2 = makeFrame('fr2', 'Fulfill Order', 'ctx-2', 'FulfillOrder');
+      const moment1 = makeMoment('fr1', 'Accept Order', 'ctx-1', 'AcceptOrder');
+      const moment2 = makeMoment('fr2', 'Fulfill Order', 'ctx-2', 'FulfillOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderAccepted');
-      const flow = makeFlow('f1', 'Sales Flow', [frame1, frame2], [conn]);
+      const flow = makeFlow('f1', 'Sales Flow', [moment1, moment2], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -271,8 +276,8 @@ describe('DerivationEngine', () => {
 
     it('multiple flows produce one suite per flow with correct flowId and flowName', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
-      const flowA = makeFlow('fa', 'Alpha', [makeFrame('fr1', 'F1', 'ctx-1', 'Cmd1')], []);
-      const flowB = makeFlow('fb', 'Beta', [makeFrame('fr2', 'F2', 'ctx-1', 'Cmd2')], []);
+      const flowA = makeFlow('fa', 'Alpha', [makeMoment('fr1', 'F1', 'ctx-1', 'Cmd1')], []);
+      const flowB = makeFlow('fb', 'Beta', [makeMoment('fr2', 'F2', 'ctx-1', 'Cmd2')], []);
       const ir = makeIR({ contexts: [ctx], flows: [flowA, flowB] });
 
       const topology = deriveTopology(ir);
@@ -286,8 +291,8 @@ describe('DerivationEngine', () => {
 
     it('flow with no crossings produces suite with test cases and empty assertion lists', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
-      const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
-      const flow = makeFlow('f1', 'No Crossing Flow', [frame], []);
+      const moment = makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'No Crossing Flow', [moment], []);
       const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -297,14 +302,14 @@ describe('DerivationEngine', () => {
       expect(topology.suites[0].testCases[0].assertions).toHaveLength(0);
     });
 
-    it('flow with 3 frames produces 3 test cases', () => {
+    it('flow with 3 moments produces 3 test cases', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
-      const frames = [
-        makeFrame('fr1', 'Step 1', 'ctx-1', 'Cmd1'),
-        makeFrame('fr2', 'Step 2', 'ctx-1', 'Cmd2'),
-        makeFrame('fr3', 'Step 3', 'ctx-1', 'Cmd3'),
+      const moments = [
+        makeMoment('fr1', 'Step 1', 'ctx-1', 'Cmd1'),
+        makeMoment('fr2', 'Step 2', 'ctx-1', 'Cmd2'),
+        makeMoment('fr3', 'Step 3', 'ctx-1', 'Cmd3'),
       ];
-      const flow = makeFlow('f1', 'Three-Step Flow', frames, []);
+      const flow = makeFlow('f1', 'Three-Step Flow', moments, []);
       const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -312,16 +317,16 @@ describe('DerivationEngine', () => {
       expect(topology.suites[0].testCases).toHaveLength(3);
     });
 
-    it('frame with multiple crossings produces multiple assertion points in that test case', () => {
+    it('moment with multiple crossings produces multiple assertion points in that test case', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Billing', [makeEvent('OrderPlaced-event', 'OrderPlaced')]);
       const ctx3 = makeContext('ctx-3', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame = makeFrame('fr1', 'Multi-Cross Frame', 'ctx-1', 'PlaceOrder');
+      const moment = makeMoment('fr1', 'Multi-Cross Moment', 'ctx-1', 'PlaceOrder');
       const conn1 = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
       const conn2 = makeCrossingConnection('c2', 'fr1', 'ctx-3', 'OrderPlaced');
-      const flow = makeFlow('f1', 'Multi-Cross Flow', [frame], [conn1, conn2]);
+      const flow = makeFlow('f1', 'Multi-Cross Flow', [moment], [conn1, conn2]);
       const ir = makeIR({ contexts: [ctx1, ctx2, ctx3], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -352,11 +357,11 @@ describe('DerivationEngine', () => {
       expect(topology.suites).toHaveLength(0);
     });
 
-    it('branch frame produces test cases for both branch paths', () => {
+    it('branch moment produces test cases for both branch paths', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
-      const branchFrame: FrameDefinition = {
+      const branchMoment: MomentDefinition = {
         id: 'fr-branch',
-        name: 'Decision Frame',
+        name: 'Decision Moment',
         contextEntries: [{ contextId: 'ctx-1', nodeName: 'EvaluateOrder', nodeKind: 'command' }],
         branches: [
           {
@@ -369,7 +374,7 @@ describe('DerivationEngine', () => {
           },
         ],
       };
-      const flow = makeFlow('f1', 'Branch Flow', [branchFrame], []);
+      const flow = makeFlow('f1', 'Branch Flow', [branchMoment], []);
       const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -383,7 +388,7 @@ describe('DerivationEngine', () => {
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
+      const moment = makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection(
         'c1',
         'fr1',
@@ -392,7 +397,7 @@ describe('DerivationEngine', () => {
         [{ name: 'orderId', type: 'string', required: true }],
         'Partnership',
       );
-      const flow = makeFlow('f1', 'Partner Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Partner Flow', [moment], [conn]);
       const ir = makeIR({
         contexts: [ctx1, ctx2],
         flows: [flow],
@@ -418,7 +423,7 @@ describe('DerivationEngine', () => {
       const ctx2 = makeContext('ctx-customer', 'Ordering', [
         makeEvent('StockReserved-event', 'StockReserved'),
       ]);
-      const frame = makeFrame('fr1', 'Frame 1', 'ctx-supplier', 'ReserveStock');
+      const moment = makeMoment('fr1', 'Moment 1', 'ctx-supplier', 'ReserveStock');
       const conn = makeCrossingConnection(
         'c1',
         'fr1',
@@ -427,7 +432,7 @@ describe('DerivationEngine', () => {
         [{ name: 'sku', type: 'string', required: true }],
         'CustomerSupplier',
       );
-      const flow = makeFlow('f1', 'Supplier Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Supplier Flow', [moment], [conn]);
       const ir = makeIR({
         contexts: [ctx1, ctx2],
         flows: [flow],
@@ -453,13 +458,13 @@ describe('DerivationEngine', () => {
       const ctx2 = makeContext('ctx-2', 'Notification', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame = makeFrame('fr1', 'Frame 1', 'ctx-1', 'PlaceOrder');
+      const moment = makeMoment('fr1', 'Moment 1', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced', [
         { name: 'orderId', type: 'string', required: true },
         { name: 'customerEmail', type: 'string', required: true },
         { name: 'notes', type: 'string', required: false },
       ]);
-      const flow = makeFlow('f1', 'Mixed Fields Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Mixed Fields Flow', [moment], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -485,23 +490,23 @@ describe('DerivationEngine', () => {
       expect(typeof topology.metadata.derivedAt).toBe('string');
     });
 
-    it('multi-context frame resolves source as non-target context', () => {
+    it('multi-context moment resolves source as non-target context', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame: FrameDefinition = {
+      const moment: MomentDefinition = {
         id: 'fr1',
-        name: 'Multi-Context Frame',
+        name: 'Multi-Context Moment',
         contextEntries: [
           { contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' },
           { contextId: 'ctx-2', nodeName: 'ReceiveOrder', nodeKind: 'event' },
         ],
       };
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
-      const flow = makeFlow('f1', 'Multi-Ctx Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Multi-Ctx Flow', [moment], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -511,16 +516,16 @@ describe('DerivationEngine', () => {
       expect(assertion.targetContext).toBe('ctx-2');
     });
 
-    it('frame with empty contextEntries but branch entries resolves source from branches', () => {
+    it('moment with empty contextEntries but branch entries resolves source from branches', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
       const ctx2 = makeContext('ctx-2', 'Shipping', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame: FrameDefinition = {
+      const moment: MomentDefinition = {
         id: 'fr1',
-        name: 'Branch-Only Frame',
+        name: 'Branch-Only Moment',
         contextEntries: [],
         branches: [
           {
@@ -530,7 +535,7 @@ describe('DerivationEngine', () => {
         ],
       };
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
-      const flow = makeFlow('f1', 'Branch Entry Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Branch Entry Flow', [moment], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
@@ -539,19 +544,164 @@ describe('DerivationEngine', () => {
       expect(assertion.sourceContext).toBe('ctx-1');
     });
 
-    it('single-context frame returns that context as source', () => {
+    it('single-context moment returns that context as source', () => {
       const ctx1 = makeContext('ctx-1', 'Ordering');
       const ctx2 = makeContext('ctx-2', 'Fulfillment', [
         makeEvent('OrderPlaced-event', 'OrderPlaced'),
       ]);
-      const frame = makeFrame('fr1', 'Single Context', 'ctx-1', 'PlaceOrder');
+      const moment = makeMoment('fr1', 'Single Context', 'ctx-1', 'PlaceOrder');
       const conn = makeCrossingConnection('c1', 'fr1', 'ctx-2', 'OrderPlaced');
-      const flow = makeFlow('f1', 'Single Ctx Flow', [frame], [conn]);
+      const flow = makeFlow('f1', 'Single Ctx Flow', [moment], [conn]);
       const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
       const topology = deriveTopology(ir);
 
       expect(topology.suites[0].testCases[0].assertions[0].sourceContext).toBe('ctx-1');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Saga test cases
+  // -----------------------------------------------------------------------
+  describe('saga test cases', () => {
+    it('context with a saga produces init, transition, and compensation test cases', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        sagas: [
+          {
+            id: 'saga-1',
+            name: 'OrderFulfillment',
+            trigger: 'OrderPlaced',
+            states: ['Pending', 'Processing', 'Completed'],
+            compensation: 'CancelOrder',
+            timeout: '30m',
+          },
+        ],
+      };
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const sagaCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      // init + 2 transitions (Pending→Processing, Processing→Completed) + compensation = 4
+      expect(sagaCases).toHaveLength(4);
+
+      // Init case
+      const initCase = sagaCases.find((tc) => tc.momentId === 'saga-OrderFulfillment-initiated');
+      expect(initCase).toBeDefined();
+      expect(initCase!.assertions[0].assertionType).toBe('saga');
+      expect(initCase!.assertions[0].schemaContract.eventType).toBe('OrderPlaced');
+
+      // Transition cases
+      const transCase1 = sagaCases.find(
+        (tc) => tc.momentId === 'saga-OrderFulfillment-Pending-to-Processing',
+      );
+      expect(transCase1).toBeDefined();
+      expect(transCase1!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Processing');
+
+      const transCase2 = sagaCases.find(
+        (tc) => tc.momentId === 'saga-OrderFulfillment-Processing-to-Completed',
+      );
+      expect(transCase2).toBeDefined();
+      expect(transCase2!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Completed');
+
+      // Compensation case
+      const compCase = sagaCases.find((tc) => tc.momentId === 'saga-OrderFulfillment-compensation');
+      expect(compCase).toBeDefined();
+      expect(compCase!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Compensated');
+      expect(compCase!.setupSteps[0].precondition).toBe('CancelOrder');
+    });
+
+    it('context with no sagas produces no saga test cases', () => {
+      const ctx = makeContext('ctx-1', 'Ordering');
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const sagaCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      expect(sagaCases).toHaveLength(0);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Policy chain test cases
+  // -----------------------------------------------------------------------
+  describe('policy chain test cases', () => {
+    it('policy with chainsTo produces a policy chain test case', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        policies: [
+          {
+            id: 'pol-1',
+            name: 'AutoApprovePolicy',
+            trigger: 'OrderPlaced',
+            action: 'ApproveOrder',
+            chainsTo: 'SendConfirmation',
+          },
+        ],
+      };
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const policyCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCases).toHaveLength(1);
+      expect(policyCases[0].momentId).toBe('policy-AutoApprovePolicy');
+      expect(policyCases[0].assertions[0].assertionType).toBe('policy-chain');
+      expect(policyCases[0].assertions[0].schemaContract.eventType).toBe('SendConfirmation');
+      expect(policyCases[0].setupSteps[0].precondition).toBe(
+        'OrderPlaced occurs → SendConfirmation must follow',
+      );
+    });
+
+    it('policy without chainsTo produces no policy chain test case', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        policies: [
+          {
+            id: 'pol-1',
+            name: 'LogPolicy',
+            trigger: 'OrderPlaced',
+            action: 'LogEvent',
+          },
+        ],
+      };
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const policyCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCases).toHaveLength(0);
+    });
+
+    it('context with no policies produces no policy chain test cases', () => {
+      const ctx = makeContext('ctx-1', 'Ordering');
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const policyCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCases).toHaveLength(0);
     });
   });
 });

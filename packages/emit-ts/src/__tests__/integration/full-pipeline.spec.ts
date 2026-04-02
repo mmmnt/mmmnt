@@ -8,7 +8,7 @@ import type {
   FieldDefinition,
   InvariantDefinition,
   FlowDefinition,
-  FrameDefinition,
+  MomentDefinition,
   ConnectionDefinition,
   SchemaContract,
 } from '@mmmnt/core';
@@ -101,7 +101,7 @@ function makeCrossingConnection(
 ): ConnectionDefinition {
   return {
     id: 'conn-1',
-    sourceFrameId: 'frame-1',
+    sourceMomentId: 'moment-1',
     targetContextId: 'ctx-2',
     eventId: 'evt-1',
     connectionType: 'crosses-to' as const,
@@ -110,9 +110,9 @@ function makeCrossingConnection(
   };
 }
 
-function makeFrame(overrides: Partial<FrameDefinition> = {}): FrameDefinition {
+function makeMoment(overrides: Partial<MomentDefinition> = {}): MomentDefinition {
   return {
-    id: 'frame-1',
+    id: 'moment-1',
     name: 'Order Placement',
     contextEntries: [{ contextId: 'ctx-1', nodeName: 'CreateOrder', nodeKind: 'command' }],
     ...overrides,
@@ -123,7 +123,7 @@ function makeFlow(overrides: Partial<FlowDefinition> = {}): FlowDefinition {
   return {
     id: 'flow-1',
     name: 'Order Fulfillment Flow',
-    frames: [makeFrame()],
+    moments: [makeMoment()],
     connections: [makeCrossingConnection()],
     ...overrides,
   };
@@ -160,9 +160,9 @@ function buildMinimalIR(): IntermediateRepresentation {
   const flow = makeFlow({
     id: 'flow-order',
     name: 'Order Fulfillment',
-    frames: [
-      makeFrame({
-        id: 'frame-order',
+    moments: [
+      makeMoment({
+        id: 'moment-order',
         name: 'Place Order',
         contextEntries: [{ contextId: 'ctx-order', nodeName: 'CreateOrder', nodeKind: 'command' }],
       }),
@@ -170,7 +170,7 @@ function buildMinimalIR(): IntermediateRepresentation {
     connections: [
       makeCrossingConnection({
         id: 'conn-order-shipping',
-        sourceFrameId: 'frame-order',
+        sourceMomentId: 'moment-order',
         targetContextId: 'ctx-shipping',
         schemaContract: makeSchemaContract({ eventType: 'OrderPlaced' }),
       }),
@@ -230,9 +230,9 @@ function buildMultiContextIR(): IntermediateRepresentation {
   const flowSaleToInventory: FlowDefinition = {
     id: 'flow-sale-inventory',
     name: 'Sale To Inventory',
-    frames: [
-      makeFrame({
-        id: 'frame-sale',
+    moments: [
+      makeMoment({
+        id: 'moment-sale',
         name: 'Register Sale',
         contextEntries: [{ contextId: 'ctx-sales', nodeName: 'CreateOrder', nodeKind: 'command' }],
       }),
@@ -240,7 +240,7 @@ function buildMultiContextIR(): IntermediateRepresentation {
     connections: [
       makeCrossingConnection({
         id: 'conn-sale-inventory',
-        sourceFrameId: 'frame-sale',
+        sourceMomentId: 'moment-sale',
         targetContextId: 'ctx-inventory',
         schemaContract: makeSchemaContract({ eventType: 'SaleRegistered' }),
       }),
@@ -250,9 +250,9 @@ function buildMultiContextIR(): IntermediateRepresentation {
   const flowInventoryToFulfillment: FlowDefinition = {
     id: 'flow-inventory-fulfillment',
     name: 'Inventory To Fulfillment',
-    frames: [
-      makeFrame({
-        id: 'frame-inventory',
+    moments: [
+      makeMoment({
+        id: 'moment-inventory',
         name: 'Reserve Inventory',
         contextEntries: [
           { contextId: 'ctx-inventory', nodeName: 'ReserveStock', nodeKind: 'command' },
@@ -262,7 +262,7 @@ function buildMultiContextIR(): IntermediateRepresentation {
     connections: [
       makeCrossingConnection({
         id: 'conn-inventory-fulfillment',
-        sourceFrameId: 'frame-inventory',
+        sourceMomentId: 'moment-inventory',
         targetContextId: 'ctx-fulfillment',
         schemaContract: makeSchemaContract({ eventType: 'StockReserved' }),
       }),
@@ -342,10 +342,9 @@ describe('Full Pipeline Integration — M3 Gate', () => {
     expect(featureFiles.length).toBeGreaterThanOrEqual(1);
     expect(featureFiles.every((f) => f.filePath.endsWith('.feature'))).toBe(true);
 
-    // specification.md and architecture-palette.md
+    // specification.md
     const docTypes = generateResult.docsGenerated.map((d) => d.documentType);
     expect(docTypes).toContain('specification');
-    expect(docTypes).toContain('architecture-palette');
 
     // .types.ts files
     const tsFiles = [...emitResult.typeScriptOutput.files.keys()];
@@ -372,8 +371,8 @@ describe('Full Pipeline Integration — M3 Gate', () => {
     expect(generateResult.featuresGenerated).toHaveLength(1);
     expect(generateResult.featuresGenerated[0].flowId).toBe('flow-order');
 
-    // Docs: specification.md + architecture-palette.md + per-context inventory docs
-    expect(generateResult.docsGenerated.length).toBeGreaterThanOrEqual(2);
+    // Docs: specification.md
+    expect(generateResult.docsGenerated.length).toBeGreaterThanOrEqual(1);
 
     // TypeScript: 2 contexts × 1 aggregate each → at least 2 types + 2 aggregate + 2 index = 6 files
     expect(emitResult.typeScriptOutput.files.size).toBeGreaterThanOrEqual(6);
@@ -393,8 +392,8 @@ describe('Full Pipeline Integration — M3 Gate', () => {
     // 2 feature files
     expect(generateResult.featuresGenerated).toHaveLength(2);
 
-    // Docs: spec + architecture-palette + 3 context inventories = 5
-    expect(generateResult.docsGenerated.length).toBeGreaterThanOrEqual(5);
+    // Docs: specification.md = 1
+    expect(generateResult.docsGenerated.length).toBeGreaterThanOrEqual(1);
 
     // TypeScript: 3 contexts × 1 aggregate each → at least 9 files (types + aggregate + index)
     expect(emitResult.typeScriptOutput.files.size).toBeGreaterThanOrEqual(9);

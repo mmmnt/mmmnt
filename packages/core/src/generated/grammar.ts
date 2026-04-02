@@ -7,9 +7,7 @@ import type { Grammar } from 'langium';
 import { loadGrammarFromJson } from 'langium';
 
 let loadedMomentGrammar: Grammar | undefined;
-export const MomentGrammar = (): Grammar =>
-  loadedMomentGrammar ??
-  (loadedMomentGrammar = loadGrammarFromJson(`{
+export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMomentGrammar = loadGrammarFromJson(`{
   "$type": "Grammar",
   "isDeclared": true,
   "name": "Moment",
@@ -87,6 +85,28 @@ export const MomentGrammar = (): Grammar =>
               },
               "arguments": []
             },
+            "cardinality": "?"
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "description"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "description",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@38"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
             "cardinality": "?"
           },
           {
@@ -1096,7 +1116,7 @@ export const MomentGrammar = (): Grammar =>
           },
           {
             "$type": "Assignment",
-            "feature": "frames",
+            "feature": "moments",
             "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
@@ -1188,13 +1208,13 @@ export const MomentGrammar = (): Grammar =>
     },
     {
       "$type": "ParserRule",
-      "name": "Frame",
+      "name": "Moment",
       "definition": {
         "$type": "Group",
         "elements": [
           {
             "$type": "Keyword",
-            "value": "frame"
+            "value": "moment"
           },
           {
             "$type": "Assignment",

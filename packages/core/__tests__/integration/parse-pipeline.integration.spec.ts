@@ -57,12 +57,12 @@ describe('Parse Pipeline Integration', () => {
       const result = await parser.parseContent(content);
       expect(result.success).toBe(true);
       const flow = result.ir!.flows[0];
-      expect(flow.frames.length).toBeGreaterThanOrEqual(4);
+      expect(flow.moments.length).toBeGreaterThanOrEqual(4);
       // Should have crossing connections
       const crossings = flow.connections.filter((c) => c.connectionType === 'crosses-to');
       expect(crossings.length).toBeGreaterThan(0);
       // Should have branch frames
-      const branchFrames = flow.frames.filter((f) => f.branches && f.branches.length > 0);
+      const branchFrames = flow.moments.filter((f) => f.branches && f.branches.length > 0);
       expect(branchFrames.length).toBeGreaterThan(0);
     });
   });
@@ -101,7 +101,7 @@ describe('Parse Pipeline Integration', () => {
         flow "test-warnings"
           lane a "A" [Core]
           branch-lane unused "Unused" [Terminal]
-          frame "Step"
+          moment "Step"
             a: SomeEvent
       `;
       const result = await parser.parseContent(content);

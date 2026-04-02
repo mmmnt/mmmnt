@@ -52,14 +52,14 @@ export class TestRunner {
 
   private buildTestId(suite: TestSuiteDefinition, testCase: TestCaseDefinition): string {
     const variant = testCase.variant ? `[${testCase.variant}]` : '';
-    return `${suite.flowId}::${testCase.frameId}${variant}`;
+    return `${suite.flowId}::${testCase.momentId}${variant}`;
   }
 
   private resolveSpecElement(suite: TestSuiteDefinition, testCase: TestCaseDefinition): string {
     if (testCase.assertions.length > 0) {
       return testCase.assertions[0].crossingId;
     }
-    return `${suite.flowId}/${testCase.frameId}`;
+    return `${suite.flowId}/${testCase.momentId}`;
   }
 
   private evaluateTestCase(
@@ -67,8 +67,8 @@ export class TestRunner {
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
   ): boolean {
-    const frameExists = flow.frames.some((f) => f.id === testCase.frameId);
-    if (!frameExists) {
+    const momentExists = flow.moments.some((f) => f.id === testCase.momentId);
+    if (!momentExists) {
       return false;
     }
 

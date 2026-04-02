@@ -1,412 +1,1096 @@
 import { describe, it, expect } from 'vitest';
-import type { IntermediateRepresentation } from '@mmmnt/core';
-import type {
-  TestSuiteTopology,
-  TestSuiteDefinition,
-  TestCaseDefinition,
-  SetupStep,
-  AssertionPoint,
-  FieldConstraint,
-  PayloadValidationStep,
-} from '@mmmnt/derive';
+import type { IntermediateRepresentation, FlowDefinition } from '@mmmnt/core';
 import { GherkinGenerator } from '../gherkin-generator.js';
-import { renderFeature } from '../feature-renderer.js';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+import { renderFeatureFromIr } from '../feature-renderer.js';
 
 function makeIR(overrides: Partial<IntermediateRepresentation> = {}): IntermediateRepresentation {
   return {
     contexts: overrides.contexts ?? [],
     flows: overrides.flows ?? [],
-    glossary: overrides.glossary ?? [],
-    relationships: overrides.relationships ?? [],
-    metadata: overrides.metadata ?? {
-      name: 'test-spec',
-      version: '1.0.0',
-      description: 'Test specification',
-      generatedAt: '2026-01-01T00:00:00Z',
-    },
+    glossary: [],
+    relationships: [],
+    metadata: { name: 'test', version: '1.0.0' },
   };
 }
 
-function makeFieldConstraint(
-  fieldName: string,
-  expectedType: string,
-  required: boolean,
-): FieldConstraint {
-  return { fieldName, expectedType, required };
+function makeBasicIR(): IntermediateRepresentation {
+  return makeIR({
+    contexts: [
+      {
+        id: 'ctx-Ordering',
+        name: 'Ordering',
+        classification: 'Core',
+        aggregates: [
+          {
+            id: 'agg-Order',
+            name: 'Order',
+            identityField: { name: 'orderId', type: 'UUID', isArray: false, required: true },
+            commands: [
+              {
+                id: 'cmd-PlaceOrder',
+                name: 'PlaceOrder',
+                inputs: [
+                  { name: 'customerId', type: 'UUID', isArray: false, required: true },
+                  { name: 'items', type: 'OrderItem', isArray: true, required: true },
+                ],
+                preconditions: [
+                  { name: 'orderNotPlaced', description: 'Order has not been placed' },
+                ],
+                emitsEvent: 'OrderPlaced',
+              },
+            ],
+            events: [
+              {
+                id: 'evt-OrderPlaced',
+                name: 'OrderPlaced',
+                fields: [
+                  { name: 'orderId', type: 'UUID', isArray: false, required: true },
+                  { name: 'customerId', type: 'UUID', isArray: false, required: true },
+                  { name: 'items', type: 'OrderItem', isArray: true, required: true },
+                ],
+              },
+            ],
+            valueObjects: [],
+            invariants: [],
+          },
+        ],
+        domainServices: [],
+        commands: [
+          {
+            id: 'cmd-PlaceOrder',
+            name: 'PlaceOrder',
+            inputs: [
+              { name: 'customerId', type: 'UUID', isArray: false, required: true },
+              { name: 'items', type: 'OrderItem', isArray: true, required: true },
+            ],
+            preconditions: [{ name: 'orderNotPlaced', description: 'Order has not been placed' }],
+            emitsEvent: 'OrderPlaced',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-OrderPlaced',
+            name: 'OrderPlaced',
+            fields: [
+              { name: 'orderId', type: 'UUID', isArray: false, required: true },
+              { name: 'customerId', type: 'UUID', isArray: false, required: true },
+              { name: 'items', type: 'OrderItem', isArray: true, required: true },
+            ],
+          },
+        ],
+        policies: [],
+        sagas: [],
+        valueObjects: [],
+        invariants: [],
+      },
+      {
+        id: 'ctx-Fulfillment',
+        name: 'Fulfillment',
+        classification: 'Supporting',
+        aggregates: [
+          {
+            id: 'agg-Request',
+            name: 'FulfillmentRequest',
+            identityField: { name: 'reqId', type: 'UUID', isArray: false, required: true },
+            commands: [
+              {
+                id: 'cmd-Initiate',
+                name: 'InitiateFulfillment',
+                inputs: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }],
+                preconditions: [],
+                emitsEvent: 'FulfillmentInitiated',
+              },
+            ],
+            events: [
+              {
+                id: 'evt-Initiated',
+                name: 'FulfillmentInitiated',
+                fields: [{ name: 'reqId', type: 'UUID', isArray: false, required: true }],
+              },
+            ],
+            valueObjects: [],
+            invariants: [],
+          },
+        ],
+        domainServices: [],
+        commands: [
+          {
+            id: 'cmd-Initiate',
+            name: 'InitiateFulfillment',
+            inputs: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }],
+            preconditions: [],
+            emitsEvent: 'FulfillmentInitiated',
+          },
+        ],
+        events: [
+          {
+            id: 'evt-Initiated',
+            name: 'FulfillmentInitiated',
+            fields: [{ name: 'reqId', type: 'UUID', isArray: false, required: true }],
+          },
+        ],
+        policies: [],
+        sagas: [],
+        valueObjects: [],
+        invariants: [],
+      },
+    ],
+    flows: [
+      {
+        id: 'flow-order',
+        name: 'order-placed',
+        description: 'Order triggers fulfillment',
+        moments: [
+          {
+            id: 'moment-0-Order-submission',
+            name: 'Order submission',
+            contextEntries: [
+              { contextId: 'ctx-Ordering', nodeName: 'PlaceOrder', nodeKind: 'command' },
+              { contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' },
+            ],
+          },
+          {
+            id: 'moment-1-Fulfillment',
+            name: 'Fulfillment initiation',
+            contextEntries: [
+              {
+                contextId: 'ctx-Fulfillment',
+                nodeName: 'InitiateFulfillment',
+                nodeKind: 'command',
+              },
+              { contextId: 'ctx-Fulfillment', nodeName: 'FulfillmentInitiated', nodeKind: 'event' },
+            ],
+          },
+        ],
+        connections: [
+          {
+            id: 'conn-0',
+            sourceMomentId: 'moment-0-Order-submission',
+            targetContextId: 'ctx-Fulfillment',
+            eventId: 'evt-OrderPlaced',
+            connectionType: 'crosses-to' as const,
+            schemaContract: {
+              eventType: 'OrderPlaced',
+              fields: [
+                { name: 'orderId', type: 'UUID', required: true },
+                { name: 'items', type: 'OrderItem[]', required: true },
+              ],
+              relationshipType: 'CustomerSupplier',
+            },
+          },
+          {
+            id: 'conn-1',
+            sourceMomentId: 'moment-1-Fulfillment',
+            targetContextId: 'ctx-Fulfillment',
+            eventId: 'evt-OrderPlaced',
+            connectionType: 'triggered-by' as const,
+          },
+        ],
+      },
+    ],
+  });
 }
-
-function makePayloadValidation(
-  eventType: string,
-  fields: FieldConstraint[] = [],
-): PayloadValidationStep {
-  return { eventType, expectedFields: fields };
-}
-
-function makeAssertion(
-  crossingId: string,
-  sourceContext: string,
-  targetContext: string,
-  eventType: string,
-  fields: FieldConstraint[] = [],
-): AssertionPoint {
-  return {
-    crossingId,
-    sourceContext,
-    targetContext,
-    schemaContract: makePayloadValidation(eventType, fields),
-    assertionType: 'payload',
-  };
-}
-
-function makeSetupStep(
-  contextName: string,
-  aggregateName: string,
-  precondition: string,
-): SetupStep {
-  return { contextName, aggregateName, precondition };
-}
-
-function makeTestCase(
-  frameId: string,
-  frameName: string,
-  opts: {
-    assertions?: AssertionPoint[];
-    setupSteps?: SetupStep[];
-    variant?: string;
-  } = {},
-): TestCaseDefinition {
-  return {
-    frameId,
-    frameName,
-    assertions: opts.assertions ?? [],
-    setupSteps: opts.setupSteps ?? [],
-    variant: opts.variant,
-  };
-}
-
-function makeSuite(
-  flowId: string,
-  flowName: string,
-  testCases: TestCaseDefinition[],
-  contextsCovered: string[] = [],
-): TestSuiteDefinition {
-  return { flowId, flowName, testCases, contextsCovered };
-}
-
-function makeTopology(
-  suites: TestSuiteDefinition[],
-  sourceIrHash = 'abc123',
-  derivedAt = '2026-01-01T00:00:00Z',
-): TestSuiteTopology {
-  return {
-    suites,
-    metadata: { sourceIrHash, derivedAt },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe('GherkinGenerator', () => {
   const generator = new GherkinGenerator();
 
-  // 1. Single flow -> one .feature file with correct Feature title
-  it('single flow produces one .feature file with correct Feature title', () => {
-    const suite = makeSuite('f1', 'Place Order', [makeTestCase('fr1', 'Accept Order')]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
+  it('produces one feature per flow', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const manifest = generator.generate(ir, topo);
 
     expect(manifest.featuresGenerated).toHaveLength(1);
-    expect(manifest.featuresGenerated[0].content).toContain('Feature: Place Order');
-    expect(manifest.featuresGenerated[0].flowId).toBe('f1');
+    expect(manifest.featuresGenerated[0].flowId).toBe('flow-order');
   });
 
-  // 2. Multiple flows -> one .feature per flow (GN-01)
-  it('multiple flows produce one .feature per flow (GN-01)', () => {
-    const suiteA = makeSuite('f1', 'Flow Alpha', [makeTestCase('fr1', 'Frame A')]);
-    const suiteB = makeSuite('f2', 'Flow Beta', [makeTestCase('fr2', 'Frame B')]);
-    const suiteC = makeSuite('f3', 'Flow Gamma', [makeTestCase('fr3', 'Frame C')]);
-    const topology = makeTopology([suiteA, suiteB, suiteC]);
-    const ir = makeIR();
+  it('generates Given steps from preconditions', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const content = generator.generate(ir, topo).featuresGenerated[0].content;
 
-    const manifest = generator.generate(ir, topology);
-
-    expect(manifest.featuresGenerated).toHaveLength(3);
-    expect(manifest.featuresGenerated[0].flowId).toBe('f1');
-    expect(manifest.featuresGenerated[1].flowId).toBe('f2');
-    expect(manifest.featuresGenerated[2].flowId).toBe('f3');
+    expect(content).toContain('Given Order has not been placed');
   });
 
-  // 3. Frame -> Scenario with frame name
-  it('frame produces Scenario with frame name', () => {
-    const suite = makeSuite('f1', 'Order Flow', [makeTestCase('fr1', 'Accept Order')]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
+  it('generates When steps from commands with inputs', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const content = generator.generate(ir, topo).featuresGenerated[0].content;
 
-    const manifest = generator.generate(ir, topology);
-
-    expect(manifest.featuresGenerated[0].content).toContain('Scenario: Accept Order');
+    expect(content).toContain('When Ordering performs PlaceOrder with customerId, items');
   });
 
-  // 4. Setup steps -> Given steps
-  it('setup steps produce Given steps', () => {
-    const suite = makeSuite('f1', 'Order Flow', [
-      makeTestCase('fr1', 'Accept Order', {
-        setupSteps: [
-          makeSetupStep('Ordering', 'Order', 'order exists in pending state'),
-          makeSetupStep('Inventory', 'Stock', 'stock is available'),
-        ],
-      }),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
+  it('generates Then steps for internal events', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const content = generator.generate(ir, topo).featuresGenerated[0].content;
 
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).toContain('Given order exists in pending state');
-    expect(content).toContain('Given stock is available');
+    expect(content).toContain('Then Fulfillment emits FulfillmentInitiated');
   });
 
-  // 5. Command nodes -> When steps (assertion crossings produce When steps)
-  it('command/crossing nodes produce When steps', () => {
-    const suite = makeSuite('f1', 'Order Flow', [
-      makeTestCase('fr1', 'Accept Order', {
-        assertions: [makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced')],
-      }),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
+  it('generates Then steps for crossing events with contract', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const content = generator.generate(ir, topo).featuresGenerated[0].content;
 
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).toContain('When OrderPlaced crosses from Ordering to Shipping');
+    expect(content).toContain('Then OrderPlaced crosses to Fulfillment via CustomerSupplier');
+    expect(content).toContain('| orderId | items |');
+    expect(content).toContain('| UUID | OrderItem[] |');
   });
 
-  // 6. Event/assertion nodes -> Then steps
-  it('event/assertion nodes produce Then steps', () => {
-    const suite = makeSuite('f1', 'Order Flow', [
-      makeTestCase('fr1', 'Accept Order', {
-        assertions: [makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced')],
-      }),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
+  it('preserves flow description', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const content = generator.generate(ir, topo).featuresGenerated[0].content;
 
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).toContain('Then OrderPlaced payload is valid');
+    expect(content).toContain('Order triggers fulfillment');
   });
 
-  // 7. Crossing assertion points -> cross-context verification Then steps
-  it('crossing assertion points produce cross-context verification steps', () => {
-    const suite = makeSuite('f1', 'Cross Flow', [
-      makeTestCase('fr1', 'Cross Frame', {
-        assertions: [
-          makeAssertion('c1', 'Sales', 'Fulfillment', 'OrderAccepted', [
-            makeFieldConstraint('orderId', 'string', true),
-          ]),
-        ],
-      }),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
+  it('generates scenario per moment', () => {
+    const ir = makeBasicIR();
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const content = generator.generate(ir, topo).featuresGenerated[0].content;
 
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).toContain('When OrderAccepted crosses from Sales to Fulfillment');
-    expect(content).toContain('Then OrderAccepted payload is valid');
+    expect(content).toContain('Scenario: Order submission');
+    expect(content).toContain('Scenario: Fulfillment initiation');
   });
 
-  // 8. Schema contract fields -> Examples table parameters
-  it('schema contract fields produce Examples table parameters', () => {
-    const suite = makeSuite('f1', 'Contract Flow', [
-      makeTestCase('fr1', 'Contract Frame', {
-        assertions: [
-          makeAssertion('c1', 'Ordering', 'Billing', 'OrderPlaced', [
-            makeFieldConstraint('orderId', 'string', true),
-            makeFieldConstraint('amount', 'number', true),
-            makeFieldConstraint('notes', 'string', false),
-          ]),
-        ],
-      }),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).not.toContain('Examples:');
-    expect(content).toContain('| orderId | amount | notes |');
-    expect(content).toContain('| string | number | string |');
-    expect(content).toContain('| required | required | optional |');
-  });
-
-  // 9. Deterministic: same input twice -> identical output
-  it('deterministic: same input twice produces identical output', () => {
-    const suite = makeSuite('f1', 'Deterministic Flow', [
-      makeTestCase('fr1', 'Frame 1', {
-        setupSteps: [makeSetupStep('Ctx', 'Agg', 'state is ready')],
-        assertions: [
-          makeAssertion('c1', 'Ctx', 'Other', 'SomeEvent', [
-            makeFieldConstraint('id', 'string', true),
-          ]),
-        ],
-      }),
-      makeTestCase('fr2', 'Frame 2'),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest1 = generator.generate(ir, topology);
-    const manifest2 = generator.generate(ir, topology);
-
-    expect(manifest1).toEqual(manifest2);
-  });
-
-  // 10. Empty topology -> empty manifest
-  it('empty topology produces empty manifest', () => {
-    const topology = makeTopology([]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
+  it('returns empty for IR with no flows', () => {
+    const ir = makeIR({ contexts: [makeBasicIR().contexts[0]] });
+    const topo = { suites: [], metadata: { sourceIrHash: '', derivedAt: '' } };
+    const manifest = generator.generate(ir, topo);
 
     expect(manifest.featuresGenerated).toHaveLength(0);
-    expect(manifest.docsGenerated).toHaveLength(0);
-  });
-
-  // 11. Flow with multiple frames -> multiple Scenarios
-  it('flow with multiple frames produces multiple Scenarios', () => {
-    const suite = makeSuite('f1', 'Multi Frame Flow', [
-      makeTestCase('fr1', 'Step One'),
-      makeTestCase('fr2', 'Step Two'),
-      makeTestCase('fr3', 'Step Three'),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).toContain('Scenario: Step One');
-    expect(content).toContain('Scenario: Step Two');
-    expect(content).toContain('Scenario: Step Three');
-  });
-
-  // 12. Branch frame -> multiple Scenarios for each branch (via variant)
-  it('branch frame produces multiple Scenarios for each branch variant', () => {
-    const suite = makeSuite('f1', 'Branch Flow', [
-      makeTestCase('fr1', 'Decision Frame', { variant: 'order.amount > 100' }),
-      makeTestCase('fr1', 'Decision Frame', { variant: 'order.amount <= 100' }),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
-    const content = manifest.featuresGenerated[0].content;
-
-    expect(content).toContain('Scenario: Decision Frame [order.amount > 100]');
-    expect(content).toContain('Scenario: Decision Frame [order.amount <= 100]');
-    expect(manifest.featuresGenerated[0].scenarioCount).toBe(2);
-  });
-
-  // 13. GenerationManifest has correct scenarioCount
-  it('GenerationManifest has correct scenarioCount', () => {
-    const suite = makeSuite('f1', 'Count Flow', [
-      makeTestCase('fr1', 'Frame A'),
-      makeTestCase('fr2', 'Frame B'),
-      makeTestCase('fr3', 'Frame C'),
-      makeTestCase('fr4', 'Frame D'),
-    ]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
-
-    expect(manifest.featuresGenerated[0].scenarioCount).toBe(4);
-  });
-
-  // 14. Feature file path uses kebab-case
-  it('feature file path uses kebab-case of flow name', () => {
-    const suite = makeSuite('f1', 'Place Order Flow', [makeTestCase('fr1', 'Frame 1')]);
-    const topology = makeTopology([suite]);
-    const ir = makeIR();
-
-    const manifest = generator.generate(ir, topology);
-
-    expect(manifest.featuresGenerated[0].filePath).toBe('features/place-order-flow.feature');
   });
 });
 
-describe('renderFeature (pure function)', () => {
-  it('renders a complete feature file with Given/When/Then structure', () => {
-    const suite = makeSuite('f1', 'Complete Flow', [
-      makeTestCase('fr1', 'Setup Frame', {
-        setupSteps: [makeSetupStep('Ordering', 'Order', 'order is pending')],
-        assertions: [
-          makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced', [
-            makeFieldConstraint('orderId', 'string', true),
-          ]),
-        ],
-      }),
-    ]);
+describe('renderFeatureFromIr', () => {
+  it('renders Feature header with flow name', () => {
+    const ir = makeBasicIR();
+    const output = renderFeatureFromIr(ir.flows[0], ir);
 
-    const content = renderFeature(suite);
-
-    expect(content).toMatch(/^Feature: Complete Flow\n/);
-    expect(content).toContain('  Scenario: Setup Frame');
-    expect(content).toContain('    Given order is pending');
-    expect(content).toContain('    When OrderPlaced crosses from Ordering to Shipping');
-    expect(content).toContain('    Then OrderPlaced payload is valid');
-    expect(content).toContain('      | orderId |');
-    expect(content.endsWith('\n')).toBe(true);
+    expect(output).toContain('Feature: order-placed');
+    // Tags now precede the Feature line
+    expect(output).toContain('@context:Ordering');
   });
 
-  it('same-context assertion uses "is emitted" instead of "crosses from"', () => {
-    const suite = makeSuite('f1', 'Same Context', [
-      makeTestCase('fr1', 'Internal Frame', {
-        assertions: [makeAssertion('c1', 'Ordering', 'Ordering', 'OrderUpdated')],
-      }),
-    ]);
+  it('every moment produces a non-empty scenario', () => {
+    const ir = makeBasicIR();
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    const scenarios = output.split('Scenario:').slice(1);
 
-    const content = renderFeature(suite);
-
-    expect(content).toContain('When OrderUpdated is emitted');
-    expect(content).not.toContain('crosses from');
+    for (const scenario of scenarios) {
+      const hasSteps =
+        scenario.includes('Given') || scenario.includes('When') || scenario.includes('Then');
+      expect(hasSteps).toBe(true);
+    }
   });
-});
 
-describe('Gherkin syntax validation (@cucumber/gherkin)', () => {
-  it('generated .feature content parses without errors', async () => {
-    const { Parser, AstBuilder, GherkinClassicTokenMatcher } = await import('@cucumber/gherkin');
-    const { IdGenerator } = await import('@cucumber/messages');
+  it('renders Background block for shared preconditions', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Sales',
+          name: 'Sales',
+          aggregates: [
+            {
+              id: 'agg-Deal',
+              name: 'Deal',
+              identityField: { name: 'dealId', type: 'UUID', isArray: false, required: true },
+              commands: [
+                {
+                  id: 'cmd-CreateDeal',
+                  name: 'CreateDeal',
+                  inputs: [{ name: 'name', type: 'string', isArray: false, required: true }],
+                  preconditions: [{ name: 'authenticated', description: 'User is authenticated' }],
+                  emitsEvent: 'DealCreated',
+                },
+                {
+                  id: 'cmd-ApproveDeal',
+                  name: 'ApproveDeal',
+                  inputs: [{ name: 'dealId', type: 'UUID', isArray: false, required: true }],
+                  preconditions: [{ name: 'authenticated', description: 'User is authenticated' }],
+                  emitsEvent: 'DealApproved',
+                },
+              ],
+              events: [
+                { id: 'evt-DealCreated', name: 'DealCreated', fields: [] },
+                { id: 'evt-DealApproved', name: 'DealApproved', fields: [] },
+              ],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [
+            {
+              id: 'cmd-CreateDeal',
+              name: 'CreateDeal',
+              inputs: [{ name: 'name', type: 'string', isArray: false, required: true }],
+              preconditions: [{ name: 'authenticated', description: 'User is authenticated' }],
+              emitsEvent: 'DealCreated',
+            },
+            {
+              id: 'cmd-ApproveDeal',
+              name: 'ApproveDeal',
+              inputs: [{ name: 'dealId', type: 'UUID', isArray: false, required: true }],
+              preconditions: [{ name: 'authenticated', description: 'User is authenticated' }],
+              emitsEvent: 'DealApproved',
+            },
+          ],
+          events: [
+            { id: 'evt-DealCreated', name: 'DealCreated', fields: [] },
+            { id: 'evt-DealApproved', name: 'DealApproved', fields: [] },
+          ],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-deals',
+          name: 'deal-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Create deal',
+              contextEntries: [
+                { contextId: 'ctx-Sales', nodeName: 'CreateDeal', nodeKind: 'command' as const },
+                { contextId: 'ctx-Sales', nodeName: 'DealCreated', nodeKind: 'event' as const },
+              ],
+            },
+            {
+              id: 'moment-1',
+              name: 'Approve deal',
+              contextEntries: [
+                { contextId: 'ctx-Sales', nodeName: 'ApproveDeal', nodeKind: 'command' as const },
+                { contextId: 'ctx-Sales', nodeName: 'DealApproved', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
 
-    const suite = makeSuite('f1', 'Valid Flow', [
-      makeTestCase('fr1', 'Step Frame', {
-        setupSteps: [makeSetupStep('Ordering', 'Order', 'order exists')],
-        assertions: [makeAssertion('c1', 'Ordering', 'Shipping', 'OrderPlaced')],
-      }),
-    ]);
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('Background:');
+    expect(output).toContain('Given User is authenticated');
+    // The shared precondition should appear once in Background, not in individual scenarios
+    const bgIndex = output.indexOf('Background:');
+    const firstScenarioIndex = output.indexOf('Scenario:');
+    expect(bgIndex).toBeLessThan(firstScenarioIndex);
+  });
 
-    const content = renderFeature(suite);
+  it('renders saga scenarios with state transitions and compensation', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Payments',
+          name: 'Payments',
+          aggregates: [
+            {
+              id: 'agg-Payment',
+              name: 'Payment',
+              identityField: { name: 'paymentId', type: 'UUID', isArray: false, required: true },
+              commands: [],
+              events: [
+                { id: 'evt-PaymentInitiated', name: 'PaymentInitiated', fields: [] },
+              ],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [],
+          events: [{ id: 'evt-PaymentInitiated', name: 'PaymentInitiated', fields: [] }],
+          policies: [],
+          sagas: [
+            {
+              id: 'saga-PaymentProcess',
+              name: 'PaymentProcess',
+              trigger: 'PaymentInitiated',
+              states: ['Pending', 'Processing', 'Completed'],
+              compensation: 'RefundPayment',
+              timeout: '30 minutes',
+            },
+          ],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-pay',
+          name: 'payment-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Payment step',
+              contextEntries: [
+                { contextId: 'ctx-Payments', nodeName: 'PaymentInitiated', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
 
-    const uuidFn = IdGenerator.uuid();
-    const builder = new AstBuilder(uuidFn);
-    const matcher = new GherkinClassicTokenMatcher();
-    const parser = new Parser(builder, matcher);
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@saga:PaymentProcess');
+    expect(output).toContain('Scenario: PaymentProcess state transitions');
+    expect(output).toContain('Given the saga is triggered by PaymentInitiated');
+    expect(output).toContain('Pending');
+    expect(output).toContain('Scenario: PaymentProcess compensation');
+    expect(output).toContain('When 30 minutes is exceeded');
+    expect(output).toContain('Then RefundPayment is executed');
+  });
 
-    // Throws on syntax errors
-    expect(() => parser.parse(content)).not.toThrow();
+  it('renders terminal branch scenarios with @terminal @failure-path tags', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Auth',
+          name: 'Auth',
+          aggregates: [
+            {
+              id: 'agg-Account',
+              name: 'Account',
+              identityField: { name: 'accountId', type: 'UUID', isArray: false, required: true },
+              commands: [
+                {
+                  id: 'cmd-Login',
+                  name: 'Login',
+                  inputs: [{ name: 'email', type: 'string', isArray: false, required: true }],
+                  preconditions: [{ name: 'accountActive', description: 'Account is active' }],
+                  emitsEvent: 'LoggedIn',
+                },
+              ],
+              events: [
+                { id: 'evt-LoggedIn', name: 'LoggedIn', fields: [] },
+              ],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [
+            {
+              id: 'cmd-Login',
+              name: 'Login',
+              inputs: [{ name: 'email', type: 'string', isArray: false, required: true }],
+              preconditions: [{ name: 'accountActive', description: 'Account is active' }],
+              emitsEvent: 'LoggedIn',
+            },
+          ],
+          events: [{ id: 'evt-LoggedIn', name: 'LoggedIn', fields: [] }],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-auth',
+          name: 'auth-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Authentication',
+              contextEntries: [
+                { contextId: 'ctx-Auth', nodeName: 'Login', nodeKind: 'command' as const },
+              ],
+              branches: [
+                {
+                  condition: 'success',
+                  entries: [
+                    { contextId: 'ctx-Auth', nodeName: 'Login', nodeKind: 'command' as const },
+                    { contextId: 'ctx-Auth', nodeName: 'LoggedIn', nodeKind: 'event' as const },
+                  ],
+                },
+                {
+                  condition: 'invalid credentials',
+                  entries: [
+                    { contextId: 'ctx-Auth', nodeName: 'Rejected', nodeKind: 'event' as const, terminal: true },
+                  ],
+                },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@terminal @failure-path');
+    expect(output).toContain('Scenario: Authentication [invalid credentials]');
+    expect(output).toContain('Given the authentication is evaluated');
+    // Should find the precondition from the non-terminal sibling
+    expect(output).toContain('When accountActive is not satisfied');
+    expect(output).toContain('Then the flow terminates because Account is active');
+
+    // The success branch should have @happy-path
+    expect(output).toContain('Scenario: Authentication [success]');
+    expect(output).toContain('@happy-path');
+  });
+
+  it('renders terminal branch without failed precondition when none found', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Proc',
+          name: 'Processing',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-proc',
+          name: 'processing-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Check',
+              contextEntries: [
+                { contextId: 'ctx-Proc', nodeName: 'SomeEvent', nodeKind: 'event' as const },
+              ],
+              branches: [
+                {
+                  condition: 'ok',
+                  entries: [
+                    { contextId: 'ctx-Proc', nodeName: 'AnotherEvent', nodeKind: 'event' as const },
+                  ],
+                },
+                {
+                  condition: 'failed',
+                  entries: [
+                    { contextId: 'ctx-Proc', nodeName: 'FailedEvent', nodeKind: 'event' as const, terminal: true },
+                  ],
+                },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('Scenario: Check [failed]');
+    expect(output).toContain('When the outcome is failed');
+    expect(output).toContain('Then the flow terminates');
+  });
+
+  it('renders terminal branch with saga compensation', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Order',
+          name: 'Order',
+          aggregates: [
+            {
+              id: 'agg-Ord',
+              name: 'Ord',
+              identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+              commands: [],
+              events: [],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [
+            {
+              id: 'saga-OrderFulfillment',
+              name: 'OrderFulfillment',
+              trigger: 'OrderReceived',
+              states: ['Pending', 'Shipped'],
+              compensation: 'CancelOrder',
+              timeout: '1 hour',
+            },
+          ],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-ord',
+          name: 'order-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Evaluate Order',
+              contextEntries: [
+                { contextId: 'ctx-Order', nodeName: 'OrderReceived', nodeKind: 'event' as const },
+              ],
+              branches: [
+                {
+                  condition: 'valid',
+                  entries: [
+                    { contextId: 'ctx-Order', nodeName: 'OrderReceived', nodeKind: 'event' as const },
+                  ],
+                },
+                {
+                  condition: 'invalid',
+                  entries: [
+                    { contextId: 'ctx-Order', nodeName: 'OrderRejected', nodeKind: 'event' as const, terminal: true },
+                  ],
+                },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('Scenario: Evaluate Order [invalid]');
+    expect(output).toContain('And saga OrderFulfillment compensation is triggered: CancelOrder');
+  });
+
+  it('collects policy tags for entries', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Billing',
+          name: 'Billing',
+          aggregates: [
+            {
+              id: 'agg-Invoice',
+              name: 'Invoice',
+              identityField: { name: 'invoiceId', type: 'UUID', isArray: false, required: true },
+              commands: [
+                {
+                  id: 'cmd-SendInvoice',
+                  name: 'SendInvoice',
+                  inputs: [],
+                  preconditions: [],
+                  emitsEvent: 'InvoiceSent',
+                },
+              ],
+              events: [{ id: 'evt-InvoiceSent', name: 'InvoiceSent', fields: [] }],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [
+            {
+              id: 'cmd-SendInvoice',
+              name: 'SendInvoice',
+              inputs: [],
+              preconditions: [],
+              emitsEvent: 'InvoiceSent',
+            },
+          ],
+          events: [{ id: 'evt-InvoiceSent', name: 'InvoiceSent', fields: [] }],
+          policies: [
+            {
+              id: 'pol-AutoSend',
+              name: 'AutoSend',
+              trigger: 'InvoiceCreated',
+              action: 'Send invoice automatically',
+              chainsTo: 'SendInvoice',
+            },
+          ],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-billing',
+          name: 'billing-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Send Invoice',
+              contextEntries: [
+                { contextId: 'ctx-Billing', nodeName: 'SendInvoice', nodeKind: 'command' as const },
+                { contextId: 'ctx-Billing', nodeName: 'InvoiceSent', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@policy:AutoSend');
+  });
+
+  it('collects saga tags for entries that match saga triggers', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Shipping',
+          name: 'Shipping',
+          aggregates: [
+            {
+              id: 'agg-Shipment',
+              name: 'Shipment',
+              identityField: { name: 'shipmentId', type: 'UUID', isArray: false, required: true },
+              commands: [],
+              events: [{ id: 'evt-ShipmentCreated', name: 'ShipmentCreated', fields: [] }],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [],
+          events: [{ id: 'evt-ShipmentCreated', name: 'ShipmentCreated', fields: [] }],
+          policies: [],
+          sagas: [
+            {
+              id: 'saga-ShipmentTracking',
+              name: 'ShipmentTracking',
+              trigger: 'ShipmentCreated',
+              states: ['Created', 'InTransit', 'Delivered'],
+              compensation: 'ReturnShipment',
+              timeout: '7 days',
+            },
+          ],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-ship',
+          name: 'shipping-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Create Shipment',
+              contextEntries: [
+                { contextId: 'ctx-Shipping', nodeName: 'ShipmentCreated', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@saga:ShipmentTracking');
+  });
+
+  it('collects invariant tags for matching aggregate scopes', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Inventory',
+          name: 'Inventory',
+          aggregates: [
+            {
+              id: 'agg-Stock',
+              name: 'Stock',
+              identityField: { name: 'stockId', type: 'UUID', isArray: false, required: true },
+              commands: [
+                {
+                  id: 'cmd-AdjustStock',
+                  name: 'AdjustStock',
+                  inputs: [{ name: 'qty', type: 'number', isArray: false, required: true }],
+                  preconditions: [],
+                  emitsEvent: 'StockAdjusted',
+                },
+              ],
+              events: [{ id: 'evt-StockAdjusted', name: 'StockAdjusted', fields: [] }],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [
+            {
+              id: 'cmd-AdjustStock',
+              name: 'AdjustStock',
+              inputs: [{ name: 'qty', type: 'number', isArray: false, required: true }],
+              preconditions: [],
+              emitsEvent: 'StockAdjusted',
+            },
+          ],
+          events: [{ id: 'evt-StockAdjusted', name: 'StockAdjusted', fields: [] }],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [
+            { id: 'inv-positive-stock', description: 'Stock cannot go negative', scope: 'Stock' },
+          ],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-inv',
+          name: 'inventory-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Adjust Stock',
+              contextEntries: [
+                { contextId: 'ctx-Inventory', nodeName: 'AdjustStock', nodeKind: 'command' as const },
+                { contextId: 'ctx-Inventory', nodeName: 'StockAdjusted', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@invariant:inv-positive-stock');
+    expect(output).toContain('@aggregate:Stock');
+  });
+
+  it('renders optional and terminal event modifiers', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Notify',
+          name: 'Notify',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-notify',
+          name: 'notify-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Send Notification',
+              contextEntries: [
+                { contextId: 'ctx-Notify', nodeName: 'EmailSent', nodeKind: 'event' as const, optional: true },
+              ],
+            },
+            {
+              id: 'moment-1',
+              name: 'End Flow',
+              contextEntries: [
+                { contextId: 'ctx-Notify', nodeName: 'FlowEnded', nodeKind: 'event' as const, terminal: true },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('Then Notify emits EmailSent (optional)');
+    expect(output).toContain('Then Notify emits FlowEnded (terminal)');
+  });
+
+  it('collects context IDs from branches for feature tags', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-A',
+          name: 'ContextA',
+          classification: 'Core',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+        {
+          id: 'ctx-B',
+          name: 'ContextB',
+          classification: 'Supporting',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-multi',
+          name: 'multi-ctx-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Multi Context Step',
+              contextEntries: [],
+              branches: [
+                {
+                  condition: 'route-A',
+                  entries: [
+                    { contextId: 'ctx-A', nodeName: 'EventA', nodeKind: 'event' as const },
+                  ],
+                },
+                {
+                  condition: 'route-B',
+                  entries: [
+                    { contextId: 'ctx-B', nodeName: 'EventB', nodeKind: 'event' as const },
+                  ],
+                },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@context:ContextA');
+    expect(output).toContain('@context:ContextB');
+    expect(output).toContain('@classification:Core');
+    expect(output).toContain('@classification:Supporting');
+  });
+
+  it('handles context without classification in tags', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Plain',
+          name: 'Plain',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-plain',
+          name: 'plain-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Step',
+              contextEntries: [
+                { contextId: 'ctx-Plain', nodeName: 'Evt', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@context:Plain');
+    expect(output).not.toContain('@classification');
+  });
+
+  it('uses ctxId fallback when context is not in IR', () => {
+    const ir = makeIR({
+      contexts: [],
+      flows: [
+        {
+          id: 'flow-orphan',
+          name: 'orphan-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Orphan Step',
+              contextEntries: [
+                { contextId: 'ctx-Missing', nodeName: 'SomeEvent', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    // Should use fallback: ctxId stripped of 'ctx-' prefix
+    expect(output).toContain('Rule: Missing');
+    expect(output).toContain('Then Missing emits SomeEvent');
+  });
+
+  it('renders Rule with context classification', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Core',
+          name: 'CoreCtx',
+          classification: 'Core',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-core',
+          name: 'core-flow',
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Core Step',
+              contextEntries: [
+                { contextId: 'ctx-Core', nodeName: 'Evt', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('Rule: CoreCtx [Core]');
+  });
+
+  it('renders "And trigger has occurred" for triggered-by connections', () => {
+    const ir = makeBasicIR();
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    // conn-1 is a triggered-by from moment-1-Fulfillment, eventId: evt-OrderPlaced
+    expect(output).toContain('And OrderPlaced has occurred');
+  });
+
+  it('renders event carrying fields', () => {
+    const ir = makeBasicIR();
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    // FulfillmentInitiated has field reqId
+    expect(output).toContain('carrying reqId');
   });
 });

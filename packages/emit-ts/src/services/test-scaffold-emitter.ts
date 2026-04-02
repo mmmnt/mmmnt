@@ -73,7 +73,7 @@ function generateAssertionIt(assertion: AssertionPoint): string {
 
 function generateTestCase(testCase: TestCaseDefinition): string {
   const lines: string[] = [];
-  lines.push(`  describe('${escapeStringLiteral(testCase.frameName)}', () => {`);
+  lines.push(`  describe('${escapeStringLiteral(testCase.momentName)}', () => {`);
 
   if (testCase.setupSteps.length > 0) {
     lines.push(`    beforeEach(() => {`);

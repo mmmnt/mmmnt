@@ -69,16 +69,16 @@ const sampleIR: IntermediateRepresentation = {
     {
       id: 'flow-order-to-ship',
       name: 'Order to Ship',
-      frames: [
+      moments: [
         {
-          id: 'frame-place',
+          id: 'moment-place',
           name: 'Place Order',
           contextEntries: [
             { contextId: 'ctx-ordering', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
           ],
         },
         {
-          id: 'frame-ship',
+          id: 'moment-ship',
           name: 'Ship Order',
           contextEntries: [
             { contextId: 'ctx-shipping', nodeName: 'ShipOrder', nodeKind: 'command' as const },
@@ -88,7 +88,7 @@ const sampleIR: IntermediateRepresentation = {
       connections: [
         {
           id: 'conn-order-ship',
-          sourceFrameId: 'frame-place',
+          sourceMomentId: 'moment-place',
           targetContextId: 'ctx-shipping',
           eventId: 'evt-order-placed',
           connectionType: 'crosses-to' as const,
@@ -124,8 +124,8 @@ const sampleTopology: TestSuiteTopology = {
       contextsCovered: ['ctx-ordering', 'ctx-shipping'],
       testCases: [
         {
-          frameId: 'frame-place',
-          frameName: 'Place Order',
+          momentId: 'moment-place',
+          momentName: 'Place Order',
           setupSteps: [
             { contextName: 'Ordering', aggregateName: 'Order', precondition: 'order exists' },
           ],
@@ -146,8 +146,8 @@ const sampleTopology: TestSuiteTopology = {
           ],
         },
         {
-          frameId: 'frame-ship',
-          frameName: 'Ship Order',
+          momentId: 'moment-ship',
+          momentName: 'Ship Order',
           setupSteps: [],
           assertions: [],
         },
@@ -227,9 +227,9 @@ describe('Harness API Integration', () => {
     const divergentFlow = {
       ...sampleIR.flows[0],
       id: 'flow-divergent',
-      frames: [
+      moments: [
         {
-          id: 'frame-ghost',
+          id: 'moment-ghost',
           name: 'Ghost Frame',
           contextEntries: [
             { contextId: 'ctx-nonexistent', nodeName: 'GhostCmd', nodeKind: 'command' as const },
@@ -242,7 +242,7 @@ describe('Harness API Integration', () => {
 
     expect(result.finalStateMatch).toBe(false);
     expect(result.divergencePoints.length).toBeGreaterThanOrEqual(1);
-    expect(result.divergencePoints[0].frameIndex).toBe(0);
+    expect(result.divergencePoints[0].momentIndex).toBe(0);
     expect(result.divergencePoints[0].eventThatCaused).toBe('GhostCmd');
   });
 

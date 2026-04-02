@@ -1,3 +1,0 @@
-Watching for changes in /tmp/tmp.YgH2GFi6fg...
-exit: 124 (124=timeout, expected)
-ASSERT: outputs watching message: PASS
