@@ -3,6 +3,7 @@
 // Equivalent to the Facet simulation scenario "Happy Path: Scheduled Veterinary Visit"
 
 context "Reception" [Core]
+  description "Manages patient check-in, intake validation, and registration for veterinary visits"
 
   aggregate "PatientIntake"
     identity intakeId: UUID
@@ -57,6 +58,7 @@ context "Reception" [Core]
     scope PatientIntake
 
 context "Clinical" [Core]
+  description "Handles triage, diagnosis, clinical assessment, and treatment planning for patient visits"
 
   aggregate "VisitRecord"
     identity visitId: UUID
@@ -203,6 +205,7 @@ context "Clinical" [Core]
     chains-to CreateTreatmentPlan
 
 context "Billing" [Supporting]
+  description "Generates invoices and verifies billing after treatment is confirmed"
 
   aggregate "Invoice"
     identity invoiceId: UUID
@@ -242,6 +245,7 @@ context "Billing" [Supporting]
     chains-to GenerateInvoice
 
 context "Records" [Supporting]
+  description "Creates and finalizes discharge records after billing verification"
 
   aggregate "DischargeRecord"
     identity dischargeId: UUID

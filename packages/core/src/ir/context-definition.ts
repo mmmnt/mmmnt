@@ -2,6 +2,7 @@ export interface ContextDefinition {
   id: string;
   name: string;
   classification?: 'Core' | 'Supporting' | 'Generic' | 'Terminal';
+  description?: string;
   aggregates: AggregateDefinition[];
   domainServices: DomainServiceDefinition[];
   commands: CommandDefinition[];

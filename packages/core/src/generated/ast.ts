@@ -197,6 +197,7 @@ export interface ContextDeclaration extends langium.AstNode {
     readonly $container: MomentFile;
     readonly $type: 'ContextDeclaration';
     classification?: Classification;
+    description?: string;
     members: Array<ContextMember>;
     name: string;
 }
@@ -671,6 +672,7 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     name: ContextDeclaration,
                     properties: [
                         { name: 'classification' },
+                        { name: 'description' },
                         { name: 'members', defaultValue: [] },
                         { name: 'name' }
                     ]

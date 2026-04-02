@@ -13,6 +13,7 @@ entry MomentFile:
 
 ContextDeclaration:
     'context' name=STRING classification=Classification?
+        ('description' description=STRING)?
         members+=ContextMember*;
 
 ContextMember:

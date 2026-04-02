@@ -124,6 +124,7 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
       | 'Generic'
       | 'Terminal'
       | undefined,
+    description: ctx.description ? unquote(ctx.description) : undefined,
     aggregates,
     domainServices,
     commands: allCommands,
