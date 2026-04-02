@@ -47,11 +47,7 @@ export async function runImportFromSift(argv: string[]): Promise<ImportResult> {
   return executeImport(resolvedPath, values['output-dir'], values.json === true);
 }
 
-function executeImport(
-  resolvedPath: string,
-  outputDir: string | undefined,
-  asJson: boolean,
-): ImportResult {
+function executeImport(resolvedPath: string, outputDir: string | undefined, asJson: boolean): ImportResult {
   let content: string;
   try {
     content = readFileSync(resolvedPath, 'utf-8');
@@ -60,54 +56,61 @@ function executeImport(
     return fail(`Error: Failed to read ${resolvedPath}: ${msg}`);
   }
 
-  let siftInput: ReturnType<typeof JSON.parse>;
+  let raw: unknown;
   try {
-    siftInput = JSON.parse(content);
+    raw = JSON.parse(content);
   } catch {
     return fail('Error: Invalid JSON in Sift specification file');
   }
 
-  const typedInput = siftInput as SiftImportInput;
+  const validation = validateSiftInput(raw);
+  if (validation) return fail(validation);
+
+  const typedInput = raw as SiftImportInput;
   const importer = new SiftSpecificationImporter();
   const result = importer.import(typedInput);
 
-  if (result.diagnostics.length > 0) {
-    const errors = result.diagnostics.filter((d) => d.severity === 'error');
-    if (errors.length > 0) {
-      return {
-        success: false,
-        message: `Import failed with ${errors.length} error(s)`,
-        diagnostics: result.diagnostics,
-        filesWritten: 0,
-      };
-    }
+  if (result.diagnostics.some((d) => d.severity === 'error')) {
+    const errorCount = result.diagnostics.filter((d) => d.severity === 'error').length;
+    return { success: false, message: `Import failed with ${errorCount} error(s)`, diagnostics: result.diagnostics, filesWritten: 0 };
   }
 
   const outDir = resolve(outputDir ?? dirname(resolvedPath));
   const filesWritten = writeOutputFiles(importer, typedInput, outDir);
-  writeFingerprint(siftInput, result, content, outDir);
+  writeFingerprint(typedInput, result, content, outDir);
 
   return buildResult(result, filesWritten, asJson);
 }
 
-function writeOutputFiles(
-  importer: SiftSpecificationImporter,
-  siftInput: SiftImportInput,
-  outDir: string,
-): number {
-  let count = 0;
+function validateSiftInput(raw: unknown): string | null {
+  if (typeof raw !== 'object' || raw === null) return 'Error: Sift spec must be a JSON object';
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.buildingBlocks)) return 'Error: Sift spec missing "buildingBlocks" array';
+  if (!Array.isArray(obj.timelineEvents)) return 'Error: Sift spec missing "timelineEvents" array';
+  return null;
+}
 
-  for (const block of siftInput.buildingBlocks) {
-    const fileName = block.contextName.toLowerCase().replace(/\s+/g, '-');
-    const filePath = join(outDir, 'contexts', `${fileName}.moment`);
+function sanitizeFileName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function writeOutputFiles(importer: SiftSpecificationImporter, input: SiftImportInput, outDir: string): number {
+  let count = 0;
+  const momentDir = join(outDir, '.moment');
+
+  for (const block of input.buildingBlocks) {
+    const fileName = sanitizeFileName(block.contextName);
+    const filePath = join(momentDir, 'contexts', `${fileName}.moment`);
+    assertPathWithin(filePath, momentDir);
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, importer.generateContextFile(block));
     count++;
   }
 
-  for (const event of siftInput.timelineEvents) {
-    const fileName = event.flowName.toLowerCase().replace(/\s+/g, '-');
-    const filePath = join(outDir, 'flows', `${fileName}.moment`);
+  for (const event of input.timelineEvents) {
+    const fileName = sanitizeFileName(event.flowName);
+    const filePath = join(momentDir, 'flows', `${fileName}.moment`);
+    assertPathWithin(filePath, momentDir);
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, importer.generateFlowFile(event));
     count++;
@@ -116,46 +119,53 @@ function writeOutputFiles(
   return count;
 }
 
+function assertPathWithin(filePath: string, baseDir: string): void {
+  const resolved = resolve(filePath);
+  if (!resolved.startsWith(resolve(baseDir))) {
+    throw new Error(`Path traversal detected: ${filePath} escapes ${baseDir}`);
+  }
+}
+
 function writeFingerprint(
-  siftInput: Record<string, unknown>,
+  siftInput: SiftImportInput,
   result: ReturnType<SiftSpecificationImporter['import']>,
   rawContent: string,
   outDir: string,
 ): void {
+  const contentHash = createHash('sha256').update(rawContent).digest('hex');
+  const fpDir = join(outDir, '.moment');
+  const fpPath = join(fpDir, '.upstream-fingerprint.json');
+
+  // Skip write if content hasn't changed (idempotent, EXIT-C4)
+  if (existsSync(fpPath)) {
+    try {
+      const existing = JSON.parse(readFileSync(fpPath, 'utf-8')) as { contentHash?: unknown };
+      if (existing.contentHash === contentHash) return;
+    } catch {
+      // Unreadable fingerprint — overwrite below
+    }
+  }
+
   const fingerprint = {
     specificationId: String(siftInput.sourceProduct ?? 'unknown'),
-    contentHash: createHash('sha256').update(rawContent).digest('hex'),
+    contentHash,
     importedAt: new Date().toISOString(),
     boundedContextCount: result.contextFiles.length,
     aggregateCount: countAggregates(siftInput),
     domainEventCount: countDomainEvents(siftInput),
   };
 
-  const fpDir = join(outDir, '.moment');
   mkdirSync(fpDir, { recursive: true });
-  writeFileSync(join(fpDir, '.upstream-fingerprint.json'), JSON.stringify(fingerprint, null, 2));
+  writeFileSync(fpPath, JSON.stringify(fingerprint, null, 2));
 }
 
-function countAggregates(input: Record<string, unknown>): number {
-  const blocks = input.buildingBlocks;
-  if (!Array.isArray(blocks)) return 0;
-  return blocks.reduce((sum: number, b: Record<string, unknown>) => {
-    const aggs = b.aggregates;
-    return sum + (Array.isArray(aggs) ? aggs.length : 0);
-  }, 0);
+function countAggregates(input: SiftImportInput): number {
+  return input.buildingBlocks.reduce((sum, b) => sum + b.aggregates.length, 0);
 }
 
-function countDomainEvents(input: Record<string, unknown>): number {
-  const blocks = input.buildingBlocks;
-  if (!Array.isArray(blocks)) return 0;
-  return blocks.reduce((sum: number, b: Record<string, unknown>) => {
-    const aggs = b.aggregates;
-    if (!Array.isArray(aggs)) return sum;
-    return sum + aggs.reduce((s: number, a: Record<string, unknown>) => {
-      const events = a.events;
-      return s + (Array.isArray(events) ? events.length : 0);
-    }, 0);
-  }, 0);
+function countDomainEvents(input: SiftImportInput): number {
+  return input.buildingBlocks.reduce((sum, b) =>
+    sum + b.aggregates.reduce((s, a) => s + a.events.length, 0), 0);
 }
 
 function buildResult(
@@ -163,17 +173,17 @@ function buildResult(
   filesWritten: number,
   asJson: boolean,
 ): ImportResult {
-  const summary = {
-    contexts: result.contextFiles.length,
-    flows: result.flowFiles.length,
-    filesWritten,
-  };
+  const summary = { contexts: result.contextFiles.length, flows: result.flowFiles.length, filesWritten };
 
   if (asJson) {
     const json = JSON.stringify(summary, null, 2);
     return { success: true, message: json, diagnostics: result.diagnostics, filesWritten, json };
   }
 
-  const msg = `Imported: ${summary.contexts} context(s), ${summary.flows} flow(s), ${filesWritten} file(s) written`;
-  return { success: true, message: msg, diagnostics: result.diagnostics, filesWritten };
+  return {
+    success: true,
+    message: `Imported: ${summary.contexts} context(s), ${summary.flows} flow(s), ${filesWritten} file(s) written`,
+    diagnostics: result.diagnostics,
+    filesWritten,
+  };
 }

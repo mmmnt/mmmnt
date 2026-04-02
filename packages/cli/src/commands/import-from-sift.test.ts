@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
-import { mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { runImportFromSift } from './import-from-sift.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('moment import --from-sift', () => {
-  it('imports valid Sift spec and creates .moment files (EXIT-B1)', async () => {
+  it('imports valid Sift spec and creates .moment files under .moment/ (EXIT-B1)', async () => {
     const outDir = join(tmpBase, 'out1');
     mkdirSync(outDir, { recursive: true });
 
@@ -23,6 +23,12 @@ describe('moment import --from-sift', () => {
     expect(result.success).toBe(true);
     expect(result.filesWritten).toBeGreaterThan(0);
     expect(result.message).toContain('Imported');
+
+    // Verify files written under .moment/contexts/
+    const contextFile = join(outDir, '.moment', 'contexts', 'ordering.moment');
+    expect(existsSync(contextFile)).toBe(true);
+    const content = readFileSync(contextFile, 'utf-8');
+    expect(content).toContain('context "Ordering"');
   });
 
   it('writes .upstream-fingerprint.json (EXIT-B2)', async () => {
@@ -84,7 +90,6 @@ describe('moment import --from-sift', () => {
   it('invalid JSON returns error', async () => {
     const badPath = join(tmpBase, 'bad.json');
     mkdirSync(dirname(badPath), { recursive: true });
-    const { writeFileSync } = await import('node:fs');
     writeFileSync(badPath, 'not json {{{');
 
     const result = await runImportFromSift([badPath]);
@@ -93,19 +98,29 @@ describe('moment import --from-sift', () => {
     expect(result.message).toContain('Invalid JSON');
   });
 
-  it('import is idempotent — re-running overwrites cleanly (EXIT-C4)', async () => {
+  it('well-formed JSON with missing buildingBlocks returns error', async () => {
+    const badPath = join(tmpBase, 'missing-fields.json');
+    mkdirSync(dirname(badPath), { recursive: true });
+    writeFileSync(badPath, JSON.stringify({ foo: 'bar' }));
+
+    const result = await runImportFromSift([badPath]);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('buildingBlocks');
+  });
+
+  it('import is idempotent — fingerprint unchanged on re-run (EXIT-C4)', async () => {
     const outDir = join(tmpBase, 'out5');
     mkdirSync(outDir, { recursive: true });
 
-    const result1 = await runImportFromSift([SIFT_FIXTURE, '--output-dir', outDir]);
-    const result2 = await runImportFromSift([SIFT_FIXTURE, '--output-dir', outDir]);
+    await runImportFromSift([SIFT_FIXTURE, '--output-dir', outDir]);
+    const fp1 = readFileSync(join(outDir, '.moment', '.upstream-fingerprint.json'), 'utf-8');
 
-    expect(result1.success).toBe(true);
-    expect(result2.success).toBe(true);
-    expect(result2.filesWritten).toBe(result1.filesWritten);
+    await runImportFromSift([SIFT_FIXTURE, '--output-dir', outDir]);
+    const fp2 = readFileSync(join(outDir, '.moment', '.upstream-fingerprint.json'), 'utf-8');
+
+    // contentHash same → fingerprint not rewritten → importedAt unchanged
+    expect(JSON.parse(fp1).contentHash).toBe(JSON.parse(fp2).contentHash);
+    expect(JSON.parse(fp1).importedAt).toBe(JSON.parse(fp2).importedAt);
   });
 });
-
-function dirname(p: string): string {
-  return p.split('/').slice(0, -1).join('/');
-}
