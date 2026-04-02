@@ -53,19 +53,21 @@ function processFlow(
   xOffset: number,
 ): number {
   for (const moment of flow.moments) {
-    for (const entry of moment.contextEntries) {
-      const lane = laneIndex.get(entry.contextId);
-      if (!lane) continue;
-
-      entries.push({
-        momentId: moment.id,
-        momentName: moment.name,
-        contextId: entry.contextId,
-        x: xOffset,
-        y: lane.y + LANE_PADDING,
-        width: ENTRY_WIDTH,
-        height: ENTRY_HEIGHT,
-      });
+    // Deduplicate: one timeline entry per moment (pick first context entry for placement)
+    const firstEntry = moment.contextEntries[0];
+    if (firstEntry) {
+      const lane = laneIndex.get(firstEntry.contextId);
+      if (lane) {
+        entries.push({
+          momentId: moment.id,
+          momentName: moment.name,
+          contextId: firstEntry.contextId,
+          x: xOffset,
+          y: lane.y + LANE_PADDING,
+          width: ENTRY_WIDTH,
+          height: ENTRY_HEIGHT,
+        });
+      }
     }
     xOffset += ENTRY_SPACING;
   }

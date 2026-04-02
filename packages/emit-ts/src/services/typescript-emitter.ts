@@ -162,6 +162,18 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
     const handlerName =
       cmd.name.charAt(0).toLowerCase() + cmd.name.slice(1).replace(/[^A-Za-z0-9_$]/g, '');
     const eventName = cmd.emitsEvent ? toPascalCase(cmd.emitsEvent) : 'void';
+
+    const jsdocLines: string[] = [];
+    jsdocLines.push(`  /**`);
+    jsdocLines.push(`   * Handle ${cmd.name}.`);
+    for (const pre of cmd.preconditions) {
+      jsdocLines.push(`   * @precondition ${sanitizeJsDoc(pre.description)}`);
+    }
+    if (cmd.emitsEvent) {
+      jsdocLines.push(`   * @emits ${toPascalCase(cmd.emitsEvent)}`);
+    }
+    jsdocLines.push(`   */`);
+    parts.push(jsdocLines.join('\n'));
     parts.push(`  ${safePropertyKey(handlerName)}(command: ${cmdName}): ${eventName};`);
   }
 
@@ -171,6 +183,21 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
   return parts.join('\n');
 }
 
+function generateEventUnionType(context: ContextDefinition): string {
+  const eventNames: string[] = [];
+  for (const aggregate of context.aggregates) {
+    for (const event of aggregate.events) {
+      eventNames.push(toPascalCase(event.name));
+    }
+  }
+  if (eventNames.length === 0) {
+    return '';
+  }
+  const unique = Array.from(new Set(eventNames)).sort();
+  const contextName = toPascalCase(context.name);
+  return `\nexport type ${contextName}Event = ${unique.join(' | ')};\n`;
+}
+
 function generateContextIndexFile(context: ContextDefinition): string {
   const parts: string[] = [];
 
@@ -178,6 +205,11 @@ function generateContextIndexFile(context: ContextDefinition): string {
     const kebabName = toKebabCase(aggregate.name);
     parts.push(`export * from './${kebabName}.types.js';`);
     parts.push(`export * from './${kebabName}.aggregate.js';`);
+  }
+
+  const unionType = generateEventUnionType(context);
+  if (unionType) {
+    parts.push(unionType);
   }
 
   parts.push('');
@@ -244,6 +276,26 @@ export class TypeScriptEmitter {
         files.set(indexPath, indexContent);
         filesWritten.push(indexPath);
       }
+    }
+
+    // Generate root barrel file re-exporting all context index files
+    const rootBarrelParts: string[] = [];
+    for (const context of ir.contexts) {
+      if (!shouldIncludeContext(context, options.scope)) {
+        continue;
+      }
+      const aggregates = filterAggregates(context, options.scope);
+      if (aggregates.length > 0) {
+        const contextDir = safePathSegment(toKebabCase(context.name));
+        rootBarrelParts.push(`export * from './${contextDir}/index.js';`);
+      }
+    }
+
+    if (rootBarrelParts.length > 0) {
+      rootBarrelParts.push('');
+      const rootIndexPath = 'src/index.ts';
+      files.set(rootIndexPath, rootBarrelParts.join('\n'));
+      filesWritten.push(rootIndexPath);
     }
 
     const result: GenerationResult = {
