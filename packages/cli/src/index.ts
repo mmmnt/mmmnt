@@ -7,6 +7,7 @@ import { runEmitTs } from './commands/emit-ts.js';
 import { runTest } from './commands/test.js';
 import { runViz } from './commands/viz.js';
 import { runSyncStatus } from './commands/sync-status.js';
+import { runSyncPropose } from './commands/sync-propose.js';
 import { runSimulate } from './commands/simulate.js';
 import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
@@ -166,9 +167,26 @@ switch (command) {
           console.error('Error:', error instanceof Error ? error.message : String(error));
           process.exitCode = 1;
         });
+    } else if (subcommand === 'propose') {
+      runSyncPropose(subArgs)
+        .then((result) => {
+          if (result.success) {
+            console.log(result.message);
+          } else {
+            console.error(result.message);
+            for (const d of result.diagnostics) {
+              console.error(formatDiagnostic(d, result.filePath));
+            }
+            process.exitCode = 1;
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Error:', error instanceof Error ? error.message : String(error));
+          process.exitCode = 1;
+        });
     } else {
       console.error(`Error: Unknown sync subcommand '${subcommand ?? ''}'`);
-      console.error('Subcommands: status');
+      console.error('Subcommands: status, propose');
       process.exitCode = 1;
     }
     break;
