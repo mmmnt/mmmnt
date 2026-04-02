@@ -1,0 +1,413 @@
+{
+  "nodes": [
+    {
+      "type": "command",
+      "name": "CheckInPatient",
+      "context": "Reception",
+      "dependsOn": [],
+      "triggers": [
+        "event:Reception:PatientCheckedIn"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PatientCheckedIn",
+      "context": "Reception",
+      "dependsOn": [
+        "command:Reception:CheckInPatient"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SubmitValidateIntake",
+      "context": "Reception",
+      "dependsOn": [],
+      "triggers": [
+        "event:Reception:IntakeValidated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "IntakeValidated",
+      "context": "Reception",
+      "dependsOn": [
+        "command:Reception:SubmitValidateIntake"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RegisterPatientIntake",
+      "context": "Reception",
+      "dependsOn": [],
+      "triggers": [
+        "event:Reception:PatientIntakeRegistered"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PatientIntakeRegistered",
+      "context": "Reception",
+      "dependsOn": [
+        "command:Reception:RegisterPatientIntake"
+      ],
+      "triggers": [
+        "crossing:Reception:PatientIntakeRegistered->Clinical"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "CompleteTriage",
+      "context": "Clinical",
+      "dependsOn": [
+        "policy:Clinical:TriageOnIntakeRegistered"
+      ],
+      "triggers": [
+        "event:Clinical:TriageCompleted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TriageCompleted",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:CompleteTriage"
+      ],
+      "triggers": [
+        "policy:Clinical:AssessOnTriageCompleted"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "PerformDualVetAssessment",
+      "context": "Clinical",
+      "dependsOn": [
+        "policy:Clinical:AssessOnTriageCompleted"
+      ],
+      "triggers": [
+        "event:Clinical:DualVetAssessmentCompleted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "DualVetAssessmentCompleted",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:PerformDualVetAssessment"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RecordClinicalObservation",
+      "context": "Clinical",
+      "dependsOn": [],
+      "triggers": [
+        "event:Clinical:ClinicalObservationRecorded"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "ClinicalObservationRecorded",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:RecordClinicalObservation"
+      ],
+      "triggers": [
+        "policy:Clinical:NormalizeOnObservation"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "NormalizeClinicalRecord",
+      "context": "Clinical",
+      "dependsOn": [
+        "policy:Clinical:NormalizeOnObservation"
+      ],
+      "triggers": [
+        "event:Clinical:ClinicalRecordNormalized"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "ClinicalRecordNormalized",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:NormalizeClinicalRecord"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RunClinicalAssessment",
+      "context": "Clinical",
+      "dependsOn": [],
+      "triggers": [
+        "event:Clinical:ClinicalAssessmentCompleted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "ClinicalAssessmentCompleted",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:RunClinicalAssessment"
+      ],
+      "triggers": [
+        "policy:Clinical:TreatOnAssessment"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "CreateTreatmentPlan",
+      "context": "Clinical",
+      "dependsOn": [
+        "policy:Clinical:TreatOnAssessment"
+      ],
+      "triggers": [
+        "event:Clinical:TreatmentPlanCreated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TreatmentPlanCreated",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:CreateTreatmentPlan"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "ConfirmTreatment",
+      "context": "Clinical",
+      "dependsOn": [],
+      "triggers": [
+        "event:Clinical:TreatmentConfirmed"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TreatmentConfirmed",
+      "context": "Clinical",
+      "dependsOn": [
+        "command:Clinical:ConfirmTreatment"
+      ],
+      "triggers": [
+        "crossing:Clinical:TreatmentConfirmed->Billing"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "TriageOnIntakeRegistered",
+      "context": "Clinical",
+      "dependsOn": [
+        "event:Clinical:PatientIntakeRegistered"
+      ],
+      "triggers": [
+        "command:Clinical:CompleteTriage"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PatientIntakeRegistered",
+      "context": "Clinical",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Clinical:TriageOnIntakeRegistered",
+        "saga:Clinical:VisitLifecycle"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "AssessOnTriageCompleted",
+      "context": "Clinical",
+      "dependsOn": [
+        "event:Clinical:TriageCompleted"
+      ],
+      "triggers": [
+        "command:Clinical:PerformDualVetAssessment"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "NormalizeOnObservation",
+      "context": "Clinical",
+      "dependsOn": [
+        "event:Clinical:ClinicalObservationRecorded"
+      ],
+      "triggers": [
+        "command:Clinical:NormalizeClinicalRecord"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "TreatOnAssessment",
+      "context": "Clinical",
+      "dependsOn": [
+        "event:Clinical:ClinicalAssessmentCompleted"
+      ],
+      "triggers": [
+        "command:Clinical:CreateTreatmentPlan"
+      ]
+    },
+    {
+      "type": "saga",
+      "name": "VisitLifecycle",
+      "context": "Clinical",
+      "dependsOn": [
+        "event:Clinical:PatientIntakeRegistered"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "GenerateInvoice",
+      "context": "Billing",
+      "dependsOn": [
+        "policy:Billing:BillOnVisitComplete"
+      ],
+      "triggers": [
+        "event:Billing:InvoiceGenerated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "InvoiceGenerated",
+      "context": "Billing",
+      "dependsOn": [
+        "command:Billing:GenerateInvoice"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "VerifyBilling",
+      "context": "Billing",
+      "dependsOn": [],
+      "triggers": [
+        "event:Billing:BillingVerified"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "BillingVerified",
+      "context": "Billing",
+      "dependsOn": [
+        "command:Billing:VerifyBilling"
+      ],
+      "triggers": [
+        "crossing:Billing:BillingVerified->Records"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "BillOnVisitComplete",
+      "context": "Billing",
+      "dependsOn": [
+        "event:Billing:TreatmentConfirmed"
+      ],
+      "triggers": [
+        "command:Billing:GenerateInvoice"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TreatmentConfirmed",
+      "context": "Billing",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Billing:BillOnVisitComplete"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "CreateDischargeRecord",
+      "context": "Records",
+      "dependsOn": [
+        "policy:Records:DischargeOnBilling"
+      ],
+      "triggers": [
+        "event:Records:DischargeRecordCreated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "DischargeRecordCreated",
+      "context": "Records",
+      "dependsOn": [
+        "command:Records:CreateDischargeRecord"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "FinalizeDischarge",
+      "context": "Records",
+      "dependsOn": [],
+      "triggers": [
+        "event:Records:DischargeFinalised"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "DischargeFinalised",
+      "context": "Records",
+      "dependsOn": [
+        "command:Records:FinalizeDischarge"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "DischargeOnBilling",
+      "context": "Records",
+      "dependsOn": [
+        "event:Records:BillingVerified"
+      ],
+      "triggers": [
+        "command:Records:CreateDischargeRecord"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "BillingVerified",
+      "context": "Records",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Records:DischargeOnBilling"
+      ]
+    },
+    {
+      "type": "crossing",
+      "name": "PatientIntakeRegistered->Clinical",
+      "context": "Reception",
+      "dependsOn": [
+        "event:Reception:PatientIntakeRegistered"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "TreatmentConfirmed->Billing",
+      "context": "Clinical",
+      "dependsOn": [
+        "event:Clinical:TreatmentConfirmed"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "BillingVerified->Records",
+      "context": "Billing",
+      "dependsOn": [
+        "event:Billing:BillingVerified"
+      ],
+      "triggers": []
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2026-04-02T01:27:43.705Z"
+  }
+}

@@ -1,13 +1,13 @@
 {
   "type": "viz:initial-load",
   "session": {
-    "sessionId": "viz-1775092712090",
+    "sessionId": "viz-1775093257210",
     "specificationName": "vet-clinic",
-    "startedAt": "2026-04-02T01:18:32.090Z"
+    "startedAt": "2026-04-02T01:27:37.210Z"
   },
   "envelope": {
-    "sessionId": "viz-1775092712090",
-    "timestamp": "2026-04-02T01:18:32.091Z",
+    "sessionId": "viz-1775093257210",
+    "timestamp": "2026-04-02T01:27:37.212Z",
     "version": 1,
     "contextMap": {
       "nodes": [
@@ -52,7 +52,56 @@
           "isExternal": false
         }
       ],
-      "edges": [],
+      "edges": [
+        {
+          "sourceContextId": "ctx-Reception",
+          "targetContextId": "ctx-Clinical",
+          "relationshipType": "crosses-to",
+          "label": "crosses-to",
+          "points": [
+            {
+              "x": 200,
+              "y": 80
+            },
+            {
+              "x": 240,
+              "y": 80
+            }
+          ]
+        },
+        {
+          "sourceContextId": "ctx-Clinical",
+          "targetContextId": "ctx-Billing",
+          "relationshipType": "crosses-to",
+          "label": "crosses-to",
+          "points": [
+            {
+              "x": 400,
+              "y": 80
+            },
+            {
+              "x": 440,
+              "y": 80
+            }
+          ]
+        },
+        {
+          "sourceContextId": "ctx-Billing",
+          "targetContextId": "ctx-Records",
+          "relationshipType": "crosses-to",
+          "label": "crosses-to",
+          "points": [
+            {
+              "x": 600,
+              "y": 80
+            },
+            {
+              "x": 40,
+              "y": 200
+            }
+          ]
+        }
+      ],
       "dimensions": {
         "width": 640,
         "height": 280
@@ -96,24 +145,6 @@
           "height": 40
         },
         {
-          "momentId": "moment-0-Patient-check-in",
-          "momentName": "Patient check-in",
-          "contextId": "ctx-Reception",
-          "x": 20,
-          "y": 20,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-1-Intake-validation",
-          "momentName": "Intake validation",
-          "contextId": "ctx-Reception",
-          "x": 160,
-          "y": 20,
-          "width": 120,
-          "height": 40
-        },
-        {
           "momentId": "moment-1-Intake-validation",
           "momentName": "Intake validation",
           "contextId": "ctx-Reception",
@@ -127,24 +158,6 @@
           "momentName": "Triage",
           "contextId": "ctx-Clinical",
           "x": 440,
-          "y": 120,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-3-Triage",
-          "momentName": "Triage",
-          "contextId": "ctx-Clinical",
-          "x": 440,
-          "y": 120,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-4-Dual-vet-assessment",
-          "momentName": "Dual-vet assessment",
-          "contextId": "ctx-Clinical",
-          "x": 580,
           "y": 120,
           "width": 120,
           "height": 40
@@ -168,37 +181,10 @@
           "height": 40
         },
         {
-          "momentId": "moment-6-Clinical-record-normalization",
-          "momentName": "Clinical record normalization",
-          "contextId": "ctx-Clinical",
-          "x": 860,
-          "y": 120,
-          "width": 120,
-          "height": 40
-        },
-        {
           "momentId": "moment-8-Treatment-planning",
           "momentName": "Treatment planning",
           "contextId": "ctx-Clinical",
           "x": 1140,
-          "y": 120,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-8-Treatment-planning",
-          "momentName": "Treatment planning",
-          "contextId": "ctx-Clinical",
-          "x": 1140,
-          "y": 120,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-9-Treatment-confirmation",
-          "momentName": "Treatment confirmation",
-          "contextId": "ctx-Clinical",
-          "x": 1280,
           "y": 120,
           "width": 120,
           "height": 40
@@ -222,24 +208,6 @@
           "height": 40
         },
         {
-          "momentId": "moment-10-Invoice-generation",
-          "momentName": "Invoice generation",
-          "contextId": "ctx-Billing",
-          "x": 1420,
-          "y": 220,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-11-Billing-verification",
-          "momentName": "Billing verification",
-          "contextId": "ctx-Billing",
-          "x": 1560,
-          "y": 220,
-          "width": 120,
-          "height": 40
-        },
-        {
           "momentId": "moment-11-Billing-verification",
           "momentName": "Billing verification",
           "contextId": "ctx-Billing",
@@ -253,24 +221,6 @@
           "momentName": "Discharge record creation",
           "contextId": "ctx-Records",
           "x": 1700,
-          "y": 320,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-12-Discharge-record-creation",
-          "momentName": "Discharge record creation",
-          "contextId": "ctx-Records",
-          "x": 1700,
-          "y": 320,
-          "width": 120,
-          "height": 40
-        },
-        {
-          "momentId": "moment-13-Discharge-finalization",
-          "momentName": "Discharge finalization",
-          "contextId": "ctx-Records",
-          "x": 1840,
           "y": 320,
           "width": 120,
           "height": 40
@@ -320,7 +270,7 @@
       "contextCount": 4,
       "flowCount": 1,
       "relationshipCount": 0,
-      "generatedAt": "2026-04-02T01:18:32.091Z"
+      "generatedAt": "2026-04-02T01:27:37.212Z"
     }
   }
 }

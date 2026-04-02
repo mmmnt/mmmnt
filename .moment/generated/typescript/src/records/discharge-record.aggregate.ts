@@ -5,6 +5,15 @@ import type { CreateDischargeRecord, DischargeFinalised, DischargeRecordCreated,
  */
 export interface DischargeRecordAggregate {
   readonly dischargeId: string;
+  /**
+   * Handle CreateDischargeRecord.
+   * @emits DischargeRecordCreated
+   */
   createDischargeRecord(command: CreateDischargeRecord): DischargeRecordCreated;
+  /**
+   * Handle FinalizeDischarge.
+   * @precondition Billing must be verified before discharge
+   * @emits DischargeFinalised
+   */
   finalizeDischarge(command: FinalizeDischarge): DischargeFinalised;
 }

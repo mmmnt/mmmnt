@@ -1,0 +1,71 @@
+asyncapi: '3.0.0'
+info:
+  title: 'Untitled'
+  version: '0.0.0'
+  description: ''
+
+channels:
+  patient-intake-registered:
+    address: 'patient-intake-registered'
+    messages:
+      PatientIntakeRegistered:
+        $ref: '#/components/messages/PatientIntakeRegistered'
+    description: 'Published by Reception, consumed by Clinical'
+  treatment-confirmed:
+    address: 'treatment-confirmed'
+    messages:
+      TreatmentConfirmed:
+        $ref: '#/components/messages/TreatmentConfirmed'
+    description: 'Published by Clinical, consumed by Billing'
+  billing-verified:
+    address: 'billing-verified'
+    messages:
+      BillingVerified:
+        $ref: '#/components/messages/BillingVerified'
+    description: 'Published by Billing, consumed by Records'
+
+components:
+  messages:
+    PatientIntakeRegistered:
+      name: 'PatientIntakeRegistered'
+      payload:
+        type: object
+        properties:
+          intakeId:
+            type: 'string'
+          patientId:
+            type: 'string'
+          name:
+            type: 'string'
+          species:
+            type: 'string'
+          breed:
+            type: 'string'
+          ownerName:
+            type: 'string'
+          appointmentType:
+            type: 'string'
+          registeredAt:
+            type: 'string'
+    TreatmentConfirmed:
+      name: 'TreatmentConfirmed'
+      payload:
+        type: object
+        properties:
+          planId:
+            type: 'string'
+          confirmedBy:
+            type: 'string'
+          rationale:
+            type: 'string'
+          confirmedAt:
+            type: 'string'
+    BillingVerified:
+      name: 'BillingVerified'
+      payload:
+        type: object
+        properties:
+          invoiceId:
+            type: 'string'
+          verifiedAt:
+            type: 'string'

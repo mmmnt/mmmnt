@@ -1,0 +1,621 @@
+{
+  "events": [
+    {
+      "eventName": "PatientCheckedIn",
+      "schema": {
+        "fields": [
+          {
+            "name": "intakeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "ownerName",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "appointmentType",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "checkedInAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Reception",
+        "aggregate": "PatientIntake",
+        "command": "CheckInPatient"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Patient check-in",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "IntakeValidated",
+      "schema": {
+        "fields": [
+          {
+            "name": "intakeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "validationResult",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "validatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Reception",
+        "aggregate": "PatientIntake",
+        "command": "SubmitValidateIntake"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Intake validation",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "PatientIntakeRegistered",
+      "schema": {
+        "fields": [
+          {
+            "name": "intakeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "species",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "breed",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "ownerName",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "appointmentType",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "registeredAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Reception",
+        "aggregate": "PatientIntake",
+        "command": "RegisterPatientIntake"
+      },
+      "consumers": [
+        {
+          "context": "Clinical",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Intake validation outcome",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "TriageCompleted",
+      "schema": {
+        "fields": [
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "weight",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "temperature",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "heartRate",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "chiefComplaint",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "urgency",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "completedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "VisitRecord",
+        "command": "CompleteTriage"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Triage",
+        "momentIndex": 3
+      }
+    },
+    {
+      "eventName": "DualVetAssessmentCompleted",
+      "schema": {
+        "fields": [
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "agreement",
+            "type": "boolean",
+            "isArray": false
+          },
+          {
+            "name": "assessedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "VisitRecord",
+        "command": "PerformDualVetAssessment"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Dual-vet assessment",
+        "momentIndex": 4
+      }
+    },
+    {
+      "eventName": "ClinicalObservationRecorded",
+      "schema": {
+        "fields": [
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "observationId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "diagnosis",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "differentials",
+            "type": "string",
+            "isArray": true
+          },
+          {
+            "name": "confidence",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "VisitRecord",
+        "command": "RecordClinicalObservation"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Clinical record normalization",
+        "momentIndex": 6
+      }
+    },
+    {
+      "eventName": "ClinicalRecordNormalized",
+      "schema": {
+        "fields": [
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "recordId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "symptoms",
+            "type": "string",
+            "isArray": true
+          },
+          {
+            "name": "vitalSigns",
+            "type": "VitalSigns",
+            "isArray": false
+          },
+          {
+            "name": "vaccinationStatus",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "classification",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "normalizedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "VisitRecord",
+        "command": "NormalizeClinicalRecord"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Clinical record normalization",
+        "momentIndex": 6
+      }
+    },
+    {
+      "eventName": "ClinicalAssessmentCompleted",
+      "schema": {
+        "fields": [
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "assessmentResult",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "completedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "VisitRecord",
+        "command": "RunClinicalAssessment"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Treatment planning",
+        "momentIndex": 8
+      }
+    },
+    {
+      "eventName": "TreatmentPlanCreated",
+      "schema": {
+        "fields": [
+          {
+            "name": "planId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "diagnosis",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "medications",
+            "type": "Medication",
+            "isArray": true
+          },
+          {
+            "name": "instructions",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "TreatmentPlan",
+        "command": "CreateTreatmentPlan"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Treatment planning",
+        "momentIndex": 8
+      }
+    },
+    {
+      "eventName": "TreatmentConfirmed",
+      "schema": {
+        "fields": [
+          {
+            "name": "planId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "confirmedBy",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "rationale",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "confirmedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Clinical",
+        "aggregate": "TreatmentPlan",
+        "command": "ConfirmTreatment"
+      },
+      "consumers": [
+        {
+          "context": "Billing",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Treatment confirmation",
+        "momentIndex": 9
+      }
+    },
+    {
+      "eventName": "InvoiceGenerated",
+      "schema": {
+        "fields": [
+          {
+            "name": "invoiceId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "lineItems",
+            "type": "LineItem",
+            "isArray": true
+          },
+          {
+            "name": "total",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "currency",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "generatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Billing",
+        "aggregate": "Invoice",
+        "command": "GenerateInvoice"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Invoice generation",
+        "momentIndex": 10
+      }
+    },
+    {
+      "eventName": "BillingVerified",
+      "schema": {
+        "fields": [
+          {
+            "name": "invoiceId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "verifiedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Billing",
+        "aggregate": "Invoice",
+        "command": "VerifyBilling"
+      },
+      "consumers": [
+        {
+          "context": "Records",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Billing verification",
+        "momentIndex": 11
+      }
+    },
+    {
+      "eventName": "DischargeRecordCreated",
+      "schema": {
+        "fields": [
+          {
+            "name": "dischargeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "visitId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "patientId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Records",
+        "aggregate": "DischargeRecord",
+        "command": "CreateDischargeRecord"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Discharge record creation",
+        "momentIndex": 12
+      }
+    },
+    {
+      "eventName": "DischargeFinalised",
+      "schema": {
+        "fields": [
+          {
+            "name": "dischargeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "finalisedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Records",
+        "aggregate": "DischargeRecord",
+        "command": "FinalizeDischarge"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Discharge finalization",
+        "momentIndex": 13
+      }
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2026-04-02T01:27:43.703Z",
+    "totalEvents": 14
+  }
+}

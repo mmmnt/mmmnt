@@ -5,6 +5,16 @@ import type { ConfirmTreatment, CreateTreatmentPlan, Medication, TreatmentConfir
  */
 export interface TreatmentPlanAggregate {
   readonly planId: string;
+  /**
+   * Handle CreateTreatmentPlan.
+   * @precondition Clinical assessment must be completed
+   * @emits TreatmentPlanCreated
+   */
   createTreatmentPlan(command: CreateTreatmentPlan): TreatmentPlanCreated;
+  /**
+   * Handle ConfirmTreatment.
+   * @precondition Treatment plan must exist
+   * @emits TreatmentConfirmed
+   */
   confirmTreatment(command: ConfirmTreatment): TreatmentConfirmed;
 }

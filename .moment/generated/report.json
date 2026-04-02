@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-02T01:18:38.892Z",
+  "timestamp": "2026-04-02T01:27:43.736Z",
   "fixture": "fixtures/valid/unified/vet-clinic.moment",
   "summary": {
     "tests": 21,
@@ -144,7 +144,7 @@
           "pass": true
         },
         {
-          "message": "14 TypeScript files",
+          "message": "reports TypeScript files",
           "pass": true
         },
         {

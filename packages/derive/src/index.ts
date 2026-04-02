@@ -26,3 +26,22 @@ export {
   type DeriveOnSpecificationParsedOptions,
   type TopologyDerivedHook,
 } from './policies/derive-on-specification-parsed.js';
+
+export {
+  generateEventCatalog,
+  type EventCatalogEntry,
+  type EventCatalog,
+} from './engine/event-catalog-generator.js';
+
+export {
+  generateImpactAnalysis,
+  type ImpactNode,
+  type ImpactAnalysis,
+} from './engine/impact-analysis-generator.js';
+
+export {
+  generateSagaStateMachines,
+  type SagaStateMachine,
+  type SagaState,
+  type SagaTransition,
+} from './engine/saga-state-machine-generator.js';
