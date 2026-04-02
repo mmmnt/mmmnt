@@ -176,56 +176,71 @@ export class SpecificationDocumentGenerator {
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
   ): void {
-    const hasBranches = moment.branches && moment.branches.length > 0;
-    const primaryCtxId = moment.contextEntries[0]?.contextId
-      ?? moment.branches?.[0]?.entries?.[0]?.contextId
-      ?? '';
-    const ctxName = primaryCtxId ? this.resolveCtxName(primaryCtxId, ir) : '';
-    const ctxLabel = ctxName ? ` *(${ctxName})*` : '';
+    this.renderMomentHeader(lines, moment, step, flow, ir);
 
-    // Step header with context and saga state
-    const sagaLabel = this.findSagaStateForMoment(moment, step, flow, ir);
-    const sagaSuffix = sagaLabel ? ` — *${sagaLabel}*` : '';
-    lines.push(`**${step}. ${moment.name}**${ctxLabel}${sagaSuffix}`);
-    lines.push('');
-
-    // Render entries
     for (const entry of moment.contextEntries) {
       this.renderEntryNarrative(lines, entry, flow, ir);
     }
 
-    // Branches
-    if (hasBranches) {
-      for (const branch of moment.branches!) {
-        const isTerminal = branch.entries.some((e) => e.terminal);
-        if (isTerminal) {
-          lines.push(`  - ❌ **If ${branch.condition}** → flow terminates`);
-        } else {
-          lines.push(`  - ✅ **If ${branch.condition}:**`);
-          for (const entry of branch.entries) {
-            this.renderEntryNarrative(lines, entry, flow, ir, '    ');
-          }
+    this.renderMomentBranches(lines, moment, flow, ir);
+    this.renderMomentPoliciesAndRules(lines, moment, ir);
+
+    lines.push('');
+  }
+
+  private renderMomentHeader(
+    lines: string[],
+    moment: MomentDefinition,
+    step: number,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const ctxLabel = this.buildContextLabel(moment, ir);
+    const sagaLabel = this.findSagaStateForMoment(moment, step, flow, ir);
+    const sagaSuffix = sagaLabel ? ` — *${sagaLabel}*` : '';
+    lines.push(`**${step}. ${moment.name}**${ctxLabel}${sagaSuffix}`);
+    lines.push('');
+  }
+
+  private buildContextLabel(moment: MomentDefinition, ir: IntermediateRepresentation): string {
+    const primaryCtxId = moment.contextEntries[0]?.contextId
+      ?? moment.branches?.[0]?.entries?.[0]?.contextId
+      ?? '';
+    const ctxName = primaryCtxId ? this.resolveCtxName(primaryCtxId, ir) : '';
+    return ctxName ? ` *(${ctxName})*` : '';
+  }
+
+  private renderMomentBranches(
+    lines: string[],
+    moment: MomentDefinition,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    if (!moment.branches || moment.branches.length === 0) return;
+    for (const branch of moment.branches) {
+      const isTerminal = branch.entries.some((e) => e.terminal);
+      if (isTerminal) {
+        lines.push(`  - ❌ **If ${branch.condition}** → flow terminates`);
+      } else {
+        lines.push(`  - ✅ **If ${branch.condition}:**`);
+        for (const entry of branch.entries) {
+          this.renderEntryNarrative(lines, entry, flow, ir, '    ');
         }
       }
     }
+  }
 
-    // Connected policies
-    const triggeredPolicies = this.findPoliciesTriggeredBy(moment, ir);
-    if (triggeredPolicies.length > 0) {
-      for (const pol of triggeredPolicies) {
-        lines.push(`  - 🔗 *Policy: ${pol.name}* — ${pol.action}`);
-      }
+  private renderMomentPoliciesAndRules(
+    lines: string[],
+    moment: MomentDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    for (const pol of this.findPoliciesTriggeredBy(moment, ir)) {
+      lines.push(`  - 🔗 *Policy: ${pol.name}* — ${pol.action}`);
     }
-
-    // Applicable business rules
-    const rules = this.findApplicableRules(moment, ir);
-    if (rules.length > 0) {
-      for (const rule of rules) {
-        lines.push(`  - 📋 *Rule ${rule.id}:* ${rule.description}`);
-      }
+    for (const rule of this.findApplicableRules(moment, ir)) {
+      lines.push(`  - 📋 *Rule ${rule.id}:* ${rule.description}`);
     }
-
-    lines.push('');
   }
 
   private renderEntryNarrative(
@@ -240,19 +255,29 @@ export class SpecificationDocumentGenerator {
     const crossing = this.findCrossing(entry.nodeName, flow);
 
     if (this.isCommand(entry.nodeName, ctx)) {
-      const cmd = this.findCommand(ctx, entry.nodeName);
-      const intent = cmd?.preconditions?.[0]?.description;
-      const produces = cmd?.emitsEvent ? ` → produces **${cmd.emitsEvent}**` : '';
-      if (intent) {
-        lines.push(`${indent}- *Requires:* ${intent}`);
-      }
-      lines.push(`${indent}- ${ctxName} performs **${cmd?.name ?? entry.nodeName}**${produces}`);
+      this.renderCommandNarrative(lines, entry, ctx, ctxName, indent);
     } else if (crossing) {
       const target = this.resolveCtxName(crossing.targetContextId, ir);
       lines.push(`${indent}- **${entry.nodeName}** → crosses to **${target}**`);
     } else {
       lines.push(`${indent}- ${ctxName} emits **${entry.nodeName}**`);
     }
+  }
+
+  private renderCommandNarrative(
+    lines: string[],
+    entry: MomentEntry,
+    ctx: ContextDefinition | undefined,
+    ctxName: string,
+    indent: string,
+  ): void {
+    const cmd = this.findCommand(ctx, entry.nodeName);
+    const intent = cmd?.preconditions?.[0]?.description;
+    const produces = cmd?.emitsEvent ? ` → produces **${cmd.emitsEvent}**` : '';
+    if (intent) {
+      lines.push(`${indent}- *Requires:* ${intent}`);
+    }
+    lines.push(`${indent}- ${ctxName} performs **${cmd?.name ?? entry.nodeName}**${produces}`);
   }
 
   // ===========================================================================
@@ -374,6 +399,20 @@ export class SpecificationDocumentGenerator {
   // ===========================================================================
 
   private renderDataGlossary(lines: string[], ir: IntermediateRepresentation): void {
+    const allVOs = this.collectAllValueObjects(ir);
+    if (allVOs.size === 0) return;
+
+    lines.push('## Data Glossary');
+    lines.push('');
+    lines.push('Shared data structures used across the domain:');
+    lines.push('');
+
+    for (const [name, vo] of allVOs) {
+      this.renderValueObject(lines, name, vo);
+    }
+  }
+
+  private collectAllValueObjects(ir: IntermediateRepresentation): Map<string, ValueObjectDefinition> {
     const allVOs = new Map<string, ValueObjectDefinition>();
     for (const ctx of ir.contexts) {
       for (const agg of ctx.aggregates) {
@@ -385,25 +424,19 @@ export class SpecificationDocumentGenerator {
         if (!allVOs.has(vo.name)) allVOs.set(vo.name, vo);
       }
     }
+    return allVOs;
+  }
 
-    if (allVOs.size === 0) return;
-
-    lines.push('## Data Glossary');
+  private renderValueObject(lines: string[], name: string, vo: ValueObjectDefinition): void {
+    lines.push(`**${name}**`);
     lines.push('');
-    lines.push('Shared data structures used across the domain:');
-    lines.push('');
-
-    for (const [name, vo] of allVOs) {
-      lines.push(`**${name}**`);
-      lines.push('');
-      lines.push('| Field | Type |');
-      lines.push('|-------|------|');
-      for (const f of vo.fields) {
-        const arr = f.isArray ? '[]' : '';
-        lines.push(`| \`${f.name}\` | ${f.type}${arr} |`);
-      }
-      lines.push('');
+    lines.push('| Field | Type |');
+    lines.push('|-------|------|');
+    for (const f of vo.fields) {
+      const arr = f.isArray ? '[]' : '';
+      lines.push(`| \`${f.name}\` | ${f.type}${arr} |`);
     }
+    lines.push('');
   }
 
   // ===========================================================================

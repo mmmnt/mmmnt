@@ -185,7 +185,20 @@ function buildScenarioTags(
 ): string[] {
   const tags: string[] = [];
 
-  // Aggregate tags
+  collectAggregateTags(entries, ctxMap, tags);
+  if (entries.some((e) => findCrossing(e, flow))) tags.push('@crossing');
+  collectPolicyTags(entries, ctxMap, tags);
+  collectSagaTags(entries, ir, tags);
+  collectInvariantTags(entries, ctxMap, tags);
+
+  return [...new Set(tags)];
+}
+
+function collectAggregateTags(
+  entries: readonly MomentEntry[],
+  ctxMap: Map<string, ContextDefinition>,
+  tags: string[],
+): void {
   for (const entry of entries) {
     const ctx = ctxMap.get(entry.contextId);
     if (!ctx) continue;
@@ -194,31 +207,39 @@ function buildScenarioTags(
       tags.push(`@aggregate:${aggName}`);
     }
   }
+}
 
-  // Crossing tag
-  const hasCrossing = entries.some((e) => findCrossing(e, flow));
-  if (hasCrossing) tags.push('@crossing');
-
-  // Policy tags
+function collectPolicyTags(
+  entries: readonly MomentEntry[],
+  ctxMap: Map<string, ContextDefinition>,
+  tags: string[],
+): void {
   for (const entry of entries) {
     const ctx = ctxMap.get(entry.contextId);
     if (!ctx) continue;
     for (const pol of ctx.policies) {
-      if (pol.chainsTo === entry.nodeName) {
-        tags.push(`@policy:${pol.name}`);
-      }
+      if (pol.chainsTo === entry.nodeName) tags.push(`@policy:${pol.name}`);
     }
   }
+}
 
-  // Saga tags
+function collectSagaTags(
+  entries: readonly MomentEntry[],
+  ir: IntermediateRepresentation,
+  tags: string[],
+): void {
   for (const ctx of ir.contexts) {
     for (const saga of ctx.sagas) {
-      const triggerEntry = entries.find((e) => e.nodeName === saga.trigger);
-      if (triggerEntry) tags.push(`@saga:${saga.name}`);
+      if (entries.find((e) => e.nodeName === saga.trigger)) tags.push(`@saga:${saga.name}`);
     }
   }
+}
 
-  // Invariant tags
+function collectInvariantTags(
+  entries: readonly MomentEntry[],
+  ctxMap: Map<string, ContextDefinition>,
+  tags: string[],
+): void {
   for (const entry of entries) {
     const ctx = ctxMap.get(entry.contextId);
     if (!ctx) continue;
@@ -227,8 +248,6 @@ function buildScenarioTags(
       if (inv.scope === agg) tags.push(`@invariant:${inv.id}`);
     }
   }
-
-  return [...new Set(tags)];
 }
 
 function renderEntrySteps(
