@@ -93,13 +93,12 @@ function findConsumers(
   event: EventDefinition,
   ir: IntermediateRepresentation,
 ): readonly { readonly context: string; readonly relationshipType: string }[] {
-  const eventId = `evt-${event.name}`;
   const consumers: { readonly context: string; readonly relationshipType: string }[] = [];
   const seen = new Set<string>();
 
   for (const flow of ir.flows) {
     for (const conn of flow.connections) {
-      if (conn.eventId !== eventId) continue;
+      if (conn.eventId !== event.id) continue;
       if (conn.connectionType !== 'crosses-to') continue;
       const targetCtx = ir.contexts.find((c) => c.id === conn.targetContextId);
       if (!targetCtx) continue;
@@ -120,8 +119,6 @@ function findTemporalLocation(
   event: EventDefinition,
   ir: IntermediateRepresentation,
 ): { readonly moment: string; readonly momentIndex: number } | undefined {
-  const eventId = `evt-${event.name}`;
-
   for (const flow of ir.flows) {
     for (let i = 0; i < flow.moments.length; i++) {
       const moment = flow.moments[i];
@@ -133,7 +130,7 @@ function findTemporalLocation(
     }
     // Also check connections referencing this event
     for (const conn of flow.connections) {
-      if (conn.eventId !== eventId) continue;
+      if (conn.eventId !== event.id) continue;
       const momentIdx = flow.moments.findIndex((m) => m.id === conn.sourceMomentId);
       if (momentIdx >= 0) {
         return { moment: flow.moments[momentIdx].name, momentIndex: momentIdx };

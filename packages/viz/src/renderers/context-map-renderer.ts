@@ -76,7 +76,7 @@ function buildEdges(
   for (const flow of ir.flows) {
     for (const conn of flow.connections) {
       if (conn.connectionType !== 'crosses-to') continue;
-      const sourceContextId = resolveSourceContextFromEvent(conn.eventId, flow, ir);
+      const sourceContextId = resolveSourceContextFromEvent(conn.eventId, conn.sourceMomentId, flow, ir);
       if (sourceContextId) {
         addEdge(sourceContextId, conn.targetContextId, 'crosses-to', 'crosses-to');
       }
@@ -88,6 +88,7 @@ function buildEdges(
 
 function resolveSourceContextFromEvent(
   eventId: string,
+  sourceMomentId: string,
   flow: { moments: readonly { id: string; contextEntries: readonly { contextId: string }[] }[] },
   ir: IntermediateRepresentation,
 ): string | undefined {
@@ -101,13 +102,9 @@ function resolveSourceContextFromEvent(
       }
     }
   }
-  // Fallback: first context entry of a moment that has the event
-  for (const moment of flow.moments) {
-    if (moment.contextEntries.length > 0) {
-      return moment.contextEntries[0].contextId;
-    }
-  }
-  return undefined;
+  // Fallback: resolve from the source moment's context entries
+  const sourceMoment = flow.moments.find((m) => m.id === sourceMomentId);
+  return sourceMoment?.contextEntries[0]?.contextId;
 }
 
 function computeDimensions(nodes: readonly ContextMapNode[]): { width: number; height: number } {

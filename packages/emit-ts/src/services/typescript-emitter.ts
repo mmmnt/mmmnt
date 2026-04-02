@@ -201,10 +201,20 @@ function generateEventUnionType(context: ContextDefinition): string {
 function generateContextIndexFile(context: ContextDefinition): string {
   const parts: string[] = [];
 
+  // Collect event names for import statements
+  const eventImports = collectEventImports(context);
+
   for (const aggregate of context.aggregates) {
     const kebabName = toKebabCase(aggregate.name);
     parts.push(`export * from './${kebabName}.types.js';`);
     parts.push(`export * from './${kebabName}.aggregate.js';`);
+  }
+
+  if (eventImports.length > 0) {
+    parts.push('');
+    for (const imp of eventImports) {
+      parts.push(`import type { ${imp.names.join(', ')} } from './${imp.module}';`);
+    }
   }
 
   const unionType = generateEventUnionType(context);
@@ -214,6 +224,19 @@ function generateContextIndexFile(context: ContextDefinition): string {
 
   parts.push('');
   return parts.join('\n');
+}
+
+function collectEventImports(
+  context: ContextDefinition,
+): { module: string; names: string[] }[] {
+  const imports: { module: string; names: string[] }[] = [];
+  for (const aggregate of context.aggregates) {
+    const names = aggregate.events.map((e) => toPascalCase(e.name));
+    if (names.length > 0) {
+      imports.push({ module: `${toKebabCase(aggregate.name)}.types.js`, names });
+    }
+  }
+  return imports;
 }
 
 function shouldIncludeContext(context: ContextDefinition, scope: GenerationScope): boolean {

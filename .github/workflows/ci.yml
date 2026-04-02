@@ -640,7 +640,7 @@ jobs:
           path: .moment/generated/
 
       - name: Commit generated artifacts
-        if: success()
+        if: success() && github.event.pull_request.head.repo.fork == false
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

@@ -328,7 +328,7 @@ describe('TestRunner', () => {
     const testId1 = 'flow-1::moment-1';
     expect(result.traceabilityMap[testId1]).toBe('crossing-1');
 
-    // Second test case has no assertions → maps to flowId/frameId
+    // Second test case has no assertions → maps to flowId/momentId
     const testId2 = 'flow-1::moment-2';
     expect(result.traceabilityMap[testId2]).toBe('flow-1/moment-2');
   });
