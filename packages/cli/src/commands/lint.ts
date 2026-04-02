@@ -74,7 +74,7 @@ export async function runLint(argv: string[]): Promise<LintResult> {
   // Source 2: Drift warnings (optional — may fail if not a git repo)
   await collectDriftWarnings(ir, resolvedPath, issues);
 
-  // Source 3: Schema lifecycle warnings
+  // Source 3: Schema lifecycle warnings (events, commands, value objects)
   collectSchemaWarnings(ir, issues);
 
   return buildResult(issues, false, values.json === true);
@@ -97,7 +97,8 @@ async function collectDriftWarnings(
 ): Promise<void> {
   try {
     const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-    const store = new LocalGitArtifactStore(dirname(resolvedPath));
+    const repoRoot = findGitRoot(dirname(resolvedPath));
+    const store = new LocalGitArtifactStore(repoRoot);
     const actual = new Map<string, string>();
 
     for (const path of tsOutput.files.keys()) {
@@ -121,18 +122,44 @@ async function collectDriftWarnings(
   }
 }
 
+function findGitRoot(startDir: string): string {
+  let dir = resolve(startDir);
+  while (dir !== dirname(dir)) {
+    if (existsSync(resolve(dir, '.git'))) return dir;
+    dir = dirname(dir);
+  }
+  return startDir; // fallback to startDir if no .git found
+}
+
+function collectDeprecatedFieldWarning(
+  ownerName: string,
+  field: { readonly name: string; readonly deprecated?: { readonly reason: string; readonly replacement: string } },
+  issues: LintIssue[],
+): void {
+  if (!field.deprecated) return;
+  issues.push({
+    source: 'schema',
+    severity: 'warning',
+    message: `${ownerName}.${field.name} is deprecated: ${field.deprecated.reason} (use ${field.deprecated.replacement})`,
+  });
+}
+
 function collectSchemaWarnings(ir: IntermediateRepresentation, issues: LintIssue[]): void {
   for (const ctx of ir.contexts) {
     for (const agg of ctx.aggregates) {
       for (const event of agg.events) {
         for (const field of event.fields) {
-          if (field.deprecated) {
-            issues.push({
-              source: 'schema',
-              severity: 'warning',
-              message: `${event.name}.${field.name} is deprecated: ${field.deprecated.reason} (use ${field.deprecated.replacement})`,
-            });
-          }
+          collectDeprecatedFieldWarning(event.name, field, issues);
+        }
+      }
+      for (const command of agg.commands) {
+        for (const input of command.inputs) {
+          collectDeprecatedFieldWarning(command.name, input, issues);
+        }
+      }
+      for (const vo of agg.valueObjects) {
+        for (const field of vo.fields) {
+          collectDeprecatedFieldWarning(vo.name, field, issues);
         }
       }
     }

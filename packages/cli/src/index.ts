@@ -257,12 +257,15 @@ switch (command) {
   case 'lint': {
     runLint(args)
       .then((result) => {
-        if (result.success) {
+        // JSON always goes to stdout for tooling consumption
+        if (result.json) {
+          console.log(result.message);
+        } else if (result.success) {
           console.log(result.message);
         } else {
           console.error(result.message);
-          process.exitCode = 1;
         }
+        if (!result.success) process.exitCode = 1;
       })
       .catch((error: unknown) => {
         console.error('Error:', error instanceof Error ? error.message : String(error));
