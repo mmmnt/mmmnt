@@ -97,12 +97,13 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
     actual,
   });
 
-  // Drive PushFlowSaga (IS-04)
+  // Drive PushFlowSaga to terminal state (IS-04)
   const saga = new PushFlowSaga();
   saga.start();
   saga.proposalsGenerated(proposals.length);
 
   if (proposals.length === 0) {
+    // Zero-proposal shortcut — saga auto-completes
     const noChanges = { proposals: [], accepted: 0, rejected: 0, skipped: 0 };
     return {
       success: true,
@@ -122,25 +123,28 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
     syncState.recordProposal(p);
   }
 
-  // Auto-accept mode or present proposals
+  // Auto-accept mode or skip (non-interactive CLI defaults to skip)
   const autoAccept = values['auto-accept'] === true;
   const counts = processProposals(proposals, syncState, autoAccept);
 
-  // Complete saga flow
+  // Drive saga to terminal state
   saga.confirmationComplete(counts.accepted, counts.rejected, counts.skipped);
+  saga.recordingComplete(counts.accepted);
+  saga.committed(`cli-propose-${saga.getSagaId()}`);
+  saga.complete();
 
-  if (values.json === true) {
+  return buildResult(proposals, counts, values.json === true);
+}
+
+function buildResult(
+  proposals: ImplementationChangeProposal[],
+  counts: { accepted: number; rejected: number; skipped: number },
+  asJson: boolean,
+): SyncProposeResult {
+  if (asJson) {
     const json = JSON.stringify({ proposals, ...counts }, null, 2);
-    return {
-      success: true,
-      message: json,
-      diagnostics: EMPTY,
-      proposals,
-      json,
-      ...counts,
-    };
+    return { success: true, message: json, diagnostics: EMPTY, proposals, json, ...counts };
   }
-
   return {
     success: true,
     message: formatProposalSummary(proposals, counts),
@@ -159,8 +163,11 @@ async function readActualFiles(
     try {
       const content = await store.readArtifact(path);
       actual.set(path, content);
-    } catch {
-      // File doesn't exist on disk — will show as new proposal
+    } catch (err: unknown) {
+      // Only ignore "artifact not found" — surface other errors
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.startsWith('Artifact not found')) continue;
+      throw err;
     }
   }
   return actual;
@@ -172,19 +179,16 @@ function processProposals(
   autoAccept: boolean,
 ): { accepted: number; rejected: number; skipped: number } {
   let accepted = 0;
-  let rejected = 0;
-  let skipped = 0;
+  const skipped = autoAccept ? 0 : proposals.length;
 
-  for (const p of proposals) {
-    if (autoAccept) {
+  if (autoAccept) {
+    for (const p of proposals) {
       syncState.acceptProposal(p.proposalId);
       accepted++;
-    } else {
-      skipped++;
     }
   }
 
-  return { accepted, rejected, skipped };
+  return { accepted, rejected: 0, skipped };
 }
 
 function formatProposalSummary(
@@ -196,7 +200,9 @@ function formatProposalSummary(
   lines.push('');
 
   for (const p of proposals) {
-    lines.push(`  ${p.proposedEventType}: ${p.proposedPayload.symbolName ?? p.proposedPayload.description}`);
+    const payloadKeys = Object.keys(p.proposedPayload);
+    const detail = payloadKeys.length > 0 ? ` (${payloadKeys.join(', ')})` : '';
+    lines.push(`  ${p.proposedEventType}${detail}`);
     lines.push(`    File: ${p.sourceFile}`);
   }
 

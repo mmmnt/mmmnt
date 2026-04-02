@@ -9,20 +9,18 @@ const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment sync propose', () => {
-  it('generates proposals when no actual files exist', async () => {
+  it('succeeds and returns proposal array with counts', async () => {
     const result = await runSyncPropose([VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
     expect(result.proposals).toBeDefined();
-    expect(result.proposals!.length).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(result.proposals)).toBe(true);
     expect(typeof result.accepted).toBe('number');
     expect(typeof result.rejected).toBe('number');
     expect(typeof result.skipped).toBe('number');
   });
 
-  it('returns "No changes to propose" when spec and impl are aligned', async () => {
-    // With no actual files, proposals may be generated (drift exists)
-    // This test validates the zero-proposal path indirectly via the result shape
+  it('returns zero diagnostics on valid input', async () => {
     const result = await runSyncPropose([VALID_FIXTURE]);
     expect(result.success).toBe(true);
     expect(result.diagnostics).toHaveLength(0);
@@ -32,7 +30,6 @@ describe('moment sync propose', () => {
     const result = await runSyncPropose(['--auto-accept', VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
-    // If proposals exist, they should all be accepted
     if (result.proposals && result.proposals.length > 0) {
       expect(result.accepted).toBe(result.proposals.length);
       expect(result.rejected).toBe(0);
@@ -98,10 +95,8 @@ describe('moment sync propose', () => {
   });
 
   it('delegates to ASTDiffEngine.generateProposals() — no proposal logic in CLI', async () => {
-    // EXIT-C1: verify proposals come from the engine, not hardcoded
     const result = await runSyncPropose([VALID_FIXTURE]);
     expect(result.success).toBe(true);
-    // All proposals should have engine-generated UUIDs
     for (const p of result.proposals ?? []) {
       expect(p.proposalId).toMatch(/^[0-9a-f-]+$/i);
     }
