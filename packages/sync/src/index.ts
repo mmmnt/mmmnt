@@ -113,3 +113,20 @@ export {
   OAuthDeviceFlowStrategy,
   LayeredCredentialResolver,
 } from './infrastructure/index.js';
+
+// Sift event stream (ADR-028)
+export { SiftEventStreamReader } from './services/sift-event-stream-reader.js';
+export type { SiftEventStreamReadResult } from './services/sift-event-stream-reader.js';
+export type {
+  SiftEventEnvelope,
+  SiftEventType,
+  SiftEventPayload,
+  BoundedContextDefinedPayload,
+  AggregateAddedPayload,
+  CommandDefinedPayload,
+  EventDefinedPayload,
+  ValueObjectDefinedPayload,
+  InvariantDefinedPayload,
+  PolicyDefinedPayload,
+  SagaDefinedPayload,
+} from './events/sift-event-types.js';

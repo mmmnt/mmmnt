@@ -293,7 +293,7 @@ switch (command) {
           process.exitCode = 1;
         });
     } else {
-      console.error('Usage: moment import --from-sift <sift-spec.json>');
+      console.error('Usage: moment import --from-sift <.domain/ directory>');
       process.exitCode = 1;
     }
     break;
