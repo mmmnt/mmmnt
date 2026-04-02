@@ -10,6 +10,7 @@ import type { LangiumCoreServices } from 'langium';
 import type {
   MomentAstType,
   ContextCrossing,
+  FieldDeclaration,
   FlowDeclaration,
   Moment,
   LaneDeclaration,
@@ -51,6 +52,7 @@ export function registerMomentValidationChecks(
   const validator = services.validation.MomentValidator;
   const checks: ValidationChecks<MomentAstType> = {
     Moment: validator.checkMoment,
+    FieldDeclaration: validator.checkDeprecatedReplacement,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
@@ -81,6 +83,13 @@ function getFlowFromNode(node: { $container?: unknown }): FlowDeclaration | unde
   return undefined;
 }
 
+function collectSiblingNames(field: FieldDeclaration): Set<string> {
+  // FieldDeclaration with deprecation only appears on DomainEventDeclaration
+  // and ValueObjectDeclaration, both of which have .fields arrays
+  const container = field.$container as { fields: FieldDeclaration[] };
+  return new Set(container.fields.map((f) => f.name));
+}
+
 function getMomentFromNode(node: { $container?: unknown }): Moment | undefined {
   let current: unknown = node;
   while (current) {
@@ -105,6 +114,21 @@ export class MomentValidator {
 
   clearCrossFileContext(): void {
     this.crossFileContext = undefined;
+  }
+
+  // =========================================================================
+  // V12: Deprecated field replacement must exist as sibling field
+  // =========================================================================
+  checkDeprecatedReplacement(field: FieldDeclaration, accept: ValidationAcceptor): void {
+    if (!field.deprecation) return;
+    const replacement = field.deprecation.replacement.replace(/^"|"$/g, '');
+    const siblings = collectSiblingNames(field);
+    if (!siblings.has(replacement)) {
+      accept('warning', `V12: Deprecated field '${field.name}' references replacement '${replacement}' which does not exist on this type.`, {
+        node: field.deprecation,
+        property: 'replacement',
+      });
+    }
   }
 
   // =========================================================================
