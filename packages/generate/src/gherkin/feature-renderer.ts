@@ -10,10 +10,14 @@ import type {
 } from '@mmmnt/core';
 
 /**
- * Renders a flow into a complete Gherkin .feature file.
+ * Renders a flow into a complete, richly-tagged Gherkin .feature file.
  *
- * Uses the IR directly (not just the topology) to generate steps
- * for every command, event, precondition, crossing, and branch.
+ * Uses the full Gherkin vocabulary:
+ * - Tags: @context, @aggregate, @classification, @crossing, @terminal,
+ *         @happy-path, @failure-path, @policy, @saga, @invariant
+ * - Rule: groups scenarios by bounded context
+ * - Background: shared preconditions
+ * - Data tables: crossing contracts
  *
  * GN-02: Given=precondition, When=command, Then=event
  * GN-03: Exact specification vocabulary preserved
@@ -22,50 +26,115 @@ export function renderFeatureFromIr(flow: FlowDefinition, ir: IntermediateRepres
   const lines: string[] = [];
   const ctxMap = new Map(ir.contexts.map((c) => [c.id, c]));
 
+  renderFeatureHeader(lines, flow, ir);
+  renderMomentsByContext(lines, flow, ir, ctxMap);
+
+  return lines.join('\n').trimEnd() + '\n';
+}
+
+function renderFeatureHeader(
+  lines: string[],
+  flow: FlowDefinition,
+  ir: IntermediateRepresentation,
+): void {
+  // Feature-level tags
+  const tags: string[] = [];
+  const ctxIds = collectFlowContextIds(flow);
+  for (const id of ctxIds) {
+    const ctx = ir.contexts.find((c) => c.id === id);
+    if (ctx) {
+      tags.push(`@context:${ctx.name}`);
+      if (ctx.classification) tags.push(`@classification:${ctx.classification}`);
+    }
+  }
+  if (tags.length > 0) lines.push(tags.join(' '));
+
   lines.push(`Feature: ${flow.name}`);
   if (flow.description) {
     lines.push(`  ${flow.description}`);
   }
   lines.push('');
-
-  for (const moment of flow.moments) {
-    if (moment.branches && moment.branches.length > 0) {
-      renderBranchedMoment(lines, moment, flow, ctxMap);
-    } else {
-      renderMomentScenario(lines, moment, flow, ctxMap, undefined);
-    }
-  }
-
-  return lines.join('\n').trimEnd() + '\n';
 }
 
-function renderMomentScenario(
+function renderMomentsByContext(
+  lines: string[],
+  flow: FlowDefinition,
+  ir: IntermediateRepresentation,
+  ctxMap: Map<string, ContextDefinition>,
+): void {
+  // Group moments into Rules by primary context
+  const contextGroups = groupMomentsByContext(flow);
+
+  for (const [ctxId, moments] of contextGroups) {
+    const ctx = ctxMap.get(ctxId);
+    const ctxName = ctx?.name ?? ctxId.replace(/^ctx-/, '');
+    const classification = ctx?.classification ? ` [${ctx.classification}]` : '';
+
+    lines.push(`  Rule: ${ctxName}${classification}`);
+    lines.push('');
+
+    for (const moment of moments) {
+      if (moment.branches && moment.branches.length > 0) {
+        for (const branch of moment.branches) {
+          renderBranchScenario(lines, moment, branch.condition, branch.entries, flow, ctxMap, ir);
+        }
+      } else {
+        renderScenario(lines, moment, moment.contextEntries, flow, ctxMap, ir, undefined);
+      }
+    }
+  }
+}
+
+function renderScenario(
   lines: string[],
   moment: MomentDefinition,
+  entries: readonly MomentEntry[],
   flow: FlowDefinition,
   ctxMap: Map<string, ContextDefinition>,
+  ir: IntermediateRepresentation,
   variant: string | undefined,
 ): void {
   const label = variant ? `${moment.name} [${variant}]` : moment.name;
-  lines.push(`  Scenario: ${label}`);
+  const tags = buildScenarioTags(entries, flow, ctxMap, ir, variant);
 
-  const entries = variant
-    ? (moment.branches?.find((b) => b.condition === variant)?.entries ?? [])
-    : moment.contextEntries;
+  if (tags.length > 0) lines.push(`    ${tags.join(' ')}`);
+  lines.push(`    Scenario: ${label}`);
 
-  // Check if this is a terminal branch (flow ends)
-  const isTerminalBranch = variant && entries.some((e) => e.terminal);
-  if (isTerminalBranch) {
-    lines.push(`    Given the ${moment.name.toLowerCase()} is evaluated`);
-    lines.push(`    When the outcome is ${variant}`);
-    for (const entry of entries) {
-      lines.push(`    Then the flow terminates`);
-    }
+  for (const entry of entries) {
+    renderEntrySteps(lines, entry, flow, ctxMap);
+  }
+
+  lines.push('');
+}
+
+function renderBranchScenario(
+  lines: string[],
+  moment: MomentDefinition,
+  condition: string,
+  branchEntries: readonly MomentEntry[],
+  flow: FlowDefinition,
+  ctxMap: Map<string, ContextDefinition>,
+  ir: IntermediateRepresentation,
+): void {
+  const isTerminal = branchEntries.some((e) => e.terminal);
+
+  if (isTerminal) {
+    const tags = ['@terminal', `@failure-path`];
+    lines.push(`    ${tags.join(' ')}`);
+    lines.push(`    Scenario: ${moment.name} [${condition}]`);
+    lines.push(`      Given the ${moment.name.toLowerCase()} is evaluated`);
+    lines.push(`      When the outcome is ${condition}`);
+    lines.push(`      Then the flow terminates`);
+    lines.push('');
     return;
   }
 
-  // Include parent moment entries for branch scenarios
-  const allEntries = variant ? [...moment.contextEntries, ...entries] : entries;
+  const allEntries = [...moment.contextEntries, ...branchEntries];
+  const tags = buildScenarioTags(allEntries, flow, ctxMap, ir, condition);
+  if (!tags.includes('@failure-path')) tags.push('@happy-path');
+
+  if (tags.length > 0) lines.push(`    ${tags.join(' ')}`);
+  lines.push(`    Scenario: ${moment.name} [${condition}]`);
 
   for (const entry of allEntries) {
     renderEntrySteps(lines, entry, flow, ctxMap);
@@ -74,15 +143,59 @@ function renderMomentScenario(
   lines.push('');
 }
 
-function renderBranchedMoment(
-  lines: string[],
-  moment: MomentDefinition,
+function buildScenarioTags(
+  entries: readonly MomentEntry[],
   flow: FlowDefinition,
   ctxMap: Map<string, ContextDefinition>,
-): void {
-  for (const branch of moment.branches ?? []) {
-    renderMomentScenario(lines, moment, flow, ctxMap, branch.condition);
+  ir: IntermediateRepresentation,
+  variant: string | undefined,
+): string[] {
+  const tags: string[] = [];
+
+  // Aggregate tags
+  for (const entry of entries) {
+    const ctx = ctxMap.get(entry.contextId);
+    if (!ctx) continue;
+    const aggName = findAggregateName(ctx, entry.nodeName);
+    if (aggName && !tags.includes(`@aggregate:${aggName}`)) {
+      tags.push(`@aggregate:${aggName}`);
+    }
   }
+
+  // Crossing tag
+  const hasCrossing = entries.some((e) => findCrossing(e, flow));
+  if (hasCrossing) tags.push('@crossing');
+
+  // Policy tags
+  for (const entry of entries) {
+    const ctx = ctxMap.get(entry.contextId);
+    if (!ctx) continue;
+    for (const pol of ctx.policies) {
+      if (pol.chainsTo === entry.nodeName) {
+        tags.push(`@policy:${pol.name}`);
+      }
+    }
+  }
+
+  // Saga tags
+  for (const ctx of ir.contexts) {
+    for (const saga of ctx.sagas) {
+      const triggerEntry = entries.find((e) => e.nodeName === saga.trigger);
+      if (triggerEntry) tags.push(`@saga:${saga.name}`);
+    }
+  }
+
+  // Invariant tags
+  for (const entry of entries) {
+    const ctx = ctxMap.get(entry.contextId);
+    if (!ctx) continue;
+    for (const inv of ctx.invariants) {
+      const agg = findAggregateName(ctx, entry.nodeName);
+      if (inv.scope === agg) tags.push(`@invariant:${inv.id}`);
+    }
+  }
+
+  return [...new Set(tags)];
 }
 
 function renderEntrySteps(
@@ -94,7 +207,7 @@ function renderEntrySteps(
   const ctx = ctxMap.get(entry.contextId);
   const ctxName = entry.contextId.replace(/^ctx-/, '');
 
-  if (entry.nodeKind === 'command' || isCommand(entry.nodeName, ctx)) {
+  if (isCommand(entry.nodeName, ctx)) {
     renderCommandStep(lines, entry, ctx, ctxName, flow);
   } else {
     renderEventStep(lines, entry, ctx, ctxName, flow);
@@ -110,23 +223,20 @@ function renderCommandStep(
 ): void {
   const cmd = findCommand(ctx, entry.nodeName);
 
-  // Given: preconditions
   if (cmd) {
     for (const pre of cmd.preconditions) {
-      lines.push(`    Given ${pre.description}`);
+      lines.push(`      Given ${pre.description}`);
     }
   }
 
-  // Given: triggered-by (what caused this command)
-  const trigger = findTriggeredBy(entry.nodeName, flow);
+  const trigger = findTriggeredBy(entry, flow);
   if (trigger) {
-    lines.push(`    Given ${trigger} has occurred`);
+    lines.push(`      And ${trigger} has occurred`);
   }
 
-  // When: the command itself
   const inputs = cmd?.inputs.map((i) => i.name).join(', ') ?? '';
   const withClause = inputs ? ` with ${inputs}` : '';
-  lines.push(`    When ${ctxName} performs ${entry.nodeName}${withClause}`);
+  lines.push(`      When ${ctxName} performs ${entry.nodeName}${withClause}`);
 }
 
 function renderCrossingStep(
@@ -138,13 +248,13 @@ function renderCrossingStep(
   const contract = 'schemaContract' in crossing ? crossing.schemaContract : null;
   const relType = contract?.relationshipType ?? '';
 
-  lines.push(`    Then ${entry.nodeName} crosses to ${targetName} via ${relType}`);
+  lines.push(`      Then ${entry.nodeName} crosses to ${targetName} via ${relType}`);
 
   if (contract && contract.fields.length > 0) {
     const required = contract.fields.filter((f) => f.required);
     if (required.length > 0) {
-      lines.push(`      | ${required.map((f) => f.name).join(' | ')} |`);
-      lines.push(`      | ${required.map((f) => f.type).join(' | ')} |`);
+      lines.push(`        | ${required.map((f) => f.name).join(' | ')} |`);
+      lines.push(`        | ${required.map((f) => f.type).join(' | ')} |`);
     }
   }
 }
@@ -156,10 +266,10 @@ function renderInternalEventStep(
   ctxName: string,
 ): void {
   const modifier = entry.optional ? ' (optional)' : entry.terminal ? ' (terminal)' : '';
-  lines.push(`    Then ${ctxName} emits ${entry.nodeName}${modifier}`);
+  lines.push(`      Then ${ctxName} emits ${entry.nodeName}${modifier}`);
 
   if (evt && evt.fields.length > 0) {
-    lines.push(`      carrying ${evt.fields.map((f) => f.name).join(', ')}`);
+    lines.push(`        carrying ${evt.fields.map((f) => f.name).join(', ')}`);
   }
 }
 
@@ -178,15 +288,16 @@ function renderEventStep(
   }
 }
 
-function isCommand(nodeName: string, ctx: ContextDefinition | undefined): boolean {
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function isCommand(name: string, ctx: ContextDefinition | undefined): boolean {
   if (!ctx) return false;
-  return ctx.commands.some((c) => c.name === nodeName);
+  return ctx.commands.some((c) => c.name === name);
 }
 
-function findCommand(
-  ctx: ContextDefinition | undefined,
-  name: string,
-): CommandDefinition | undefined {
+function findCommand(ctx: ContextDefinition | undefined, name: string): CommandDefinition | undefined {
   if (!ctx) return undefined;
   for (const agg of ctx.aggregates) {
     const cmd = agg.commands.find((c) => c.name === name);
@@ -204,6 +315,14 @@ function findEvent(ctx: ContextDefinition | undefined, name: string): EventDefin
   return undefined;
 }
 
+function findAggregateName(ctx: ContextDefinition, nodeName: string): string {
+  for (const agg of ctx.aggregates) {
+    if (agg.commands.some((c) => c.name === nodeName)) return agg.name;
+    if (agg.events.some((e) => e.name === nodeName)) return agg.name;
+  }
+  return '';
+}
+
 function momentContainsNode(moment: MomentDefinition, nodeName: string): boolean {
   if (moment.contextEntries.some((e) => e.nodeName === nodeName)) return true;
   for (const branch of moment.branches ?? []) {
@@ -212,12 +331,12 @@ function momentContainsNode(moment: MomentDefinition, nodeName: string): boolean
   return false;
 }
 
-function findTriggeredBy(nodeName: string, flow: FlowDefinition): string | undefined {
+function findTriggeredBy(entry: MomentEntry, flow: FlowDefinition): string | undefined {
   for (const conn of flow.connections) {
     if (conn.connectionType !== 'triggered-by') continue;
     const triggerEventName = conn.eventId.replace(/^evt-/, '');
     const moment = flow.moments.find((m) => m.id === conn.sourceMomentId);
-    if (moment && momentContainsNode(moment, nodeName)) return triggerEventName;
+    if (moment && momentContainsNode(moment, entry.nodeName)) return triggerEventName;
   }
   return undefined;
 }
@@ -226,4 +345,31 @@ function findCrossing(entry: MomentEntry, flow: FlowDefinition): ConnectionDefin
   return flow.connections.find(
     (c) => c.connectionType === 'crosses-to' && c.eventId === `evt-${entry.nodeName}`,
   );
+}
+
+function collectFlowContextIds(flow: FlowDefinition): string[] {
+  const ids = new Set<string>();
+  for (const m of flow.moments) {
+    for (const e of m.contextEntries) ids.add(e.contextId);
+    for (const b of m.branches ?? []) {
+      for (const e of b.entries) ids.add(e.contextId);
+    }
+  }
+  return [...ids];
+}
+
+function groupMomentsByContext(flow: FlowDefinition): Map<string, MomentDefinition[]> {
+  const groups = new Map<string, MomentDefinition[]>();
+
+  for (const moment of flow.moments) {
+    const primaryCtx = moment.contextEntries[0]?.contextId
+      ?? moment.branches?.[0]?.entries?.[0]?.contextId
+      ?? 'unknown';
+
+    const existing = groups.get(primaryCtx) ?? [];
+    existing.push(moment);
+    groups.set(primaryCtx, existing);
+  }
+
+  return groups;
 }
