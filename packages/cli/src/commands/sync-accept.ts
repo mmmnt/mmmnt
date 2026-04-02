@@ -2,7 +2,6 @@
  * moment sync accept — Accept implementation change proposals by ID
  *
  * Delegates to SyncState.acceptProposal() — no state logic in CLI (EXIT-C1).
- * Cursor advancement is atomic per SS-02.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -28,6 +27,7 @@ export interface SyncAcceptResult {
 }
 
 const EMPTY: readonly Diagnostic[] = [];
+const USAGE = 'Usage: moment sync accept [--all] <file.moment> [<proposal-id>...]';
 
 function fail(message: string): SyncAcceptResult {
   return { success: false, message, diagnostics: EMPTY, acceptedCount: 0 };
@@ -54,13 +54,12 @@ export async function runSyncAccept(argv: string[]): Promise<SyncAcceptResult> {
   });
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment sync accept [--all | <proposal-id>...] <file.moment>');
+  if (!filePath) return fail(USAGE);
 
   const parsed = await parseSpecFile(filePath);
-  if ('success' in parsed && !parsed.success) return parsed as SyncAcceptResult;
+  if (!('ir' in parsed)) return parsed;
 
-  const { ir, resolvedPath } = parsed as { ir: ReturnType<typeof Object>; resolvedPath: string };
-
+  const { ir, resolvedPath } = parsed;
   const proposals = await generateProposals(ir, resolvedPath);
 
   if (proposals.length === 0) {
@@ -82,7 +81,7 @@ function executeAccept(
   }
 
   if (!acceptAll && proposalIds.length === 0) {
-    return fail('Usage: moment sync accept [--all | <proposal-id>...] <file.moment>');
+    return fail(USAGE);
   }
 
   const result = acceptAll
@@ -146,22 +145,23 @@ function acceptByIds(
   requestedIds: string[],
   validIds: string[],
 ): SyncAcceptResult {
+  const uniqueIds = [...new Set(requestedIds)];
   const validSet = new Set(validIds);
-  const invalid = requestedIds.filter((id) => !validSet.has(id));
+  const invalid = uniqueIds.filter((id) => !validSet.has(id));
 
   if (invalid.length > 0) {
     return fail(`Error: Unknown proposal ID(s): ${invalid.join(', ')}`);
   }
 
-  for (const id of requestedIds) {
+  for (const id of uniqueIds) {
     syncState.acceptProposal(id);
   }
 
   return {
     success: true,
-    message: `Accepted ${requestedIds.length} proposal(s)`,
+    message: `Accepted ${uniqueIds.length} proposal(s)`,
     diagnostics: EMPTY,
-    acceptedCount: requestedIds.length,
+    acceptedCount: uniqueIds.length,
   };
 }
 
