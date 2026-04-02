@@ -191,7 +191,7 @@ test('simulate: --json outputs valid Facet scenario', (assert) => {
   assert(parsed?.scenarioId, 'has scenarioId');
   assert(parsed?.expectedPath?.length === 28, '28-node expected path');
   assert(parsed?.activeBranches?.length === 3, '3 active branches');
-  saveOutput('simulate-scenario.json', JSON.stringify(parsed, null, 2));
+  saveOutput('facet.json', JSON.stringify(parsed, null, 2));
 });
 
 test('simulate: --json events have causation and payloads', (assert) => {
@@ -409,7 +409,7 @@ const md = [
   '**JSON Outputs**',
   '| File | Description |',
   '|------|-------------|',
-  '| `simulate-scenario.json` | Facet-compatible simulation (28 events, causation chains) |',
+  '| `facet.json` | Facet-compatible simulation (28 events, causation chains) |',
   '| `derive-topology.json` | Test suite topology (17 cases, assertion points) |',
   '| `viz-envelope.json` | Visualization data envelope (context map + timeline) |',
   '',
