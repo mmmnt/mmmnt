@@ -559,4 +559,149 @@ describe('DerivationEngine', () => {
       expect(topology.suites[0].testCases[0].assertions[0].sourceContext).toBe('ctx-1');
     });
   });
+
+  // -----------------------------------------------------------------------
+  // Saga test cases
+  // -----------------------------------------------------------------------
+  describe('saga test cases', () => {
+    it('context with a saga produces init, transition, and compensation test cases', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        sagas: [
+          {
+            id: 'saga-1',
+            name: 'OrderFulfillment',
+            trigger: 'OrderPlaced',
+            states: ['Pending', 'Processing', 'Completed'],
+            compensation: 'CancelOrder',
+            timeout: '30m',
+          },
+        ],
+      };
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const sagaCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      // init + 2 transitions (Pending→Processing, Processing→Completed) + compensation = 4
+      expect(sagaCases).toHaveLength(4);
+
+      // Init case
+      const initCase = sagaCases.find((tc) => tc.momentId === 'saga-OrderFulfillment-initiated');
+      expect(initCase).toBeDefined();
+      expect(initCase!.assertions[0].assertionType).toBe('saga');
+      expect(initCase!.assertions[0].schemaContract.eventType).toBe('OrderPlaced');
+
+      // Transition cases
+      const transCase1 = sagaCases.find(
+        (tc) => tc.momentId === 'saga-OrderFulfillment-Pending-to-Processing',
+      );
+      expect(transCase1).toBeDefined();
+      expect(transCase1!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Processing');
+
+      const transCase2 = sagaCases.find(
+        (tc) => tc.momentId === 'saga-OrderFulfillment-Processing-to-Completed',
+      );
+      expect(transCase2).toBeDefined();
+      expect(transCase2!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Completed');
+
+      // Compensation case
+      const compCase = sagaCases.find((tc) => tc.momentId === 'saga-OrderFulfillment-compensation');
+      expect(compCase).toBeDefined();
+      expect(compCase!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Compensated');
+      expect(compCase!.setupSteps[0].precondition).toBe('CancelOrder');
+    });
+
+    it('context with no sagas produces no saga test cases', () => {
+      const ctx = makeContext('ctx-1', 'Ordering');
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const sagaCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      expect(sagaCases).toHaveLength(0);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Policy chain test cases
+  // -----------------------------------------------------------------------
+  describe('policy chain test cases', () => {
+    it('policy with chainsTo produces a policy chain test case', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        policies: [
+          {
+            id: 'pol-1',
+            name: 'AutoApprovePolicy',
+            trigger: 'OrderPlaced',
+            action: 'ApproveOrder',
+            chainsTo: 'SendConfirmation',
+          },
+        ],
+      };
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const policyCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCases).toHaveLength(1);
+      expect(policyCases[0].momentId).toBe('policy-AutoApprovePolicy');
+      expect(policyCases[0].assertions[0].assertionType).toBe('policy-chain');
+      expect(policyCases[0].assertions[0].schemaContract.eventType).toBe('SendConfirmation');
+      expect(policyCases[0].setupSteps[0].precondition).toBe(
+        'OrderPlaced occurs → SendConfirmation must follow',
+      );
+    });
+
+    it('policy without chainsTo produces no policy chain test case', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        policies: [
+          {
+            id: 'pol-1',
+            name: 'LogPolicy',
+            trigger: 'OrderPlaced',
+            action: 'LogEvent',
+          },
+        ],
+      };
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const policyCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCases).toHaveLength(0);
+    });
+
+    it('context with no policies produces no policy chain test cases', () => {
+      const ctx = makeContext('ctx-1', 'Ordering');
+      const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');
+      const flow = makeFlow('f1', 'Order Flow', [moment], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const topology = deriveTopology(ir);
+
+      const policyCases = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCases).toHaveLength(0);
+    });
+  });
 });
