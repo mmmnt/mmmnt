@@ -371,6 +371,25 @@ describe('SpecificationDocumentGenerator', () => {
     expect(content).toContain('| `street` | string |');
   });
 
+  it('renders deprecated fields with strikethrough in glossary and events', () => {
+    const vo = makeValueObject('Money');
+    vo.fields.push({ name: 'legacyCurrency', type: 'string', isArray: false, required: true, deprecated: { reason: 'Use currencyCode', replacement: 'currencyCode' } });
+    const agg = makeAggregate('Order', { valueObjects: [vo] });
+    agg.events = [{
+      id: 'evt-1', name: 'OrderPlaced',
+      fields: [
+        { name: 'orderId', type: 'UUID', isArray: false, required: true },
+        { name: 'oldField', type: 'string', isArray: false, required: true, deprecated: { reason: 'Replaced', replacement: 'newField' } },
+      ],
+    }];
+    const ir = makeIR({ contexts: [makeContext('Ordering', { aggregates: [agg] })] });
+
+    const content = generator.generate(ir)[0].content;
+    expect(content).toContain('~~`legacyCurrency`~~ (deprecated)');
+    expect(content).toContain('~~`oldField`~~ (deprecated)');
+    expect(content).not.toContain('~~`orderId`~~');
+  });
+
   it('renders moment branches with terminal and non-terminal paths', () => {
     const ir = makeIR({
       contexts: [

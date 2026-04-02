@@ -9,7 +9,7 @@ import type {
 export interface EventCatalogEntry {
   readonly eventName: string;
   readonly schema: {
-    readonly fields: readonly { name: string; type: string; isArray: boolean }[];
+    readonly fields: readonly { name: string; type: string; isArray: boolean; deprecated?: { reason: string; replacement: string } }[];
   };
   readonly producer: {
     readonly context: string;
@@ -68,6 +68,7 @@ function buildCatalogEntry(
         name: f.name,
         type: f.type,
         isArray: f.isArray,
+        deprecated: f.deprecated,
       })),
     },
     producer,

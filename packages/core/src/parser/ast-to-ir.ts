@@ -200,12 +200,19 @@ function transformValueObject(vo: ValueObjectDeclaration): ValueObjectDefinition
 }
 
 function transformFieldDeclaration(field: FieldDeclaration | InputField): FieldDefinition {
-  return {
+  const result: FieldDefinition = {
     name: field.name,
     type: field.type.typeName,
     isArray: field.type.isArray,
     required: true,
   };
+  if ('deprecation' in field && field.deprecation) {
+    result.deprecated = {
+      reason: unquote(field.deprecation.reason),
+      replacement: unquote(field.deprecation.replacement),
+    };
+  }
+  return result;
 }
 
 function transformInvariant(inv: InvariantDeclaration): InvariantDefinition {

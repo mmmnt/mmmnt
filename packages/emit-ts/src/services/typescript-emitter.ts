@@ -70,12 +70,24 @@ function generateJsDoc(description: string, indent: string): string {
   return `${indent}/**\n${indent} * ${safe}\n${indent} */\n`;
 }
 
+function generateDeprecatedJsDoc(field: FieldDefinition, indent: string): string {
+  if (!field.deprecated) return '';
+  const reason = field.deprecated.reason.trim() ? sanitizeJsDoc(field.deprecated.reason.trim()) : '';
+  const replacement = field.deprecated.replacement.trim() ? sanitizeJsDoc(field.deprecated.replacement.trim()) : '';
+  let doc = `${indent}/**\n${indent} * @deprecated\n`;
+  if (reason) doc += `${indent} * ${reason}\n`;
+  if (replacement) doc += `${indent} * Use ${replacement} instead.\n`;
+  doc += `${indent} */\n`;
+  return doc;
+}
+
 function generateValueObjectInterface(vo: ValueObjectDefinition): string {
   const name = toPascalCase(vo.name);
   let output = `export interface ${name} {\n`;
   for (const field of vo.fields) {
     const fieldType = mapFieldType(field);
     const optional = field.required ? '' : '?';
+    output += generateDeprecatedJsDoc(field, '  ');
     output += `  readonly ${safePropertyKey(field.name)}${optional}: ${fieldType};\n`;
   }
   output += '}\n';
@@ -88,6 +100,7 @@ function generateEventInterface(event: EventDefinition): string {
   for (const field of event.fields) {
     const fieldType = mapFieldType(field);
     const optional = field.required ? '' : '?';
+    output += generateDeprecatedJsDoc(field, '  ');
     output += `  readonly ${safePropertyKey(field.name)}${optional}: ${fieldType};\n`;
   }
   output += '}\n';
@@ -100,6 +113,7 @@ function generateCommandInterface(cmd: CommandDefinition): string {
   for (const input of cmd.inputs) {
     const fieldType = mapFieldType(input);
     const optional = input.required ? '' : '?';
+    output += generateDeprecatedJsDoc(input, '  ');
     output += `  readonly ${safePropertyKey(input.name)}${optional}: ${fieldType};\n`;
   }
   output += '}\n';

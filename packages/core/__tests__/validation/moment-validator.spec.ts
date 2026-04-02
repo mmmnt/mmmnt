@@ -1291,4 +1291,64 @@ describe('MomentValidator', () => {
       }
     });
   });
+
+  // -------------------------------------------------------------------------
+  // V12: Deprecated field replacement must exist
+  // -------------------------------------------------------------------------
+  describe('V12 — deprecated replacement validation', () => {
+    it('warns when replacement field does not exist', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+              legacyId: string [deprecated "Use orderId" -> "missingField"]
+      `);
+
+      const warnings = result.diagnostics.filter((d) => d.severity === 2).map((d) => d.message);
+      expect(warnings.some((m) => m.includes('V12'))).toBe(true);
+      expect(warnings.some((m) => m.includes('missingField'))).toBe(true);
+    });
+
+    it('does not warn when replacement field exists', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+              legacyId: string [deprecated "Use orderId" -> "orderId"]
+      `);
+
+      const warnings = result.diagnostics.filter((d) => d.severity === 2).map((d) => d.message);
+      expect(warnings.some((m) => m.includes('V12'))).toBe(false);
+    });
+
+    it('warns on deprecated value object field with missing replacement', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            value-object Address
+              street: string [deprecated "Use line1" -> "line1"]
+      `);
+
+      const warnings = result.diagnostics.filter((d) => d.severity === 2).map((d) => d.message);
+      expect(warnings.some((m) => m.includes('V12'))).toBe(true);
+    });
+
+    it('does not warn when field is not deprecated', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+      `);
+
+      const warnings = result.diagnostics.filter((d) => d.severity === 2).map((d) => d.message);
+      expect(warnings.some((m) => m.includes('V12'))).toBe(false);
+    });
+  });
 });

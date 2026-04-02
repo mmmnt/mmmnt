@@ -28,7 +28,13 @@ export interface RegisterPatientIntake {
 export interface PatientCheckedIn {
   readonly intakeId: string;
   readonly patientId: string;
+  /**
+   * @deprecated
+   * Use ownerRef composite key
+   * Use ownerRef instead.
+   */
   readonly ownerName: string;
+  readonly ownerRef: string;
   readonly appointmentType: string;
   readonly checkedInAt: DateTime;
 }
