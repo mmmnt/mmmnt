@@ -37,24 +37,49 @@ graph LR
 ```mermaid
 sequenceDiagram
   participant Reception
-  participant Intake Failure
   participant Clinical
-  participant Vet Disagreement
-  participant Records Incomplete
   participant Billing
   participant Records
+  Reception->>Reception: CheckInPatient → PatientCheckedIn
+  Reception->>Reception: PatientCheckedIn
+  Reception->>Reception: SubmitValidateIntake → IntakeValidated
+  Reception->>Reception: IntakeValidated
   alt valid
+  Reception->>Reception: RegisterPatientIntake → PatientIntakeRegistered
   Reception->>Clinical: PatientIntakeRegistered (crosses)
   else invalid
+  Note over Reception: Flow terminates
   end
+  Clinical->>Clinical: CompleteTriage → TriageCompleted
+  Clinical->>Clinical: TriageCompleted
+  Clinical->>Clinical: PerformDualVetAssessment → DualVetAssessmentCompleted
+  Clinical->>Clinical: DualVetAssessmentCompleted
   alt agree
+  Clinical->>Clinical: RecordClinicalObservation → ClinicalObservationRecorded
+  Clinical->>Clinical: ClinicalObservationRecorded
   else disagree
+  Note over Clinical: Flow terminates
   end
+  Clinical->>Clinical: NormalizeClinicalRecord → ClinicalRecordNormalized
+  Clinical->>Clinical: ClinicalRecordNormalized
   alt complete
+  Clinical->>Clinical: RunClinicalAssessment → ClinicalAssessmentCompleted
+  Clinical->>Clinical: ClinicalAssessmentCompleted
   else incomplete
+  Note over Clinical: Flow terminates
   end
+  Clinical->>Clinical: CreateTreatmentPlan → TreatmentPlanCreated
+  Clinical->>Clinical: TreatmentPlanCreated
+  Clinical->>Clinical: ConfirmTreatment → TreatmentConfirmed
   Clinical->>Billing: TreatmentConfirmed (crosses)
+  Billing->>Billing: GenerateInvoice → InvoiceGenerated
+  Billing->>Billing: InvoiceGenerated
+  Billing->>Billing: VerifyBilling → BillingVerified
   Billing->>Records: BillingVerified (crosses)
+  Records->>Records: CreateDischargeRecord → DischargeRecordCreated
+  Records->>Records: DischargeRecordCreated
+  Records->>Records: FinalizeDischarge → DischargeFinalised
+  Records->>Records: DischargeFinalised
 ```
 
 ## What Happens

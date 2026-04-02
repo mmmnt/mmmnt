@@ -546,25 +546,26 @@ export class SpecificationDocumentGenerator {
     const seen = new Set<string>();
     const result: string[] = [];
 
-    for (const moment of flow.moments) {
-      for (const entry of moment.contextEntries) {
-        const name = this.resolveCtxName(entry.contextId, ir);
-        if (!seen.has(name)) {
-          seen.add(name);
-          result.push(name);
-        }
+    const addCtx = (contextId: string): void => {
+      const name = this.resolveCtxName(contextId, ir);
+      // Only add real contexts (those that exist in IR)
+      if (!seen.has(name) && ir.contexts.some((c) => c.id === contextId)) {
+        seen.add(name);
+        result.push(name);
       }
+    };
+
+    for (const moment of flow.moments) {
+      for (const entry of moment.contextEntries) addCtx(entry.contextId);
       if (moment.branches) {
         for (const branch of moment.branches) {
-          for (const entry of branch.entries) {
-            const name = this.resolveCtxName(entry.contextId, ir);
-            if (!seen.has(name)) {
-              seen.add(name);
-              result.push(name);
-            }
-          }
+          for (const entry of branch.entries) addCtx(entry.contextId);
         }
       }
+    }
+    // Also include crossing targets
+    for (const conn of flow.connections) {
+      if (conn.connectionType === 'crosses-to') addCtx(conn.targetContextId);
     }
     return result;
   }
@@ -577,22 +578,50 @@ export class SpecificationDocumentGenerator {
   ): void {
     const ctxName = this.resolveMomentCtxName(moment, ir);
 
-    // Render command -> event pairs
+    // Render main context entries
     this.renderSequenceEntries(lines, moment.contextEntries, ctxName, flow, ir);
 
-    // Branches as alt blocks
+    // Branches as alt blocks — only if non-terminal entries exist
     if (moment.branches && moment.branches.length > 0) {
-      for (let i = 0; i < moment.branches.length; i++) {
-        const branch = moment.branches[i];
-        const keyword = i === 0 ? 'alt' : 'else';
-        lines.push(`  ${keyword} ${branch.condition}`);
-        const branchCtx = branch.entries[0]
-          ? this.resolveCtxName(branch.entries[0].contextId, ir)
-          : ctxName;
-        this.renderSequenceEntries(lines, branch.entries, branchCtx, flow, ir);
-      }
-      lines.push('  end');
+      this.renderBranchAltBlock(lines, moment, ctxName, flow, ir);
     }
+  }
+
+  private renderBranchAltBlock(
+    lines: string[],
+    moment: MomentDefinition,
+    ctxName: string,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const nonTerminal = moment.branches!.filter((b) => !b.entries.some((e) => e.terminal));
+    const terminal = moment.branches!.filter((b) => b.entries.some((e) => e.terminal));
+
+    if (nonTerminal.length === 0 && terminal.length === 0) return;
+
+    for (let i = 0; i < nonTerminal.length; i++) {
+      const branch = nonTerminal[i];
+      const keyword = i === 0 ? 'alt' : 'else';
+      lines.push(`  ${keyword} ${branch.condition}`);
+      const branchCtx = this.resolveBranchCtx(branch, ctxName, ir);
+      this.renderSequenceEntries(lines, branch.entries, branchCtx, flow, ir);
+    }
+    if (terminal.length > 0) {
+      const keyword = nonTerminal.length === 0 ? 'alt' : 'else';
+      const labels = terminal.map((b) => b.condition).join(' / ');
+      lines.push(`  ${keyword} ${labels}`);
+      lines.push(`  Note over ${ctxName}: Flow terminates`);
+    }
+    lines.push('  end');
+  }
+
+  private resolveBranchCtx(
+    branch: { entries: MomentEntry[] },
+    fallback: string,
+    ir: IntermediateRepresentation,
+  ): string {
+    const entry = branch.entries.find((e) => !e.terminal);
+    return entry ? this.resolveCtxName(entry.contextId, ir) : fallback;
   }
 
   private renderSequenceEntries(
@@ -602,24 +631,31 @@ export class SpecificationDocumentGenerator {
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
   ): void {
-    const commands = entries.filter((e) => e.nodeKind === 'command');
-    const events = entries.filter((e) => e.nodeKind === 'event');
-
-    for (const cmd of commands) {
-      const cmdCtx = this.resolveCtxName(cmd.contextId, ir);
-      const matchedEvent = events.find((e) => e.contextId === cmd.contextId);
-      const eventLabel = matchedEvent ? ` → ${matchedEvent.nodeName}` : '';
-      lines.push(`  ${cmdCtx}->>${cmdCtx}: ${cmd.nodeName}${eventLabel}`);
-    }
-
-    // Crossings as notes
     for (const entry of entries) {
-      const crossing = this.findCrossing(entry.nodeName, flow);
-      if (crossing) {
-        const source = this.resolveCtxName(entry.contextId, ir);
-        const target = this.resolveCtxName(crossing.targetContextId, ir);
-        lines.push(`  ${source}->>${target}: ${entry.nodeName} (crosses)`);
-      }
+      if (entry.terminal) continue;
+      this.renderSingleSequenceEntry(lines, entry, ctxName, flow, ir);
+    }
+  }
+
+  private renderSingleSequenceEntry(
+    lines: string[],
+    entry: MomentEntry,
+    ctxName: string,
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const entryCtx = this.resolveCtxName(entry.contextId, ir);
+    const crossing = this.findCrossing(entry.nodeName, flow);
+
+    if (crossing) {
+      const target = this.resolveCtxName(crossing.targetContextId, ir);
+      lines.push(`  ${entryCtx}->>${target}: ${entry.nodeName} (crosses)`);
+    } else if (this.isCommand(entry.nodeName, ir.contexts.find((c) => c.id === entry.contextId))) {
+      const cmd = this.findCommand(ir.contexts.find((c) => c.id === entry.contextId), entry.nodeName);
+      const emits = cmd?.emitsEvent ? ` → ${cmd.emitsEvent}` : '';
+      lines.push(`  ${entryCtx}->>${entryCtx}: ${entry.nodeName}${emits}`);
+    } else {
+      lines.push(`  ${entryCtx}->>${entryCtx}: ${entry.nodeName}`);
     }
   }
 
