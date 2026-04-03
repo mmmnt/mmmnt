@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createMcpServer } from '../server.js';
@@ -14,6 +15,9 @@ import { createMcpServer } from '../server.js';
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
 const VALID_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
+const NONEXISTENT_FILE = join(tmpdir(), `nonexistent-mcp-${Date.now()}.moment`);
+const NONEXISTENT_PROJECT = join(tmpdir(), `nonexistent-project-mcp-${Date.now()}`);
+const NONEXISTENT_DOMAIN = join(tmpdir(), `nonexistent-domain-mcp-${Date.now()}`);
 
 let client: Client;
 let clientTransport: InMemoryTransport;
@@ -30,8 +34,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await clientTransport.close();
-  await serverTransport.close();
+  await clientTransport?.close();
+  await serverTransport?.close();
 });
 
 describe('MCP Integration — tools/list', () => {
@@ -99,7 +103,7 @@ describe('MCP Integration — tools/call', () => {
   it('moment_validate with nonexistent file returns structured error (EXIT-B4)', async () => {
     const result = await client.callTool({
       name: 'moment_validate',
-      arguments: { filePath: '/tmp/nonexistent-mcp-test.moment' },
+      arguments: { filePath: NONEXISTENT_FILE },
     });
 
     expect(result.isError).toBe(true);
@@ -160,7 +164,7 @@ describe('MCP Integration — tools/call', () => {
   it('moment_get_events with nonexistent dir returns error or empty', async () => {
     const result = await client.callTool({
       name: 'moment_get_events',
-      arguments: { projectDir: '/tmp/nonexistent-project-mcp-test' },
+      arguments: { projectDir: NONEXISTENT_PROJECT },
     });
 
     const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
@@ -175,7 +179,7 @@ describe('MCP Integration — tools/call', () => {
   it('moment_import with nonexistent domain dir returns error', async () => {
     const result = await client.callTool({
       name: 'moment_import',
-      arguments: { domainDir: '/tmp/nonexistent-domain-mcp-test' },
+      arguments: { domainDir: NONEXISTENT_DOMAIN },
     });
 
     expect(result.isError).toBe(true);
