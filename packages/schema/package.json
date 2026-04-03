@@ -14,7 +14,7 @@
     "@mmmnt/core": "workspace:*"
   },
   "publishConfig": {
-    "access": "public",
+    "access": "restricted",
     "provenance": true
   }
 }

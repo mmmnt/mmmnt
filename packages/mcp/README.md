@@ -2,9 +2,18 @@
 
 Local MCP (Model Context Protocol) server for the Moment domain specification toolchain. Exposes 7 tools that wrap Moment's domain services for AI agent integration.
 
-**License:** FSL-1.1-Apache-2.0  
-**Transport:** stdio  
-**No account required** — runs fully offline per Design Principle #15.
+[![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
+[![npm version](https://img.shields.io/npm/v/@mmmnt/mcp.svg)](https://www.npmjs.com/package/@mmmnt/mcp)
+
+## Overview
+
+`@mmmnt/mcp` exposes the Moment toolchain as a local Model Context Protocol server, enabling AI coding assistants like Claude, Copilot, and Cursor to parse specifications, generate code, detect drift, and reconcile changes through structured tool calls. The server communicates over stdio and requires no account or network access -- it runs fully offline.
+
+The server wraps 7 tools covering the core Moment workflow: validation, project status, visualization, event inspection, Sift import, TypeScript emission, and cascade reconciliation. Each tool accepts structured JSON input and returns structured JSON output per the MCP protocol, with consistent error handling that never crashes on invalid input.
+
+This package is the recommended integration point for AI-assisted domain-driven development workflows. While `@mmmnt/cli` serves interactive terminal use, `@mmmnt/mcp` provides the same capabilities in a format optimized for programmatic consumption by language model agents.
+
+**Transport:** stdio | **No account required** -- runs fully offline.
 
 ## Quick Start
 
@@ -216,6 +225,33 @@ The MCP server imports domain services directly from workspace packages — no s
 ```
 
 Each tool callback is wrapped in `wrapTool()` for exception safety. All results are JSON-serialized `CallToolResult` objects per the MCP protocol.
+
+## Installation
+
+```bash
+# Install globally
+npm install -g @mmmnt/mcp
+
+# Or run directly via npx
+npx @mmmnt/mcp
+```
+
+## Integration
+
+`@mmmnt/mcp` imports domain services directly from workspace packages -- it does not shell out to the `moment` CLI binary. It depends on:
+
+- **@mmmnt/core** for parsing and Sift specification import
+- **@mmmnt/derive** for test topology derivation
+- **@mmmnt/emit-ts** for TypeScript code and test scaffold generation
+- **@mmmnt/viz** for visualization data generation
+- **@mmmnt/sync** for AST diffing and Sift event stream reading
+- **@mmmnt/schema** for schema lifecycle status
+
+For interactive terminal use, see [@mmmnt/cli](../cli/README.md) which provides the same capabilities as shell commands.
+
+## License
+
+[FSL-1.1-Apache-2.0](../../LICENSE.md)
 
 ## ADR References
 
