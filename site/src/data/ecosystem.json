@@ -36,6 +36,12 @@
         { "label": "SDD Methodology", "url": "https://sdd.mmmnt.dev/", "type": "site" },
         { "label": "SDD on GitHub", "url": "https://github.com/listenrightmeow/signal-driven-development/", "type": "github" },
         { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": [
+        { "title": "Introducing Signal-Driven Development", "url": "https://listenrightmeow.hashnode.dev/introducing-signal-driven-development" },
+        { "title": "The Gap Report: DDD's Missing Feedback Loop", "url": "https://listenrightmeow.hashnode.dev/the-gap-report-ddds-missing-feedback-loop" },
+        { "title": "Event Storming Is a Language, Not a Workshop", "url": "https://listenrightmeow.hashnode.dev/event-storming-is-a-language-not-a-workshop" },
+        { "title": "When JTBD Meets DDD", "url": "https://listenrightmeow.hashnode.dev/when-jtbd-meets-ddd" }
       ]
     },
     {
@@ -56,6 +62,12 @@
         { "label": "Moment Site", "url": "https://moment.mmmnt.dev/", "type": "site" },
         { "label": "GitHub", "url": "https://github.com/mmmnt/mmmnt", "type": "github" },
         { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": [
+        { "title": "AI Made My Architecture Deeper, Not Simpler", "url": "https://listenrightmeow.hashnode.dev/ai-made-my-architecture-deeper-not-simpler" },
+        { "title": "The Coherence Problem", "url": "https://listenrightmeow.hashnode.dev/the-coherence-problem" },
+        { "title": "The Classification Gap: The Bug That Passes Every Test", "url": "https://listenrightmeow.hashnode.dev/the-classification-gap-the-bug-that-passes-every-test" },
+        { "title": "The Single-Seat Architect", "url": "https://listenrightmeow.hashnode.dev/the-single-seat-architect" }
       ]
     },
     {
@@ -74,6 +86,9 @@
       "links": [
         { "label": "Facet App", "url": "https://facet.mmmnt.dev/", "type": "site" },
         { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": [
+        { "title": "The Candidate Lifecycle: When AI Models Your Domain, Who Confirms It?", "url": "https://listenrightmeow.hashnode.dev/the-candidate-lifecycle-when-ai-models-your-domain-who-confirms-it" }
       ]
     },
     {
@@ -86,7 +101,8 @@
       "position": "downstream",
       "links": [
         { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
-      ]
+      ],
+      "articles": []
     }
   ],
   "dataFlow": [

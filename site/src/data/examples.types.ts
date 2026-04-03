@@ -33,6 +33,11 @@ export interface EcosystemToolLink {
   type: 'site' | 'github' | 'blog';
 }
 
+export interface EcosystemArticle {
+  title: string;
+  url: string;
+}
+
 export interface EcosystemTool {
   id: string;
   name: string;
@@ -42,6 +47,7 @@ export interface EcosystemTool {
   output: string;
   position: 'upstream' | 'core' | 'downstream';
   links: EcosystemToolLink[];
+  articles: EcosystemArticle[];
 }
 
 export interface DataFlow {

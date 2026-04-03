@@ -63,6 +63,27 @@ import ecosystem from '../data/ecosystem.json';
               <code>{tool.output}</code>
             </div>
 
+            {tool.articles && tool.articles.length > 0 && (
+              <div class="eco-detail__articles">
+                <h3 class="eco-detail__articles-title">From the blog</h3>
+                <div class="eco-detail__articles-list">
+                  {tool.articles.map((article) => (
+                    <a
+                      href={article.url}
+                      class="eco-detail__article"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
+                      </svg>
+                      {article.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {tool.links && tool.links.length > 0 && (
               <div class="eco-detail__links">
                 {tool.links.map((link) => (
@@ -287,6 +308,54 @@ import ecosystem from '../data/ecosystem.json';
 
   .eco-detail__output code {
     color: var(--color-text-secondary);
+  }
+
+  .eco-detail__articles {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .eco-detail__articles-title {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-3);
+  }
+
+  .eco-detail__articles-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .eco-detail__article {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: color var(--duration-fast) var(--ease-out),
+                background var(--duration-fast) var(--ease-out);
+  }
+
+  .eco-detail__article:hover {
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+  }
+
+  .eco-detail__article svg {
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  .eco-detail__article:hover svg {
+    opacity: 1;
   }
 
   .eco-detail__links {
