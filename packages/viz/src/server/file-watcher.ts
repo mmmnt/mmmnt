@@ -40,9 +40,9 @@ export class FileWatcher {
       binaryInterval: 300,
     });
 
-    watcher.on('change', (fullPath) => this.onEvent(fullPath));
-    watcher.on('add', (fullPath) => this.onEvent(fullPath));
-    watcher.on('error', (error) => {
+    watcher.on('change', (fullPath: string) => this.onEvent(fullPath));
+    watcher.on('add', (fullPath: string) => this.onEvent(fullPath));
+    watcher.on('error', (error: Error) => {
       this.options.onError?.(error);
     });
 
@@ -50,7 +50,7 @@ export class FileWatcher {
       watcher.on('ready', () => resolve());
       // Only reject for errors that occur during initialization
       const timer = setTimeout(() => resolve(), 2000);
-      watcher.on('error', (err) => {
+      watcher.on('error', (err: Error) => {
         clearTimeout(timer);
         reject(err);
       });
