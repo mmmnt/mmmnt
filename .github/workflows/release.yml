@@ -38,7 +38,21 @@ jobs:
         env:
           GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
 
-      - name: Test publish core with OIDC
+      - name: Publish all packages with OIDC provenance
         run: |
-          cd packages/core
-          npm publish --provenance --access public
+          for pkg in core derive emit-ts generate harness schema sync viz cli mcp; do
+            echo "Publishing @mmmnt/$pkg..."
+            cd packages/$pkg
+            npm publish --provenance --access public 2>&1 || echo "Skipped @mmmnt/$pkg (already published or error)"
+            cd ../..
+          done
+
+      - name: Create Release PR (for future changesets)
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset:version
+          publish: echo "publish handled above"
+          title: 'chore: version packages'
+          commit: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
