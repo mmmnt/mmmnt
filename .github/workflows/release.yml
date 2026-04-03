@@ -30,6 +30,9 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -38,8 +41,7 @@ jobs:
         env:
           GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
 
-      - name: Test publish single package with OIDC
+      - name: Test publish core with OIDC
         run: |
           cd packages/core
-          npm publish --provenance --access public 2>&1 || true
-          echo "Exit code: $?"
+          npm publish --provenance --access public
