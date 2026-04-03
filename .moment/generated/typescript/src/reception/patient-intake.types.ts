@@ -29,9 +29,7 @@ export interface PatientCheckedIn {
   readonly intakeId: string;
   readonly patientId: string;
   /**
-   * @deprecated
-   * Use ownerRef composite key
-   * Use ownerRef instead.
+   * @deprecated Use ownerRef composite key (use ownerRef instead)
    */
   readonly ownerName: string;
   readonly ownerRef: string;

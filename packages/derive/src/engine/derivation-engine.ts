@@ -237,7 +237,9 @@ function collectContextIds(flow: FlowDefinition): string[] {
   for (const moment of flow.moments) {
     for (const entry of moment.contextEntries) ids.add(entry.contextId);
     for (const branch of moment.branches ?? []) {
-      for (const entry of branch.entries) ids.add(entry.contextId);
+      for (const entry of branch.entries) {
+        if (!entry.terminal) ids.add(entry.contextId);
+      }
     }
   }
   for (const conn of flow.connections) ids.add(conn.targetContextId);
