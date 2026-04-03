@@ -1,19 +1,39 @@
 {
   "name": "@mmmnt/mcp",
   "description": "Model Context Protocol server exposing Moment domain services as AI agent tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/mcp#readme",
-  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/mcp" },
-  "bugs": { "url": "https://github.com/mmmnt/mmmnt/issues" },
-  "keywords": ["moment", "mcp", "model-context-protocol", "ai-agent", "claude", "copilot", "cursor", "ddd"],
-  "engines": { "node": ">=20" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmmnt/mmmnt.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/mmmnt/mmmnt/issues"
+  },
+  "keywords": [
+    "moment",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "claude",
+    "copilot",
+    "cursor",
+    "ddd"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "bin": {
     "mcp": "dist/mcp.mjs"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "node build.mjs",
     "lint": "eslint src/",

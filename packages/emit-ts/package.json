@@ -1,20 +1,46 @@
 {
   "name": "@mmmnt/emit-ts",
   "description": "TypeScript type definitions and test scaffold generation from Moment domain specifications",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/emit-ts#readme",
-  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/emit-ts" },
-  "bugs": { "url": "https://github.com/mmmnt/mmmnt/issues" },
-  "keywords": ["moment", "typescript", "code-generation", "codegen", "type-generation", "scaffold", "ddd", "event-driven"],
-  "engines": { "node": ">=20" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmmnt/mmmnt.git",
+    "directory": "packages/emit-ts"
+  },
+  "bugs": {
+    "url": "https://github.com/mmmnt/mmmnt/issues"
+  },
+  "keywords": [
+    "moment",
+    "typescript",
+    "code-generation",
+    "codegen",
+    "type-generation",
+    "scaffold",
+    "ddd",
+    "event-driven"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": { ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" } },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "sideEffects": false,
-  "files": ["dist", "README.md", "LICENSE.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md"
+  ],
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/",
