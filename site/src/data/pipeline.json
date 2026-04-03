@@ -1,0 +1,34 @@
+[
+  {
+    "id": "parse",
+    "label": "Parse",
+    "package": "@mmmnt/core",
+    "description": "Langium-based parser transforms .moment DSL into a typed Intermediate Representation",
+    "input": ".moment",
+    "output": "IR"
+  },
+  {
+    "id": "derive",
+    "label": "Derive",
+    "package": "@mmmnt/derive",
+    "description": "DerivationEngine produces test topologies, simulation scenarios, and impact catalogs",
+    "input": "IR",
+    "output": "TestSuiteTopology"
+  },
+  {
+    "id": "generate",
+    "label": "Generate",
+    "package": "@mmmnt/generate",
+    "description": "Produces Gherkin BDD features, Markdown spec docs, and AsyncAPI contracts",
+    "input": "IR + Topology",
+    "output": ".feature, .md, AsyncAPI"
+  },
+  {
+    "id": "emit",
+    "label": "Emit",
+    "package": "@mmmnt/emit-ts",
+    "description": "Generates strongly-typed TypeScript interfaces, aggregate classes, and test scaffolds",
+    "input": "IR + Topology",
+    "output": ".ts, .spec.ts"
+  }
+]

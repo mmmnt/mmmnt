@@ -1,0 +1,125 @@
+---
+
+---
+
+<section class="quickstart">
+  <div class="quickstart__inner">
+    <h2 class="quickstart__title">Get up and running</h2>
+    <div class="quickstart__terminal">
+      <div class="quickstart__header">
+        <span class="quickstart__dot quickstart__dot--red"></span>
+        <span class="quickstart__dot quickstart__dot--yellow"></span>
+        <span class="quickstart__dot quickstart__dot--green"></span>
+        <span class="quickstart__header-text">terminal</span>
+      </div>
+      <div class="quickstart__body">
+        <div class="quickstart__line">
+          <span class="quickstart__prompt">$</span>
+          <span class="quickstart__cmd">git clone https://github.com/mmmnt/mmmnt.git</span>
+        </div>
+        <div class="quickstart__line">
+          <span class="quickstart__prompt">$</span>
+          <span class="quickstart__cmd">cd mmmnt && pnpm install</span>
+        </div>
+        <div class="quickstart__line">
+          <span class="quickstart__prompt">$</span>
+          <span class="quickstart__cmd">pnpm turbo build</span>
+        </div>
+        <div class="quickstart__line quickstart__line--comment">
+          <span class="quickstart__comment"># Parse a .moment spec and generate all artifacts</span>
+        </div>
+        <div class="quickstart__line">
+          <span class="quickstart__prompt">$</span>
+          <span class="quickstart__cmd">moment parse spec.moment</span>
+        </div>
+        <div class="quickstart__line">
+          <span class="quickstart__prompt">$</span>
+          <span class="quickstart__cmd">moment derive</span>
+        </div>
+        <div class="quickstart__line">
+          <span class="quickstart__prompt">$</span>
+          <span class="quickstart__cmd">moment generate --all</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .quickstart {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .quickstart__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+  }
+
+  .quickstart__title {
+    text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-8);
+  }
+
+  .quickstart__terminal {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    max-width: 40rem;
+    margin: 0 auto;
+  }
+
+  .quickstart__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-raised);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .quickstart__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .quickstart__dot--red { background: #ef4444; }
+  .quickstart__dot--yellow { background: #eab308; }
+  .quickstart__dot--green { background: #22c55e; }
+
+  .quickstart__header-text {
+    margin-left: var(--space-2);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+  }
+
+  .quickstart__body {
+    padding: var(--space-6);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.8;
+  }
+
+  .quickstart__line {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  .quickstart__prompt {
+    color: var(--color-accent);
+    user-select: none;
+  }
+
+  .quickstart__cmd {
+    color: var(--color-text-primary);
+  }
+
+  .quickstart__comment {
+    color: var(--color-text-tertiary);
+    font-style: italic;
+  }
+</style>

@@ -1,0 +1,477 @@
+/* ============================================================
+   Component Styles — Preact interactive components
+   ============================================================ */
+
+/* ── Pipeline Visualization ── */
+.pipeline {
+  padding: var(--space-16) var(--space-6);
+}
+
+.pipeline__inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.pipeline__title {
+  text-align: center;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-3);
+}
+
+.pipeline__subtitle {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-10);
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pipeline__flow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: var(--space-4) 0;
+}
+
+.pipeline__stage-group {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.pipeline__connector {
+  display: flex;
+  align-items: center;
+  padding-top: var(--space-6);
+}
+
+.pipeline__node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+  min-width: 120px;
+  text-align: center;
+}
+
+.pipeline__node--stage {
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+}
+
+.pipeline__node--stage:hover {
+  border-color: var(--stage-color, var(--color-accent));
+  box-shadow: 0 0 0 1px var(--stage-color, var(--color-accent));
+}
+
+.pipeline__node--active {
+  border-color: var(--stage-color, var(--color-accent));
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+}
+
+.pipeline__node--input {
+  cursor: default;
+  border-color: var(--color-accent);
+}
+
+.pipeline__node-icon {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+}
+
+.pipeline__node-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--stage-color, var(--color-accent));
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  border-radius: 50%;
+}
+
+.pipeline__node-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.pipeline__node-package {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.pipeline__detail {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  min-width: 250px;
+  max-width: 320px;
+  z-index: 10;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.pipeline__detail-desc {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-3);
+}
+
+.pipeline__detail-io {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  flex-wrap: wrap;
+}
+
+.pipeline__io-label {
+  color: var(--color-text-tertiary);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pipeline__io-arrow {
+  color: var(--color-text-tertiary);
+}
+
+.pipeline__detail-io code {
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Code Panel ── */
+.code-panel {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.code-panel__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.code-panel__container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.code-panel__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-raised);
+  overflow-x: auto;
+}
+
+.code-panel__tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--duration-fast), border-color var(--duration-fast);
+  white-space: nowrap;
+}
+
+.code-panel__tab:hover {
+  color: var(--color-text-primary);
+}
+
+.code-panel__tab--active {
+  color: var(--color-text-primary);
+  border-bottom-color: var(--color-accent);
+}
+
+.code-panel__tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot-color, var(--color-accent));
+}
+
+.code-panel__content {
+  padding: var(--space-5);
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.code-panel__content pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  white-space: pre;
+}
+
+/* ── Ecosystem Diagram ── */
+.eco-diagram {
+  padding: var(--space-6) 0;
+}
+
+.eco-diagram__flow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: var(--space-4) 0;
+  margin-bottom: var(--space-8);
+}
+
+.eco-diagram__tool-group {
+  display: flex;
+  align-items: flex-start;
+}
+
+.eco-diagram__arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding-top: var(--space-8);
+}
+
+.eco-diagram__arrow-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-text-tertiary);
+  max-width: 80px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.eco-diagram__tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+  min-width: 150px;
+  text-align: center;
+  font-family: inherit;
+  color: inherit;
+}
+
+.eco-diagram__tool:hover,
+.eco-diagram__tool--active {
+  border-color: var(--tool-color, var(--color-accent));
+}
+
+.eco-diagram__tool--active {
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+}
+
+.eco-diagram__tool-position {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--weight-medium);
+}
+
+.eco-diagram__tool-name {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--tool-color, var(--color-text-primary));
+}
+
+.eco-diagram__tool-tagline {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.eco-diagram__tool-output {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  background: var(--color-surface-raised);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.eco-diagram__tool-soon {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.eco-diagram__detail {
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-6);
+}
+
+.eco-diagram__detail-name {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-2);
+}
+
+.eco-diagram__detail-desc {
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+.eco-diagram__events-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+
+.eco-diagram__events-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.eco-diagram__events-list code {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+/* Envelope toggle */
+.eco-diagram__envelope-section {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-6);
+}
+
+.eco-diagram__envelope-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  transition: border-color var(--duration-fast) var(--ease-out);
+  width: 100%;
+  text-align: left;
+}
+
+.eco-diagram__envelope-toggle:hover {
+  border-color: var(--color-accent);
+}
+
+.eco-diagram__envelope-toggle code {
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+}
+
+.eco-diagram__envelope-hint {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  margin-left: auto;
+}
+
+.eco-diagram__envelope {
+  margin-top: var(--space-4);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.eco-diagram__envelope-desc {
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-6);
+}
+
+.eco-diagram__envelope-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.eco-diagram__envelope-table th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-tertiary);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.eco-diagram__envelope-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.eco-diagram__envelope-table code {
+  color: var(--color-text-primary);
+}
+
+.eco-diagram__type {
+  color: var(--color-accent) !important;
+}
+
+@media (max-width: 768px) {
+  .pipeline__flow,
+  .eco-diagram__flow {
+    justify-content: flex-start;
+    padding: var(--space-4);
+  }
+}

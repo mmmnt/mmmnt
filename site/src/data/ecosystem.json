@@ -1,0 +1,65 @@
+{
+  "envelope": {
+    "name": "ComplaiEventEnvelope",
+    "description": "The canonical event format that unifies all Complai tools. Every event flowing between Sift, Moment, and Forge is wrapped in this envelope.",
+    "fields": [
+      { "name": "eventId", "type": "UUID", "description": "Unique event identifier" },
+      { "name": "eventType", "type": "string", "description": "Discriminator for payload type" },
+      { "name": "version", "type": "string", "description": "Schema version (semver)" },
+      { "name": "productSource", "type": "string", "description": "Originating tool (sift | moment | forge)" },
+      { "name": "sessionId", "type": "UUID", "description": "Modeling session identifier" },
+      { "name": "causationEventIds", "type": "UUID[]", "description": "Events that caused this event" },
+      { "name": "correlationId", "type": "UUID", "description": "Correlation chain identifier" },
+      { "name": "timestamp", "type": "ISO-8601", "description": "Event creation timestamp" },
+      { "name": "payload", "type": "object", "description": "Event-specific data" }
+    ]
+  },
+  "tools": [
+    {
+      "id": "sift",
+      "name": "Sift",
+      "tagline": "Domain Discovery",
+      "description": "Upstream domain modeling tool that publishes building block events as structured JSONL streams. Sift captures the initial domain exploration — bounded contexts, aggregates, commands, events, value objects, invariants, policies, and sagas.",
+      "events": [
+        "BoundedContextDefined",
+        "AggregateAdded",
+        "CommandDefined",
+        "EventDefined",
+        "ValueObjectDefined",
+        "InvariantDefined",
+        "PolicyDefined",
+        "SagaDefined"
+      ],
+      "output": ".domain/ JSONL streams",
+      "position": "upstream"
+    },
+    {
+      "id": "moment",
+      "name": "Moment",
+      "tagline": "Temporal DDD Modeling",
+      "description": "Transforms .moment specification files into typed TypeScript implementations, Gherkin test scenarios, and specification documents. Imports Sift's domain events and enriches them with temporal modeling — flows, crossings, projections, and saga orchestration.",
+      "events": [
+        "SpecificationParsed",
+        "TopologyDerived",
+        "ArtifactsGenerated",
+        "DriftDetected",
+        "SchemaTransitioned"
+      ],
+      "output": ".complai/events/moment/ JSONL",
+      "position": "core"
+    },
+    {
+      "id": "forge",
+      "name": "Forge",
+      "tagline": "Code Scaffolding",
+      "description": "Downstream code generation and project scaffolding. Consumes Moment's typed output artifacts to produce production-ready service implementations, infrastructure configurations, and deployment manifests.",
+      "events": [],
+      "output": "Coming soon",
+      "position": "downstream"
+    }
+  ],
+  "dataFlow": [
+    { "from": "sift", "to": "moment", "channel": ".domain/ JSONL event streams", "description": "Sift publishes Phase 1 building block events that Moment imports via the SiftSpecificationImporter" },
+    { "from": "moment", "to": "forge", "channel": ".complai/events/moment/ JSONL", "description": "Moment writes reconciliation events and typed artifacts that Forge consumes for code generation" }
+  ]
+}

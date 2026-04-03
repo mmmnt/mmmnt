@@ -1,0 +1,217 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import FeaturesGrid from '../components/FeaturesGrid.astro';
+import QuickStart from '../components/QuickStart.astro';
+import Footer from '../components/Footer.astro';
+import PipelineViz from '../components/PipelineViz.tsx';
+import CodePanel from '../components/CodePanel.tsx';
+import pipeline from '../data/pipeline.json';
+import examples from '../data/examples.json';
+
+const firstExample = examples.examples[0];
+const codeTabs = firstExample
+  ? [
+      { id: 'moment', label: '.moment', language: 'moment', code: firstExample.moment },
+      { id: 'typescript', label: 'TypeScript', language: 'typescript', code: firstExample.typescript },
+      { id: 'gherkin', label: 'Gherkin', language: 'gherkin', code: firstExample.gherkin },
+    ]
+  : [];
+---
+
+<Base title="Specify once. Generate everything.">
+  <Nav slot="nav" />
+
+  <Hero />
+
+  <PipelineViz stages={pipeline} client:visible />
+
+  <section class="home-code">
+    <div class="home-code__inner">
+      <h2 class="home-code__title">See it in action</h2>
+      <p class="home-code__subtitle">
+        Write your domain specification. Moment generates the rest.
+      </p>
+      <CodePanel tabs={codeTabs} client:visible />
+    </div>
+  </section>
+
+  <FeaturesGrid />
+
+  <section class="home-ecosystem">
+    <div class="home-ecosystem__inner">
+      <h2 class="home-ecosystem__title">Part of the Complai ecosystem</h2>
+      <p class="home-ecosystem__subtitle">
+        Moment works alongside Sift and Forge to provide a complete domain-driven workflow
+        &mdash; from discovery to deployment.
+      </p>
+      <div class="home-ecosystem__cards">
+        <a href="/ecosystem#sift" class="eco-card eco-card--sift">
+          <h3 class="eco-card__name">Sift</h3>
+          <p class="eco-card__tagline">Domain Discovery</p>
+          <p class="eco-card__desc">Upstream modeling that publishes building block events as structured JSONL streams.</p>
+        </a>
+        <a href="/ecosystem#moment" class="eco-card eco-card--moment">
+          <h3 class="eco-card__name">Moment</h3>
+          <p class="eco-card__tagline">Temporal DDD Modeling</p>
+          <p class="eco-card__desc">Transforms specifications into typed code, tests, and living documentation.</p>
+        </a>
+        <a href="/ecosystem#forge" class="eco-card eco-card--forge">
+          <h3 class="eco-card__name">Forge</h3>
+          <p class="eco-card__tagline">Code Scaffolding</p>
+          <p class="eco-card__desc">Production-ready service implementations from Moment's typed artifacts.</p>
+          <span class="eco-card__badge">Coming soon</span>
+        </a>
+      </div>
+      <div class="home-ecosystem__cta">
+        <a href="/ecosystem" class="btn btn--secondary">Explore the ecosystem &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <QuickStart />
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .home-code {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .home-code__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .home-code__title {
+    text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+  }
+
+  .home-code__subtitle {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-8);
+  }
+
+  /* Ecosystem preview */
+  .home-ecosystem {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .home-ecosystem__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .home-ecosystem__title {
+    text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+  }
+
+  .home-ecosystem__subtitle {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    max-width: 36rem;
+    margin: 0 auto var(--space-10);
+  }
+
+  .home-ecosystem__cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+  }
+
+  .eco-card {
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+  }
+
+  .eco-card:hover {
+    transform: translateY(-2px);
+    color: inherit;
+  }
+
+  .eco-card--sift { border-top: 3px solid var(--color-sift); }
+  .eco-card--sift:hover { border-color: var(--color-sift); }
+  .eco-card--moment { border-top: 3px solid var(--color-moment); }
+  .eco-card--moment:hover { border-color: var(--color-moment); }
+  .eco-card--forge { border-top: 3px solid var(--color-forge); }
+  .eco-card--forge:hover { border-color: var(--color-forge); }
+
+  .eco-card__name {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-1);
+  }
+
+  .eco-card__tagline {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    margin-bottom: var(--space-3);
+  }
+
+  .eco-card__desc {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .eco-card__badge {
+    display: inline-block;
+    margin-top: var(--space-3);
+    padding: var(--space-1) var(--space-3);
+    background: var(--color-surface-raised);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    border-radius: 100px;
+    border: 1px solid var(--color-border);
+  }
+
+  .home-ecosystem__cta {
+    text-align: center;
+  }
+
+  .btn--secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .btn--secondary:hover {
+    background: var(--color-border);
+    color: var(--color-text-primary);
+  }
+
+  @media (max-width: 768px) {
+    .home-ecosystem__cards {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

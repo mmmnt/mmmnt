@@ -1,0 +1,149 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import CodePanel from '../components/CodePanel.tsx';
+import examples from '../data/examples.json';
+---
+
+<Base
+  title="Examples"
+  description="Explore real .moment specifications and see the TypeScript, Gherkin, and documentation artifacts Moment generates from them."
+>
+  <Nav slot="nav" />
+
+  <section class="examples-hero">
+    <div class="examples-hero__inner">
+      <h1 class="examples-hero__title">Examples</h1>
+      <p class="examples-hero__subtitle">
+        Real domain specifications and the artifacts Moment generates from them.
+        Every output is deterministic &mdash; the same input always produces the same result.
+      </p>
+    </div>
+  </section>
+
+  {
+    examples.examples.map((example) => {
+      const tabs = [
+        { id: 'moment', label: '.moment', language: 'moment', code: example.moment },
+        { id: 'typescript', label: 'TypeScript', language: 'typescript', code: example.typescript },
+        { id: 'gherkin', label: 'Gherkin', language: 'gherkin', code: example.gherkin },
+      ];
+
+      return (
+        <section class="example-section" id={example.id}>
+          <div class="example-section__inner">
+            <div class="example-section__header">
+              <h2 class="example-section__title">{example.title}</h2>
+              <p class="example-section__desc">{example.description}</p>
+            </div>
+            <CodePanel tabs={tabs} client:visible />
+            <div class="example-section__annotations">
+              <div class="annotation">
+                <span class="annotation__dot annotation__dot--moment" />
+                <span class="annotation__text">
+                  <strong>.moment</strong> — The domain specification you write
+                </span>
+              </div>
+              <div class="annotation">
+                <span class="annotation__dot annotation__dot--ts" />
+                <span class="annotation__text">
+                  <strong>TypeScript</strong> — Generated interfaces with discriminated unions and readonly fields
+                </span>
+              </div>
+              <div class="annotation">
+                <span class="annotation__dot annotation__dot--gherkin" />
+                <span class="annotation__text">
+                  <strong>Gherkin</strong> — Derived BDD test scenarios covering commands, events, and invariants
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    })
+  }
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .examples-hero {
+    padding: var(--space-20) var(--space-6) var(--space-10);
+    text-align: center;
+  }
+
+  .examples-hero__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+  }
+
+  .examples-hero__title {
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-4);
+  }
+
+  .examples-hero__subtitle {
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    max-width: 36rem;
+    margin: 0 auto;
+    line-height: var(--leading-relaxed);
+  }
+
+  .example-section {
+    padding: var(--space-12) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .example-section__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .example-section__header {
+    margin-bottom: var(--space-8);
+  }
+
+  .example-section__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-2);
+  }
+
+  .example-section__desc {
+    color: var(--color-text-secondary);
+    font-size: var(--text-base);
+  }
+
+  .example-section__annotations {
+    margin-top: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .annotation {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .annotation__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .annotation__dot--moment { background: var(--color-accent); }
+  .annotation__dot--ts { background: var(--color-emit); }
+  .annotation__dot--gherkin { background: var(--color-generate); }
+
+  .annotation__text strong {
+    color: var(--color-text-primary);
+  }
+</style>
