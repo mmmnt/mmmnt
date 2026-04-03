@@ -2,9 +2,18 @@
 
 Local MCP (Model Context Protocol) server for the Moment domain specification toolchain. Exposes 7 tools that wrap Moment's domain services for AI agent integration.
 
-**License:** FSL-1.1-Apache-2.0  
-**Transport:** stdio  
-**No account required** — runs fully offline per Design Principle #15.
+[![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
+[![npm version](https://img.shields.io/npm/v/@mmmnt/mcp.svg)](https://www.npmjs.com/package/@mmmnt/mcp)
+
+## Overview
+
+`@mmmnt/mcp` exposes the Moment toolchain as a local Model Context Protocol server, enabling AI coding assistants like Claude, Copilot, and Cursor to parse specifications, generate code, detect drift, and reconcile changes through structured tool calls. The server communicates over stdio and requires no account or network access -- it runs fully offline.
+
+The server wraps 7 tools covering the core Moment workflow: validation, project status, visualization, event inspection, Sift import, TypeScript emission, and cascade reconciliation. Each tool accepts structured JSON input and returns structured JSON output per the MCP protocol, with consistent error handling that never crashes on invalid input.
+
+This package is the recommended integration point for AI-assisted domain-driven development workflows. While `@mmmnt/cli` serves interactive terminal use, `@mmmnt/mcp` provides the same capabilities in a format optimized for programmatic consumption by language model agents.
+
+**Transport:** stdio | **No account required** -- runs fully offline.
 
 ## Quick Start
 
