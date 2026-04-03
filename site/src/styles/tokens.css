@@ -14,9 +14,12 @@
   --color-text-secondary: #94a3b8;
   --color-text-tertiary: #64748b;
 
-  --color-accent: #6366f1;
-  --color-accent-hover: #818cf8;
-  --color-accent-muted: rgba(99, 102, 241, 0.15);
+  --color-accent: #3BB2B8;
+  --color-accent-hover: #42E695;
+  --color-accent-muted: rgba(59, 178, 184, 0.15);
+  --color-brand-from: #42E695;
+  --color-brand-to: #3BB2B8;
+  --color-brand-gradient: linear-gradient(135deg, #42E695 0%, #3BB2B8 100%);
 
   --color-success: #22c55e;
   --color-warning: #eab308;
@@ -99,7 +102,7 @@
   --color-text-secondary: #475569;
   --color-text-tertiary: #94a3b8;
 
-  --color-accent: #4f46e5;
-  --color-accent-hover: #4338ca;
-  --color-accent-muted: rgba(79, 70, 229, 0.1);
+  --color-accent: #2d9a9e;
+  --color-accent-hover: #35c97a;
+  --color-accent-muted: rgba(45, 154, 158, 0.1);
 }

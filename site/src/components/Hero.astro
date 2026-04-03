@@ -4,6 +4,9 @@
 
 <section class="hero">
   <div class="hero__inner">
+    <div class="hero__wordmark">
+      <img src="/logos/moment-wordmark-tagline.svg" alt="Moment — Domain architecture for the AI era" class="hero__wordmark-img" />
+    </div>
     <div class="hero__badge">
       <span class="hero__badge-dot"></span>
       Open Source &middot; FSL-1.1-Apache-2.0
@@ -95,8 +98,19 @@
     letter-spacing: -0.02em;
   }
 
+  .hero__wordmark {
+    margin-bottom: var(--space-6);
+  }
+
+  .hero__wordmark-img {
+    height: clamp(3rem, 8vw, 5rem);
+    width: auto;
+    margin: 0 auto;
+    display: block;
+  }
+
   .hero__accent {
-    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-derive) 50%, var(--color-generate) 100%);
+    background: var(--color-brand-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -139,12 +153,12 @@
   }
 
   .btn--primary {
-    background: var(--color-accent);
+    background: var(--color-brand-gradient);
     color: #fff;
   }
 
   .btn--primary:hover {
-    background: var(--color-accent-hover);
+    opacity: 0.9;
     color: #fff;
   }
 
