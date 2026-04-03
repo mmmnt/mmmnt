@@ -1,5 +1,14 @@
 # @mmmnt/viz
 
+## 0.1.1
+
+### Patch Changes
+
+- [`699fc0d`](https://github.com/mmmnt/mmmnt/commit/699fc0d7e68a96a9aefce704710cd4369be0919f) Thanks [@claude](https://github.com/claude)! - Updated package metadata: license field (FSL-1.1-Apache-2.0), author, exports, sideEffects, keywords, descriptions, and comprehensive READMEs for all packages.
+
+- Updated dependencies [[`699fc0d`](https://github.com/mmmnt/mmmnt/commit/699fc0d7e68a96a9aefce704710cd4369be0919f)]:
+  - @mmmnt/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
