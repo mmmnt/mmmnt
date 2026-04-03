@@ -14,6 +14,7 @@ const stageColors: Record<string, string> = {
 
 export default function PipelineViz({ stages }: Props) {
   const [active, setActive] = useState<string | null>(null);
+  const activeStage = stages.find((s) => s.id === active);
 
   return (
     <section class="pipeline">
@@ -69,22 +70,36 @@ export default function PipelineViz({ stages }: Props) {
                 <span class="pipeline__node-label">{stage.label}</span>
                 <span class="pipeline__node-package">{stage.package}</span>
               </button>
-
-              {active === stage.id && (
-                <div class="pipeline__detail" role="region" aria-label={`${stage.label} details`}>
-                  <p class="pipeline__detail-desc">{stage.description}</p>
-                  <div class="pipeline__detail-io">
-                    <span class="pipeline__io-label">Input</span>
-                    <code>{stage.input}</code>
-                    <span class="pipeline__io-arrow" aria-hidden="true">&rarr;</span>
-                    <span class="pipeline__io-label">Output</span>
-                    <code>{stage.output}</code>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
+
+        {/* Detail panel renders below the flow, expanding page height */}
+        {activeStage && (
+          <div class="pipeline__detail" role="region" aria-label={`${activeStage.label} details`}>
+            <div class="pipeline__detail-header">
+              <span
+                class="pipeline__detail-badge"
+                style={`background: ${stageColors[activeStage.id]}`}
+              >
+                {activeStage.label}
+              </span>
+              <span class="pipeline__detail-package">{activeStage.package}</span>
+            </div>
+            <p class="pipeline__detail-desc">{activeStage.description}</p>
+            <div class="pipeline__detail-io">
+              <div class="pipeline__io-block">
+                <span class="pipeline__io-label">Input</span>
+                <code>{activeStage.input}</code>
+              </div>
+              <span class="pipeline__io-arrow" aria-hidden="true">&rarr;</span>
+              <div class="pipeline__io-block">
+                <span class="pipeline__io-label">Output</span>
+                <code>{activeStage.output}</code>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
