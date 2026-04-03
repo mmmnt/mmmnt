@@ -65,8 +65,8 @@
     {
       "id": "forge",
       "name": "Forge",
-      "tagline": "Code Scaffolding",
-      "description": "Downstream code generation and project scaffolding. Consumes Moment's typed output artifacts to produce production-ready service implementations, infrastructure configurations, and deployment manifests.",
+      "tagline": "Project System",
+      "description": "Gets your project into motion. Consumes Moment's typed artifacts and simulation scenarios to bootstrap project structure, wire up bounded contexts, and establish the development workflow.",
       "events": [],
       "output": "Coming soon",
       "position": "downstream"
@@ -75,6 +75,6 @@
   "dataFlow": [
     { "from": "sift", "to": "moment", "channel": ".domain/ JSONL event streams", "description": "Sift publishes Phase 1 building block events that Moment imports via the SiftSpecificationImporter" },
     { "from": "moment", "to": "facet", "channel": "facet.json simulation scenarios", "description": "Moment generates Facet-compatible simulation scenarios with synthetic events, causation chains, and branch paths for visual validation" },
-    { "from": "moment", "to": "forge", "channel": ".complai/events/moment/ JSONL", "description": "Moment writes reconciliation events and typed artifacts that Forge consumes for code generation" }
+    { "from": "moment", "to": "forge", "channel": ".complai/events/moment/ JSONL", "description": "Moment writes reconciliation events and typed artifacts that Forge consumes to bootstrap project structure" }
   ]
 }
