@@ -70,7 +70,7 @@ const codeTabs = firstExample
     <div class="contrast__inner">
       <h2 class="contrast__title">Before and after Moment</h2>
       <p class="contrast__subtitle">
-        One specification replaces six manually maintained artifacts.
+        One specification replaces seven manually maintained artifacts.
       </p>
       <div class="contrast__panels">
         <div class="contrast__panel contrast__panel--before">
@@ -78,23 +78,37 @@ const codeTabs = firstExample
             <span class="contrast__label contrast__label--before">Without Moment</span>
           </div>
           <ul class="contrast__list">
-            <li><code>order.types.ts</code> <span>— hand-written interfaces</span></li>
-            <li><code>order.aggregate.ts</code> <span>— manual aggregate class</span></li>
-            <li><code>order.spec.ts</code> <span>— test stubs from scratch</span></li>
-            <li><code>order.feature</code> <span>— Gherkin written by hand</span></li>
-            <li><code>order-spec.md</code> <span>— docs that drift immediately</span></li>
-            <li><code>order-api.yaml</code> <span>— AsyncAPI maintained separately</span></li>
-            <li class="contrast__list-total">6 files &middot; ~400 lines &middot; always diverging</li>
+            <li><code>order.types.ts</code> <span>— hand-written interfaces</span><span class="contrast__status contrast__status--manual">manual</span></li>
+            <li><code>order.aggregate.ts</code> <span>— manual aggregate class</span><span class="contrast__status contrast__status--manual">manual</span></li>
+            <li><code>order.spec.ts</code> <span>— test stubs from scratch</span><span class="contrast__status contrast__status--manual">manual</span></li>
+            <li><code>order.feature</code> <span>— Gherkin written by hand</span><span class="contrast__status contrast__status--manual">manual</span></li>
+            <li><code>order-spec.md</code> <span>— docs that drift</span><span class="contrast__status contrast__status--drift">drifts</span></li>
+            <li><code>order-api.yaml</code> <span>— maintained separately</span><span class="contrast__status contrast__status--drift">drifts</span></li>
+            <li><code class="contrast__missing">facet.json</code> <span>— simulation scenarios</span><span class="contrast__status contrast__status--none">n/a</span></li>
+            <li class="contrast__list-total">7 files &middot; ~400 lines &middot; always diverging &middot; no simulation possible</li>
           </ul>
         </div>
         <div class="contrast__panel contrast__panel--after">
           <div class="contrast__panel-header">
             <span class="contrast__label contrast__label--after">With Moment</span>
           </div>
+          <div class="contrast__source">
+            <code>order.moment</code>
+            <span>You write this &mdash; the single source of truth</span>
+          </div>
+          <div class="contrast__commands">
+            <code>$ moment generate --all</code>
+            <code>$ moment simulate</code>
+          </div>
           <ul class="contrast__list">
-            <li><code>order.moment</code> <span>— single specification</span></li>
-            <li class="contrast__list-arrow">&darr; <code>moment generate --all</code></li>
-            <li class="contrast__list-generated">All 6 artifacts generated, typed, tested, in sync</li>
+            <li><code>order.types.ts</code> <span>— typed interfaces</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li><code>order.aggregate.ts</code> <span>— aggregate contracts</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li><code>order.spec.ts</code> <span>— crossing assertions</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li><code>order.feature</code> <span>— BDD with flows</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li><code>order-spec.md</code> <span>— Mermaid diagrams</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li><code>order-api.yaml</code> <span>— AsyncAPI 3.0</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li><code>facet.json</code> <span>— simulation scenarios</span><span class="contrast__status contrast__status--gen">generated</span></li>
+            <li class="contrast__list-total contrast__list-total--good">7 files &middot; ~400 lines &middot; always in sync &middot; test before you code</li>
           </ul>
         </div>
       </div>
@@ -569,17 +583,54 @@ const codeTabs = firstExample
     color: var(--color-success);
   }
 
+  .contrast__source {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background: rgba(34, 197, 94, 0.06);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-3);
+  }
+
+  .contrast__source code {
+    color: var(--color-accent);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+  }
+
+  .contrast__source span {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+  }
+
+  .contrast__commands {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .contrast__commands code {
+    padding: var(--space-1) var(--space-3);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    color: var(--color-text-secondary);
+  }
+
   .contrast__list {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-2);
     font-size: var(--text-sm);
   }
 
   .contrast__list li {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: var(--space-2);
   }
 
@@ -587,10 +638,48 @@ const codeTabs = firstExample
     color: var(--color-text-primary);
     font-size: var(--text-sm);
     white-space: nowrap;
+    min-width: 10rem;
+  }
+
+  .contrast__missing {
+    color: var(--color-text-tertiary) !important;
+    text-decoration: line-through;
   }
 
   .contrast__list span {
     color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    flex: 1;
+  }
+
+  .contrast__status {
+    flex: none !important;
+    padding: 1px var(--space-2);
+    border-radius: 100px;
+    font-size: 0.65rem;
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .contrast__status--manual {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-error);
+  }
+
+  .contrast__status--drift {
+    background: rgba(234, 179, 8, 0.1);
+    color: var(--color-warning);
+  }
+
+  .contrast__status--none {
+    background: var(--color-surface-raised);
+    color: var(--color-text-tertiary);
+  }
+
+  .contrast__status--gen {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--color-success);
   }
 
   .contrast__list-total {
@@ -600,19 +689,11 @@ const codeTabs = firstExample
     color: var(--color-error) !important;
     font-weight: var(--weight-semibold);
     display: block !important;
+    font-size: var(--text-xs);
   }
 
-  .contrast__list-arrow {
-    justify-content: center !important;
+  .contrast__list-total--good {
     color: var(--color-success) !important;
-    font-family: var(--font-mono);
-    padding: var(--space-2) 0;
-  }
-
-  .contrast__list-generated {
-    color: var(--color-success) !important;
-    font-weight: var(--weight-semibold);
-    display: block !important;
   }
 
   /* ── Numbers ── */

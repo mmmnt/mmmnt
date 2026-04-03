@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import CodePanel from '../components/CodePanel.tsx';
+import ExampleSelector from '../components/ExampleSelector.tsx';
 import examples from '../data/examples.json';
 ---
 
@@ -16,88 +16,74 @@ import examples from '../data/examples.json';
     <div class="examples-hero__inner">
       <h1 class="examples-hero__title">Examples</h1>
       <p class="examples-hero__subtitle">
-        Real domain specifications and the artifacts Moment generates from them.
+        Real domain specifications and all seven artifact types Moment generates from them.
         Every output is deterministic &mdash; the same input always produces the same result.
       </p>
+      <div class="examples-hero__artifacts">
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--moment"></span>.moment</span>
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--ts"></span>TypeScript</span>
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--scaffold"></span>Test Scaffold</span>
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--gherkin"></span>Gherkin</span>
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--spec"></span>Spec Doc</span>
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--async"></span>AsyncAPI</span>
+      </div>
     </div>
   </section>
 
-  {
-    examples.examples.map((example) => {
-      const tabs = [
-        { id: 'moment', label: '.moment', language: 'moment', code: example.moment },
-        { id: 'typescript', label: 'TypeScript', language: 'typescript', code: example.typescript },
-        { id: 'testScaffold', label: 'Test Scaffold', language: 'typescript', code: example.testScaffold },
-        { id: 'gherkin', label: 'Gherkin', language: 'gherkin', code: example.gherkin },
-        { id: 'specDoc', label: 'Spec Doc', language: 'markdown', code: example.specDoc },
-        { id: 'asyncApi', label: 'AsyncAPI', language: 'yaml', code: example.asyncApi },
-      ];
+  <section class="examples-content">
+    <div class="examples-content__inner">
+      <ExampleSelector examples={examples.examples} client:visible />
+    </div>
+  </section>
 
-      return (
-        <section class="example-section" id={example.id}>
-          <div class="example-section__inner">
-            <div class="example-section__header">
-              <h2 class="example-section__title">{example.title}</h2>
-              <p class="example-section__desc">{example.description}</p>
-            </div>
-            <CodePanel tabs={tabs} client:visible />
-            <div class="example-section__annotations">
-              <div class="annotation">
-                <span class="annotation__dot annotation__dot--moment" />
-                <span class="annotation__text">
-                  <strong>.moment</strong> — The domain specification you write, including flows, crossings, and branches
-                </span>
-              </div>
-              <div class="annotation">
-                <span class="annotation__dot annotation__dot--ts" />
-                <span class="annotation__text">
-                  <strong>TypeScript</strong> — Generated interfaces with discriminated unions, aggregate contracts, and readonly fields
-                </span>
-              </div>
-              <div class="annotation">
-                <span class="annotation__dot annotation__dot--scaffold" />
-                <span class="annotation__text">
-                  <strong>Test Scaffold</strong> — Pre-populated Vitest files with crossing assertions, branch coverage, and saga/policy stubs
-                </span>
-              </div>
-              <div class="annotation">
-                <span class="annotation__dot annotation__dot--gherkin" />
-                <span class="annotation__text">
-                  <strong>Gherkin</strong> — Derived BDD scenarios with crossing contracts, branch paths, saga lifecycles, and policy chains
-                </span>
-              </div>
-              <div class="annotation">
-                <span class="annotation__dot annotation__dot--spec" />
-                <span class="annotation__text">
-                  <strong>Spec Doc</strong> — Markdown with Mermaid context maps, sequence diagrams, and domain model reference
-                </span>
-              </div>
-              <div class="annotation">
-                <span class="annotation__dot annotation__dot--async" />
-                <span class="annotation__text">
-                  <strong>AsyncAPI</strong> — Event-driven API contracts for crossing events in AsyncAPI 3.0 format
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-      );
-    })
-  }
+  <section class="examples-annotations">
+    <div class="examples-annotations__inner">
+      <h2 class="examples-annotations__title">Understanding the outputs</h2>
+      <div class="examples-annotations__grid">
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: var(--color-accent)"></span>
+          <strong>.moment</strong>
+          <p>The domain specification you write — contexts, aggregates, flows, crossings, sagas, policies, and branches.</p>
+        </div>
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: var(--color-emit)"></span>
+          <strong>TypeScript</strong>
+          <p>Generated interfaces with discriminated unions, readonly fields, aggregate contracts, and barrel exports.</p>
+        </div>
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: #fbbf24"></span>
+          <strong>Test Scaffold</strong>
+          <p>Pre-populated Vitest files with crossing assertions, branch coverage stubs, and saga/policy test cases.</p>
+        </div>
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: var(--color-generate)"></span>
+          <strong>Gherkin</strong>
+          <p>BDD scenarios with crossing contracts, branch paths, saga lifecycle, policy chains, and invariant violations.</p>
+        </div>
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: #f472b6"></span>
+          <strong>Spec Doc</strong>
+          <p>Markdown with Mermaid context maps, sequence diagrams, domain model reference, and crossing boundary tables.</p>
+        </div>
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: #22d3ee"></span>
+          <strong>AsyncAPI</strong>
+          <p>Event-driven API contracts for crossing events in AsyncAPI 3.0 format with typed payload schemas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <Footer slot="footer" />
 </Base>
 
 <style>
   .examples-hero {
-    padding: var(--space-20) var(--space-6) var(--space-10);
+    padding: var(--space-20) var(--space-6) var(--space-8);
     text-align: center;
   }
 
-  .examples-hero__inner {
-    max-width: var(--content-width);
-    margin: 0 auto;
-  }
+  .examples-hero__inner { max-width: var(--content-width); margin: 0 auto; }
 
   .examples-hero__title {
     font-size: var(--text-4xl);
@@ -108,66 +94,109 @@ import examples from '../data/examples.json';
   .examples-hero__subtitle {
     color: var(--color-text-secondary);
     font-size: var(--text-lg);
-    max-width: 36rem;
-    margin: 0 auto;
+    max-width: 40rem;
+    margin: 0 auto var(--space-6);
     line-height: var(--leading-relaxed);
   }
 
-  .example-section {
-    padding: var(--space-12) var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
+  .examples-hero__artifacts {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
   }
 
-  .example-section__inner {
+  .examples-hero__artifact {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-text-tertiary);
+  }
+
+  .examples-hero__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .examples-hero__dot--moment { background: var(--color-accent); }
+  .examples-hero__dot--ts { background: var(--color-emit); }
+  .examples-hero__dot--scaffold { background: #fbbf24; }
+  .examples-hero__dot--gherkin { background: var(--color-generate); }
+  .examples-hero__dot--spec { background: #f472b6; }
+  .examples-hero__dot--async { background: #22d3ee; }
+
+  .examples-content {
+    padding: 0 var(--space-6) var(--space-16);
+  }
+
+  .examples-content__inner {
     max-width: var(--max-width);
     margin: 0 auto;
   }
 
-  .example-section__header {
+  /* Annotations grid */
+  .examples-annotations {
+    padding: var(--space-16) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .examples-annotations__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .examples-annotations__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
     margin-bottom: var(--space-8);
   }
 
-  .example-section__title {
-    font-size: var(--text-2xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-2);
+  .examples-annotations__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
   }
 
-  .example-section__desc {
-    color: var(--color-text-secondary);
-    font-size: var(--text-base);
+  .annotation-card {
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
   }
 
-  .example-section__annotations {
-    margin-top: var(--space-6);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .annotation {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-  }
-
-  .annotation__dot {
+  .annotation-card__dot {
+    display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    flex-shrink: 0;
+    margin-right: var(--space-2);
+    vertical-align: middle;
   }
 
-  .annotation__dot--moment { background: var(--color-accent); }
-  .annotation__dot--ts { background: var(--color-emit); }
-  .annotation__dot--scaffold { background: #fbbf24; }
-  .annotation__dot--gherkin { background: var(--color-generate); }
-  .annotation__dot--spec { background: #f472b6; }
-  .annotation__dot--async { background: #22d3ee; }
+  .annotation-card strong {
+    font-size: var(--text-sm);
+    vertical-align: middle;
+  }
 
-  .annotation__text strong {
-    color: var(--color-text-primary);
+  .annotation-card p {
+    color: var(--color-text-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    margin-top: var(--space-2);
+  }
+
+  @media (max-width: 768px) {
+    .examples-annotations__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .examples-annotations__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 </style>
