@@ -42,15 +42,15 @@ export class FileWatcher {
 
     watcher.on('change', (fullPath: string) => this.onEvent(fullPath));
     watcher.on('add', (fullPath: string) => this.onEvent(fullPath));
-    watcher.on('error', (error: Error) => {
-      this.options.onError?.(error);
+    watcher.on('error', (error: unknown) => {
+      this.options.onError?.(error as Error);
     });
 
     await new Promise<void>((resolve, reject) => {
       watcher.on('ready', () => resolve());
       // Only reject for errors that occur during initialization
       const timer = setTimeout(() => resolve(), 2000);
-      watcher.on('error', (err: Error) => {
+      watcher.on('error', (err: unknown) => {
         clearTimeout(timer);
         reject(err);
       });
