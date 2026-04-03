@@ -26,6 +26,7 @@ import examples from '../data/examples.json';
         <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--gherkin"></span>Gherkin</span>
         <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--spec"></span>Spec Doc</span>
         <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--async"></span>AsyncAPI</span>
+        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--facet"></span>facet.json</span>
       </div>
     </div>
   </section>
@@ -69,6 +70,11 @@ import examples from '../data/examples.json';
           <span class="annotation-card__dot" style="background: #22d3ee"></span>
           <strong>AsyncAPI</strong>
           <p>Event-driven API contracts for crossing events in AsyncAPI 3.0 format with typed payload schemas.</p>
+        </div>
+        <div class="annotation-card">
+          <span class="annotation-card__dot" style="background: var(--color-facet)"></span>
+          <strong>facet.json</strong>
+          <p>Facet-compatible simulation scenarios with synthetic events, causation chains, correlation tracking, and branch path resolution.</p>
         </div>
       </div>
     </div>
@@ -127,6 +133,7 @@ import examples from '../data/examples.json';
   .examples-hero__dot--gherkin { background: var(--color-generate); }
   .examples-hero__dot--spec { background: #f472b6; }
   .examples-hero__dot--async { background: #22d3ee; }
+  .examples-hero__dot--facet { background: var(--color-facet); }
 
   .examples-content {
     padding: 0 var(--space-6) var(--space-16);

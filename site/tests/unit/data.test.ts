@@ -80,6 +80,7 @@ describe('examples.json', () => {
       expect(ex.gherkin).toBeTruthy();
       expect(ex.specDoc).toBeTruthy();
       expect(ex.asyncApi).toBeTruthy();
+      expect(ex.facetJson).toBeTruthy();
     }
   });
 

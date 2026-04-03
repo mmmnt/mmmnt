@@ -24,6 +24,7 @@ export interface Example {
   gherkin: string;
   specDoc: string;
   asyncApi: string;
+  facetJson: string;
 }
 
 export interface EcosystemTool {

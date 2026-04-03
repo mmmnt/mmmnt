@@ -11,6 +11,7 @@ interface Example {
   gherkin: string;
   specDoc: string;
   asyncApi: string;
+  facetJson: string;
 }
 
 interface Props {
@@ -25,6 +26,7 @@ function buildTabs(ex: Example) {
     { id: 'gherkin', label: 'Gherkin', language: 'gherkin', code: ex.gherkin },
     { id: 'specDoc', label: 'Spec Doc', language: 'markdown', code: ex.specDoc },
     { id: 'asyncApi', label: 'AsyncAPI', language: 'yaml', code: ex.asyncApi },
+    { id: 'facetJson', label: 'facet.json', language: 'json', code: ex.facetJson },
   ];
 }
 

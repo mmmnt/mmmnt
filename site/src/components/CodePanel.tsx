@@ -20,6 +20,7 @@ const DOT_COLORS: Record<string, string> = {
   gherkin: 'var(--color-generate)',
   specDoc: '#f472b6',
   asyncApi: '#22d3ee',
+  facetJson: 'var(--color-facet)',
 };
 
 function dotColor(id: string): string {
@@ -108,6 +109,21 @@ function highlightYaml(code: string): string {
   ]);
 }
 
+const JSON_KEYS = /"(\w+)"(?=\s*:)/g;
+const JSON_STRINGS = /(?<=:\s*)"([^"]*?)"/g;
+const JSON_NUMBERS = /(?<=:\s*)\b(\d+\.?\d*)\b/g;
+const JSON_BOOLEANS = /\b(true|false|null)\b/g;
+
+function highlightJson(code: string): string {
+  return applyTokens(code, [
+    [COMMENTS_LINE, 'token-comment'],
+    [JSON_STRINGS, 'token-string'],
+    [JSON_BOOLEANS, 'token-keyword'],
+    [JSON_NUMBERS, 'token-type'],
+    [JSON_KEYS, 'token-keyword'],
+  ]);
+}
+
 function highlightCode(code: string, language: string): string {
   switch (language) {
     case 'moment':
@@ -118,6 +134,8 @@ function highlightCode(code: string, language: string): string {
       return highlightGherkin(code);
     case 'yaml':
       return highlightYaml(code);
+    case 'json':
+      return highlightJson(code);
     default:
       return escapeHtml(code);
   }
