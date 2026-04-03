@@ -1,5 +1,6 @@
 {
   "name": "@mmmnt/mcp",
+  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/mcp" },
   "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
