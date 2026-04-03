@@ -13,6 +13,7 @@ import { runSchemaStatus } from './commands/schema-status.js';
 import { runLint } from './commands/lint.js';
 import { runImportFromSift } from './commands/import-from-sift.js';
 import { runStatus } from './commands/status.js';
+import { runReconcile } from './commands/reconcile.js';
 import { runSimulate } from './commands/simulate.js';
 import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
@@ -299,6 +300,24 @@ switch (command) {
     }
     break;
   }
+  case 'reconcile': {
+    runReconcile(args)
+      .then((result) => {
+        if (result.json) {
+          console.log(result.message);
+        } else if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
+        }
+        if (!result.success) process.exitCode = 1;
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
   case 'status': {
     runStatus(args)
       .then((result) => {
@@ -355,7 +374,7 @@ switch (command) {
     } else {
       console.error('Usage: moment <command> [options]');
       console.error(
-        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, status, auth',
+        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, reconcile, status, auth',
       );
     }
     process.exitCode = 1;
