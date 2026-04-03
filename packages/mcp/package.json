@@ -1,12 +1,19 @@
 {
   "name": "@mmmnt/mcp",
-  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/mcp" },
+  "description": "Model Context Protocol server exposing Moment domain services as AI agent tools",
   "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Complai <oss@complai.io> (https://complai.io)",
+  "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/mcp#readme",
+  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/mcp" },
+  "bugs": { "url": "https://github.com/mmmnt/mmmnt/issues" },
+  "keywords": ["moment", "mcp", "model-context-protocol", "ai-agent", "claude", "copilot", "cursor", "ddd"],
+  "engines": { "node": ">=20" },
   "type": "module",
   "bin": {
     "mcp": "dist/mcp.mjs"
   },
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "node build.mjs",
     "lint": "eslint src/",

@@ -1,6 +1,6 @@
 # @mmmnt/mcp
 
-Local MCP (Model Context Protocol) server for the Moment domain specification toolchain. Exposes 7 tools that wrap Moment's domain services for AI agent integration.
+Model Context Protocol server exposing Moment domain services as AI agent tools.
 
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
 [![npm version](https://img.shields.io/npm/v/@mmmnt/mcp.svg)](https://www.npmjs.com/package/@mmmnt/mcp)
@@ -248,6 +248,29 @@ npx @mmmnt/mcp
 - **@mmmnt/schema** for schema lifecycle status
 
 For interactive terminal use, see [@mmmnt/cli](../cli/README.md) which provides the same capabilities as shell commands.
+
+## Key Features
+
+- **7 structured tools** -- covers the full Moment workflow: validation, status, visualization, event inspection, import, TypeScript emission, and reconciliation.
+- **Stdio transport** -- communicates over stdin/stdout per the MCP protocol specification, compatible with all MCP-aware clients.
+- **Fully offline** -- requires no account, API keys, or network access. All operations run against local files.
+- **Exception-safe** -- every tool callback is wrapped in `wrapTool()` for guaranteed structured error responses. The server never crashes on invalid input.
+- **Structured JSON output** -- all tool responses are JSON-serialized `CallToolResult` objects per the MCP protocol, making them easy for agents to parse.
+- **Read/Write annotations** -- tools are annotated as Read or Write per the MCP specification, so agents can reason about side effects before calling them.
+- **Multi-client support** -- tested with Claude Code, Claude Desktop, VS Code Copilot, and Cursor.
+- **Direct library imports** -- imports domain services directly from workspace packages rather than shelling out to the CLI binary, avoiding process overhead.
+
+## Contributing
+
+This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines, development setup, and the code of conduct.
+
+```bash
+git clone https://github.com/mmmnt/mmmnt.git
+cd mmmnt
+pnpm install
+pnpm turbo build --filter=@mmmnt/mcp
+pnpm --filter @mmmnt/mcp test
+```
 
 ## License
 

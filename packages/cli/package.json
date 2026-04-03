@@ -1,12 +1,19 @@
 {
   "name": "@mmmnt/cli",
-  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/cli" },
+  "description": "Command-line interface for the Moment domain specification language and implementation toolchain",
   "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Complai <oss@complai.io> (https://complai.io)",
+  "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/cli#readme",
+  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/cli" },
+  "bugs": { "url": "https://github.com/mmmnt/mmmnt/issues" },
+  "keywords": ["moment", "cli", "domain-driven-design", "ddd", "specification", "code-generation", "gherkin", "typescript"],
+  "engines": { "node": ">=20" },
   "type": "module",
   "bin": {
     "moment": "dist/moment.mjs"
   },
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "node build.mjs",
     "lint": "eslint src/",

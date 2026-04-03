@@ -1,8 +1,14 @@
 {
   "name": "@mmmnt/viz",
-  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/viz" },
+  "description": "Context map and flow timeline visualization from Moment domain specifications",
   "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Complai <oss@complai.io> (https://complai.io)",
+  "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/viz#readme",
+  "repository": { "type": "git", "url": "https://github.com/mmmnt/mmmnt.git", "directory": "packages/viz" },
+  "bugs": { "url": "https://github.com/mmmnt/mmmnt/issues" },
+  "keywords": ["moment", "visualization", "context-map", "timeline", "diagram", "ddd", "event-storming"],
+  "engines": { "node": ">=20" },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +22,7 @@
       "types": "./dist/server/index.d.ts"
     }
   },
+  "files": ["dist", "README.md", "LICENSE.md"],
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/",
@@ -26,11 +33,11 @@
     "chokidar": "^5.0.0",
     "picomatch": "^4.0.4"
   },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.2"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true
-  },
-  "devDependencies": {
-    "@types/picomatch": "^4.0.2"
   }
 }
