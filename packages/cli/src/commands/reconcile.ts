@@ -48,15 +48,34 @@ export async function runReconcile(argv: string[]): Promise<ReconcileResult> {
     strict: false,
   });
 
-  const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment reconcile [--local | --event <cascade.json>] <file.moment>');
+  const validation = validateArgs(values, positionals);
+  if (validation) return validation;
 
+  const resolvedPath = resolve(positionals[0]);
+  const parsed = await parseSpec(resolvedPath);
+  if (!('ir' in parsed)) return parsed;
+
+  const asJson = values.json === true;
+
+  if (values.event) {
+    return reconcileFromEvent(parsed.ir, resolvedPath, values.event, asJson);
+  }
+  return reconcileLocal(parsed.ir, resolvedPath, asJson);
+}
+
+function validateArgs(
+  values: { local?: boolean; event?: string },
+  positionals: string[],
+): ReconcileResult | null {
+  if (!positionals[0]) return fail('Usage: moment reconcile [--local | --event <cascade.json>] <file.moment>');
   if (!values.local && !values.event) return fail('Error: specify --local or --event <path>');
+  if (values.local && values.event) return fail('Error: --local and --event are mutually exclusive');
+  return null;
+}
 
-  const resolvedPath = resolve(filePath);
+async function parseSpec(resolvedPath: string): Promise<ReconcileResult | { ir: IntermediateRepresentation }> {
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  // Parse spec first — both modes need a valid spec
   let content: string;
   try { content = readFileSync(resolvedPath, 'utf-8'); } catch (err: unknown) {
     return fail(`Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`);
@@ -65,13 +84,7 @@ export async function runReconcile(argv: string[]): Promise<ReconcileResult> {
   const parseResult = await new MomentParser().parseContent(content);
   if (!parseResult.success) return fail('Error: Spec has parse errors — fix before reconciling');
 
-  const ir = parseResult.ir!;
-
-  if (values.event) {
-    return reconcileFromEvent(ir, resolvedPath, values.event, values.json === true);
-  }
-
-  return reconcileLocal(ir, resolvedPath, values.json === true);
+  return { ir: parseResult.ir! };
 }
 
 function reconcileLocal(ir: IntermediateRepresentation, specPath: string, asJson: boolean): ReconcileResult {
@@ -79,18 +92,17 @@ function reconcileLocal(ir: IntermediateRepresentation, specPath: string, asJson
   const domainDir = join(projectDir, '.domain');
 
   if (!existsSync(domainDir)) {
-    return { success: true, outcome: 'NO_CHANGES', message: 'No upstream source configured — nothing to reconcile' };
+    return buildNoChangesResult(asJson);
   }
 
-  // Detect drift
   const category = classifyDrift(ir, specPath);
   const outcome = categoryToOutcome(category);
 
-  // Write event signal
   writeReconcileEvent(projectDir, outcome, category);
 
-  // Update fingerprint if not breaking
-  if (category !== 3) {
+  // Only update fingerprint for Category 1 (APPLIED)
+  // Category 2 (DRIFT) is diagnostic-only — no file changes
+  if (category === 1) {
     updateFingerprint(domainDir, projectDir);
   }
 
@@ -101,17 +113,20 @@ function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, ev
   const resolvedEventPath = resolve(eventPath);
   if (!existsSync(resolvedEventPath)) return fail(`Error: Event file not found: ${resolvedEventPath}`);
 
-  let eventPayload: { affectedElements?: string[] };
+  let raw: unknown;
   try {
-    eventPayload = JSON.parse(readFileSync(resolvedEventPath, 'utf-8'));
+    raw = JSON.parse(readFileSync(resolvedEventPath, 'utf-8'));
   } catch {
     return fail('Error: Invalid JSON in cascade event file');
   }
 
-  const projectDir = dirname(specPath);
+  if (typeof raw !== 'object' || raw === null) return fail('Error: Cascade event must be a JSON object');
 
-  // Classify based on affected elements
-  const elements = eventPayload.affectedElements ?? [];
+  const eventPayload = raw as Record<string, unknown>;
+  const elements = validateAffectedElements(eventPayload.affectedElements);
+  if (typeof elements === 'string') return fail(elements);
+
+  const projectDir = dirname(specPath);
   const category = classifyAffectedElements(ir, elements);
   const outcome = categoryToOutcome(category);
 
@@ -120,12 +135,21 @@ function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, ev
   return buildResult(outcome, category, asJson);
 }
 
+function validateAffectedElements(value: unknown): string[] | string {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) return 'Error: affectedElements must be an array';
+  if (!value.every((v) => typeof v === 'string')) return 'Error: affectedElements must contain only strings';
+  return value as string[];
+}
+
 function classifyDrift(ir: IntermediateRepresentation, specPath: string): CascadeCategory {
   try {
     const domainDir = join(dirname(specPath), '.domain');
     const reader = new SiftEventStreamReader();
     const readResult = reader.read(domainDir);
 
+    // Broken upstream → treat as drift, not APPLIED
+    if (readResult.eventsProcessed === 0 && readResult.errors.length > 0) return 2;
     if (readResult.eventsProcessed === 0) return 1;
 
     const upstreamContexts = new Set(readResult.input.buildingBlocks.map((b) => b.contextName));
@@ -160,15 +184,15 @@ function classifyAffectedElements(ir: IntermediateRepresentation, elements: stri
     }
   }
 
-  let maxCategory: CascadeCategory = 1;
   for (const el of elements) {
     if (!knownNames.has(el)) {
-      // Element not referenced locally → could be new (Cat 2) or renamed (Cat 3)
-      maxCategory = Math.max(maxCategory, 2) as CascadeCategory;
+      // Element not referenced locally → drift (Cat 2)
+      // Breaking/rename detection requires change metadata not available here
+      return 2;
     }
   }
 
-  return maxCategory;
+  return 1;
 }
 
 function categoryToOutcome(category: CascadeCategory): ReconcileOutcome {
@@ -186,14 +210,11 @@ function writeReconcileEvent(projectDir: string, outcome: ReconcileOutcome, cate
     eventType: 'MomentReconcileCompleted',
     version: 1,
     productSource: 'moment',
-    sessionId: `ses_local_cli`,
+    sessionId: 'ses_local_cli',
     causationEventIds: [],
     correlationId: `corr-reconcile-${Date.now()}`,
     timestamp: new Date().toISOString(),
-    payload: {
-      reconcileResult: outcome,
-      cascadeCategory: category,
-    },
+    payload: { reconcileResult: outcome, cascadeCategory: category },
   };
 
   const fileName = new Date().toISOString().replace(/[:.]/g, '-') + '.jsonl';
@@ -210,27 +231,31 @@ function updateFingerprint(domainDir: string, projectDir: string): void {
   for (const file of files) {
     hash.update(readFileSync(join(domainDir, file), 'utf-8'));
   }
+  const contentHash = hash.digest('hex');
+
+  // Idempotent: skip write if content unchanged
+  if (existsSync(fpPath)) {
+    try {
+      const existing = JSON.parse(readFileSync(fpPath, 'utf-8')) as { sift?: { contentHash?: string } };
+      if (existing.sift?.contentHash === contentHash) return;
+    } catch { /* overwrite */ }
+  }
 
   const fingerprint = {
-    sift: {
-      specificationId: 'reconciled',
-      contentHash: hash.digest('hex'),
-      importedAt: new Date().toISOString(),
-      boundedContextCount: files.length,
-    },
+    sift: { specificationId: 'reconciled', contentHash, importedAt: new Date().toISOString(), boundedContextCount: files.length },
   };
 
   mkdirSync(fpDir, { recursive: true });
   writeFileSync(fpPath, JSON.stringify(fingerprint, null, 2));
 }
 
-function findGitRoot(startDir: string): string | undefined {
-  let dir = resolve(startDir);
-  while (dir !== dirname(dir)) {
-    if (existsSync(join(dir, '.git'))) return dir;
-    dir = dirname(dir);
+function buildNoChangesResult(asJson: boolean): ReconcileResult {
+  const msg = 'No upstream source configured — nothing to reconcile';
+  if (asJson) {
+    const json = JSON.stringify({ outcome: 'NO_CHANGES', success: true }, null, 2);
+    return { success: true, outcome: 'NO_CHANGES', message: json, json };
   }
-  return undefined;
+  return { success: true, outcome: 'NO_CHANGES', message: msg };
 }
 
 function buildResult(outcome: ReconcileOutcome, category: CascadeCategory, asJson: boolean): ReconcileResult {

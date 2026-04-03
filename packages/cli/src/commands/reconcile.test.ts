@@ -75,7 +75,8 @@ describe('moment reconcile', () => {
     const result = await runReconcile(['--event', eventPath, specPath]);
 
     expect(result.success).toBe(true);
-    expect(['APPLIED', 'DRIFT', 'BREAKING']).toContain(result.outcome);
+    expect(result.outcome).toBe('APPLIED');
+    expect(result.category).toBe(1);
   });
 
   it('writes MomentReconcileCompleted event signal (EXIT-B7)', async () => {
@@ -100,12 +101,13 @@ describe('moment reconcile', () => {
     expect(event.payload.reconcileResult).toBeTruthy();
   });
 
-  it('--json outputs structured JSON', async () => {
-    const result = await runReconcile(['--local', UNIFIED_FIXTURE]);
+  it('--json outputs structured JSON for NO_CHANGES', async () => {
+    const result = await runReconcile(['--json', '--local', UNIFIED_FIXTURE]);
 
-    // No .domain/ → NO_CHANGES, but --json not set so no json field
-    // Test with a fixture that has .domain/
     expect(result.success).toBe(true);
+    expect(result.json).toBeTruthy();
+    const parsed = JSON.parse(result.json!);
+    expect(parsed.outcome).toBe('NO_CHANGES');
   });
 
   it('no arguments returns usage message', async () => {
