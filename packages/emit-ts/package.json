@@ -18,7 +18,7 @@
     "@mmmnt/generate": "workspace:*"
   },
   "publishConfig": {
-    "access": "public",
+    "access": "restricted",
     "provenance": true
   }
 }
