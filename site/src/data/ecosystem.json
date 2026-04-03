@@ -31,7 +31,12 @@
         "SagaDefined"
       ],
       "output": "Domain event streams",
-      "position": "upstream"
+      "position": "upstream",
+      "links": [
+        { "label": "SDD Methodology", "url": "https://sdd.mmmnt.dev/", "type": "site" },
+        { "label": "SDD on GitHub", "url": "https://github.com/listenrightmeow/signal-driven-development/", "type": "github" },
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ]
     },
     {
       "id": "moment",
@@ -46,7 +51,12 @@
         "SchemaTransitioned"
       ],
       "output": "Reconciliation events + typed artifacts",
-      "position": "core"
+      "position": "core",
+      "links": [
+        { "label": "Moment Site", "url": "https://moment.mmmnt.dev/", "type": "site" },
+        { "label": "GitHub", "url": "https://github.com/mmmnt/mmmnt", "type": "github" },
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ]
     },
     {
       "id": "facet",
@@ -60,7 +70,11 @@
         "BranchPathValidated"
       ],
       "output": "Interactive visualization",
-      "position": "simulation"
+      "position": "simulation",
+      "links": [
+        { "label": "Facet App", "url": "https://facet.mmmnt.dev/", "type": "site" },
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ]
     },
     {
       "id": "forge",
@@ -69,7 +83,10 @@
       "description": "Gets your project into motion. Consumes Moment's typed artifacts and simulation scenarios to bootstrap project structure, wire up bounded contexts, and establish the development workflow.",
       "events": [],
       "output": "Coming soon",
-      "position": "downstream"
+      "position": "downstream",
+      "links": [
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ]
     }
   ],
   "dataFlow": [

@@ -62,6 +62,36 @@ import ecosystem from '../data/ecosystem.json';
               <span class="eco-detail__output-label">Output:</span>
               <code>{tool.output}</code>
             </div>
+
+            {tool.links && tool.links.length > 0 && (
+              <div class="eco-detail__links">
+                {tool.links.map((link) => (
+                  <a
+                    href={link.url}
+                    class={`eco-detail__link eco-detail__link--${link.type}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {link.type === 'github' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+                      </svg>
+                    )}
+                    {link.type === 'site' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
+                      </svg>
+                    )}
+                    {link.type === 'blog' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                      </svg>
+                    )}
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            )}
           </article>
         ))
       }
@@ -257,6 +287,59 @@ import ecosystem from '../data/ecosystem.json';
 
   .eco-detail__output code {
     color: var(--color-text-secondary);
+  }
+
+  .eco-detail__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .eco-detail__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .eco-detail__link--site {
+    background: var(--color-accent);
+    color: #fff;
+  }
+
+  .eco-detail__link--site:hover {
+    background: var(--color-accent-hover);
+    color: #fff;
+  }
+
+  .eco-detail__link--github {
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+  }
+
+  .eco-detail__link--github:hover {
+    background: var(--color-border);
+    color: var(--color-text-primary);
+  }
+
+  .eco-detail__link--blog {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+  }
+
+  .eco-detail__link--blog:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
   /* Envelope */

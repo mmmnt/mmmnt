@@ -27,6 +27,12 @@ export interface Example {
   facetJson: string;
 }
 
+export interface EcosystemToolLink {
+  label: string;
+  url: string;
+  type: 'site' | 'github' | 'blog';
+}
+
 export interface EcosystemTool {
   id: string;
   name: string;
@@ -35,6 +41,7 @@ export interface EcosystemTool {
   events: string[];
   output: string;
   position: 'upstream' | 'core' | 'downstream';
+  links: EcosystemToolLink[];
 }
 
 export interface DataFlow {
