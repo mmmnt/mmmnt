@@ -74,10 +74,15 @@ function generateDeprecatedJsDoc(field: FieldDefinition, indent: string): string
   if (!field.deprecated) return '';
   const reason = field.deprecated.reason.trim() ? sanitizeJsDoc(field.deprecated.reason.trim()) : '';
   const replacement = field.deprecated.replacement.trim() ? sanitizeJsDoc(field.deprecated.replacement.trim()) : '';
-  let doc = `${indent}/**\n${indent} * @deprecated\n`;
-  if (reason) doc += `${indent} * ${reason}\n`;
-  if (replacement) doc += `${indent} * Use ${replacement} instead.\n`;
-  doc += `${indent} */\n`;
+  let doc = `${indent}/**\n${indent} * @deprecated`;
+  if (reason && replacement) {
+    doc += ` ${reason} (use ${replacement} instead)`;
+  } else if (reason) {
+    doc += ` ${reason}`;
+  } else if (replacement) {
+    doc += ` Use ${replacement} instead.`;
+  }
+  doc += `\n${indent} */\n`;
   return doc;
 }
 

@@ -486,7 +486,7 @@ describe('TypeScriptEmitter', () => {
     expect(typesFile).toBeDefined();
     const content = typesFile![1];
     expect(content).toContain('@deprecated');
-    expect(content).toContain('Use orderId instead.');
+    expect(content).toContain('use orderId instead');
   });
 
   it('emits @deprecated with empty reason/replacement gracefully', () => {

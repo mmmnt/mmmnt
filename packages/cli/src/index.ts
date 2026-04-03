@@ -11,6 +11,7 @@ import { runSyncPropose } from './commands/sync-propose.js';
 import { runSyncAccept } from './commands/sync-accept.js';
 import { runSchemaStatus } from './commands/schema-status.js';
 import { runLint } from './commands/lint.js';
+import { runImportFromSift } from './commands/import-from-sift.js';
 import { runSimulate } from './commands/simulate.js';
 import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
@@ -273,6 +274,30 @@ switch (command) {
       });
     break;
   }
+  case 'import': {
+    if (args.includes('--from-sift')) {
+      const filteredArgs = args.filter((a) => a !== '--from-sift');
+      runImportFromSift(filteredArgs)
+        .then((result) => {
+          if (result.json) {
+            console.log(result.message);
+          } else if (result.success) {
+            console.log(result.message);
+          } else {
+            console.error(result.message);
+          }
+          if (!result.success) process.exitCode = 1;
+        })
+        .catch((error: unknown) => {
+          console.error('Error:', error instanceof Error ? error.message : String(error));
+          process.exitCode = 1;
+        });
+    } else {
+      console.error('Usage: moment import --from-sift <.domain/ directory>');
+      process.exitCode = 1;
+    }
+    break;
+  }
   case 'auth': {
     const [subcommand] = args;
     const authHandler =
@@ -310,7 +335,7 @@ switch (command) {
     } else {
       console.error('Usage: moment <command> [options]');
       console.error(
-        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, auth',
+        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, auth',
       );
     }
     process.exitCode = 1;
