@@ -23,65 +23,83 @@ export default function EcosystemDiagram({ tools, dataFlow, envelope }: Props) {
   const [showEnvelope, setShowEnvelope] = useState(false);
 
   const active = tools.find((t) => t.id === activeTool);
+  const getTool = (id: string) => tools.find((t) => t.id === id);
+  const getFlow = (from: string, to: string) => dataFlow.find((f) => f.from === from && f.to === to);
+
+  const sift = getTool('sift');
+  const moment = getTool('moment');
+  const facet = getTool('facet');
+  const forge = getTool('forge');
+
+  const siftToMoment = getFlow('sift', 'moment');
+  const momentToFacet = getFlow('moment', 'facet');
+  const momentToForge = getFlow('moment', 'forge');
+
+  function renderTool(tool: EcosystemTool | undefined) {
+    if (!tool) return null;
+    return (
+      <button
+        class={`eco-diagram__tool ${activeTool === tool.id ? 'eco-diagram__tool--active' : ''}`}
+        style={`--tool-color: ${toolColors[tool.id]}`}
+        data-tool={tool.id}
+        onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id)}
+        aria-expanded={activeTool === tool.id}
+        aria-label={`${tool.name}: ${tool.tagline}`}
+        type="button"
+        id={tool.id}
+      >
+        <span class="eco-diagram__tool-position">{tool.position}</span>
+        <h3 class="eco-diagram__tool-name">{tool.name}</h3>
+        <p class="eco-diagram__tool-tagline">{tool.tagline}</p>
+        {tool.output !== 'Coming soon' ? (
+          <code class="eco-diagram__tool-output">{tool.output}</code>
+        ) : (
+          <span class="eco-diagram__tool-soon">Coming soon</span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <div class="eco-diagram">
-      {/* Flow visualization */}
-      <div class="eco-diagram__flow">
-        {tools.map((tool, i) => (
-          <div key={tool.id} class="eco-diagram__tool-group">
-            {i > 0 && (
-              <div class="eco-diagram__arrow">
-                <svg width="100%" height="40" viewBox="0 0 60 40" preserveAspectRatio="none" aria-hidden="true">
-                  <defs>
-                    <marker id={`arrow-${tool.id}`} markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                      <path d="M0,0 L8,3 L0,6" fill={toolColors[tool.id]} />
-                    </marker>
-                  </defs>
-                  <line
-                    x1="0" y1="20" x2="50" y2="20"
-                    stroke={toolColors[tool.id]}
-                    stroke-width="2"
-                    stroke-dasharray="6 4"
-                    marker-end={`url(#arrow-${tool.id})`}
-                  >
-                    <animate
-                      attributeName="stroke-dashoffset"
-                      from="10"
-                      to="0"
-                      dur="1s"
-                      repeatCount="indefinite"
-                    />
-                  </line>
-                </svg>
-                <span class="eco-diagram__arrow-label">
-                  {dataFlow[i - 1]?.channel}
-                </span>
-              </div>
-            )}
+      {/* Grid layout showing hub topology */}
+      <div class="eco-diagram__grid">
+        {/* Row 1: Sift */}
+        <div class="eco-diagram__cell eco-diagram__cell--sift">
+          {renderTool(sift)}
+        </div>
 
-            <button
-              class={`eco-diagram__tool ${activeTool === tool.id ? 'eco-diagram__tool--active' : ''}`}
-              style={`--tool-color: ${toolColors[tool.id]}`}
-              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id)}
-              aria-expanded={activeTool === tool.id}
-              aria-label={`${tool.name}: ${tool.tagline}`}
-              type="button"
-              id={tool.id}
-            >
-              <div class="eco-diagram__tool-header">
-                <span class="eco-diagram__tool-position">{tool.position}</span>
-                <h3 class="eco-diagram__tool-name">{tool.name}</h3>
-                <p class="eco-diagram__tool-tagline">{tool.tagline}</p>
-              </div>
-              {tool.output !== 'Coming soon' ? (
-                <code class="eco-diagram__tool-output">{tool.output}</code>
-              ) : (
-                <span class="eco-diagram__tool-soon">Coming soon</span>
-              )}
-            </button>
+        {/* Connection: Sift → Moment */}
+        <div class="eco-diagram__conn eco-diagram__conn--vertical">
+          <div class="eco-diagram__conn-line" />
+          <span class="eco-diagram__conn-label">{siftToMoment?.channel}</span>
+        </div>
+
+        {/* Row 2: Moment (hub) */}
+        <div class="eco-diagram__cell eco-diagram__cell--moment">
+          {renderTool(moment)}
+        </div>
+
+        {/* Connection: Moment → Facet + Forge (Y-fork) */}
+        <div class="eco-diagram__conn eco-diagram__conn--fanout">
+          <div class="eco-diagram__conn-stem" />
+          <div class="eco-diagram__conn-fork">
+            <div class="eco-diagram__conn-branch eco-diagram__conn-branch--left">
+              <span class="eco-diagram__conn-label">{momentToFacet?.channel}</span>
+            </div>
+            <div class="eco-diagram__conn-branch eco-diagram__conn-branch--right">
+              <span class="eco-diagram__conn-label">{momentToForge?.channel}</span>
+            </div>
           </div>
-        ))}
+        </div>
+
+        {/* Row 3: Facet + Forge */}
+        <div class="eco-diagram__cell eco-diagram__cell--downstream">
+          <div class="eco-diagram__downstream-pair">
+            {renderTool(facet)}
+            {renderTool(forge)}
+          </div>
+        </div>
       </div>
 
       {/* Detail panel */}
