@@ -20,7 +20,10 @@ export interface Example {
   description: string;
   moment: string;
   typescript: string;
+  testScaffold: string;
   gherkin: string;
+  specDoc: string;
+  asyncApi: string;
 }
 
 export interface EcosystemTool {

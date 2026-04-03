@@ -31,7 +31,7 @@ export default function EcosystemDiagram({ tools, dataFlow, envelope }: Props) {
           <div key={tool.id} class="eco-diagram__tool-group">
             {i > 0 && (
               <div class="eco-diagram__arrow">
-                <svg width="60" height="40" viewBox="0 0 60 40" aria-hidden="true">
+                <svg width="100%" height="40" viewBox="0 0 60 40" preserveAspectRatio="none" aria-hidden="true">
                   <defs>
                     <marker id={`arrow-${tool.id}`} markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
                       <path d="M0,0 L8,3 L0,6" fill={toolColors[tool.id]} />

@@ -27,7 +27,10 @@ import examples from '../data/examples.json';
       const tabs = [
         { id: 'moment', label: '.moment', language: 'moment', code: example.moment },
         { id: 'typescript', label: 'TypeScript', language: 'typescript', code: example.typescript },
+        { id: 'testScaffold', label: 'Test Scaffold', language: 'typescript', code: example.testScaffold },
         { id: 'gherkin', label: 'Gherkin', language: 'gherkin', code: example.gherkin },
+        { id: 'specDoc', label: 'Spec Doc', language: 'markdown', code: example.specDoc },
+        { id: 'asyncApi', label: 'AsyncAPI', language: 'yaml', code: example.asyncApi },
       ];
 
       return (
@@ -42,19 +45,37 @@ import examples from '../data/examples.json';
               <div class="annotation">
                 <span class="annotation__dot annotation__dot--moment" />
                 <span class="annotation__text">
-                  <strong>.moment</strong> — The domain specification you write
+                  <strong>.moment</strong> — The domain specification you write, including flows, crossings, and branches
                 </span>
               </div>
               <div class="annotation">
                 <span class="annotation__dot annotation__dot--ts" />
                 <span class="annotation__text">
-                  <strong>TypeScript</strong> — Generated interfaces with discriminated unions and readonly fields
+                  <strong>TypeScript</strong> — Generated interfaces with discriminated unions, aggregate contracts, and readonly fields
+                </span>
+              </div>
+              <div class="annotation">
+                <span class="annotation__dot annotation__dot--scaffold" />
+                <span class="annotation__text">
+                  <strong>Test Scaffold</strong> — Pre-populated Vitest files with crossing assertions, branch coverage, and saga/policy stubs
                 </span>
               </div>
               <div class="annotation">
                 <span class="annotation__dot annotation__dot--gherkin" />
                 <span class="annotation__text">
-                  <strong>Gherkin</strong> — Derived BDD test scenarios covering commands, events, and invariants
+                  <strong>Gherkin</strong> — Derived BDD scenarios with crossing contracts, branch paths, saga lifecycles, and policy chains
+                </span>
+              </div>
+              <div class="annotation">
+                <span class="annotation__dot annotation__dot--spec" />
+                <span class="annotation__text">
+                  <strong>Spec Doc</strong> — Markdown with Mermaid context maps, sequence diagrams, and domain model reference
+                </span>
+              </div>
+              <div class="annotation">
+                <span class="annotation__dot annotation__dot--async" />
+                <span class="annotation__text">
+                  <strong>AsyncAPI</strong> — Event-driven API contracts for crossing events in AsyncAPI 3.0 format
                 </span>
               </div>
             </div>
@@ -141,7 +162,10 @@ import examples from '../data/examples.json';
 
   .annotation__dot--moment { background: var(--color-accent); }
   .annotation__dot--ts { background: var(--color-emit); }
+  .annotation__dot--scaffold { background: #fbbf24; }
   .annotation__dot--gherkin { background: var(--color-generate); }
+  .annotation__dot--spec { background: #f472b6; }
+  .annotation__dot--async { background: #22d3ee; }
 
   .annotation__text strong {
     color: var(--color-text-primary);

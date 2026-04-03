@@ -74,7 +74,18 @@ describe('examples.json', () => {
     for (const ex of examples.examples) {
       expect(ex.moment).toBeTruthy();
       expect(ex.typescript).toBeTruthy();
+      expect(ex.testScaffold).toBeTruthy();
       expect(ex.gherkin).toBeTruthy();
+      expect(ex.specDoc).toBeTruthy();
+      expect(ex.asyncApi).toBeTruthy();
+    }
+  });
+
+  it('each example includes flow definitions', () => {
+    for (const ex of examples.examples) {
+      expect(ex.moment).toContain('flow ');
+      expect(ex.moment).toContain('lane ');
+      expect(ex.moment).toContain('moment ');
     }
   });
 });

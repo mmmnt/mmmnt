@@ -12,6 +12,19 @@ interface Props {
   title?: string;
 }
 
+const DOT_COLORS: Record<string, string> = {
+  moment: 'var(--color-accent)',
+  typescript: 'var(--color-emit)',
+  testScaffold: '#fbbf24',
+  gherkin: 'var(--color-generate)',
+  specDoc: '#f472b6',
+  asyncApi: '#22d3ee',
+};
+
+function dotColor(id: string): string {
+  return DOT_COLORS[id] ?? 'var(--color-text-tertiary)';
+}
+
 export default function CodePanel({ tabs, title }: Props) {
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? '');
   const current = tabs.find((t) => t.id === activeTab) ?? tabs[0];
@@ -31,7 +44,7 @@ export default function CodePanel({ tabs, title }: Props) {
               onClick={() => setActiveTab(tab.id)}
               type="button"
             >
-              <span class="code-panel__tab-dot" style={`--dot-color: var(--color-${tab.id === 'moment' ? 'accent' : tab.id === 'typescript' ? 'emit' : 'generate'})`} />
+              <span class="code-panel__tab-dot" style={`--dot-color: ${dotColor(tab.id)}`} />
               {tab.label}
             </button>
           ))}

@@ -252,16 +252,17 @@
 .eco-diagram__flow {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
   gap: 0;
   overflow-x: auto;
-  padding: var(--space-4) 0;
+  padding: var(--space-4) var(--space-6);
+  width: 100%;
   margin-bottom: var(--space-8);
 }
 
 .eco-diagram__tool-group {
   display: flex;
   align-items: flex-start;
+  flex: 1;
 }
 
 .eco-diagram__arrow {
@@ -270,6 +271,8 @@
   align-items: center;
   gap: var(--space-1);
   padding-top: var(--space-8);
+  flex: 1;
+  min-width: 60px;
 }
 
 .eco-diagram__arrow-label {
@@ -294,6 +297,7 @@
   transition: border-color var(--duration-fast) var(--ease-out),
               box-shadow var(--duration-fast) var(--ease-out);
   min-width: 150px;
+  width: 100%;
   text-align: center;
   font-family: inherit;
   color: inherit;
