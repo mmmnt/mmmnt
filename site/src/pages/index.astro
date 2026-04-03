@@ -23,25 +23,173 @@ const codeTabs = firstExample
   : [];
 ---
 
-<Base title="Specify once. Generate everything.">
+<Base title="Your domain model belongs in one place.">
   <Nav slot="nav" />
 
   <Hero />
 
+  <!-- ============ PROBLEM STATEMENT ============ -->
+  <section class="problem">
+    <div class="problem__inner">
+      <h2 class="problem__title">The problem with domain-driven development today</h2>
+      <div class="problem__grid">
+        <div class="problem__card">
+          <div class="problem__icon problem__icon--red">6&times;</div>
+          <h3 class="problem__card-title">Scattered knowledge</h3>
+          <p class="problem__card-desc">
+            Your domain model lives in the wiki, the types, the tests, the docs,
+            the API spec, and someone's head. They diverged on day two.
+          </p>
+        </div>
+        <div class="problem__card">
+          <div class="problem__icon problem__icon--amber">0%</div>
+          <h3 class="problem__card-title">No temporal coverage</h3>
+          <p class="problem__card-desc">
+            You test commands and queries but never the flows between bounded contexts.
+            Cross-context contracts are a handshake, not a guarantee.
+          </p>
+        </div>
+        <div class="problem__card">
+          <div class="problem__icon problem__icon--red">&infin;</div>
+          <h3 class="problem__card-title">Manual boilerplate</h3>
+          <p class="problem__card-desc">
+            Every aggregate means writing types, test stubs, BDD scenarios, docs,
+            and API contracts by hand. Multiply by every bounded context.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BEFORE / AFTER ============ -->
+  <section class="contrast">
+    <div class="contrast__inner">
+      <h2 class="contrast__title">Before and after Moment</h2>
+      <p class="contrast__subtitle">
+        One specification replaces six manually maintained artifacts.
+      </p>
+      <div class="contrast__panels">
+        <div class="contrast__panel contrast__panel--before">
+          <div class="contrast__panel-header">
+            <span class="contrast__label contrast__label--before">Without Moment</span>
+          </div>
+          <ul class="contrast__list">
+            <li><code>order.types.ts</code> <span>— hand-written interfaces</span></li>
+            <li><code>order.aggregate.ts</code> <span>— manual aggregate class</span></li>
+            <li><code>order.spec.ts</code> <span>— test stubs from scratch</span></li>
+            <li><code>order.feature</code> <span>— Gherkin written by hand</span></li>
+            <li><code>order-spec.md</code> <span>— docs that drift immediately</span></li>
+            <li><code>order-api.yaml</code> <span>— AsyncAPI maintained separately</span></li>
+            <li class="contrast__list-total">6 files &middot; ~400 lines &middot; always diverging</li>
+          </ul>
+        </div>
+        <div class="contrast__panel contrast__panel--after">
+          <div class="contrast__panel-header">
+            <span class="contrast__label contrast__label--after">With Moment</span>
+          </div>
+          <ul class="contrast__list">
+            <li><code>order.moment</code> <span>— single specification</span></li>
+            <li class="contrast__list-arrow">&darr; <code>moment generate --all</code></li>
+            <li class="contrast__list-generated">All 6 artifacts generated, typed, tested, in sync</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BY THE NUMBERS ============ -->
+  <section class="numbers">
+    <div class="numbers__inner">
+      <div class="numbers__grid">
+        <div class="numbers__stat">
+          <span class="numbers__value">1</span>
+          <span class="numbers__label">specification</span>
+        </div>
+        <div class="numbers__arrow" aria-hidden="true">&rarr;</div>
+        <div class="numbers__stat">
+          <span class="numbers__value">6</span>
+          <span class="numbers__label">artifact types</span>
+        </div>
+        <div class="numbers__arrow" aria-hidden="true">&rarr;</div>
+        <div class="numbers__stat">
+          <span class="numbers__value">0</span>
+          <span class="numbers__label">drift</span>
+        </div>
+        <div class="numbers__arrow" aria-hidden="true">&rarr;</div>
+        <div class="numbers__stat">
+          <span class="numbers__value">100%</span>
+          <span class="numbers__label">deterministic</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PIPELINE ============ -->
   <PipelineViz stages={pipeline} client:visible />
 
+  <!-- ============ CODE PANEL ============ -->
   <section class="home-code">
     <div class="home-code__inner">
       <h2 class="home-code__title">See it in action</h2>
       <p class="home-code__subtitle">
-        Write your domain specification. Moment generates the rest.
+        Write your domain specification with flows and crossings.
+        Moment generates typed code, tests, docs, and API contracts.
       </p>
       <CodePanel tabs={codeTabs} client:visible />
     </div>
   </section>
 
+  <!-- ============ FEATURES ============ -->
   <FeaturesGrid />
 
+  <!-- ============ SOCIAL PROOF ============ -->
+  <section class="proof">
+    <div class="proof__inner">
+      <h2 class="proof__title">Built on decades of domain-driven design</h2>
+      <p class="proof__subtitle">
+        Moment stands on the shoulders of the DDD community &mdash; Evans, Young,
+        Brandolini, Vernon, Tune, Khononov &mdash; and encodes their patterns
+        into a toolchain that enforces what books can only recommend.
+      </p>
+      <div class="proof__grid">
+        <div class="proof__card">
+          <div class="proof__card-value">10</div>
+          <div class="proof__card-label">packages</div>
+          <div class="proof__card-detail">core, derive, generate, emit-ts, sync, schema, viz, harness, mcp, cli</div>
+        </div>
+        <div class="proof__card">
+          <div class="proof__card-value">20+</div>
+          <div class="proof__card-label">CLI commands</div>
+          <div class="proof__card-detail">parse, derive, generate, emit, watch, drift, reconcile, viz, and more</div>
+        </div>
+        <div class="proof__card">
+          <div class="proof__card-value">FSL</div>
+          <div class="proof__card-label">licensed</div>
+          <div class="proof__card-detail">Source-available now, converts to Apache 2.0 after two years per version</div>
+        </div>
+        <div class="proof__card">
+          <div class="proof__card-value">MCP</div>
+          <div class="proof__card-label">AI-ready</div>
+          <div class="proof__card-detail">Model Context Protocol server for Claude, Copilot, and Cursor integration</div>
+        </div>
+      </div>
+      <div class="proof__cta">
+        <a
+          href="https://github.com/mmmnt/mmmnt"
+          class="proof__github-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+          </svg>
+          View on GitHub &rarr;
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ECOSYSTEM ============ -->
   <section class="home-ecosystem">
     <div class="home-ecosystem__inner">
       <h2 class="home-ecosystem__title">Part of the Complai ecosystem</h2>
@@ -73,12 +221,334 @@ const codeTabs = firstExample
     </div>
   </section>
 
+  <!-- ============ QUICK START ============ -->
   <QuickStart />
+
+  <!-- ============ FAQ ============ -->
+  <section class="faq">
+    <div class="faq__inner">
+      <h2 class="faq__title">Common questions</h2>
+      <div class="faq__grid">
+        <div class="faq__item">
+          <h3 class="faq__question">Does this lock me into Moment?</h3>
+          <p class="faq__answer">
+            No. Generated artifacts are standard TypeScript, Gherkin, Markdown, and AsyncAPI.
+            If you stop using Moment, your generated code still works. The <code>.moment</code> file
+            is the only Moment-specific artifact.
+          </p>
+        </div>
+        <div class="faq__item">
+          <h3 class="faq__question">What if the specification is wrong?</h3>
+          <p class="faq__answer">
+            Moment includes drift detection (<code>moment drift</code>) that catches when your
+            implementation diverges from the spec. Fix the spec or reconcile the implementation
+            &mdash; either direction works.
+          </p>
+        </div>
+        <div class="faq__item">
+          <h3 class="faq__question">Can I adopt incrementally?</h3>
+          <p class="faq__answer">
+            Yes. Start with one bounded context. Moment generates artifacts alongside your existing
+            code. You can adopt context by context, aggregate by aggregate.
+          </p>
+        </div>
+        <div class="faq__item">
+          <h3 class="faq__question">How mature is this?</h3>
+          <p class="faq__answer">
+            Moment is at milestone 3 (derivation + generation pipeline). The parser, type emitter,
+            Gherkin generator, test scaffold emitter, and spec doc generator are all functional.
+            Schema governance, viz, and MCP server are in active development.
+          </p>
+        </div>
+        <div class="faq__item">
+          <h3 class="faq__question">Do I need to know DDD?</h3>
+          <p class="faq__answer">
+            Basic familiarity with aggregates, commands, and events helps. But the <code>.moment</code>
+            DSL is designed to be readable without DDD expertise &mdash; it reads like a domain
+            description, not an academic paper.
+          </p>
+        </div>
+        <div class="faq__item">
+          <h3 class="faq__question">What about the license?</h3>
+          <p class="faq__answer">
+            FSL-1.1-Apache-2.0: source-available now with full read/use rights. Two years after
+            each release, it converts to Apache 2.0 (fully permissive). The only restriction
+            during the FSL period is competing commercial use.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMMUNITY CTA ============ -->
+  <section class="community">
+    <div class="community__inner">
+      <h2 class="community__title">Join the community</h2>
+      <p class="community__subtitle">
+        Moment is built in the open. Every feature, decision, and bug fix happens on GitHub.
+      </p>
+      <div class="community__cards">
+        <a
+          href="https://github.com/mmmnt/mmmnt"
+          class="community__card"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+          </svg>
+          <strong>Star &amp; Contribute</strong>
+          <span>Browse source, report issues, submit PRs</span>
+        </a>
+        <a
+          href="https://github.com/mmmnt/mmmnt/wiki"
+          class="community__card"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          </svg>
+          <strong>Documentation</strong>
+          <span>Architecture, pipeline, package reference, contributing guide</span>
+        </a>
+        <a
+          href="https://github.com/mmmnt/mmmnt/releases"
+          class="community__card"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+          <strong>Releases</strong>
+          <span>Changelog, milestones, and version history</span>
+        </a>
+      </div>
+    </div>
+  </section>
 
   <Footer slot="footer" />
 </Base>
 
 <style>
+  /* ── Problem Statement ── */
+  .problem {
+    padding: var(--space-16) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .problem__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .problem__title {
+    text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-10);
+  }
+
+  .problem__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+
+  .problem__card {
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .problem__icon {
+    font-family: var(--font-mono);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-4);
+    line-height: 1;
+  }
+
+  .problem__icon--red { color: var(--color-error); }
+  .problem__icon--amber { color: var(--color-warning); }
+
+  .problem__card-title {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-2);
+  }
+
+  .problem__card-desc {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  /* ── Before / After ── */
+  .contrast {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .contrast__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .contrast__title {
+    text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+  }
+
+  .contrast__subtitle {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-10);
+  }
+
+  .contrast__panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+  }
+
+  .contrast__panel {
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-subtle);
+  }
+
+  .contrast__panel--before {
+    background: rgba(239, 68, 68, 0.03);
+    border-color: rgba(239, 68, 68, 0.15);
+  }
+
+  .contrast__panel--after {
+    background: rgba(34, 197, 94, 0.03);
+    border-color: rgba(34, 197, 94, 0.15);
+  }
+
+  .contrast__panel-header {
+    margin-bottom: var(--space-4);
+  }
+
+  .contrast__label {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 100px;
+  }
+
+  .contrast__label--before {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-error);
+  }
+
+  .contrast__label--after {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--color-success);
+  }
+
+  .contrast__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .contrast__list li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+
+  .contrast__list code {
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
+  .contrast__list span {
+    color: var(--color-text-tertiary);
+  }
+
+  .contrast__list-total {
+    padding-top: var(--space-3);
+    margin-top: var(--space-2);
+    border-top: 1px solid var(--color-border-subtle);
+    color: var(--color-error) !important;
+    font-weight: var(--weight-semibold);
+    display: block !important;
+  }
+
+  .contrast__list-arrow {
+    justify-content: center !important;
+    color: var(--color-success) !important;
+    font-family: var(--font-mono);
+    padding: var(--space-2) 0;
+  }
+
+  .contrast__list-generated {
+    color: var(--color-success) !important;
+    font-weight: var(--weight-semibold);
+    display: block !important;
+  }
+
+  /* ── Numbers ── */
+  .numbers {
+    padding: var(--space-10) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .numbers__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .numbers__grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+  }
+
+  .numbers__stat {
+    text-align: center;
+  }
+
+  .numbers__value {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-accent);
+    line-height: 1;
+  }
+
+  .numbers__label {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+  }
+
+  .numbers__arrow {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-2xl);
+  }
+
+  /* ── Code panel ── */
   .home-code {
     padding: var(--space-16) var(--space-6);
   }
@@ -102,119 +572,253 @@ const codeTabs = firstExample
     margin-bottom: var(--space-8);
   }
 
-  /* Ecosystem preview */
-  .home-ecosystem {
+  /* ── Social Proof ── */
+  .proof {
     padding: var(--space-16) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
   }
 
-  .home-ecosystem__inner {
+  .proof__inner {
     max-width: var(--max-width);
     margin: 0 auto;
   }
 
-  .home-ecosystem__title {
+  .proof__title {
     text-align: center;
     font-size: var(--text-3xl);
     font-weight: var(--weight-bold);
     margin-bottom: var(--space-3);
   }
 
-  .home-ecosystem__subtitle {
+  .proof__subtitle {
     text-align: center;
     color: var(--color-text-secondary);
     font-size: var(--text-lg);
-    max-width: 36rem;
+    max-width: 40rem;
     margin: 0 auto var(--space-10);
+    line-height: var(--leading-relaxed);
   }
 
-  .home-ecosystem__cards {
+  .proof__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4);
     margin-bottom: var(--space-8);
   }
 
-  .eco-card {
+  .proof__card {
+    text-align: center;
     padding: var(--space-6);
     background: var(--color-surface);
     border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-lg);
-    text-decoration: none;
-    color: inherit;
-    position: relative;
-    transition: border-color var(--duration-fast) var(--ease-out),
-                transform var(--duration-fast) var(--ease-out);
   }
 
-  .eco-card:hover {
-    transform: translateY(-2px);
-    color: inherit;
+  .proof__card-value {
+    font-family: var(--font-mono);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--color-accent);
+    line-height: 1;
+    margin-bottom: var(--space-1);
   }
 
+  .proof__card-label {
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-2);
+  }
+
+  .proof__card-detail {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+  }
+
+  .proof__cta {
+    text-align: center;
+  }
+
+  .proof__github-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-weight: var(--weight-medium);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .proof__github-link:hover {
+    color: var(--color-text-primary);
+  }
+
+  /* ── Ecosystem ── */
+  .home-ecosystem {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .home-ecosystem__inner { max-width: var(--max-width); margin: 0 auto; }
+  .home-ecosystem__title { text-align: center; font-size: var(--text-3xl); font-weight: var(--weight-bold); margin-bottom: var(--space-3); }
+  .home-ecosystem__subtitle { text-align: center; color: var(--color-text-secondary); font-size: var(--text-lg); max-width: 36rem; margin: 0 auto var(--space-10); }
+  .home-ecosystem__cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); margin-bottom: var(--space-8); }
+  .home-ecosystem__cta { text-align: center; }
+
+  .eco-card { padding: var(--space-6); background: var(--color-surface); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); text-decoration: none; color: inherit; transition: border-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out); }
+  .eco-card:hover { transform: translateY(-2px); color: inherit; }
   .eco-card--sift { border-top: 3px solid var(--color-sift); }
   .eco-card--sift:hover { border-color: var(--color-sift); }
   .eco-card--moment { border-top: 3px solid var(--color-moment); }
   .eco-card--moment:hover { border-color: var(--color-moment); }
   .eco-card--forge { border-top: 3px solid var(--color-forge); }
   .eco-card--forge:hover { border-color: var(--color-forge); }
+  .eco-card__name { font-size: var(--text-xl); font-weight: var(--weight-bold); margin-bottom: var(--space-1); }
+  .eco-card__tagline { color: var(--color-text-tertiary); font-size: var(--text-sm); font-weight: var(--weight-medium); margin-bottom: var(--space-3); }
+  .eco-card__desc { color: var(--color-text-secondary); font-size: var(--text-sm); line-height: var(--leading-relaxed); }
+  .eco-card__badge { display: inline-block; margin-top: var(--space-3); padding: var(--space-1) var(--space-3); background: var(--color-surface-raised); color: var(--color-text-tertiary); font-size: var(--text-xs); border-radius: 100px; border: 1px solid var(--color-border); }
 
-  .eco-card__name {
-    font-size: var(--text-xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-1);
+  .btn--secondary { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-6); font-size: var(--text-base); font-weight: var(--weight-medium); border-radius: var(--radius-md); background: var(--color-surface-raised); color: var(--color-text-primary); border: 1px solid var(--color-border); text-decoration: none; transition: all var(--duration-fast) var(--ease-out); }
+  .btn--secondary:hover { background: var(--color-border); color: var(--color-text-primary); }
+
+  /* ── FAQ ── */
+  .faq {
+    padding: var(--space-16) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
   }
 
-  .eco-card__tagline {
-    color: var(--color-text-tertiary);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
+  .faq__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .faq__title {
+    text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-10);
+  }
+
+  .faq__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+
+  .faq__item {
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .faq__question {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
     margin-bottom: var(--space-3);
   }
 
-  .eco-card__desc {
+  .faq__answer {
     color: var(--color-text-secondary);
     font-size: var(--text-sm);
     line-height: var(--leading-relaxed);
   }
 
-  .eco-card__badge {
-    display: inline-block;
-    margin-top: var(--space-3);
-    padding: var(--space-1) var(--space-3);
-    background: var(--color-surface-raised);
-    color: var(--color-text-tertiary);
-    font-size: var(--text-xs);
-    border-radius: 100px;
-    border: 1px solid var(--color-border);
+  .faq__answer code {
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-sm);
+    font-size: 0.9em;
   }
 
-  .home-ecosystem__cta {
+  /* ── Community ── */
+  .community {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .community__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .community__title {
     text-align: center;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
   }
 
-  .btn--secondary {
-    display: inline-flex;
+  .community__subtitle {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-10);
+  }
+
+  .community__cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+
+  .community__card {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-6);
-    font-size: var(--text-base);
-    font-weight: var(--weight-medium);
-    border-radius: var(--radius-md);
-    background: var(--color-surface-raised);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
+    text-align: center;
+    gap: var(--space-3);
+    padding: var(--space-8) var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
     text-decoration: none;
-    transition: all var(--duration-fast) var(--ease-out);
+    color: var(--color-text-secondary);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
   }
 
-  .btn--secondary:hover {
-    background: var(--color-border);
+  .community__card:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    color: var(--color-text-secondary);
+  }
+
+  .community__card strong {
     color: var(--color-text-primary);
+    font-size: var(--text-base);
   }
 
+  .community__card span {
+    font-size: var(--text-sm);
+  }
+
+  /* ── Responsive ── */
   @media (max-width: 768px) {
-    .home-ecosystem__cards {
+    .problem__grid,
+    .contrast__panels,
+    .proof__grid,
+    .faq__grid,
+    .home-ecosystem__cards,
+    .community__cards {
       grid-template-columns: 1fr;
+    }
+
+    .numbers__grid {
+      gap: var(--space-4);
+    }
+
+    .numbers__arrow {
+      display: none;
+    }
+
+    .numbers__grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .proof__grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 </style>

@@ -14,8 +14,30 @@ import Footer from '../components/Footer.astro';
     <div class="gs-hero__inner">
       <h1 class="gs-hero__title">Get Started</h1>
       <p class="gs-hero__subtitle">
-        From zero to generated artifacts in minutes.
+        From zero to generated artifacts in minutes. By the end of this guide,
+        you'll have typed TypeScript, test scaffolds, Gherkin features, spec documents,
+        and AsyncAPI contracts &mdash; all from a single <code>.moment</code> file.
       </p>
+    </div>
+  </section>
+
+  <section class="gs-prereqs">
+    <div class="gs-prereqs__inner">
+      <h2 class="gs-prereqs__title">Before you begin</h2>
+      <div class="gs-prereqs__grid">
+        <div class="gs-prereqs__item">
+          <strong>Node.js 20+</strong>
+          <span>Required runtime</span>
+        </div>
+        <div class="gs-prereqs__item">
+          <strong>pnpm 10+</strong>
+          <span>Package manager (Moment uses pnpm workspaces)</span>
+        </div>
+        <div class="gs-prereqs__item">
+          <strong>TypeScript 5.8+</strong>
+          <span>For generated type artifacts</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -248,6 +270,53 @@ moment watch shop.moment`}</code></pre>
   .gs-content__inner {
     max-width: var(--content-width);
     margin: 0 auto;
+  }
+
+  /* Prerequisites */
+  .gs-prereqs {
+    padding: 0 var(--space-6) var(--space-8);
+  }
+
+  .gs-prereqs__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .gs-prereqs__title {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-xs);
+  }
+
+  .gs-prereqs__grid {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+  }
+
+  .gs-prereqs__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .gs-prereqs__item strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  .gs-prereqs__item span {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
   }
 
   /* Steps */

@@ -1,0 +1,350 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base
+  title="Why Moment"
+  description="Why teams choose Moment for domain-driven development. The problem with scattered domain knowledge and how temporal DDD modeling solves it."
+>
+  <Nav slot="nav" />
+
+  <section class="why-hero">
+    <div class="why-hero__inner">
+      <h1 class="why-hero__title">Why Moment</h1>
+      <p class="why-hero__subtitle">
+        Domain-driven design produces better software. But without tooling, it produces
+        scattered knowledge, untested flows, and documentation that lies.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ THE PROBLEM ============ -->
+  <section class="why-section">
+    <div class="why-section__inner">
+      <h2 class="why-section__title">The problem</h2>
+      <div class="why-narrative">
+        <div class="why-narrative__block">
+          <h3 class="why-narrative__heading">Domain knowledge fragments on contact with code</h3>
+          <p>
+            Your team runs an Event Storming. You map bounded contexts on a whiteboard.
+            Then someone opens an IDE and starts writing types. Someone else writes tests.
+            A third person updates the wiki. A fourth defines the API contract.
+          </p>
+          <p>
+            By the end of the sprint, you have six representations of the same domain model.
+            They already disagree.
+          </p>
+        </div>
+        <div class="why-narrative__block">
+          <h3 class="why-narrative__heading">Flows are the untested frontier</h3>
+          <p>
+            Most teams test individual commands and queries. Very few test the flows between
+            bounded contexts &mdash; the temporal sequences where events cross boundaries,
+            contracts are exchanged, and sagas coordinate long-running processes.
+          </p>
+          <p>
+            These flows are where the hardest bugs live: race conditions, broken contracts,
+            missing compensation logic, and orphaned events. And they're exactly what
+            nobody writes tests for.
+          </p>
+        </div>
+        <div class="why-narrative__block">
+          <h3 class="why-narrative__heading">Boilerplate doesn't scale</h3>
+          <p>
+            Every new aggregate means writing TypeScript interfaces, aggregate classes,
+            test stubs, Gherkin scenarios, specification documents, and API contracts.
+            Multiply by every bounded context. Multiply by every change.
+          </p>
+          <p>
+            The cost isn't just time &mdash; it's drift. Manual artifacts diverge from
+            intent. Tests cover the wrong cases. Documentation describes last month's model.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ THE SOLUTION ============ -->
+  <section class="why-section why-section--alt">
+    <div class="why-section__inner">
+      <h2 class="why-section__title">How Moment solves it</h2>
+      <div class="why-solution">
+        <div class="why-solution__item">
+          <div class="why-solution__number">1</div>
+          <div class="why-solution__body">
+            <h3 class="why-solution__heading">Single source of truth</h3>
+            <p>
+              The <code>.moment</code> specification is the canonical definition of your domain.
+              Contexts, aggregates, commands, events, flows, crossings, sagas, policies &mdash;
+              all in one file, in one language, version-controlled alongside your code.
+            </p>
+          </div>
+        </div>
+        <div class="why-solution__item">
+          <div class="why-solution__number">2</div>
+          <div class="why-solution__body">
+            <h3 class="why-solution__heading">Temporal modeling with flows</h3>
+            <p>
+              Flows define how events move through time across bounded contexts. Lanes,
+              moments, branches, crossings with contracts, <code>triggered-by</code> chains,
+              and terminal states make the temporal dimension explicit and testable.
+            </p>
+          </div>
+        </div>
+        <div class="why-solution__item">
+          <div class="why-solution__number">3</div>
+          <div class="why-solution__body">
+            <h3 class="why-solution__heading">Deterministic artifact generation</h3>
+            <p>
+              Same input, same output. Every time. TypeScript types with discriminated unions,
+              test scaffolds with crossing assertions, Gherkin features with flow coverage,
+              spec docs with Mermaid diagrams, and AsyncAPI contracts. Six artifact types
+              from one specification.
+            </p>
+          </div>
+        </div>
+        <div class="why-solution__item">
+          <div class="why-solution__number">4</div>
+          <div class="why-solution__body">
+            <h3 class="why-solution__heading">Drift detection closes the loop</h3>
+            <p>
+              <code>moment drift</code> compares your specification against implementation
+              using AST-level diffing. When they diverge, you know exactly what changed,
+              where, and why. Reconcile in either direction.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARISON TABLE ============ -->
+  <section class="why-section">
+    <div class="why-section__inner">
+      <h2 class="why-section__title">How Moment compares</h2>
+      <p class="why-section__subtitle">
+        Moment isn't a code generator. It's a specification-driven toolchain
+        that produces artifacts you'd write by hand &mdash; but can't keep in sync manually.
+      </p>
+      <div class="why-table-wrap">
+        <table class="why-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Manual DDD</th>
+              <th>OpenAPI / Swagger</th>
+              <th>GraphQL Schema-First</th>
+              <th class="why-table__highlight">Moment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="why-table__label">Source of truth</td>
+              <td>Wiki + code + tests</td>
+              <td>API spec (YAML)</td>
+              <td>Schema (SDL)</td>
+              <td class="why-table__highlight">.moment specification</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Domain modeling</td>
+              <td>Whiteboard / Event Storming</td>
+              <td>Endpoints only</td>
+              <td>Types only</td>
+              <td class="why-table__highlight">Contexts, aggregates, flows, sagas, policies</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Generates types</td>
+              <td>Manual</td>
+              <td>Yes</td>
+              <td>Yes</td>
+              <td class="why-table__highlight">Yes (discriminated unions, readonly)</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Generates tests</td>
+              <td>Manual</td>
+              <td>No</td>
+              <td>No</td>
+              <td class="why-table__highlight">Yes (scaffolds + Gherkin features)</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Generates docs</td>
+              <td>Manual</td>
+              <td>Swagger UI</td>
+              <td>Schema introspection</td>
+              <td class="why-table__highlight">Spec docs with Mermaid diagrams</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Temporal flows</td>
+              <td>Not modeled</td>
+              <td>Not modeled</td>
+              <td>Not modeled</td>
+              <td class="why-table__highlight">First-class (lanes, crossings, branches)</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Drift detection</td>
+              <td>None</td>
+              <td>None</td>
+              <td>None</td>
+              <td class="why-table__highlight">AST-level diffing</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Schema governance</td>
+              <td>Manual versioning</td>
+              <td>Version in URL</td>
+              <td>Deprecation directives</td>
+              <td class="why-table__highlight">4-phase lifecycle (Active → Deprecated → EOL → Removed)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHO IS THIS FOR ============ -->
+  <section class="why-section why-section--alt">
+    <div class="why-section__inner">
+      <h2 class="why-section__title">Who Moment is for</h2>
+      <div class="why-personas">
+        <div class="why-persona">
+          <h3 class="why-persona__role">Architects</h3>
+          <ul class="why-persona__list">
+            <li>Enforce bounded context boundaries with crossing contracts</li>
+            <li>Govern schema evolution across teams with lifecycle policies</li>
+            <li>Detect specification drift before it reaches production</li>
+            <li>Visualize context maps and flow timelines from the spec</li>
+          </ul>
+        </div>
+        <div class="why-persona">
+          <h3 class="why-persona__role">IC Engineers</h3>
+          <ul class="why-persona__list">
+            <li>Stop writing boilerplate types, tests, and docs by hand</li>
+            <li>Get pre-populated test scaffolds with crossing assertions</li>
+            <li>Trust that generated code matches the domain model</li>
+            <li>Use watch mode for instant feedback during development</li>
+          </ul>
+        </div>
+        <div class="why-persona">
+          <h3 class="why-persona__role">Team Leads</h3>
+          <ul class="why-persona__list">
+            <li>Onboard new engineers with a readable domain specification</li>
+            <li>Ensure consistency across bounded contexts and teams</li>
+            <li>Living documentation that never drifts from implementation</li>
+            <li>Adopt incrementally, one context at a time</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="why-cta">
+    <div class="why-cta__inner">
+      <h2 class="why-cta__title">Ready to try it?</h2>
+      <p class="why-cta__desc">
+        Start with one bounded context. Write a <code>.moment</code> file.
+        See what Moment generates.
+      </p>
+      <div class="why-cta__buttons">
+        <a href="/get-started" class="btn btn--primary">Get Started</a>
+        <a href="/examples" class="btn btn--secondary">See Examples</a>
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .why-hero {
+    padding: var(--space-20) var(--space-6) var(--space-10);
+    text-align: center;
+  }
+
+  .why-hero__inner { max-width: var(--content-width); margin: 0 auto; }
+  .why-hero__title { font-size: var(--text-4xl); font-weight: var(--weight-bold); margin-bottom: var(--space-4); }
+  .why-hero__subtitle { color: var(--color-text-secondary); font-size: var(--text-lg); max-width: 40rem; margin: 0 auto; line-height: var(--leading-relaxed); }
+
+  .why-section { padding: var(--space-16) var(--space-6); }
+  .why-section--alt { background: var(--color-surface); }
+  .why-section__inner { max-width: var(--max-width); margin: 0 auto; }
+  .why-section__title { font-size: var(--text-3xl); font-weight: var(--weight-bold); margin-bottom: var(--space-3); }
+  .why-section__subtitle { color: var(--color-text-secondary); font-size: var(--text-lg); margin-bottom: var(--space-8); max-width: 40rem; }
+
+  /* Narrative */
+  .why-narrative { display: flex; flex-direction: column; gap: var(--space-10); }
+  .why-narrative__heading { font-size: var(--text-xl); font-weight: var(--weight-semibold); margin-bottom: var(--space-3); }
+  .why-narrative__block p { color: var(--color-text-secondary); line-height: var(--leading-relaxed); margin-bottom: var(--space-3); max-width: 42rem; }
+
+  /* Solution steps */
+  .why-solution { display: flex; flex-direction: column; gap: var(--space-8); }
+  .why-solution__item { display: flex; gap: var(--space-5); }
+  .why-solution__number {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; flex-shrink: 0;
+    background: var(--color-accent-muted); color: var(--color-accent);
+    font-weight: var(--weight-bold); font-size: var(--text-lg);
+    border-radius: 50%; border: 2px solid var(--color-accent);
+  }
+  .why-solution__heading { font-size: var(--text-lg); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
+  .why-solution__body p { color: var(--color-text-secondary); line-height: var(--leading-relaxed); max-width: 42rem; }
+  .why-solution__body code { color: var(--color-accent); background: var(--color-accent-muted); padding: 0.1em 0.4em; border-radius: var(--radius-sm); font-size: 0.9em; }
+
+  /* Comparison table */
+  .why-table-wrap { overflow-x: auto; margin-top: var(--space-6); }
+  .why-table {
+    width: 100%; border-collapse: collapse; font-size: var(--text-sm);
+    min-width: 700px;
+  }
+  .why-table th {
+    text-align: left; padding: var(--space-3) var(--space-4);
+    color: var(--color-text-tertiary); font-weight: var(--weight-semibold);
+    border-bottom: 2px solid var(--color-border);
+    font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .why-table td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary); vertical-align: top;
+  }
+  .why-table__label { color: var(--color-text-primary) !important; font-weight: var(--weight-medium); white-space: nowrap; }
+  .why-table__highlight { background: var(--color-accent-muted) !important; color: var(--color-text-primary) !important; }
+  th.why-table__highlight { color: var(--color-accent) !important; }
+
+  /* Personas */
+  .why-personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
+  .why-persona {
+    padding: var(--space-6); background: var(--color-bg);
+    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg);
+  }
+  .why-persona__role { font-size: var(--text-lg); font-weight: var(--weight-bold); margin-bottom: var(--space-4); color: var(--color-accent); }
+  .why-persona__list { list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+  .why-persona__list li {
+    padding-left: var(--space-5); position: relative;
+    color: var(--color-text-secondary); font-size: var(--text-sm); line-height: var(--leading-relaxed);
+  }
+  .why-persona__list li::before {
+    content: ''; position: absolute; left: 0; top: 0.55em;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent);
+  }
+
+  /* CTA */
+  .why-cta { padding: var(--space-16) var(--space-6); text-align: center; border-top: 1px solid var(--color-border-subtle); }
+  .why-cta__inner { max-width: var(--content-width); margin: 0 auto; }
+  .why-cta__title { font-size: var(--text-3xl); font-weight: var(--weight-bold); margin-bottom: var(--space-3); }
+  .why-cta__desc { color: var(--color-text-secondary); font-size: var(--text-lg); margin-bottom: var(--space-8); }
+  .why-cta__desc code { color: var(--color-accent); background: var(--color-accent-muted); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
+  .why-cta__buttons { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-6); font-size: var(--text-base); font-weight: var(--weight-medium); border-radius: var(--radius-md); text-decoration: none; transition: all var(--duration-fast) var(--ease-out); }
+  .btn--primary { background: var(--color-accent); color: #fff; }
+  .btn--primary:hover { background: var(--color-accent-hover); color: #fff; }
+  .btn--secondary { background: var(--color-surface-raised); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+  .btn--secondary:hover { background: var(--color-border); color: var(--color-text-primary); }
+
+  @media (max-width: 768px) {
+    .why-personas { grid-template-columns: 1fr; }
+    .why-solution__item { flex-direction: column; }
+  }
+</style>
