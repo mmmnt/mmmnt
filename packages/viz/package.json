@@ -22,6 +22,7 @@
       "types": "./dist/server/index.d.ts"
     }
   },
+  "sideEffects": false,
   "files": ["dist", "README.md", "LICENSE.md"],
   "scripts": {
     "build": "tsc",
