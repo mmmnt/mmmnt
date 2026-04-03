@@ -724,6 +724,11 @@
   color: var(--tool-color, var(--color-text-primary));
 }
 
+.eco-diagram__tool-logo {
+  height: 28px;
+  width: auto;
+}
+
 .eco-diagram__tool-tagline {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);

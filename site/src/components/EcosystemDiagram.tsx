@@ -49,7 +49,11 @@ export default function EcosystemDiagram({ tools, dataFlow, envelope }: Props) {
         id={tool.id}
       >
         <span class="eco-diagram__tool-position">{tool.position}</span>
-        <h3 class="eco-diagram__tool-name">{tool.name}</h3>
+        {tool.id === 'moment' ? (
+          <img src="/logos/moment-wordmark.svg" alt="Moment" class="eco-diagram__tool-logo" />
+        ) : (
+          <h3 class="eco-diagram__tool-name">{tool.name}</h3>
+        )}
         <p class="eco-diagram__tool-tagline">{tool.tagline}</p>
         {tool.output !== 'Coming soon' ? (
           <code class="eco-diagram__tool-output">{tool.output}</code>
