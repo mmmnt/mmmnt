@@ -14,8 +14,8 @@ import Footer from '../components/Footer.astro';
     <div class="why-hero__inner">
       <h1 class="why-hero__title">Why Moment</h1>
       <p class="why-hero__subtitle">
-        Domain-driven design produces better software. But without tooling, it produces
-        scattered knowledge, untested flows, and documentation that lies.
+        No tool in the DDD or Event Sourcing ecosystem lets you test domain flows
+        before you write implementation code. Moment is the first.
       </p>
     </div>
   </section>
@@ -120,6 +120,54 @@ import Footer from '../components/Footer.astro';
     </div>
   </section>
 
+  <!-- ============ FACET DIFFERENTIATOR ============ -->
+  <section class="why-section">
+    <div class="why-section__inner">
+      <h2 class="why-section__title">The breakthrough: test your domain before you code</h2>
+      <div class="why-narrative">
+        <div class="why-narrative__block">
+          <h3 class="why-narrative__heading">Moment + Facet: simulate, visualize, then implement</h3>
+          <p>
+            Run <code>moment simulate</code> to generate Facet-compatible simulation scenarios
+            from your specification. Each scenario includes synthetic events with causation chains,
+            correlation tracking, and branch path resolution.
+          </p>
+          <p>
+            Load the scenarios into Facet to see your domain flows rendered as interactive
+            timelines. Validate that events flow correctly between bounded contexts.
+            Verify crossing contracts carry the required fields. Confirm saga states
+            transition in the right order. See which branches lead to terminal states.
+          </p>
+          <p>
+            <strong>All of this happens before you write a single aggregate class, command handler,
+            or event listener.</strong> When you do start implementing, you're building against
+            a domain model that's already been visually validated. Your test scaffolds,
+            Gherkin features, and TypeScript types are generated from the same source of truth.
+          </p>
+        </div>
+        <div class="why-narrative__block">
+          <h3 class="why-narrative__heading">Why this doesn't exist anywhere else</h3>
+          <p>
+            DDD tooling today starts at the code level. You model with EventStorming,
+            then jump directly to implementation. There's no intermediate step where you
+            validate the temporal behavior of your domain.
+          </p>
+          <p>
+            Event Sourcing frameworks give you event stores, projections, and aggregate
+            persistence. But none of them let you simulate event flows from a specification
+            and validate them visually before building the system.
+          </p>
+          <p>
+            Moment bridges this gap. The <code>.moment</code> DSL captures temporal behavior
+            (flows, crossings, branches, triggered-by chains) that no other specification
+            format can express. And the <code>moment simulate</code> command turns that
+            specification into executable scenarios that Facet can render.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ COMPARISON TABLE ============ -->
   <section class="why-section">
     <div class="why-section__inner">
@@ -174,6 +222,13 @@ import Footer from '../components/Footer.astro';
               <td>Swagger UI</td>
               <td>Schema introspection</td>
               <td class="why-table__highlight">Spec docs with Mermaid diagrams</td>
+            </tr>
+            <tr>
+              <td class="why-table__label">Simulate before coding</td>
+              <td>Not possible</td>
+              <td>Not possible</td>
+              <td>Not possible</td>
+              <td class="why-table__highlight">Yes (moment simulate → Facet visualization)</td>
             </tr>
             <tr>
               <td class="why-table__label">Temporal flows</td>

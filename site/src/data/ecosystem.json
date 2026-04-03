@@ -49,6 +49,20 @@
       "position": "core"
     },
     {
+      "id": "facet",
+      "name": "Facet",
+      "tagline": "Domain Flow Simulation",
+      "description": "Interactive visualization and simulation engine for domain flows. Consumes Moment's simulation scenarios (facet.json) to render event timelines, causation chains, crossing contracts, and branch paths — letting you test your domain model before writing implementation code.",
+      "events": [
+        "ScenarioLoaded",
+        "FlowSimulated",
+        "CausationChainRendered",
+        "BranchPathValidated"
+      ],
+      "output": "Interactive visualization",
+      "position": "simulation"
+    },
+    {
       "id": "forge",
       "name": "Forge",
       "tagline": "Code Scaffolding",
@@ -60,6 +74,7 @@
   ],
   "dataFlow": [
     { "from": "sift", "to": "moment", "channel": ".domain/ JSONL event streams", "description": "Sift publishes Phase 1 building block events that Moment imports via the SiftSpecificationImporter" },
+    { "from": "moment", "to": "facet", "channel": "facet.json simulation scenarios", "description": "Moment generates Facet-compatible simulation scenarios with synthetic events, causation chains, and branch paths for visual validation" },
     { "from": "moment", "to": "forge", "channel": ".complai/events/moment/ JSONL", "description": "Moment writes reconciliation events and typed artifacts that Forge consumes for code generation" }
   ]
 }

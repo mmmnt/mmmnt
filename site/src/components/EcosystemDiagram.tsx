@@ -14,6 +14,7 @@ interface Props {
 const toolColors: Record<string, string> = {
   sift: 'var(--color-sift)',
   moment: 'var(--color-moment)',
+  facet: 'var(--color-facet)',
   forge: 'var(--color-forge)',
 };
 

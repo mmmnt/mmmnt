@@ -42,13 +42,13 @@ describe('pipeline.json', () => {
 });
 
 describe('ecosystem.json', () => {
-  it('has 3 tools', () => {
-    expect(ecosystem.tools).toHaveLength(3);
+  it('has 4 tools', () => {
+    expect(ecosystem.tools).toHaveLength(4);
   });
 
   it('tools are in correct order', () => {
     const ids = ecosystem.tools.map((t) => t.id);
-    expect(ids).toEqual(['sift', 'moment', 'forge']);
+    expect(ids).toEqual(['sift', 'moment', 'facet', 'forge']);
   });
 
   it('envelope has required fields', () => {
@@ -56,12 +56,14 @@ describe('ecosystem.json', () => {
     expect(ecosystem.envelope.fields.length).toBeGreaterThan(0);
   });
 
-  it('dataFlow connects sift to moment and moment to forge', () => {
-    expect(ecosystem.dataFlow).toHaveLength(2);
+  it('dataFlow connects sift → moment → facet and moment → forge', () => {
+    expect(ecosystem.dataFlow).toHaveLength(3);
     expect(ecosystem.dataFlow[0].from).toBe('sift');
     expect(ecosystem.dataFlow[0].to).toBe('moment');
     expect(ecosystem.dataFlow[1].from).toBe('moment');
-    expect(ecosystem.dataFlow[1].to).toBe('forge');
+    expect(ecosystem.dataFlow[1].to).toBe('facet');
+    expect(ecosystem.dataFlow[2].from).toBe('moment');
+    expect(ecosystem.dataFlow[2].to).toBe('forge');
   });
 });
 
