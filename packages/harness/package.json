@@ -15,7 +15,7 @@
     "@mmmnt/derive": "workspace:*"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "provenance": true
   }
 }

@@ -17,7 +17,7 @@
     "langium-cli": "3.5.2"
   },
   "publishConfig": {
-    "access": "restricted",
+    "access": "public",
     "provenance": true
   },
   "dependencies": {
