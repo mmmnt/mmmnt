@@ -6,3 +6,6 @@ coverage/
 .env.local
 test-results/
 .claude/
+
+# Generated E2E artifacts (reproducible from harness)
+.moment/generated/
