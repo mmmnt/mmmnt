@@ -1,0 +1,38 @@
+# @mmmnt/cli
+
+## 0.1.0
+
+### Minor Changes
+
+- [#100](https://github.com/mmmnt/mmmnt/pull/100) [`0f65b38`](https://github.com/mmmnt/mmmnt/commit/0f65b3815f666315aa47caee045c26932708d60d) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - ## 0.1.0 — M6 Application Layer + Release
+
+  First public pre-GA release of the Moment domain specification language and implementation toolchain.
+
+  ### Highlights
+  - **Moment DSL** — Langium-based grammar for domain specifications with contexts, aggregates, commands, events, value objects, invariants, policies, sagas, and flows
+  - **Field deprecation** — `[deprecated "reason" -> "replacement"]` modifier with downstream integration across all generators
+  - **16 CLI commands** — init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync (status/propose/accept), schema (status), lint, import, reconcile, status
+  - **MCP server** — 7 AI agent tools (validate, status, viz, get-events, import, emit-ts, reconcile) via stdio transport
+  - **Simulation engine** — Multi-scenario generation with saga state transitions and negative scenarios
+  - **TypeScript generation** — Types, aggregate roots with JSDoc, event union types, test scaffolds
+  - **Gherkin generation** — BDD scenarios with Rules, Background blocks, saga + terminal branches
+  - **Specification documents** — Mermaid context map + sequence diagrams, domain narrative, data glossary
+  - **AsyncAPI contracts** — 3.0 YAML from crossing contracts
+  - **Event catalog** — Producer/consumer/temporal tracing for all domain events
+  - **Impact analysis** — Dependency graph across commands, events, policies, sagas
+  - **Schema governance** — 4-phase lifecycle (Active/Deprecated/EndOfLife/Removed) with codex rules
+  - **Implementation sync** — AST diffing, drift detection, cascade reconciliation (Category 1/2/3)
+  - **Sift integration** — JSONL event stream import from `.domain/` per ADR-028
+  - **Visualization** — Context maps, flow timelines, VizDataEnvelope
+
+### Patch Changes
+
+- Updated dependencies [[`0f65b38`](https://github.com/mmmnt/mmmnt/commit/0f65b3815f666315aa47caee045c26932708d60d)]:
+  - @mmmnt/core@0.1.0
+  - @mmmnt/derive@0.1.0
+  - @mmmnt/emit-ts@0.1.0
+  - @mmmnt/generate@0.1.0
+  - @mmmnt/harness@0.1.0
+  - @mmmnt/schema@0.1.0
+  - @mmmnt/sync@0.1.0
+  - @mmmnt/viz@0.1.0
