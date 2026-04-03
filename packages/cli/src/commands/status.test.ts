@@ -28,17 +28,21 @@ describe('moment status', () => {
     expect(schema!.summary).toContain('deprecated');
   });
 
-  it('--verbose includes detail lines', async () => {
-    const result = await runStatus(['--verbose', INVALID_FIXTURE]);
+  it('--verbose includes detail lines in message, default does not', async () => {
+    const nonVerboseResult = await runStatus([INVALID_FIXTURE]);
+    const verboseResult = await runStatus(['--verbose', INVALID_FIXTURE]);
 
-    // Invalid spec produces parse errors with details
-    const parseSection = result.sections.find((s) => s.label === 'Specification');
-    if (parseSection?.details) {
-      expect(parseSection.details.length).toBeGreaterThan(0);
-    }
+    const parseSection = verboseResult.sections.find((s) => s.label === 'Specification');
+    expect(parseSection).toBeDefined();
+    expect(parseSection!.details).toBeDefined();
+    expect(parseSection!.details!.length).toBeGreaterThan(0);
+
+    const [detailLine] = parseSection!.details!;
+    expect(nonVerboseResult.message).not.toContain(detailLine);
+    expect(verboseResult.message).toContain(detailLine);
   });
 
-  it('--quiet outputs empty message', async () => {
+  it('--quiet outputs empty message (EXIT-B4)', async () => {
     const result = await runStatus(['--quiet', VALID_FIXTURE]);
 
     expect(result.success).toBe(true);
@@ -88,10 +92,12 @@ describe('moment status', () => {
     expect(parseSection!.summary).toContain('error');
   });
 
-  it('no network calls — local files only (EXIT-C1)', async () => {
-    // If this test runs in CI without network issues, it proves no network calls
+  it('schema section counts deprecated fields across events, commands, and value objects', async () => {
     const result = await runStatus([UNIFIED_FIXTURE]);
-    expect(result.success).toBe(true);
-    expect(result.sections.length).toBeGreaterThanOrEqual(3);
+
+    const schema = result.sections.find((s) => s.label === 'Schema Lifecycle');
+    expect(schema).toBeDefined();
+    // ownerName on PatientCheckedIn is deprecated
+    expect(schema!.summary).toMatch(/\d+ deprecated/);
   });
 });

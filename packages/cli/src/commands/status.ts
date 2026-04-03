@@ -30,8 +30,6 @@ export interface StatusResult {
   readonly json?: string;
 }
 
-const EMPTY: readonly Diagnostic[] = [];
-
 function fail(message: string): StatusResult {
   return { success: false, hasDrift: false, message, sections: [] };
 }
@@ -63,20 +61,15 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
 
   const sections: StatusSection[] = [];
 
-  // Section 1: Parse validation
   const parseResult = await new MomentParser().parseContent(content);
   sections.push(buildParseSection(parseResult));
 
   if (parseResult.success && parseResult.ir) {
-    // Section 2: Sync drift
     const driftSection = await buildDriftSection(parseResult.ir, resolvedPath);
     sections.push(driftSection);
-
-    // Section 3: Schema lifecycle
     sections.push(buildSchemaSection(parseResult.ir));
   }
 
-  // Section 4: Upstream fingerprint
   sections.push(buildUpstreamSection(resolvedPath));
 
   const hasDrift = sections.some((s) => s.state === 'drift' || s.state === 'error');
@@ -98,10 +91,14 @@ function buildParseSection(parseResult: { success: boolean; diagnostics: readonl
 }
 
 async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: string): Promise<StatusSection> {
+  const gitRoot = findGitRoot(dirname(resolvedPath));
+  if (!gitRoot) {
+    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (no git repository)' };
+  }
+
   try {
     const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-    const repoRoot = findGitRoot(dirname(resolvedPath));
-    const store = new LocalGitArtifactStore(repoRoot);
+    const store = new LocalGitArtifactStore(gitRoot);
     const actual = new Map<string, string>();
 
     for (const path of tsOutput.files.keys()) {
@@ -118,7 +115,7 @@ async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: s
       summary: `${report.totalDrifted} file(s) drifted, ${report.totalAligned} aligned`,
     };
   } catch {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (no git repository)' };
+    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (drift detection failed)' };
   }
 }
 
@@ -128,6 +125,12 @@ function buildSchemaSection(ir: IntermediateRepresentation): StatusSection {
     for (const agg of ctx.aggregates) {
       for (const evt of agg.events) {
         deprecatedCount += evt.fields.filter((f) => f.deprecated).length;
+      }
+      for (const cmd of agg.commands) {
+        deprecatedCount += cmd.inputs.filter((f) => f.deprecated).length;
+      }
+      for (const vo of agg.valueObjects) {
+        deprecatedCount += vo.fields.filter((f) => f.deprecated).length;
       }
     }
   }
@@ -168,13 +171,13 @@ function buildUpstreamSection(resolvedPath: string): StatusSection {
   }
 }
 
-function findGitRoot(startDir: string): string {
+function findGitRoot(startDir: string): string | undefined {
   let dir = resolve(startDir);
   while (dir !== dirname(dir)) {
     if (existsSync(join(dir, '.git'))) return dir;
     dir = dirname(dir);
   }
-  return startDir;
+  return undefined;
 }
 
 function formatOutput(

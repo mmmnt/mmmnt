@@ -304,8 +304,10 @@ switch (command) {
       .then((result) => {
         if (result.json) {
           console.log(result.message);
-        } else if (result.message) {
+        } else if (result.success && result.message) {
           console.log(result.message);
+        } else if (result.message) {
+          console.error(result.message);
         }
         if (!result.success) process.exitCode = 1;
         if (result.hasDrift) process.exitCode = 1;
