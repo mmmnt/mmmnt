@@ -556,7 +556,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
 }
 
 .eco-diagram__conn--vertical {
@@ -564,8 +564,15 @@
 }
 
 .eco-diagram__conn-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.eco-diagram__conn-line::before {
+  content: '';
   width: 2px;
-  height: 2.5rem;
+  height: 2rem;
   background: repeating-linear-gradient(
     to bottom,
     var(--color-accent) 0px,
@@ -573,6 +580,15 @@
     transparent 6px,
     transparent 10px
   );
+}
+
+.eco-diagram__conn-line::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--color-accent);
 }
 
 .eco-diagram__conn-label {
@@ -595,6 +611,14 @@
 }
 
 .eco-diagram__conn-stem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.eco-diagram__conn-stem::before {
+  content: '';
   width: 2px;
   height: 1.5rem;
   background: repeating-linear-gradient(
@@ -604,14 +628,13 @@
     transparent 6px,
     transparent 10px
   );
-  margin: 0 auto;
 }
 
 .eco-diagram__conn-fork {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   position: relative;
-  padding-top: var(--space-4);
+  gap: var(--space-6);
 }
 
 /* Horizontal bar connecting the two branches */
@@ -619,8 +642,9 @@
   content: '';
   position: absolute;
   top: 0;
-  left: 25%;
-  right: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(50% + var(--space-6));
   height: 2px;
   background: repeating-linear-gradient(
     to right,
@@ -637,7 +661,6 @@
   align-items: center;
   gap: var(--space-2);
   flex: 1;
-  position: relative;
 }
 
 /* Vertical drop from horizontal bar to label */
@@ -654,32 +677,22 @@
   );
 }
 
-.eco-diagram__conn-branch--left {
-  align-items: center;
-  padding-right: var(--space-4);
-}
-
-.eco-diagram__conn-branch--right {
-  align-items: center;
-  padding-left: var(--space-4);
-}
-
-/* Arrow indicators */
-.eco-diagram__conn-line::after,
-.eco-diagram__conn-stem::after,
+/* Arrow below each branch label */
 .eco-diagram__conn-branch::after {
   content: '';
-  display: block;
   width: 0;
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 6px solid var(--color-accent);
-  margin: 0 auto;
 }
 
-.eco-diagram__conn-line::after {
-  margin-top: -1px;
+.eco-diagram__conn-branch--left {
+  align-items: center;
+}
+
+.eco-diagram__conn-branch--right {
+  align-items: center;
 }
 
 /* Tool tile */
