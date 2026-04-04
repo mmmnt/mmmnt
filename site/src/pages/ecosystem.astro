@@ -1,0 +1,535 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import EcosystemDiagram from '../components/EcosystemDiagram.tsx';
+import ecosystem from '../data/ecosystem.json';
+---
+
+<Base
+  title="Ecosystem"
+  description="Discover how Moment fits in the Complai ecosystem alongside Sift and Forge — from domain discovery to production deployment."
+>
+  <Nav slot="nav" />
+
+  <section class="eco-hero">
+    <div class="eco-hero__inner">
+      <h1 class="eco-hero__title">The Complai Ecosystem</h1>
+      <p class="eco-hero__subtitle">
+        Three tools, one event-driven workflow. From domain discovery through temporal modeling
+        to project bootstrapping &mdash; connected by the <code>ComplaiEventEnvelope</code> format.
+      </p>
+    </div>
+  </section>
+
+  <section class="eco-flow">
+    <div class="eco-flow__inner">
+      <EcosystemDiagram
+        tools={ecosystem.tools}
+        dataFlow={ecosystem.dataFlow}
+        envelope={ecosystem.envelope}
+        client:visible
+      />
+    </div>
+  </section>
+
+  <section class="eco-details">
+    <div class="eco-details__inner">
+      {
+        ecosystem.tools.map((tool) => (
+          <article class="eco-detail" id={tool.id}>
+            <div class="eco-detail__header">
+              <span class="eco-detail__position">{tool.position}</span>
+              <h2 class="eco-detail__name" style={`color: var(--color-${tool.id})`}>
+                {tool.name}
+              </h2>
+              <p class="eco-detail__tagline">{tool.tagline}</p>
+            </div>
+            <p class="eco-detail__desc">{tool.description}</p>
+
+            {tool.events.length > 0 && (
+              <div class="eco-detail__events">
+                <h3 class="eco-detail__events-title">Published Events</h3>
+                <div class="eco-detail__events-grid">
+                  {tool.events.map((event) => (
+                    <code class="eco-detail__event">{event}</code>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div class="eco-detail__output">
+              <span class="eco-detail__output-label">Output:</span>
+              <code>{tool.output}</code>
+            </div>
+
+            {tool.articles && tool.articles.length > 0 && (
+              <div class="eco-detail__articles">
+                <h3 class="eco-detail__articles-title">From the blog</h3>
+                <div class="eco-detail__articles-list">
+                  {tool.articles.map((article) => (
+                    <a
+                      href={article.url}
+                      class="eco-detail__article"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
+                      </svg>
+                      {article.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tool.links && tool.links.length > 0 && (
+              <div class="eco-detail__links">
+                {tool.links.map((link) => (
+                  <a
+                    href={link.url}
+                    class={`eco-detail__link eco-detail__link--${link.type}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {link.type === 'github' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+                      </svg>
+                    )}
+                    {link.type === 'site' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
+                      </svg>
+                    )}
+                    {link.type === 'blog' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                      </svg>
+                    )}
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            )}
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="eco-envelope">
+    <div class="eco-envelope__inner">
+      <h2 class="eco-envelope__title">The ComplaiEventEnvelope</h2>
+      <p class="eco-envelope__desc">
+        Every event flowing between Sift, Moment, and Forge is wrapped in a canonical envelope.
+        This shared format enables tools to consume each other's event streams without coupling
+        to internal implementation details.
+      </p>
+      <div class="eco-envelope__schema">
+        <div class="eco-envelope__header">
+          <span class="eco-envelope__dot eco-envelope__dot--red"></span>
+          <span class="eco-envelope__dot eco-envelope__dot--yellow"></span>
+          <span class="eco-envelope__dot eco-envelope__dot--green"></span>
+          <span class="eco-envelope__header-text">ComplaiEventEnvelope</span>
+        </div>
+        <div class="eco-envelope__body">
+          <pre><code>{`interface ComplaiEventEnvelope {
+  eventId: UUID;              // Unique event identifier
+  eventType: string;          // Discriminator for payload type
+  version: string;            // Schema version (semver)
+  productSource: string;      // Originating tool
+  sessionId: UUID;            // Modeling session identifier
+  causationEventIds: UUID[];  // Events that caused this event
+  correlationId: UUID;        // Correlation chain identifier
+  timestamp: ISO-8601;        // Event creation timestamp
+  payload: object;            // Event-specific data
+}`}</code></pre>
+        </div>
+      </div>
+
+      <div class="eco-envelope__flow-desc">
+        <h3 class="eco-envelope__flow-title">How events flow</h3>
+        <div class="eco-envelope__flows">
+          {
+            ecosystem.dataFlow.map((flow) => (
+              <div class="eco-envelope__flow-item">
+                <div class="eco-envelope__flow-path">
+                  <code style={`color: var(--color-${flow.from})`}>{flow.from}</code>
+                  <span class="eco-envelope__flow-arrow" aria-hidden="true">&rarr;</span>
+                  <code style={`color: var(--color-${flow.to})`}>{flow.to}</code>
+                </div>
+                <p class="eco-envelope__flow-channel">
+                  via <code>{flow.channel}</code>
+                </p>
+                <p class="eco-envelope__flow-explain">{flow.description}</p>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .eco-hero {
+    padding: var(--space-20) var(--space-6) var(--space-10);
+    text-align: center;
+  }
+
+  .eco-hero__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+  }
+
+  .eco-hero__title {
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-4);
+  }
+
+  .eco-hero__subtitle {
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+    max-width: 40rem;
+    margin: 0 auto;
+    line-height: var(--leading-relaxed);
+  }
+
+  .eco-hero__subtitle code {
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+
+  .eco-flow {
+    padding: var(--space-6) 0;
+  }
+
+  .eco-flow__inner {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+
+  /* Tool details */
+  .eco-details {
+    padding: var(--space-16) var(--space-6);
+  }
+
+  .eco-details__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: grid;
+    gap: var(--space-10);
+  }
+
+  .eco-detail {
+    padding: var(--space-8);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .eco-detail__header {
+    margin-bottom: var(--space-4);
+  }
+
+  .eco-detail__position {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    margin-bottom: var(--space-2);
+    background: var(--color-surface-raised);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 100px;
+  }
+
+  .eco-detail__name {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-1);
+  }
+
+  .eco-detail__tagline {
+    color: var(--color-text-tertiary);
+    font-weight: var(--weight-medium);
+  }
+
+  .eco-detail__desc {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-6);
+  }
+
+  .eco-detail__events {
+    margin-bottom: var(--space-4);
+  }
+
+  .eco-detail__events-title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-3);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .eco-detail__events-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .eco-detail__event {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+  }
+
+  .eco-detail__output {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-tertiary);
+  }
+
+  .eco-detail__output code {
+    color: var(--color-text-secondary);
+  }
+
+  .eco-detail__articles {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .eco-detail__articles-title {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-3);
+  }
+
+  .eco-detail__articles-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .eco-detail__article {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: color var(--duration-fast) var(--ease-out),
+                background var(--duration-fast) var(--ease-out);
+  }
+
+  .eco-detail__article:hover {
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+  }
+
+  .eco-detail__article svg {
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  .eco-detail__article:hover svg {
+    opacity: 1;
+  }
+
+  .eco-detail__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .eco-detail__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .eco-detail__link--site {
+    background: var(--color-accent);
+    color: #fff;
+  }
+
+  .eco-detail__link--site:hover {
+    background: var(--color-accent-hover);
+    color: #fff;
+  }
+
+  .eco-detail__link--github {
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+  }
+
+  .eco-detail__link--github:hover {
+    background: var(--color-border);
+    color: var(--color-text-primary);
+  }
+
+  .eco-detail__link--blog {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+  }
+
+  .eco-detail__link--blog:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  /* Envelope */
+  .eco-envelope {
+    padding: var(--space-16) var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .eco-envelope__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .eco-envelope__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+  }
+
+  .eco-envelope__desc {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+    max-width: 42rem;
+    margin-bottom: var(--space-8);
+  }
+
+  .eco-envelope__schema {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-10);
+    max-width: 40rem;
+  }
+
+  .eco-envelope__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-raised);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .eco-envelope__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .eco-envelope__dot--red { background: #ef4444; }
+  .eco-envelope__dot--yellow { background: #eab308; }
+  .eco-envelope__dot--green { background: #22c55e; }
+
+  .eco-envelope__header-text {
+    margin-left: var(--space-2);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+  }
+
+  .eco-envelope__body {
+    padding: var(--space-6);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+
+  .eco-envelope__body pre {
+    margin: 0;
+  }
+
+  .eco-envelope__flow-title {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-6);
+  }
+
+  .eco-envelope__flows {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .eco-envelope__flow-item {
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .eco-envelope__flow-path {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+  }
+
+  .eco-envelope__flow-path code {
+    text-transform: capitalize;
+  }
+
+  .eco-envelope__flow-arrow {
+    color: var(--color-text-tertiary);
+  }
+
+  .eco-envelope__flow-channel {
+    font-size: var(--text-sm);
+    color: var(--color-text-tertiary);
+    margin-bottom: var(--space-2);
+  }
+
+  .eco-envelope__flow-channel code {
+    color: var(--color-text-secondary);
+  }
+
+  .eco-envelope__flow-explain {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+</style>

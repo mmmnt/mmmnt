@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base title="Page Not Found">
+  <Nav slot="nav" />
+
+  <section class="not-found">
+    <div class="not-found__inner">
+      <div class="not-found__code">404</div>
+      <h1 class="not-found__title">Context not found</h1>
+      <p class="not-found__desc">
+        This bounded context doesn't exist yet. Maybe it needs a
+        <code>.moment</code> specification first.
+      </p>
+      <a href="/" class="not-found__link">Back to homepage</a>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .not-found {
+    padding: var(--space-24) var(--space-6);
+    text-align: center;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .not-found__code {
+    font-family: var(--font-mono);
+    font-size: 6rem;
+    font-weight: var(--weight-bold);
+    color: var(--color-accent-muted);
+    line-height: 1;
+    margin-bottom: var(--space-4);
+    background: linear-gradient(135deg, var(--color-accent), var(--color-derive));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .not-found__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+  }
+
+  .not-found__desc {
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-6);
+    max-width: 24rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .not-found__desc code {
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+
+  .not-found__link {
+    display: inline-block;
+    padding: var(--space-3) var(--space-6);
+    background: var(--color-accent);
+    color: #fff;
+    font-weight: var(--weight-medium);
+    border-radius: var(--radius-md);
+    transition: background var(--duration-fast) var(--ease-out);
+  }
+
+  .not-found__link:hover {
+    background: var(--color-accent-hover);
+    color: #fff;
+  }
+</style>

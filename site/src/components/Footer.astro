@@ -1,0 +1,137 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__brand">
+      <img src="/logos/moment-wordmark.svg" alt="Moment" class="footer__logo-img" />
+      <span class="footer__text">
+        Domain architecture for the AI era.
+      </span>
+    </div>
+
+    <div class="footer__links">
+      <div class="footer__col">
+        <h4 class="footer__heading">Product</h4>
+        <ul role="list">
+          <li><a href="/why">Why Moment</a></li>
+          <li><a href="/examples">Examples</a></li>
+          <li><a href="/ecosystem">Ecosystem</a></li>
+          <li><a href="/get-started">Get Started</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4 class="footer__heading">Resources</h4>
+        <ul role="list">
+          <li><a href="https://github.com/mmmnt/mmmnt" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://discord.gg/YcRqsQUQuu" target="_blank" rel="noopener noreferrer">Discord</a></li>
+          <li><a href="https://github.com/mmmnt/mmmnt/wiki" target="_blank" rel="noopener noreferrer">Documentation</a></li>
+          <li><a href="https://github.com/mmmnt/mmmnt/releases" target="_blank" rel="noopener noreferrer">Releases</a></li>
+          <li><a href="https://github.com/mmmnt/mmmnt/wiki/Contributing" target="_blank" rel="noopener noreferrer">Contributing</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4 class="footer__heading">Ecosystem</h4>
+        <ul role="list">
+          <li><a href="/ecosystem#sift">Sift</a></li>
+          <li><a href="/ecosystem#moment">Moment</a></li>
+          <li><a href="/ecosystem#facet">Facet</a></li>
+          <li><a href="/ecosystem#forge">Forge</a></li>
+        </ul>
+      </div>
+      <div class="footer__col">
+        <h4 class="footer__heading">Complai Tools</h4>
+        <ul role="list">
+          <li><a href="https://sdd.mmmnt.dev" target="_blank" rel="noopener noreferrer">SDD</a></li>
+          <li><a href="/">Moment</a></li>
+          <li><a href="/ecosystem#facet">Facet</a></li>
+          <li><a href="/ecosystem#forge">Forge</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer__bottom">
+      <p class="footer__copy">&copy; {year} Moment. Licensed under <a href="https://github.com/mmmnt/mmmnt/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">FSL-1.1-Apache-2.0</a>.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--color-border-subtle);
+    margin-top: var(--space-24);
+    padding: var(--space-16) var(--space-6) var(--space-8);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .footer__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .footer__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-10);
+  }
+
+  .footer__logo-img {
+    height: 28px;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .footer__links {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-8);
+    margin-bottom: var(--space-10);
+  }
+
+  .footer__heading {
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-4);
+  }
+
+  .footer__col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .footer__col a {
+    color: var(--color-text-secondary);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .footer__col a:hover {
+    color: var(--color-text-primary);
+  }
+
+  .footer__bottom {
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .footer__copy {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+  }
+
+  .footer__copy a {
+    color: var(--color-text-secondary);
+  }
+
+  @media (max-width: 640px) {
+    .footer__links {
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+    }
+  }
+</style>

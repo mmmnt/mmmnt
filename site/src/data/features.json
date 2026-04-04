@@ -1,0 +1,38 @@
+[
+  {
+    "id": "single-source",
+    "title": "Single Source of Truth",
+    "description": "One .moment file drives your types, tests, documentation, and visualizations. No more scattered domain knowledge.",
+    "icon": "file"
+  },
+  {
+    "id": "test-derivation",
+    "title": "Automatic Test Derivation",
+    "description": "Derive test topologies, simulation scenarios, and negative test cases directly from your specification — no manual test writing.",
+    "icon": "beaker"
+  },
+  {
+    "id": "drift-detection",
+    "title": "Drift Detection",
+    "description": "AST-level diffing detects when your implementation diverges from the specification. Catch drift before it becomes a bug.",
+    "icon": "shield"
+  },
+  {
+    "id": "schema-governance",
+    "title": "Schema Governance",
+    "description": "Four-phase schema lifecycle — Active, Deprecated, End-of-Life, Removed — with consumption tracking and deprecation rules.",
+    "icon": "lifecycle"
+  },
+  {
+    "id": "ai-ready",
+    "title": "AI-Ready via MCP",
+    "description": "Model Context Protocol server exposes all Moment capabilities as structured tools for Claude, Copilot, and Cursor.",
+    "icon": "cpu"
+  },
+  {
+    "id": "watch-mode",
+    "title": "Watch Mode",
+    "description": "Auto-regenerate artifacts on specification changes. Deterministic output means clean git diffs every time.",
+    "icon": "refresh"
+  }
+]

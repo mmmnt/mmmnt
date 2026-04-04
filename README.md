@@ -1,3 +1,12 @@
+<p align="center">
+  <img src="site/public/logos/moment-wordmark-tagline.svg" alt="Moment — Domain architecture for the AI era" height="80" />
+</p>
+
+<p align="center">
+  <a href="https://discord.gg/YcRqsQUQuu"><img src="https://img.shields.io/discord/1234567890?color=5865F2&logo=discord&logoColor=white&label=Discord" alt="Discord" /></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg" alt="License: FSL-1.1-Apache-2.0" /></a>
+</p>
+
 # Moment
 
 A DSL and toolchain for temporal DDD modeling.
@@ -40,9 +49,11 @@ pnpm turbo test
 | [`v0.1.0-m3`](https://github.com/mmmnt/mmmnt/releases/tag/v0.1.0-m3) | Derivation + Generation Pipeline |
 | [`v0.1.0-m2`](https://github.com/mmmnt/mmmnt/releases/tag/v0.1.0-m2) | Specification Parsing |
 
-## License
+## Community
 
-[![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](LICENSE.md)
+Join our [Discord server](https://discord.gg/YcRqsQUQuu) to discuss Moment, get help, and connect with other domain-driven teams.
+
+## License
 
 Moment is licensed under the [Functional Source License, Version 1.1, Apache 2.0 Future License (FSL-1.1-Apache-2.0)](LICENSE.md).
 
