@@ -632,35 +632,30 @@
 
 .eco-diagram__conn-fork {
   display: flex;
-  justify-content: center;
-  position: relative;
-  gap: var(--space-6);
 }
 
-/* Horizontal bar connecting the two branches */
-.eco-diagram__conn-fork::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(50% + var(--space-6));
-  height: 2px;
-  background: repeating-linear-gradient(
-    to right,
-    var(--color-accent) 0px,
-    var(--color-accent) 6px,
-    transparent 6px,
-    transparent 10px
-  );
-}
-
+/* Each branch draws half the horizontal bar via border-top,
+   so the bar always spans exactly between the two branch centers. */
 .eco-diagram__conn-branch {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
   flex: 1;
+}
+
+.eco-diagram__conn-branch--left {
+  border-top: 2px dashed var(--color-accent);
+  border-right: none;
+  margin-left: 50%;
+  padding-top: 0;
+}
+
+.eco-diagram__conn-branch--right {
+  border-top: 2px dashed var(--color-accent);
+  border-left: none;
+  margin-right: 50%;
+  padding-top: 0;
 }
 
 /* Vertical drop from horizontal bar to label */
@@ -685,14 +680,6 @@
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 6px solid var(--color-accent);
-}
-
-.eco-diagram__conn-branch--left {
-  align-items: center;
-}
-
-.eco-diagram__conn-branch--right {
-  align-items: center;
 }
 
 /* Tool tile */
@@ -908,13 +895,10 @@
     gap: var(--space-3);
   }
 
-  .eco-diagram__conn-fork::before {
-    display: none;
-  }
-
   .eco-diagram__conn-branch--left,
   .eco-diagram__conn-branch--right {
-    padding: 0;
+    border-top: none;
+    margin: 0;
   }
 
   .eco-diagram__tool {
