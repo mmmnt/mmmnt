@@ -1,0 +1,1324 @@
+// TicketWave — Event Catalog Context
+// Manages event listings, venue configuration, artist profiles, and show scheduling
+
+context "Catalog" [Core]
+  description "Central registry of events, venues, and artists. Owns the source of truth for what is on sale, when, and where."
+
+  aggregate "Event"
+    identity eventId: UUID
+
+    command CreateEvent
+      input title: string, artistId: UUID, venueId: UUID, startsAt: DateTime, category: string, summary: string
+      precondition venueAvailable: "Venue must not have a conflicting event at the requested time"
+      emits EventCreated
+
+    command PublishEvent
+      input eventId: UUID
+      precondition eventComplete: "Event must have at least one ticket tier configured"
+      emits EventPublished
+
+    command UpdateEventDetails
+      input eventId: UUID, title: string, summary: string, startsAt: DateTime
+      precondition eventNotCancelled: "Event must not be cancelled"
+      emits EventDetailsUpdated
+
+    command CancelEvent
+      input eventId: UUID, reason: string
+      precondition eventNotAlreadyCancelled: "Event must not already be cancelled"
+      emits EventCancelled
+
+    command RescheduleEvent
+      input eventId: UUID, newStartsAt: DateTime, reason: string
+      precondition eventNotCancelled: "Event must not be cancelled"
+      precondition venueAvailableAtNewTime: "Venue must be available at the new time"
+      emits EventRescheduled
+
+    event EventCreated
+      eventId: UUID
+      title: string
+      artistId: UUID
+      venueId: UUID
+      startsAt: DateTime
+      category: string
+      summary: string
+      createdAt: DateTime
+
+    event EventPublished
+      eventId: UUID
+      publishedAt: DateTime
+
+    event EventDetailsUpdated
+      eventId: UUID
+      title: string
+      summary: string
+      startsAt: DateTime
+      updatedAt: DateTime
+
+    event EventCancelled
+      eventId: UUID
+      reason: string
+      cancelledAt: DateTime
+
+    event EventRescheduled
+      eventId: UUID
+      previousStartsAt: DateTime
+      newStartsAt: DateTime
+      reason: string
+      rescheduledAt: DateTime
+
+  aggregate "Venue"
+    identity venueId: UUID
+
+    command RegisterVenue
+      input name: string, address: Address, capacity: number, sections: VenueSection[]
+      emits VenueRegistered
+
+    command UpdateSeatMap
+      input venueId: UUID, sections: VenueSection[]
+      emits SeatMapUpdated
+
+    event VenueRegistered
+      venueId: UUID
+      name: string
+      address: Address
+      capacity: number
+      sections: VenueSection[]
+      registeredAt: DateTime
+
+    event SeatMapUpdated
+      venueId: UUID
+      sections: VenueSection[]
+      updatedAt: DateTime
+
+  aggregate "Artist"
+    identity artistId: UUID
+
+    command RegisterArtist
+      input name: string, genre: string, imageUrl: string
+      emits ArtistRegistered
+
+    event ArtistRegistered
+      artistId: UUID
+      name: string
+      genre: string
+      imageUrl: string
+      registeredAt: DateTime
+
+  value-object Address
+    street: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+
+  value-object VenueSection
+    sectionId: UUID
+    name: string
+    capacity: number
+    seatMapType: string
+
+  value-object TicketTier
+    tierId: UUID
+    name: string
+    sectionId: UUID
+    basePrice: Money
+    maxQuantity: number
+
+  invariant CAT-01 "Event must be associated with a registered venue"
+    scope Event
+
+  invariant CAT-02 "Event must be associated with a registered artist"
+    scope Event
+
+  invariant CAT-03 "Venue sections must not exceed venue capacity"
+    scope Venue
+
+  invariant CAT-04 "Event cannot be published without at least one ticket tier"
+    scope Event
+// TicketWave — Inventory Context
+// Manages ticket pools, seat holds, real-time availability, and reservation lifecycle
+
+context "Inventory" [Core]
+  description "Owns ticket availability and seat-level state. Manages holds, reservations, and pool replenishment when holds expire."
+
+  aggregate "TicketPool"
+    identity poolId: UUID
+
+    command InitializePool
+      input eventId: UUID, tierId: UUID, sectionId: UUID, totalTickets: number, basePrice: Money
+      precondition poolNotExists: "Pool must not already exist for this event-tier-section combination"
+      emits PoolInitialized
+
+    command AdjustPoolCapacity
+      input poolId: UUID, newTotal: number, reason: string
+      precondition poolExists: "Pool must exist"
+      emits PoolCapacityAdjusted
+
+    event PoolInitialized
+      poolId: UUID
+      eventId: UUID
+      tierId: UUID
+      sectionId: UUID
+      totalTickets: number
+      availableTickets: number
+      basePrice: Money
+      initializedAt: DateTime
+
+    event PoolCapacityAdjusted
+      poolId: UUID
+      previousTotal: number
+      newTotal: number
+      reason: string
+      adjustedAt: DateTime
+
+  aggregate "SeatHold"
+    identity holdId: UUID
+
+    command RequestHold
+      input eventId: UUID, tierId: UUID, sectionId: UUID, quantity: number, customerId: UUID, sessionId: UUID
+      precondition ticketsAvailable: "Requested quantity must be available in the pool"
+      precondition customerHoldLimit: "Customer must not exceed maximum concurrent holds"
+      emits SeatsHeld
+
+    command ExtendHold
+      input holdId: UUID, additionalMinutes: number
+      precondition holdActive: "Hold must not have expired or been released"
+      precondition extensionLimit: "Hold cannot be extended beyond maximum duration"
+      emits HoldExtended
+
+    command ReleaseHold
+      input holdId: UUID, reason: string
+      precondition holdActive: "Hold must be active"
+      emits HoldReleased
+
+    command ConvertHoldToReservation
+      input holdId: UUID, paymentConfirmationId: UUID
+      precondition holdActive: "Hold must be active"
+      emits HoldConvertedToReservation
+
+    event SeatsHeld
+      holdId: UUID
+      eventId: UUID
+      tierId: UUID
+      sectionId: UUID
+      quantity: number
+      customerId: UUID
+      sessionId: UUID
+      expiresAt: DateTime
+      heldAt: DateTime
+
+    event HoldExtended
+      holdId: UUID
+      newExpiresAt: DateTime
+      extendedAt: DateTime
+
+    event HoldReleased
+      holdId: UUID
+      reason: string
+      returnedQuantity: number
+      releasedAt: DateTime
+
+    event HoldConvertedToReservation
+      holdId: UUID
+      paymentConfirmationId: UUID
+      convertedAt: DateTime
+
+  value-object SeatAssignment
+    seatId: UUID
+    row: string
+    seatNumber: number
+    sectionId: UUID
+
+  invariant INV-01 "Available tickets must never be negative"
+    scope TicketPool
+
+  invariant INV-02 "Hold quantity must be between 1 and per-transaction limit"
+    scope SeatHold
+
+  invariant INV-03 "Hold expiry must be in the future"
+    scope SeatHold
+
+  invariant INV-04 "Customer cannot hold more than 8 tickets per event"
+    scope SeatHold
+
+  saga SeatHoldLifecycle
+    trigger SeatsHeld
+    states Held -> Converting -> Converted -> Expired
+    compensation "Release held seats back to the pool and notify customer"
+    timeout holdExpiry
+
+  policy ReplenishOnHoldRelease
+    trigger HoldReleased
+    action "Return released quantity back to the ticket pool"
+    chains-to AdjustPoolCapacity
+
+  policy PromoteWaitlistOnRelease
+    trigger HoldReleased
+    action "Check waitlist for customers waiting on this event-tier and promote next eligible"
+    chains-to NotifyWaitlistPromotion
+// TicketWave — Checkout Context
+// Manages cart lifecycle, dynamic pricing, fee calculation, and payment processing
+
+context "Checkout" [Core]
+  description "Orchestrates the purchase transaction from cart creation through payment confirmation. Owns pricing, fees, and payment gateway integration."
+
+  aggregate "Cart"
+    identity cartId: UUID
+
+    command CreateCart
+      input customerId: UUID, sessionId: UUID
+      emits CartCreated
+
+    command AddTicketsToCart
+      input cartId: UUID, holdId: UUID, eventId: UUID, tierId: UUID, quantity: number, unitPrice: Money
+      precondition cartOpen: "Cart must be in open state"
+      precondition holdValid: "Referenced hold must be active"
+      emits TicketsAddedToCart
+
+    command RemoveTicketsFromCart
+      input cartId: UUID, lineItemId: UUID
+      precondition cartOpen: "Cart must be in open state"
+      emits TicketsRemovedFromCart
+
+    command ApplyPromoCode
+      input cartId: UUID, promoCode: string
+      precondition cartOpen: "Cart must be in open state"
+      precondition promoNotAlreadyApplied: "Promo code must not already be applied"
+      emits PromoCodeApplied
+
+    command CalculateFees
+      input cartId: UUID
+      precondition cartHasItems: "Cart must contain at least one line item"
+      emits FeesCalculated
+
+    event CartCreated
+      cartId: UUID
+      customerId: UUID
+      sessionId: UUID
+      createdAt: DateTime
+
+    event TicketsAddedToCart
+      cartId: UUID
+      lineItemId: UUID
+      holdId: UUID
+      eventId: UUID
+      tierId: UUID
+      quantity: number
+      unitPrice: Money
+      lineTotal: Money
+      addedAt: DateTime
+
+    event TicketsRemovedFromCart
+      cartId: UUID
+      lineItemId: UUID
+      removedAt: DateTime
+
+    event PromoCodeApplied
+      cartId: UUID
+      promoCode: string
+      discountType: string
+      discountValue: Money
+      appliedAt: DateTime
+
+    event FeesCalculated
+      cartId: UUID
+      serviceFee: Money
+      facilityFee: Money
+      processingFee: Money
+      totalFees: Money
+      calculatedAt: DateTime
+
+  aggregate "Payment"
+    identity paymentId: UUID
+
+    command InitiatePayment
+      input cartId: UUID, customerId: UUID, paymentMethod: PaymentMethod, totalAmount: Money
+      precondition feesCalculated: "Fees must be calculated before payment"
+      emits PaymentInitiated
+
+    command ConfirmPayment
+      input paymentId: UUID, gatewayTransactionId: string
+      precondition paymentPending: "Payment must be in pending state"
+      emits PaymentConfirmed
+
+    command FailPayment
+      input paymentId: UUID, failureReason: string, gatewayErrorCode: string
+      precondition paymentPending: "Payment must be in pending state"
+      emits PaymentFailed
+
+    command RefundPayment
+      input paymentId: UUID, reason: string, refundAmount: Money
+      precondition paymentConfirmed: "Payment must have been confirmed"
+      emits PaymentRefunded
+
+    event PaymentInitiated
+      paymentId: UUID
+      cartId: UUID
+      customerId: UUID
+      paymentMethod: PaymentMethod
+      subtotal: Money
+      totalFees: Money
+      totalAmount: Money
+      initiatedAt: DateTime
+
+    event PaymentConfirmed
+      paymentId: UUID
+      gatewayTransactionId: string
+      confirmedAt: DateTime
+
+    event PaymentFailed
+      paymentId: UUID
+      failureReason: string
+      gatewayErrorCode: string
+      failedAt: DateTime
+
+    event PaymentRefunded
+      paymentId: UUID
+      reason: string
+      refundAmount: Money
+      refundedAt: DateTime
+
+  value-object PaymentMethod
+    methodType: string
+    lastFourDigits: string
+    expiryMonth: number
+    expiryYear: number
+    billingAddress: BillingAddress
+
+  value-object BillingAddress
+    street: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+
+  value-object PricingBreakdown
+    basePrice: Money
+    dynamicAdjustment: Money
+    promoDiscount: Money
+    serviceFee: Money
+    facilityFee: Money
+    processingFee: Money
+    totalAmount: Money
+
+  invariant CHK-01 "Cart total must equal sum of line items minus discounts plus fees"
+    scope Cart
+
+  invariant CHK-02 "Payment amount must match cart total at time of initiation"
+    scope Payment
+
+  invariant CHK-03 "Refund amount cannot exceed original payment amount"
+    scope Payment
+
+  invariant CHK-04 "Promo code can only be applied once per cart"
+    scope Cart
+
+  policy ConvertHoldOnPayment
+    trigger PaymentConfirmed
+    action "Convert seat hold to permanent reservation after payment clears"
+    chains-to ConvertHoldToReservation
+
+  policy ReleaseHoldOnPaymentFailure
+    trigger PaymentFailed
+    action "Release seat hold back to the pool when payment fails"
+    chains-to ReleaseHold
+// TicketWave — Presale & Waitlist Context
+// Manages access codes, presale windows, fan verification, and waitlist queues
+
+context "Presale" [Supporting]
+  description "Controls early access to ticket sales through verified fan programs, access codes, and waitlist management. Gates entry to the purchase flow before general availability."
+
+  aggregate "PresaleWindow"
+    identity windowId: UUID
+
+    command CreatePresaleWindow
+      input eventId: UUID, name: string, startsAt: DateTime, endsAt: DateTime, maxRedemptions: number, accessTier: string
+      precondition eventPublished: "Event must be published before creating a presale window"
+      precondition windowNotOverlapping: "Presale window must not overlap with another window for the same tier"
+      emits PresaleWindowCreated
+
+    command OpenPresaleWindow
+      input windowId: UUID
+      precondition windowNotExpired: "Window must not have passed its end time"
+      emits PresaleWindowOpened
+
+    command ClosePresaleWindow
+      input windowId: UUID
+      emits PresaleWindowClosed
+
+    event PresaleWindowCreated
+      windowId: UUID
+      eventId: UUID
+      name: string
+      startsAt: DateTime
+      endsAt: DateTime
+      maxRedemptions: number
+      accessTier: string
+      createdAt: DateTime
+
+    event PresaleWindowOpened
+      windowId: UUID
+      openedAt: DateTime
+
+    event PresaleWindowClosed
+      windowId: UUID
+      totalRedemptions: number
+      closedAt: DateTime
+
+  aggregate "AccessCode"
+    identity codeId: UUID
+
+    command GenerateAccessCodes
+      input windowId: UUID, eventId: UUID, quantity: number, codePrefix: string
+      precondition windowExists: "Presale window must exist"
+      emits AccessCodesGenerated
+
+    command RedeemAccessCode
+      input codeId: UUID, code: string, customerId: UUID, eventId: UUID
+      precondition codeValid: "Access code must be valid and unredeemed"
+      precondition windowOpen: "Associated presale window must be currently open"
+      precondition redemptionLimit: "Code must not have exceeded its redemption limit"
+      emits AccessCodeRedeemed
+
+    command InvalidateAccessCode
+      input codeId: UUID, reason: string
+      emits AccessCodeInvalidated
+
+    event AccessCodesGenerated
+      windowId: UUID
+      eventId: UUID
+      quantity: number
+      codePrefix: string
+      generatedAt: DateTime
+
+    event AccessCodeRedeemed
+      codeId: UUID
+      code: string
+      customerId: UUID
+      eventId: UUID
+      windowId: UUID
+      redeemedAt: DateTime
+
+    event AccessCodeInvalidated
+      codeId: UUID
+      reason: string
+      invalidatedAt: DateTime
+
+  aggregate "Waitlist"
+    identity waitlistId: UUID
+
+    command JoinWaitlist
+      input eventId: UUID, tierId: UUID, customerId: UUID, requestedQuantity: number
+      precondition notAlreadyOnWaitlist: "Customer must not already be on the waitlist for this tier"
+      emits WaitlistJoined
+
+    command PromoteFromWaitlist
+      input waitlistId: UUID, customerId: UUID, holdId: UUID
+      precondition customerOnWaitlist: "Customer must be on the waitlist"
+      emits WaitlistPromoted
+
+    command LeaveWaitlist
+      input waitlistId: UUID, customerId: UUID
+      emits WaitlistLeft
+
+    command NotifyWaitlistPromotion
+      input waitlistId: UUID, customerId: UUID, availableQuantity: number
+      emits WaitlistPromotionNotified
+
+    event WaitlistJoined
+      waitlistId: UUID
+      eventId: UUID
+      tierId: UUID
+      customerId: UUID
+      requestedQuantity: number
+      position: number
+      joinedAt: DateTime
+
+    event WaitlistPromoted
+      waitlistId: UUID
+      customerId: UUID
+      holdId: UUID
+      promotedAt: DateTime
+
+    event WaitlistLeft
+      waitlistId: UUID
+      customerId: UUID
+      leftAt: DateTime
+
+    event WaitlistPromotionNotified
+      waitlistId: UUID
+      customerId: UUID
+      availableQuantity: number
+      notifiedAt: DateTime
+
+  invariant PRE-01 "Access code must belong to the associated presale window"
+    scope AccessCode
+
+  invariant PRE-02 "Waitlist position must be unique per event-tier combination"
+    scope Waitlist
+
+  invariant PRE-03 "Presale window cannot overlap with general sale start"
+    scope PresaleWindow
+
+  policy GrantAccessOnRedemption
+    trigger AccessCodeRedeemed
+    action "Grant presale access to the customer for the event"
+    chains-to RequestHold
+// TicketWave — Delivery Context
+// Manages digital ticket issuance, mobile passes, and peer-to-peer transfers
+
+context "Delivery" [Supporting]
+  description "Handles post-purchase ticket fulfillment. Issues digital tickets, generates mobile passes, and orchestrates peer-to-peer ticket transfers."
+
+  aggregate "DigitalTicket"
+    identity ticketId: UUID
+
+    command IssueTickets
+      input orderId: UUID, customerId: UUID, eventId: UUID, holdId: UUID, tickets: TicketAllocation[]
+      precondition paymentConfirmed: "Payment must be confirmed before ticket issuance"
+      emits TicketsIssued
+
+    command GenerateMobilePass
+      input ticketId: UUID, passFormat: string
+      precondition ticketIssued: "Ticket must be issued"
+      emits MobilePassGenerated
+
+    command RevokeTicket
+      input ticketId: UUID, reason: string
+      precondition ticketNotRevoked: "Ticket must not already be revoked"
+      emits TicketRevoked
+
+    event TicketsIssued
+      orderId: UUID
+      customerId: UUID
+      eventId: UUID
+      holdId: UUID
+      tickets: TicketAllocation[]
+      barcodes: Barcode[]
+      issuedAt: DateTime
+
+    event MobilePassGenerated
+      ticketId: UUID
+      passUrl: string
+      passFormat: string
+      generatedAt: DateTime
+
+    event TicketRevoked
+      ticketId: UUID
+      reason: string
+      revokedAt: DateTime
+
+  aggregate "TicketTransfer"
+    identity transferId: UUID
+
+    command InitiateTransfer
+      input ticketId: UUID, fromCustomerId: UUID, toEmail: string, toName: string
+      precondition ticketOwned: "Sender must own the ticket"
+      precondition ticketNotTransferLocked: "Ticket must not be transfer-locked"
+      precondition eventNotPassed: "Event must not have already occurred"
+      emits TransferInitiated
+
+    command AcceptTransfer
+      input transferId: UUID, recipientCustomerId: UUID
+      precondition transferPending: "Transfer must be in pending state"
+      precondition recipientVerified: "Recipient must have a verified account"
+      emits TransferAccepted
+
+    command DeclineTransfer
+      input transferId: UUID, reason: string
+      precondition transferPending: "Transfer must be in pending state"
+      emits TransferDeclined
+
+    command CancelTransfer
+      input transferId: UUID
+      precondition transferPending: "Transfer must be in pending state"
+      emits TransferCancelled
+
+    event TransferInitiated
+      transferId: UUID
+      ticketId: UUID
+      fromCustomerId: UUID
+      toEmail: string
+      toName: string
+      expiresAt: DateTime
+      initiatedAt: DateTime
+
+    event TransferAccepted
+      transferId: UUID
+      ticketId: UUID
+      recipientCustomerId: UUID
+      newBarcode: Barcode
+      acceptedAt: DateTime
+
+    event TransferDeclined
+      transferId: UUID
+      reason: string
+      declinedAt: DateTime
+
+    event TransferCancelled
+      transferId: UUID
+      cancelledAt: DateTime
+
+  value-object TicketAllocation
+    tierId: UUID
+    sectionId: UUID
+    seatId: UUID
+    row: string
+    seatNumber: number
+
+  value-object Barcode
+    ticketId: UUID
+    barcodeType: string
+    barcodeValue: string
+    rotatesAt: DateTime
+
+  invariant DEL-01 "Each ticket must have a unique barcode"
+    scope DigitalTicket
+
+  invariant DEL-02 "Transfer must complete or expire within 72 hours"
+    scope TicketTransfer
+
+  invariant DEL-03 "Revoked tickets must not be transferable"
+    scope DigitalTicket
+
+  saga TransferLifecycle
+    trigger TransferInitiated
+    states Pending -> Accepted -> Declined -> Cancelled -> Expired
+    compensation "Return ticket ownership to original holder"
+    timeout transferExpiry
+
+  policy IssueOnPaymentConfirmed
+    trigger PaymentConfirmed
+    action "Issue digital tickets after payment is confirmed"
+    chains-to IssueTickets
+
+  policy NotifyOnTransferInitiated
+    trigger TransferInitiated
+    action "Send transfer invitation to recipient email"
+    chains-to SendTransferNotification
+// TicketWave — Anti-Fraud Context
+// Bot detection, velocity checks, purchase limits, and risk scoring
+
+context "AntiFraud" [Generic]
+  description "Protects the platform from bots, scalpers, and fraudulent transactions. Performs real-time risk assessment on holds and purchases using velocity checks, device fingerprinting, and behavioral signals."
+
+  aggregate "RiskAssessment"
+    identity assessmentId: UUID
+
+    command EvaluateHoldRisk
+      input holdId: UUID, customerId: UUID, sessionId: UUID, eventId: UUID, quantity: number, deviceFingerprint: DeviceFingerprint, ipAddress: string
+      emits HoldRiskEvaluated
+
+    command EvaluatePaymentRisk
+      input paymentId: UUID, customerId: UUID, paymentMethod: string, amount: Money, ipAddress: string, deviceFingerprint: DeviceFingerprint
+      emits PaymentRiskEvaluated
+
+    command FlagForManualReview
+      input assessmentId: UUID, reason: string, evidencePayload: string
+      emits FlaggedForManualReview
+
+    command CompleteManualReview
+      input assessmentId: UUID, reviewerId: string, decision: string, notes: string
+      precondition assessmentFlagged: "Assessment must be flagged for manual review"
+      emits ManualReviewCompleted
+
+    event HoldRiskEvaluated
+      assessmentId: UUID
+      holdId: UUID
+      customerId: UUID
+      riskScore: number
+      riskLevel: string
+      signals: RiskSignal[]
+      velocityCount: number
+      evaluatedAt: DateTime
+
+    event PaymentRiskEvaluated
+      assessmentId: UUID
+      paymentId: UUID
+      customerId: UUID
+      riskScore: number
+      riskLevel: string
+      signals: RiskSignal[]
+      evaluatedAt: DateTime
+
+    event FlaggedForManualReview
+      assessmentId: UUID
+      reason: string
+      flaggedAt: DateTime
+
+    event ManualReviewCompleted
+      assessmentId: UUID
+      reviewerId: string
+      decision: string
+      notes: string
+      completedAt: DateTime
+
+  aggregate "VelocityTracker"
+    identity trackerId: UUID
+
+    command RecordPurchaseAttempt
+      input customerId: UUID, eventId: UUID, ipAddress: string, sessionId: UUID
+      emits PurchaseAttemptRecorded
+
+    command BlockCustomer
+      input customerId: UUID, reason: string, duration: number
+      emits CustomerBlocked
+
+    command UnblockCustomer
+      input customerId: UUID
+      precondition customerBlocked: "Customer must be currently blocked"
+      emits CustomerUnblocked
+
+    event PurchaseAttemptRecorded
+      trackerId: UUID
+      customerId: UUID
+      eventId: UUID
+      ipAddress: string
+      sessionId: UUID
+      attemptCount: number
+      windowStart: DateTime
+      recordedAt: DateTime
+
+    event CustomerBlocked
+      trackerId: UUID
+      customerId: UUID
+      reason: string
+      duration: number
+      blockedUntil: DateTime
+      blockedAt: DateTime
+
+    event CustomerUnblocked
+      trackerId: UUID
+      customerId: UUID
+      unblockedAt: DateTime
+
+  value-object DeviceFingerprint
+    fingerprintId: string
+    browserFamily: string
+    osFamily: string
+    screenResolution: string
+    timezone: string
+    canvasHash: string
+
+  value-object RiskSignal
+    signalType: string
+    signalValue: string
+    weight: number
+    details: string
+
+  invariant AFR-01 "Risk score must be between 0 and 100"
+    scope RiskAssessment
+
+  invariant AFR-02 "Block duration must be positive"
+    scope VelocityTracker
+
+  invariant AFR-03 "Manual review decision must be approve or reject"
+    scope RiskAssessment
+
+  policy EvaluateOnHoldRequest
+    trigger SeatsHeld
+    action "Run real-time risk assessment when seats are held"
+    chains-to EvaluateHoldRisk
+
+  policy BlockOnHighRisk
+    trigger HoldRiskEvaluated
+    action "Block customer and release hold when risk score exceeds threshold"
+    chains-to BlockCustomer
+
+  policy EvaluateOnPaymentInitiated
+    trigger PaymentInitiated
+    action "Run payment fraud check before gateway submission"
+    chains-to EvaluatePaymentRisk
+// TicketWave — Notifications Context
+// Email confirmations, SMS alerts, push notifications, and communication preferences
+
+context "Notifications" [Generic]
+  description "Delivers transactional and marketing communications across email, SMS, and push channels. Respects customer communication preferences and provides delivery tracking."
+
+  aggregate "NotificationDispatch"
+    identity dispatchId: UUID
+
+    command SendOrderConfirmation
+      input orderId: UUID, customerId: UUID, eventTitle: string, tickets: TicketSummary[], totalAmount: Money, emailAddress: string
+      emits OrderConfirmationSent
+
+    command SendTicketDelivery
+      input orderId: UUID, customerId: UUID, tickets: TicketSummary[], deliveryChannel: string
+      emits TicketDeliverySent
+
+    command SendTransferNotification
+      input transferId: UUID, ticketId: UUID, toEmail: string, toName: string, eventTitle: string, fromName: string
+      emits TransferNotificationSent
+
+    command SendEventCancellationNotice
+      input eventId: UUID, customerId: UUID, eventTitle: string, reason: string, refundAmount: Money
+      emits EventCancellationNoticeSent
+
+    command SendPresaleAccessNotice
+      input customerId: UUID, eventId: UUID, eventTitle: string, windowOpensAt: DateTime, accessCode: string
+      emits PresaleAccessNoticeSent
+
+    command SendWaitlistUpdate
+      input waitlistId: UUID, customerId: UUID, eventTitle: string, status: string, position: number
+      emits WaitlistUpdateSent
+
+    command SendEventReminder
+      input eventId: UUID, customerId: UUID, eventTitle: string, startsAt: DateTime, venueName: string
+      emits EventReminderSent
+
+    event OrderConfirmationSent
+      dispatchId: UUID
+      orderId: UUID
+      customerId: UUID
+      channel: string
+      sentAt: DateTime
+
+    event TicketDeliverySent
+      dispatchId: UUID
+      orderId: UUID
+      customerId: UUID
+      channel: string
+      sentAt: DateTime
+
+    event TransferNotificationSent
+      dispatchId: UUID
+      transferId: UUID
+      toEmail: string
+      sentAt: DateTime
+
+    event EventCancellationNoticeSent
+      dispatchId: UUID
+      eventId: UUID
+      customerId: UUID
+      channel: string
+      sentAt: DateTime
+
+    event PresaleAccessNoticeSent
+      dispatchId: UUID
+      customerId: UUID
+      eventId: UUID
+      sentAt: DateTime
+
+    event WaitlistUpdateSent
+      dispatchId: UUID
+      waitlistId: UUID
+      customerId: UUID
+      sentAt: DateTime
+
+    event EventReminderSent
+      dispatchId: UUID
+      eventId: UUID
+      customerId: UUID
+      sentAt: DateTime
+
+  aggregate "CommunicationPreference"
+    identity preferenceId: UUID
+
+    command UpdatePreferences
+      input customerId: UUID, emailEnabled: boolean, smsEnabled: boolean, pushEnabled: boolean, marketingOptIn: boolean
+      emits PreferencesUpdated
+
+    command UnsubscribeAll
+      input customerId: UUID, reason: string
+      emits AllChannelsUnsubscribed
+
+    event PreferencesUpdated
+      preferenceId: UUID
+      customerId: UUID
+      emailEnabled: boolean
+      smsEnabled: boolean
+      pushEnabled: boolean
+      marketingOptIn: boolean
+      updatedAt: DateTime
+
+    event AllChannelsUnsubscribed
+      preferenceId: UUID
+      customerId: UUID
+      reason: string
+      unsubscribedAt: DateTime
+
+  value-object TicketSummary
+    ticketId: UUID
+    eventTitle: string
+    section: string
+    row: string
+    seatNumber: number
+    barcode: string
+
+  invariant NOT-01 "Notifications must respect customer channel preferences"
+    scope NotificationDispatch
+
+  invariant NOT-02 "Unsubscribed customers must not receive marketing communications"
+    scope CommunicationPreference
+
+  policy ConfirmOnPayment
+    trigger PaymentConfirmed
+    action "Send order confirmation email after successful payment"
+    chains-to SendOrderConfirmation
+
+  policy NotifyOnTicketsIssued
+    trigger TicketsIssued
+    action "Send ticket delivery notification with barcodes"
+    chains-to SendTicketDelivery
+
+  policy NotifyOnEventCancelled
+    trigger EventCancelled
+    action "Send cancellation notice to all ticket holders"
+    chains-to SendEventCancellationNotice
+
+  policy NotifyOnWaitlistPromotion
+    trigger WaitlistPromotionNotified
+    action "Send waitlist promotion notification to customer"
+    chains-to SendWaitlistUpdate
+// TicketWave — General Admission Purchase Flow
+// Full purchase lifecycle: browse → hold → fraud check → checkout → deliver → notify
+
+flow "general-admission-purchase"
+  description "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase."
+
+  lane catalog "Catalog" [Core]
+  lane inventory "Inventory" [Core]
+  lane checkout "Checkout" [Core]
+  lane antifraud "AntiFraud" [Generic]
+  lane delivery "Delivery" [Supporting]
+  lane notifications "Notifications" [Generic]
+  branch-lane botDetected "Bot Detected" [Terminal]
+  branch-lane paymentDeclined "Payment Declined" [Terminal]
+  branch-lane manualReview "Manual Review" [Terminal]
+
+  moment "Event discovery"
+    catalog: PublishEvent
+    catalog: EventPublished crosses-to inventory via CustomerSupplier
+      contract
+        eventId: UUID [required]
+
+  moment "Pool initialization"
+    inventory: InitializePool
+      triggered-by EventPublished
+    inventory: PoolInitialized
+
+  moment "Seat selection and hold"
+    inventory: RequestHold
+    inventory: SeatsHeld crosses-to checkout via CustomerSupplier
+      contract
+        holdId: UUID [required]
+        eventId: UUID [required]
+        tierId: UUID [required]
+        quantity: number [required]
+        customerId: UUID [required]
+        expiresAt: DateTime [required]
+
+  moment "Hold fraud evaluation"
+    antifraud: EvaluateHoldRisk
+      triggered-by SeatsHeld
+    antifraud: HoldRiskEvaluated
+
+  moment "Hold risk decision" [branch]
+    when low-risk
+      checkout: CreateCart
+        triggered-by HoldRiskEvaluated
+      checkout: CartCreated
+    when high-risk
+      antifraud: BlockCustomer
+        triggered-by HoldRiskEvaluated
+      antifraud: CustomerBlocked
+      botDetected: CustomerBlocked [terminal]
+    when medium-risk
+      antifraud: FlagForManualReview
+        triggered-by HoldRiskEvaluated
+      antifraud: FlaggedForManualReview
+      manualReview: FlaggedForManualReview [terminal]
+
+  moment "Cart population"
+    checkout: AddTicketsToCart
+      triggered-by CartCreated
+    checkout: TicketsAddedToCart
+
+  moment "Fee calculation"
+    checkout: CalculateFees
+      triggered-by TicketsAddedToCart
+    checkout: FeesCalculated
+
+  moment "Payment initiation"
+    checkout: InitiatePayment
+      triggered-by FeesCalculated
+    checkout: PaymentInitiated crosses-to antifraud via CustomerSupplier
+      contract
+        paymentId: UUID [required]
+        customerId: UUID [required]
+        amount: Money [required]
+
+  moment "Payment fraud evaluation"
+    antifraud: EvaluatePaymentRisk
+      triggered-by PaymentInitiated
+    antifraud: PaymentRiskEvaluated
+
+  moment "Payment processing" [branch]
+    when approved
+      checkout: ConfirmPayment
+        triggered-by PaymentRiskEvaluated
+      checkout: PaymentConfirmed crosses-to inventory via CustomerSupplier
+        contract
+          holdId: UUID [required]
+          paymentConfirmationId: UUID [required]
+    when declined
+      checkout: FailPayment
+        triggered-by PaymentRiskEvaluated
+      checkout: PaymentFailed
+      paymentDeclined: PaymentFailed [terminal]
+
+  moment "Delivery trigger"
+    checkout: PaymentConfirmed crosses-to delivery via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        customerId: UUID [required]
+        eventId: UUID [required]
+        holdId: UUID [required]
+
+  moment "Notification trigger"
+    checkout: PaymentConfirmed crosses-to notifications via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        customerId: UUID [required]
+
+  moment "Hold conversion"
+    inventory: ConvertHoldToReservation
+      triggered-by PaymentConfirmed
+    inventory: HoldConvertedToReservation
+
+  moment "Ticket issuance"
+    delivery: IssueTickets
+      triggered-by PaymentConfirmed
+    delivery: TicketsIssued crosses-to notifications via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        customerId: UUID [required]
+
+  moment "Mobile pass generation"
+    delivery: GenerateMobilePass
+      triggered-by TicketsIssued
+    delivery: MobilePassGenerated
+
+  moment "Order confirmation"
+    notifications: SendOrderConfirmation
+      triggered-by PaymentConfirmed
+    notifications: OrderConfirmationSent
+
+  moment "Ticket delivery notification"
+    notifications: SendTicketDelivery
+      triggered-by TicketsIssued
+    notifications: TicketDeliverySent
+// TicketWave — Presale Access Flow
+// Verified fan presale: code validation → early-window purchase → delivery
+
+flow "presale-access"
+  description "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation."
+
+  lane presale "Presale" [Supporting]
+  lane inventory "Inventory" [Core]
+  lane checkout "Checkout" [Core]
+  lane delivery "Delivery" [Supporting]
+  lane notifications "Notifications" [Generic]
+  branch-lane invalidCode "Invalid Code" [Terminal]
+  branch-lane windowClosed "Window Closed" [Terminal]
+
+  moment "Presale window opens"
+    presale: OpenPresaleWindow
+    presale: PresaleWindowOpened
+
+  moment "Access code redemption"
+    presale: RedeemAccessCode
+    presale: AccessCodeRedeemed
+
+  moment "Code validation outcome" [branch]
+    when valid
+      inventory: RequestHold
+        triggered-by AccessCodeRedeemed
+      inventory: SeatsHeld crosses-to checkout via CustomerSupplier
+        contract
+          holdId: UUID [required]
+          eventId: UUID [required]
+          tierId: UUID [required]
+          quantity: number [required]
+          customerId: UUID [required]
+          expiresAt: DateTime [required]
+    when invalid
+      presale: InvalidateAccessCode
+      presale: AccessCodeInvalidated
+      invalidCode: AccessCodeInvalidated [terminal]
+    when window-expired
+      presale: ClosePresaleWindow
+      presale: PresaleWindowClosed
+      windowClosed: PresaleWindowClosed [terminal]
+
+  moment "Presale cart creation"
+    checkout: CreateCart
+      triggered-by SeatsHeld
+    checkout: CartCreated
+
+  moment "Presale cart population"
+    checkout: AddTicketsToCart
+      triggered-by CartCreated
+    checkout: TicketsAddedToCart
+
+  moment "Presale fee calculation"
+    checkout: CalculateFees
+      triggered-by TicketsAddedToCart
+    checkout: FeesCalculated
+
+  moment "Presale payment"
+    checkout: InitiatePayment
+      triggered-by FeesCalculated
+    checkout: PaymentInitiated
+
+  moment "Presale payment confirmation"
+    checkout: ConfirmPayment
+      triggered-by PaymentInitiated
+    checkout: PaymentConfirmed crosses-to inventory via CustomerSupplier
+      contract
+        holdId: UUID [required]
+        paymentConfirmationId: UUID [required]
+
+  moment "Presale delivery trigger"
+    checkout: PaymentConfirmed crosses-to delivery via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        customerId: UUID [required]
+        eventId: UUID [required]
+        holdId: UUID [required]
+
+  moment "Presale hold conversion"
+    inventory: ConvertHoldToReservation
+      triggered-by PaymentConfirmed
+    inventory: HoldConvertedToReservation
+
+  moment "Presale ticket issuance"
+    delivery: IssueTickets
+      triggered-by PaymentConfirmed
+    delivery: TicketsIssued
+
+  moment "Presale confirmation"
+    notifications: SendOrderConfirmation
+      triggered-by PaymentConfirmed
+    notifications: OrderConfirmationSent
+
+  moment "Presale ticket delivery"
+    notifications: SendTicketDelivery
+      triggered-by TicketsIssued
+    notifications: TicketDeliverySent
+// TicketWave — Ticket Transfer Flow
+// Peer-to-peer transfer: initiate → notify recipient → accept/decline → re-issue
+
+flow "ticket-transfer"
+  description "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked."
+
+  lane delivery "Delivery" [Supporting]
+  lane notifications "Notifications" [Generic]
+  branch-lane transferDeclined "Transfer Declined" [Terminal]
+  branch-lane transferExpired "Transfer Expired" [Terminal]
+
+  moment "Transfer initiation"
+    delivery: InitiateTransfer
+    delivery: TransferInitiated crosses-to notifications via CustomerSupplier
+      contract
+        transferId: UUID [required]
+        ticketId: UUID [required]
+        toEmail: string [required]
+        toName: string [required]
+
+  moment "Recipient notification"
+    notifications: SendTransferNotification
+      triggered-by TransferInitiated
+    notifications: TransferNotificationSent
+
+  moment "Transfer resolution" [branch]
+    when accepted
+      delivery: AcceptTransfer
+      delivery: TransferAccepted
+    when declined
+      delivery: DeclineTransfer
+      delivery: TransferDeclined
+      transferDeclined: TransferDeclined [terminal]
+    when expired
+      delivery: CancelTransfer
+      delivery: TransferCancelled
+      transferExpired: TransferCancelled [terminal]
+
+  moment "Original ticket revocation"
+    delivery: RevokeTicket
+      triggered-by TransferAccepted
+    delivery: TicketRevoked
+
+  moment "New ticket issuance"
+    delivery: IssueTickets
+      triggered-by TransferAccepted
+    delivery: TicketsIssued
+
+  moment "Transfer completion notification"
+    notifications: SendTicketDelivery
+      triggered-by TicketsIssued
+    notifications: TicketDeliverySent
+// TicketWave — Event Cancellation Flow
+// Cancel event → revoke all tickets → refund all payments → notify all holders
+
+flow "event-cancellation"
+  description "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event."
+
+  lane catalog "Catalog" [Core]
+  lane inventory "Inventory" [Core]
+  lane checkout "Checkout" [Core]
+  lane delivery "Delivery" [Supporting]
+  lane notifications "Notifications" [Generic]
+  branch-lane partialRefundFailure "Partial Refund Failure" [Terminal]
+
+  moment "Event cancellation"
+    catalog: CancelEvent
+    catalog: EventCancelled crosses-to inventory via CustomerSupplier
+      contract
+        eventId: UUID [required]
+        reason: string [required]
+
+  moment "Cancellation propagation to checkout"
+    catalog: EventCancelled crosses-to checkout via CustomerSupplier
+      contract
+        eventId: UUID [required]
+        reason: string [required]
+
+  moment "Cancellation propagation to delivery"
+    catalog: EventCancelled crosses-to delivery via CustomerSupplier
+      contract
+        eventId: UUID [required]
+        reason: string [required]
+
+  moment "Cancellation propagation to notifications"
+    catalog: EventCancelled crosses-to notifications via CustomerSupplier
+      contract
+        eventId: UUID [required]
+        reason: string [required]
+
+  moment "Active holds release"
+    inventory: ReleaseHold
+      triggered-by EventCancelled
+    inventory: HoldReleased (×N)
+
+  moment "Ticket revocation"
+    delivery: RevokeTicket
+      triggered-by EventCancelled
+    delivery: TicketRevoked (×N)
+
+  moment "Refund processing" [branch]
+    when all-successful
+      checkout: RefundPayment
+        triggered-by EventCancelled
+      checkout: PaymentRefunded (×N)
+    when partial-failure
+      checkout: RefundPayment
+        triggered-by EventCancelled
+      checkout: PaymentRefunded (×N)
+      checkout: PaymentFailed [optional]
+      partialRefundFailure: PaymentFailed [terminal]
+
+  moment "Cancellation notifications"
+    notifications: SendEventCancellationNotice
+      triggered-by EventCancelled
+    notifications: EventCancellationNoticeSent (×N)
