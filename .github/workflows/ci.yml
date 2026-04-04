@@ -52,6 +52,16 @@ jobs:
         run: pnpm turbo test:integration -- --passWithNoTests
         continue-on-error: true
 
+      - name: Generate Cucumber JSON from fixtures
+        if: matrix.node-version == 22
+        run: |
+          MOMENT="node packages/cli/dist/moment.mjs"
+          mkdir -p test-results/cucumber
+          for f in fixtures/valid/unified/*.moment; do
+            NAME=$(basename "$f" .moment)
+            $MOMENT cucumber-json "$f" > "test-results/cucumber/${NAME}.cucumber.json" || true
+          done
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()
@@ -71,7 +81,7 @@ jobs:
         if: always() && matrix.node-version == 22
         with:
           name: cucumber-results
-          path: packages/*/test-results/cucumber.json
+          path: test-results/cucumber/*.cucumber.json
 
       - name: Snapshot freshness
         run: pnpm turbo test -- --no-update --passWithNoTests
