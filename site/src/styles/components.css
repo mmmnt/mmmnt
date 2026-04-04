@@ -606,80 +606,21 @@
 /* Fan-out connector: Moment → Facet + Forge */
 .eco-diagram__conn--fanout {
   width: 100%;
-  max-width: 28rem;
-  padding: var(--space-2) 0;
+  max-width: 36rem;
+  padding: var(--space-1) 0;
 }
 
-.eco-diagram__conn-stem {
+.eco-diagram__fork-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 5rem;
+}
+
+.eco-diagram__fork-labels {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 auto;
-}
-
-.eco-diagram__conn-stem::before {
-  content: '';
-  width: 2px;
-  height: 1.5rem;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--color-accent) 0px,
-    var(--color-accent) 6px,
-    transparent 6px,
-    transparent 10px
-  );
-}
-
-.eco-diagram__conn-fork {
-  display: flex;
-}
-
-/* Each branch draws half the horizontal bar via border-top,
-   so the bar always spans exactly between the two branch centers. */
-.eco-diagram__conn-branch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-}
-
-.eco-diagram__conn-branch--left {
-  border-top: 2px dashed var(--color-accent);
-  border-right: none;
-  margin-left: 50%;
-  padding-top: 0;
-}
-
-.eco-diagram__conn-branch--right {
-  border-top: 2px dashed var(--color-accent);
-  border-left: none;
-  margin-right: 50%;
-  padding-top: 0;
-}
-
-/* Vertical drop from horizontal bar to label */
-.eco-diagram__conn-branch::before {
-  content: '';
-  width: 2px;
-  height: 1rem;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--color-accent) 0px,
-    var(--color-accent) 6px,
-    transparent 6px,
-    transparent 10px
-  );
-}
-
-/* Arrow below each branch label */
-.eco-diagram__conn-branch::after {
-  content: '';
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid var(--color-accent);
+  justify-content: space-between;
+  padding: 0 12.5%;
 }
 
 /* Tool tile */
@@ -889,16 +830,11 @@
     max-width: 100%;
   }
 
-  .eco-diagram__conn-fork {
+  .eco-diagram__fork-labels {
     flex-direction: column;
     align-items: center;
-    gap: var(--space-3);
-  }
-
-  .eco-diagram__conn-branch--left,
-  .eco-diagram__conn-branch--right {
-    border-top: none;
-    margin: 0;
+    gap: var(--space-2);
+    padding: 0;
   }
 
   .eco-diagram__tool {

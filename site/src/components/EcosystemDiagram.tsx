@@ -86,14 +86,24 @@ export default function EcosystemDiagram({ tools, dataFlow, envelope }: Props) {
 
         {/* Connection: Moment → Facet + Forge (Y-fork) */}
         <div class="eco-diagram__conn eco-diagram__conn--fanout">
-          <div class="eco-diagram__conn-stem" />
-          <div class="eco-diagram__conn-fork">
-            <div class="eco-diagram__conn-branch eco-diagram__conn-branch--left">
-              <span class="eco-diagram__conn-label">{momentToFacet?.channel}</span>
-            </div>
-            <div class="eco-diagram__conn-branch eco-diagram__conn-branch--right">
-              <span class="eco-diagram__conn-label">{momentToForge?.channel}</span>
-            </div>
+          {/* SVG Y-fork: stem down, horizontal bar, two drops with arrows */}
+          <svg class="eco-diagram__fork-svg" viewBox="0 0 400 80" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            {/* Stem: center top → center mid */}
+            <line x1="200" y1="0" x2="200" y2="30" stroke="var(--color-accent)" stroke-width="2" stroke-dasharray="6 4" />
+            {/* Horizontal bar */}
+            <line x1="100" y1="30" x2="300" y2="30" stroke="var(--color-accent)" stroke-width="2" stroke-dasharray="6 4" />
+            {/* Left drop */}
+            <line x1="100" y1="30" x2="100" y2="65" stroke="var(--color-accent)" stroke-width="2" stroke-dasharray="6 4" />
+            {/* Right drop */}
+            <line x1="300" y1="30" x2="300" y2="65" stroke="var(--color-accent)" stroke-width="2" stroke-dasharray="6 4" />
+            {/* Left arrow */}
+            <polygon points="95,65 105,65 100,72" fill="var(--color-accent)" />
+            {/* Right arrow */}
+            <polygon points="295,65 305,65 300,72" fill="var(--color-accent)" />
+          </svg>
+          <div class="eco-diagram__fork-labels">
+            <span class="eco-diagram__conn-label">{momentToFacet?.channel}</span>
+            <span class="eco-diagram__conn-label">{momentToForge?.channel}</span>
           </div>
         </div>
 
