@@ -1,0 +1,199 @@
+{
+  "scenarioId": "scenario-flow-presale-access-neg-AddTicketsToCart-cartOpen",
+  "scenarioLabel": "Failure: Cart must be in open state not met",
+  "description": "Negative scenario: Cart must be in open state precondition violation at AddTicketsToCart",
+  "given": "A presale window opens scenario is initiated",
+  "when": "AddTicketsToCart is invoked without satisfying cartOpen",
+  "then": "The command AddTicketsToCart is rejected",
+  "expectedPath": [
+    "n00-OpenPresaleWindow",
+    "n00-PresaleWindowOpened",
+    "n01-RedeemAccessCode",
+    "n01-AccessCodeRedeemed",
+    "n02-RequestHold",
+    "n02-SeatsHeld",
+    "n03-CreateCart",
+    "n03-CartCreated",
+    "n04-AddTicketsToCart"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-OpenPresaleWindow",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PresaleWindowOpened",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-001"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-PresaleWindowOpened",
+        "windowId": "windowId-001",
+        "openedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.RedeemAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-RedeemAccessCode",
+        "processName": "RedeemAccessCode",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "AccessCodeRedeemed",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-003"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-AccessCodeRedeemed",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "windowId": "windowId-001",
+        "redeemedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-004"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-RequestHold",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SeatsHeld",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-004"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-SeatsHeld",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "heldAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "SimProcess.CreateCart",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-004", "evt-006"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n03-CreateCart",
+        "processName": "CreateCart",
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "CartCreated",
+      "productSource": "checkout",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-004", "evt-006"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n03-CartCreated",
+        "cartId": "cartId-001",
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "createdAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "SimProcess.AddTicketsToCart",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-004", "evt-006", "evt-008"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-AddTicketsToCart",
+        "processName": "AddTicketsToCart",
+        "cartId": "cartId-001",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "quantity": 0,
+        "unitPrice": 0
+      }
+    },
+    {
+      "eventId": "evt-010",
+      "eventType": "SimFailure.AddTicketsToCart.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": ["evt-009"],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:09.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-AddTicketsToCart",
+        "failedPrecondition": "cartOpen",
+        "description": "Cart must be in open state"
+      }
+    }
+  ]
+}

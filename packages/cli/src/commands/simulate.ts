@@ -1,12 +1,17 @@
 /**
- * moment simulate — Generate Facet-compatible simulation scenario from .moment spec
+ * moment simulate — Generate Facet-compatible simulation scenarios from .moment spec
  *
- * Produces a JSON scenario with synthetic events, causation chains,
+ * Produces JSON scenarios with synthetic events, causation chains,
  * expected paths, and branch selections for each flow in the spec.
+ *
+ * --all: generate all branch combinations + negative (precondition) scenarios
+ * --out-dir <path>: write one file per scenario + manifest.json
+ * --json: output to stdout as JSON (single file, all scenarios)
+ * --flow <name>: filter to a specific flow
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import {
@@ -72,17 +77,76 @@ function formatScenarios(
   };
 }
 
+function writeScenarioFiles(
+  scenarios: readonly SimulationScenario[],
+  outDir: string,
+): SimulateCommandResult {
+  const resolvedDir = resolve(outDir);
+  mkdirSync(resolvedDir, { recursive: true });
+
+  const manifest: ScenarioManifestEntry[] = [];
+
+  for (const scenario of scenarios) {
+    const fileName = `${scenario.scenarioId}.json`;
+    const filePath = join(resolvedDir, fileName);
+    writeFileSync(filePath, JSON.stringify(scenario, null, 2), 'utf-8');
+
+    manifest.push({
+      scenarioId: scenario.scenarioId,
+      scenarioLabel: scenario.scenarioLabel,
+      description: scenario.description,
+      file: fileName,
+      eventCount: scenario.events.length,
+      pathLength: scenario.expectedPath.length,
+      branchCount: scenario.activeBranches.length,
+      isHappyPath: scenario.scenarioLabel.startsWith('Happy Path:'),
+      isNegative: scenario.scenarioLabel.startsWith('Failure:'),
+    });
+  }
+
+  const manifestPath = join(resolvedDir, 'manifest.json');
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+
+  const totalEvents = scenarios.reduce((sum, s) => sum + s.events.length, 0);
+
+  return {
+    success: true,
+    message: `Wrote ${scenarios.length} scenario file(s) + manifest.json to ${resolvedDir} (${totalEvents} total events)`,
+    diagnostics: EMPTY,
+    scenarios,
+  };
+}
+
+interface ScenarioManifestEntry {
+  scenarioId: string;
+  scenarioLabel: string;
+  description: string;
+  file: string;
+  eventCount: number;
+  pathLength: number;
+  branchCount: number;
+  isHappyPath: boolean;
+  isNegative: boolean;
+}
+
 export async function runSimulate(argv: string[]): Promise<SimulateCommandResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { json: { type: 'boolean' }, flow: { type: 'string' }, all: { type: 'boolean' } },
+    options: {
+      json: { type: 'boolean' },
+      flow: { type: 'string' },
+      all: { type: 'boolean' },
+      'out-dir': { type: 'string' },
+    },
     allowPositionals: true,
     strict: false,
   });
 
   const filePath = positionals[0];
   if (!filePath)
-    return fail('Usage: moment simulate <file.moment> [--json] [--flow <name>] [--all]');
+    return fail(
+      'Usage: moment simulate <file.moment> [--json] [--flow <name>] [--all] [--out-dir <path>]',
+    );
 
   const content = readMomentFile(filePath);
   if (typeof content !== 'string') return content;
@@ -118,6 +182,11 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
         ...deriveNegativeScenarios(ir, flow),
       ])
     : targetFlows.map((flow) => generateSimulationScenario(ir, flow));
+
+  const outDir = values['out-dir'];
+  if (outDir) {
+    return writeScenarioFiles(scenarios, outDir);
+  }
 
   return formatScenarios(scenarios, values.json === true);
 }

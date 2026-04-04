@@ -1,0 +1,250 @@
+{
+  "scenarioId": "scenario-flow-general-admission-purchase-4",
+  "scenarioLabel": "Failure Path: general-admission-purchase [medium-risk]",
+  "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
+  "given": "A event discovery scenario is initiated",
+  "when": "The flow progresses through Event discovery, Pool initialization, Seat selection and hold, Hold fraud evaluation, Hold risk decision",
+  "then": "The flow completes at Hold risk decision across Catalog, Inventory, AntiFraud, Manual Review",
+  "expectedPath": [
+    "n00-PublishEvent",
+    "n00-EventPublished",
+    "n01-InitializePool",
+    "n01-PoolInitialized",
+    "n02-RequestHold",
+    "n02-SeatsHeld",
+    "n03-EvaluateHoldRisk",
+    "n03-HoldRiskEvaluated",
+    "n04-FlagForManualReview",
+    "n04-FlaggedForManualReview",
+    "n04-FlaggedForManualReview"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Hold risk decision",
+      "condition": "medium-risk",
+      "routeChosen": "medium-risk"
+    },
+    {
+      "momentName": "Payment processing",
+      "condition": "approved",
+      "routeChosen": "approved"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.PublishEvent",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-PublishEvent",
+        "processName": "PublishEvent",
+        "eventId": "eventId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "EventPublished",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-001"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-EventPublished",
+        "eventId": "eventId-001",
+        "publishedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.InitializePool",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-InitializePool",
+        "processName": "InitializePool",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "totalTickets": 0,
+        "basePrice": 0
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "PoolInitialized",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-PoolInitialized",
+        "poolId": "poolId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "totalTickets": 0,
+        "availableTickets": 0,
+        "basePrice": 0,
+        "initializedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-RequestHold",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SeatsHeld",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-SeatsHeld",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "heldAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-012",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-006"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "SimProcess.EvaluateHoldRisk",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002", "evt-006"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n03-EvaluateHoldRisk",
+        "processName": "EvaluateHoldRisk",
+        "holdId": "holdId-001",
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "eventId": "eventId-001",
+        "quantity": 0,
+        "deviceFingerprint": {},
+        "ipAddress": "sample-ipAddress"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "HoldRiskEvaluated",
+      "productSource": "antifraud",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002", "evt-006"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n03-HoldRiskEvaluated",
+        "assessmentId": "assessmentId-001",
+        "holdId": "holdId-001",
+        "customerId": "customerId-001",
+        "riskScore": 0,
+        "riskLevel": "sample-riskLevel",
+        "signals": {},
+        "velocityCount": 0,
+        "evaluatedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "SimProcess.FlagForManualReview",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-FlagForManualReview",
+        "processName": "FlagForManualReview",
+        "assessmentId": "assessmentId-001",
+        "reason": "sample-reason",
+        "evidencePayload": "sample-evidencePayload"
+      }
+    },
+    {
+      "eventId": "evt-010",
+      "eventType": "FlaggedForManualReview",
+      "productSource": "antifraud",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:09.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-FlaggedForManualReview",
+        "assessmentId": "assessmentId-001",
+        "reason": "sample-reason",
+        "flaggedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-011",
+      "eventType": "FlaggedForManualReview",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-4",
+      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-4",
+      "timestamp": "2026-01-01T10:00:10.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-FlaggedForManualReview"
+      }
+    }
+  ]
+}
