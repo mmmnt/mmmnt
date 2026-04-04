@@ -48,3 +48,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+
+  discord-notify:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [release]
+    steps:
+      - name: Notify Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK_URL }}
+          RELEASE: ${{ needs.release.result }}
+        run: |
+          if [ "$RELEASE" = "success" ]; then
+            COLOR=4318933
+            EMOJI="🚀"
+            STATUS="Published"
+          else
+            COLOR=15548997
+            EMOJI="❌"
+            STATUS="Failed"
+          fi
+
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          curl -s -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"$EMOJI Release $STATUS\",
+              \"description\": \"Release workflow completed with status: **$RELEASE**\",
+              \"url\": \"$RUN_URL\",
+              \"color\": $COLOR,
+              \"footer\": {\"text\": \"${{ github.repository }}\"},
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }]
+          }" "$WEBHOOK_URL"

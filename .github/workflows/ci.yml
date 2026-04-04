@@ -842,3 +842,41 @@ jobs:
           done
 
           echo "Assigned $ASSIGNED issues to sprint $SPRINT_ID."
+
+  discord-notify:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [build, quality, e2e, security]
+    steps:
+      - name: Notify Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK_URL }}
+          BUILD: ${{ needs.build.result }}
+          QUALITY: ${{ needs.quality.result }}
+          E2E: ${{ needs.e2e.result }}
+          SECURITY: ${{ needs.security.result }}
+        run: |
+          if [ "$BUILD" = "success" ] && [ "$QUALITY" = "success" ] && [ "$E2E" = "success" ] && [ "$SECURITY" = "success" ]; then
+            COLOR=4318933  # green (#42E695)
+            STATUS="Passed"
+            EMOJI="✅"
+          else
+            COLOR=15548997  # red (#ED4245)
+            STATUS="Failed"
+            EMOJI="❌"
+          fi
+
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message || github.event.pull_request.title }}" | head -c 80)
+
+          curl -s -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"$EMOJI CI $STATUS — #${{ github.run_number }}\",
+              \"description\": \"**Branch:** \`$BRANCH\`\n**Commit:** $COMMIT_MSG\n\n| Job | Status |\n|-----|--------|\n| Build | $BUILD |\n| Quality | $QUALITY |\n| E2E | $E2E |\n| Security | $SECURITY |\",
+              \"url\": \"$RUN_URL\",
+              \"color\": $COLOR,
+              \"footer\": {\"text\": \"${{ github.repository }}\"},
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }]
+          }" "$WEBHOOK_URL"
