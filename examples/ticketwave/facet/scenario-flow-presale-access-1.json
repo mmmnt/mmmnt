@@ -1,0 +1,138 @@
+{
+  "scenarioId": "scenario-flow-presale-access-1",
+  "scenarioLabel": "Failure Path: presale-access [invalid]",
+  "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
+  "given": "A presale window opens scenario is initiated",
+  "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome",
+  "then": "The flow completes at Code validation outcome across Presale, Invalid Code",
+  "expectedPath": [
+    "n00-OpenPresaleWindow",
+    "n00-PresaleWindowOpened",
+    "n01-RedeemAccessCode",
+    "n01-AccessCodeRedeemed",
+    "n02-InvalidateAccessCode",
+    "n02-AccessCodeInvalidated",
+    "n02-AccessCodeInvalidated"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Code validation outcome",
+      "condition": "invalid",
+      "routeChosen": "invalid"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-OpenPresaleWindow",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PresaleWindowOpened",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": ["evt-001"],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-PresaleWindowOpened",
+        "windowId": "windowId-001",
+        "openedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.RedeemAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-RedeemAccessCode",
+        "processName": "RedeemAccessCode",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "AccessCodeRedeemed",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": ["evt-003"],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-AccessCodeRedeemed",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "windowId": "windowId-001",
+        "redeemedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.InvalidateAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": ["evt-004"],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-InvalidateAccessCode",
+        "processName": "InvalidateAccessCode",
+        "codeId": "codeId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "AccessCodeInvalidated",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": ["evt-004"],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-AccessCodeInvalidated",
+        "codeId": "codeId-001",
+        "reason": "sample-reason",
+        "invalidatedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "AccessCodeInvalidated",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-1",
+      "causationEventIds": ["evt-004"],
+      "correlationId": "corr-scenario-flow-presale-access-1",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-AccessCodeInvalidated"
+      }
+    }
+  ]
+}

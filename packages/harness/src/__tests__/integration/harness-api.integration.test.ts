@@ -246,6 +246,477 @@ describe('Harness API Integration', () => {
     expect(result.divergencePoints[0].eventThatCaused).toBe('GhostCmd');
   });
 
+  // ---------------------------------------------------------------------------
+  // TE-03: Saga structural validation — MMNT-4369
+  // ---------------------------------------------------------------------------
+
+  it('TE-03: saga init passes when trigger event exists in context (structural)', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          sagas: [
+            {
+              id: 'saga-order-fulfillment',
+              name: 'OrderFulfillment',
+              trigger: 'OrderPlaced',
+              states: ['Pending', 'Processing', 'Complete'],
+              compensation: 'Cancel order and refund',
+              timeout: 'fulfillmentTimeout',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'saga-OrderFulfillment-initiated',
+              momentName: 'Saga: OrderFulfillment initiated',
+              assertions: [
+                {
+                  crossingId: 'saga-init-OrderFulfillment',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'OrderPlaced', expectedFields: [] },
+                  assertionType: 'saga' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'OrderFulfillment',
+                  precondition: 'OrderPlaced occurs',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(1);
+    expect(result.testsFailed).toBe(0);
+  });
+
+  it('TE-03: saga init fails when trigger event missing from context', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          aggregates: [],
+          events: [],
+          sagas: [
+            {
+              id: 'saga-ghost',
+              name: 'GhostSaga',
+              trigger: 'NonExistentEvent',
+              states: ['A', 'B'],
+              compensation: 'rollback',
+              timeout: 'ghostTimeout',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'saga-GhostSaga-initiated',
+              momentName: 'Saga: GhostSaga initiated',
+              assertions: [
+                {
+                  crossingId: 'saga-init-GhostSaga',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'NonExistentEvent', expectedFields: [] },
+                  assertionType: 'saga' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'GhostSaga',
+                  precondition: 'NonExistentEvent occurs',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(0);
+    expect(result.testsFailed).toBe(1);
+  });
+
+  it('TE-03: saga transition passes for adjacent states', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          sagas: [
+            {
+              id: 'saga-order-fulfillment',
+              name: 'OrderFulfillment',
+              trigger: 'OrderPlaced',
+              states: ['Pending', 'Processing', 'Complete'],
+              compensation: 'Cancel order',
+              timeout: 'fulfillmentTimeout',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'saga-OrderFulfillment-Pending-to-Processing',
+              momentName: 'Saga: OrderFulfillment Pending → Processing',
+              assertions: [
+                {
+                  crossingId: 'saga-transition-OrderFulfillment-0',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'OrderFulfillment.Processing', expectedFields: [] },
+                  assertionType: 'saga' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'OrderFulfillment',
+                  precondition: 'Saga is in Pending state',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(1);
+    expect(result.testsFailed).toBe(0);
+  });
+
+  it('TE-03: saga transition fails for non-adjacent states', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          sagas: [
+            {
+              id: 'saga-order-fulfillment',
+              name: 'OrderFulfillment',
+              trigger: 'OrderPlaced',
+              states: ['Pending', 'Processing', 'Complete'],
+              compensation: 'Cancel order',
+              timeout: 'fulfillmentTimeout',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'saga-OrderFulfillment-Pending-to-Complete',
+              momentName: 'Saga: OrderFulfillment Pending → Complete',
+              assertions: [
+                {
+                  crossingId: 'saga-transition-OrderFulfillment-skip',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'OrderFulfillment.Complete', expectedFields: [] },
+                  assertionType: 'saga' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'OrderFulfillment',
+                  precondition: 'Saga is in Pending state',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(0);
+    expect(result.testsFailed).toBe(1);
+  });
+
+  it('TE-03: saga compensation passes when compensation and timeout are defined', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          sagas: [
+            {
+              id: 'saga-order-fulfillment',
+              name: 'OrderFulfillment',
+              trigger: 'OrderPlaced',
+              states: ['Pending', 'Processing', 'Complete'],
+              compensation: 'Cancel order and refund payment',
+              timeout: 'fulfillmentTimeout',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'saga-OrderFulfillment-compensation',
+              momentName: 'Saga: OrderFulfillment compensation',
+              assertions: [
+                {
+                  crossingId: 'saga-comp-OrderFulfillment',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'OrderFulfillment.Compensated', expectedFields: [] },
+                  assertionType: 'saga' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'OrderFulfillment',
+                  precondition: 'Cancel order and refund payment',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(1);
+    expect(result.testsFailed).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // TE-04: Policy chain structural validation — MMNT-4369
+  // ---------------------------------------------------------------------------
+
+  it('TE-04: policy chain passes when trigger event and chainsTo command both exist', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          policies: [
+            {
+              id: 'pol-fulfill-on-placed',
+              name: 'FulfillOnOrderPlaced',
+              trigger: 'OrderPlaced',
+              action: 'Initiate fulfillment after order is placed',
+              chainsTo: 'PlaceOrder',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'policy-FulfillOnOrderPlaced',
+              momentName: 'Policy: FulfillOnOrderPlaced',
+              assertions: [
+                {
+                  crossingId: 'policy-chain-FulfillOnOrderPlaced',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'PlaceOrder', expectedFields: [] },
+                  assertionType: 'policy-chain' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'FulfillOnOrderPlaced',
+                  precondition: 'OrderPlaced occurs → PlaceOrder must follow',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(1);
+    expect(result.testsFailed).toBe(0);
+  });
+
+  it('TE-04: policy chain fails when chainsTo command does not exist', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          policies: [
+            {
+              id: 'pol-ghost',
+              name: 'GhostPolicy',
+              trigger: 'OrderPlaced',
+              action: 'Do something',
+              chainsTo: 'NonExistentCommand',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'policy-GhostPolicy',
+              momentName: 'Policy: GhostPolicy',
+              assertions: [
+                {
+                  crossingId: 'policy-chain-GhostPolicy',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'NonExistentCommand', expectedFields: [] },
+                  assertionType: 'policy-chain' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'GhostPolicy',
+                  precondition: 'OrderPlaced occurs → NonExistentCommand must follow',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(0);
+    expect(result.testsFailed).toBe(1);
+  });
+
+  it('TE-04: policy chain fails when trigger event does not exist', () => {
+    const ir: IntermediateRepresentation = {
+      ...sampleIR,
+      contexts: [
+        {
+          ...sampleIR.contexts[0],
+          policies: [
+            {
+              id: 'pol-bad-trigger',
+              name: 'BadTriggerPolicy',
+              trigger: 'NonExistentEvent',
+              action: 'Do something',
+              chainsTo: 'PlaceOrder',
+            },
+          ],
+        },
+        sampleIR.contexts[1],
+      ],
+    };
+
+    const topology: TestSuiteTopology = {
+      ...sampleTopology,
+      suites: [
+        {
+          ...sampleTopology.suites[0],
+          testCases: [
+            {
+              momentId: 'policy-BadTriggerPolicy',
+              momentName: 'Policy: BadTriggerPolicy',
+              assertions: [
+                {
+                  crossingId: 'policy-chain-BadTriggerPolicy',
+                  sourceContext: 'ctx-ordering',
+                  targetContext: 'ctx-ordering',
+                  schemaContract: { eventType: 'PlaceOrder', expectedFields: [] },
+                  assertionType: 'policy-chain' as const,
+                },
+              ],
+              setupSteps: [
+                {
+                  contextName: 'Ordering',
+                  aggregateName: 'BadTriggerPolicy',
+                  precondition: 'NonExistentEvent occurs → PlaceOrder must follow',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const runner = new TestRunner();
+    const result = runner.run(topology, ir);
+    expect(result.testsPassed).toBe(0);
+    expect(result.testsFailed).toBe(1);
+  });
+
   it('consumer ergonomics — single import, full API accessible', () => {
     // Verify all public types and classes are importable from @mmmnt/harness
     expect(TestRunner).toBeDefined();

@@ -3,6 +3,7 @@ import { runParse, formatDiagnostic } from './commands/parse.js';
 import { runWatch } from './commands/watch.js';
 import { runDerive } from './commands/derive.js';
 import { runGenerate } from './commands/generate.js';
+import { runCucumberJson } from './commands/cucumber-json.js';
 import { runEmitTs } from './commands/emit-ts.js';
 import { runTest } from './commands/test.js';
 import { runViz } from './commands/viz.js';
@@ -368,13 +369,32 @@ switch (command) {
     }
     break;
   }
+  case 'cucumber-json': {
+    runCucumberJson(args)
+      .then((result) => {
+        if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
+          for (const d of result.diagnostics) {
+            console.error(formatDiagnostic(d, result.filePath));
+          }
+          process.exitCode = 1;
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
   default:
     if (command) {
       console.error(`Error: Unknown command '${command}'`);
     } else {
       console.error('Usage: moment <command> [options]');
       console.error(
-        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, reconcile, status, auth',
+        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, reconcile, status, cucumber-json, auth',
       );
     }
     process.exitCode = 1;

@@ -1,0 +1,165 @@
+{
+  "scenarioId": "scenario-flow-event-cancellation-neg-RevokeTicket-ticketNotRevoked",
+  "scenarioLabel": "Failure: Ticket must not already be revoked not met",
+  "description": "Negative scenario: Ticket must not already be revoked precondition violation at RevokeTicket",
+  "given": "A event cancellation scenario is initiated",
+  "when": "RevokeTicket is invoked without satisfying ticketNotRevoked",
+  "then": "The command RevokeTicket is rejected",
+  "expectedPath": [
+    "n00-CancelEvent",
+    "n00-EventCancelled",
+    "n01-EventCancelled",
+    "n02-EventCancelled",
+    "n03-EventCancelled",
+    "n04-ReleaseHold",
+    "n04-HoldReleased",
+    "n05-RevokeTicket"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.CancelEvent",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-CancelEvent",
+        "processName": "CancelEvent",
+        "eventId": "eventId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-001"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-EventCancelled",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-EventCancelled",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-003"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-EventCancelled",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-004"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n03-EventCancelled",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SimProcess.ReleaseHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-ReleaseHold",
+        "processName": "ReleaseHold",
+        "holdId": "holdId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "HoldReleased",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n04-HoldReleased",
+        "holdId": "holdId-001",
+        "reason": "sample-reason",
+        "returnedQuantity": 0,
+        "releasedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "SimProcess.RevokeTicket",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n05-RevokeTicket",
+        "processName": "RevokeTicket",
+        "ticketId": "ticketId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "SimFailure.RevokeTicket.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-event-cancellation",
+      "causationEventIds": ["evt-008"],
+      "correlationId": "corr-scenario-flow-event-cancellation",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n05-RevokeTicket",
+        "failedPrecondition": "ticketNotRevoked",
+        "description": "Ticket must not already be revoked"
+      }
+    }
+  ]
+}

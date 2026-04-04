@@ -52,6 +52,37 @@ jobs:
         run: pnpm turbo test:integration -- --passWithNoTests
         continue-on-error: true
 
+      - name: Generate Cucumber JSON from fixtures
+        if: matrix.node-version == 22
+        run: |
+          MOMENT="node packages/cli/dist/moment.mjs"
+          mkdir -p test-results/cucumber
+          for f in fixtures/valid/unified/*.moment; do
+            NAME=$(basename "$f" .moment)
+            $MOMENT cucumber-json "$f" > "test-results/cucumber/${NAME}.cucumber.json" || true
+          done
+
+      - name: Verify Facet scenarios are up to date
+        if: matrix.node-version == 22
+        run: |
+          MOMENT="node packages/cli/dist/moment.mjs"
+          STALE=0
+          for dir in examples/*/; do
+            SPEC=$(find "$dir/spec" -name "*.moment" -maxdepth 1 2>/dev/null | head -1)
+            if [ -n "$SPEC" ] && [ -d "${dir}facet" ]; then
+              $MOMENT simulate "$SPEC" --all --out-dir "/tmp/facet-check" 2>/dev/null
+              if ! diff -q "/tmp/facet-check/manifest.json" "${dir}facet/manifest.json" > /dev/null 2>&1; then
+                echo "::error::Facet scenarios in ${dir}facet/ are stale. Run: moment simulate $SPEC --all --out-dir ${dir}facet"
+                STALE=1
+              fi
+              rm -rf /tmp/facet-check
+            fi
+          done
+          if [ "$STALE" -eq 1 ]; then
+            echo "Facet scenario files are out of date. The pre-commit hook should have regenerated them."
+            exit 1
+          fi
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()
@@ -65,6 +96,13 @@ jobs:
         with:
           name: junit-results
           path: packages/*/test-results/junit.xml
+
+      - name: Upload Cucumber JSON results
+        uses: actions/upload-artifact@v4
+        if: always() && matrix.node-version == 22
+        with:
+          name: cucumber-results
+          path: test-results/cucumber/*.cucumber.json
 
       - name: Snapshot freshness
         run: pnpm turbo test -- --no-update --passWithNoTests
@@ -87,6 +125,12 @@ jobs:
         with:
           name: junit-results
           path: test-results/
+
+      - name: Download Cucumber JSON results
+        uses: actions/download-artifact@v4
+        with:
+          name: cucumber-results
+          path: cucumber-results/
 
       - name: Resolve sprint from feature branch story
         id: sprint
@@ -172,8 +216,41 @@ jobs:
           done
           echo "ids=$(echo $EXEC_IDS | xargs)" >> $GITHUB_OUTPUT
 
+      - name: Import Cucumber JSON results
+        id: xray-cucumber-import
+        run: |
+          SPRINT_ID="${{ steps.sprint.outputs.id }}"
+          SPRINT_FIELD=""
+          if [ -n "$SPRINT_ID" ]; then
+            SPRINT_FIELD=",\"customfield_10020\":$SPRINT_ID"
+          fi
+
+          EXEC_IDS="${{ steps.xray-import.outputs.ids }}"
+          for f in $(find cucumber-results -name 'cucumber.json'); do
+            # Skip empty Cucumber files
+            if [ ! -s "$f" ]; then
+              echo "Skipping $f — empty file."
+              continue
+            fi
+            echo "Importing Cucumber results from $f..."
+            RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 -X POST \
+              "https://xray.cloud.getxray.app/api/v2/import/execution/cucumber/multipart" \
+              -H "Authorization: Bearer ${{ steps.xray-auth.outputs.token }}" \
+              -F "info=@-;type=application/json" <<< "{\"fields\":{\"project\":{\"key\":\"MMNT\"},\"summary\":\"CI Run #${{ github.run_number }} — Cucumber\",\"issuetype\":{\"name\":\"Test Execution\"}${SPRINT_FIELD}},\"xpiTestPlanKey\":\"MMNT-585\"}" \
+              -F "results=@${f};type=application/json" || true)
+            EXEC_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+            EXEC_KEY=$(echo "$RESPONSE" | jq -r '.key // empty')
+            if [ -n "$EXEC_ID" ]; then
+              EXEC_IDS="$EXEC_IDS $EXEC_ID"
+              echo "  Created Test Execution: $EXEC_KEY (id: $EXEC_ID)"
+            else
+              echo "  Warning: no execution ID in response: $(echo "$RESPONSE" | head -c 200)"
+            fi
+          done
+          echo "ids=$(echo $EXEC_IDS | xargs)" >> $GITHUB_OUTPUT
+
       - name: Transition Test issues based on execution results
-        if: steps.xray-import.outputs.ids != ''
+        if: steps.xray-import.outputs.ids != '' || steps.xray-cucumber-import.outputs.ids != '' || steps.xray-cucumber-import.outputs.ids != ''
         run: |
           echo "Querying test run results and transitioning Test issues..."
 
@@ -193,7 +270,7 @@ jobs:
           echo "Found $PLANNED_COUNT Test issues in Planned state."
 
           TRANSITIONED=0
-          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+          for EXEC_ID in ${{ steps.xray-cucumber-import.outputs.ids || steps.xray-import.outputs.ids }}; do
             echo "Processing execution id $EXEC_ID..."
 
             # Paginate through all test runs — Xray caps at 100 per query
@@ -289,11 +366,11 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
       - name: Transition Test Execution issues to Done
-        if: steps.xray-import.outputs.ids != ''
+        if: steps.xray-import.outputs.ids != '' || steps.xray-cucumber-import.outputs.ids != ''
         run: |
           echo "Transitioning Test Execution issues to Done..."
           TRANSITIONED=0
-          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+          for EXEC_ID in ${{ steps.xray-cucumber-import.outputs.ids || steps.xray-import.outputs.ids }}; do
             EXEC_KEY=$(curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
               "https://winnovation.atlassian.net/rest/api/3/issue/$EXEC_ID?fields=key,status" \
               | jq -r '.key // empty' 2>/dev/null)
@@ -322,7 +399,7 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
       - name: Add Tests to Test Set and link to story
-        if: steps.xray-import.outputs.ids != ''
+        if: steps.xray-import.outputs.ids != '' || steps.xray-cucumber-import.outputs.ids != ''
         run: |
           BRANCH="${{ github.head_ref || github.ref_name }}"
           STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
@@ -382,7 +459,7 @@ jobs:
           # Collect all test issue IDs and keys from executions
           ALL_TEST_IDS=""
           ALL_TEST_KEYS=""
-          for EXEC_ID in ${{ steps.xray-import.outputs.ids }}; do
+          for EXEC_ID in ${{ steps.xray-cucumber-import.outputs.ids || steps.xray-import.outputs.ids }}; do
             PAGE_START=0
             while true; do
               QUERY="{\"query\":\"{ getTestExecution(issueId: \\\"$EXEC_ID\\\") { testRuns(limit: 100, start: $PAGE_START) { total results { test { issueId jira(fields: [\\\"key\\\"]) } } } } }\"}"

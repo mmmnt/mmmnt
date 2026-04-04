@@ -1,0 +1,161 @@
+{
+  "scenarioId": "scenario-flow-ticket-transfer-1",
+  "scenarioLabel": "Failure Path: ticket-transfer [declined]",
+  "description": "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked.",
+  "given": "A transfer initiation scenario is initiated",
+  "when": "The flow progresses through Transfer initiation, Recipient notification, Transfer resolution",
+  "then": "The flow completes at Transfer resolution across Delivery, Notifications, Transfer Declined",
+  "expectedPath": [
+    "n00-InitiateTransfer",
+    "n00-TransferInitiated",
+    "n01-SendTransferNotification",
+    "n01-TransferNotificationSent",
+    "n02-DeclineTransfer",
+    "n02-TransferDeclined",
+    "n02-TransferDeclined"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Transfer resolution",
+      "condition": "declined",
+      "routeChosen": "declined"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.InitiateTransfer",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-InitiateTransfer",
+        "processName": "InitiateTransfer",
+        "ticketId": "ticketId-001",
+        "fromCustomerId": "fromCustomerId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "TransferInitiated",
+      "productSource": "delivery",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-001"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n00-TransferInitiated",
+        "transferId": "transferId-001",
+        "ticketId": "ticketId-001",
+        "fromCustomerId": "fromCustomerId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "initiatedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "SimSaga.TransferLifecycle.Pending",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "TransferLifecycle",
+        "state": "Pending",
+        "triggeredBy": "TransferInitiated"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.SendTransferNotification",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-SendTransferNotification",
+        "processName": "SendTransferNotification",
+        "transferId": "transferId-001",
+        "ticketId": "ticketId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName",
+        "eventTitle": "sample-eventTitle",
+        "fromName": "sample-fromName"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "TransferNotificationSent",
+      "productSource": "notifications",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n01-TransferNotificationSent",
+        "dispatchId": "dispatchId-001",
+        "transferId": "transferId-001",
+        "toEmail": "sample-toEmail",
+        "sentAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.DeclineTransfer",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-DeclineTransfer",
+        "processName": "DeclineTransfer",
+        "transferId": "transferId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "TransferDeclined",
+      "productSource": "delivery",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-TransferDeclined",
+        "transferId": "transferId-001",
+        "reason": "sample-reason",
+        "declinedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "TransferDeclined",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": ["evt-002"],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "n02-TransferDeclined"
+      }
+    }
+  ]
+}
