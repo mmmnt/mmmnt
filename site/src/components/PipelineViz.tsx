@@ -57,7 +57,7 @@ export default function PipelineViz({ stages }: Props) {
 
               <button
                 class={`pipeline__node pipeline__node--stage ${active === stage.id ? 'pipeline__node--active' : ''}`}
-                style={`--stage-color: ${stageColors[stage.id]}`}
+                style={`--stage-color: ${stageColors[stage.id] ?? 'var(--color-accent)'}`}
                 onClick={() => setActive(active === stage.id ? null : stage.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') setActive(null);

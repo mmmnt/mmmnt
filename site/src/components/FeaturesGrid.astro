@@ -35,7 +35,7 @@ const icons: Record<string, string> = {
               >
                 {(icons[feature.icon] || icons.file).split(' M').map((segment, i) => {
                   const d = i === 0 ? segment : `M${segment}`;
-                  return <path d={d} />;
+                  return <path key={i} d={d} />;
                 })}
               </svg>
             </div>

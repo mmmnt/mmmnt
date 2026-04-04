@@ -222,8 +222,6 @@ function renderMarkdown(md: string): string {
 
 export default function CodePanel({ tabs, title }: Props) {
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? '');
-  const current = tabs.find((t) => t.id === activeTab) ?? tabs[0];
-  const isMarkdown = current?.language === 'markdown';
 
   return (
     <div class="code-panel">
@@ -233,6 +231,7 @@ export default function CodePanel({ tabs, title }: Props) {
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              id={`tab-${tab.id}`}
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`panel-${tab.id}`}
@@ -245,25 +244,34 @@ export default function CodePanel({ tabs, title }: Props) {
             </button>
           ))}
         </div>
-        <div
-          id={`panel-${current?.id}`}
-          role="tabpanel"
-          class={isMarkdown ? 'code-panel__prose' : 'code-panel__content'}
-          tabIndex={0}
-        >
-          {isMarkdown ? (
-            <div dangerouslySetInnerHTML={{ __html: renderMarkdown(current?.code ?? '') }} />
-          ) : (
-            <pre>
-              <code
-                class={`language-${current?.language}`}
-                dangerouslySetInnerHTML={{
-                  __html: highlightCode(current?.code ?? '', current?.language ?? ''),
-                }}
-              />
-            </pre>
-          )}
-        </div>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const isMd = tab.language === 'markdown';
+          return (
+            <div
+              key={tab.id}
+              id={`panel-${tab.id}`}
+              role="tabpanel"
+              aria-labelledby={`tab-${tab.id}`}
+              class={isMd ? 'code-panel__prose' : 'code-panel__content'}
+              tabIndex={0}
+              hidden={!isActive}
+            >
+              {isMd ? (
+                <div dangerouslySetInnerHTML={{ __html: renderMarkdown(tab.code) }} />
+              ) : (
+                <pre>
+                  <code
+                    class={`language-${tab.language}`}
+                    dangerouslySetInnerHTML={{
+                      __html: highlightCode(tab.code, tab.language),
+                    }}
+                  />
+                </pre>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
