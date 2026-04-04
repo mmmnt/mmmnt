@@ -77,32 +77,36 @@ export class TestRunner {
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
   ): boolean {
-    // TE-03: saga structural validation
-    if (testCase.momentId.startsWith('saga-')) {
-      return this.evaluateSagaTestCase(testCase, ir);
-    }
-
-    // TE-04: policy chain structural validation
-    if (testCase.momentId.startsWith('policy-')) {
-      return this.evaluatePolicyTestCase(testCase, ir);
-    }
-
-    return this.evaluateMomentTestCase(testCase, flow, ir);
-  }
-
-  private evaluateMomentTestCase(
-    testCase: TestCaseDefinition,
-    flow: FlowDefinition,
-    ir: IntermediateRepresentation,
-  ): boolean {
-    const momentExists = flow.moments.some((f) => f.id === testCase.momentId);
-    if (!momentExists) {
+    // Common baseline: validate setup contexts and assertion contexts exist
+    if (!this.validateBaselineContexts(testCase, ir)) {
       return false;
     }
 
+    // Dispatch on assertionType from the test case's assertions
+    const assertionType = this.resolveAssertionType(testCase);
+
+    if (assertionType === 'saga') {
+      return this.evaluateSagaTestCase(testCase, ir);
+    }
+
+    if (assertionType === 'policy-chain') {
+      return this.evaluatePolicyTestCase(testCase, ir);
+    }
+
+    return this.evaluateMomentTestCase(testCase, flow);
+  }
+
+  private resolveAssertionType(testCase: TestCaseDefinition): string | undefined {
+    if (testCase.assertions.length === 0) return undefined;
+    return testCase.assertions[0].assertionType;
+  }
+
+  private validateBaselineContexts(
+    testCase: TestCaseDefinition,
+    ir: IntermediateRepresentation,
+  ): boolean {
     for (const setup of testCase.setupSteps) {
-      const contextExists = ir.contexts.some((c) => c.name === setup.contextName);
-      if (!contextExists) {
+      if (!ir.contexts.some((c) => c.name === setup.contextName)) {
         return false;
       }
     }
@@ -118,16 +122,25 @@ export class TestRunner {
     return true;
   }
 
+  private evaluateMomentTestCase(testCase: TestCaseDefinition, flow: FlowDefinition): boolean {
+    return flow.moments.some((f) => f.id === testCase.momentId);
+  }
+
   // TE-03: Saga structural validation against the IR
   private evaluateSagaTestCase(
     testCase: TestCaseDefinition,
     ir: IntermediateRepresentation,
   ): boolean {
     const sagaName = this.extractSagaName(testCase.momentId);
-    if (!sagaName) return false;
 
-    const { saga, context } = this.findSaga(sagaName, ir);
-    if (!saga || !context) return false;
+    // For transition cases, extractSagaName returns undefined because we can't
+    // reliably parse the saga name from hyphenated state names. Scan all sagas.
+    if (!sagaName) {
+      return this.evaluateSagaTransitionByScan(testCase.momentId, ir);
+    }
+
+    const saga = this.findSaga(sagaName, ir);
+    if (!saga) return false;
 
     if (testCase.momentId.endsWith('-compensation')) {
       return saga.compensation.length > 0 && saga.timeout.length > 0;
@@ -137,12 +150,10 @@ export class TestRunner {
       return this.eventExistsInIr(saga.trigger, ir);
     }
 
-    // Transition case: saga-{name}-{fromState}-to-{toState}
     return this.evaluateSagaTransition(testCase.momentId, saga);
   }
 
   private extractSagaName(momentId: string): string | undefined {
-    // saga-{name}-initiated | saga-{name}-compensation | saga-{name}-{from}-to-{to}
     const withoutPrefix = momentId.slice('saga-'.length);
 
     if (withoutPrefix.endsWith('-initiated')) {
@@ -152,41 +163,38 @@ export class TestRunner {
       return withoutPrefix.slice(0, -'-compensation'.length);
     }
 
-    // Transition: {name}-{fromState}-to-{toState}
-    const toIdx = withoutPrefix.lastIndexOf('-to-');
-    if (toIdx === -1) return undefined;
-
-    const nameAndFrom = withoutPrefix.slice(0, toIdx);
-    const dashIdx = nameAndFrom.lastIndexOf('-');
-    if (dashIdx === -1) return undefined;
-
-    return nameAndFrom.slice(0, dashIdx);
+    // Transition — saga name is extracted by findSaga matching, not delimiter parsing
+    return undefined;
   }
 
-  private findSaga(
-    sagaName: string,
-    ir: IntermediateRepresentation,
-  ): { saga: SagaDefinition | undefined; context: ContextDefinition | undefined } {
+  private findSaga(sagaName: string, ir: IntermediateRepresentation): SagaDefinition | undefined {
     for (const ctx of ir.contexts) {
       const saga = ctx.sagas.find((s) => s.name === sagaName);
-      if (saga) return { saga, context: ctx };
+      if (saga) return saga;
     }
-    return { saga: undefined, context: undefined };
+    return undefined;
   }
 
+  /**
+   * Evaluates saga transitions by forward-matching against expected momentIds
+   * built from consecutive state pairs. Avoids fragile delimiter-based parsing
+   * of state names that may contain hyphens.
+   */
   private evaluateSagaTransition(momentId: string, saga: SagaDefinition): boolean {
-    const withoutPrefix = momentId.slice('saga-'.length);
-    const toIdx = withoutPrefix.lastIndexOf('-to-');
-    if (toIdx === -1) return false;
+    for (let i = 0; i < saga.states.length - 1; i++) {
+      const expected = `saga-${saga.name}-${saga.states[i]}-to-${saga.states[i + 1]}`;
+      if (momentId === expected) return true;
+    }
+    return false;
+  }
 
-    const nameAndFrom = withoutPrefix.slice(0, toIdx);
-    const toState = withoutPrefix.slice(toIdx + '-to-'.length);
-    const fromState = nameAndFrom.slice(saga.name.length + 1);
-
-    const fromIdx = saga.states.indexOf(fromState);
-    const toStateIdx = saga.states.indexOf(toState);
-
-    return fromIdx !== -1 && toStateIdx !== -1 && toStateIdx === fromIdx + 1;
+  private evaluateSagaTransitionByScan(momentId: string, ir: IntermediateRepresentation): boolean {
+    for (const ctx of ir.contexts) {
+      for (const saga of ctx.sagas) {
+        if (this.evaluateSagaTransition(momentId, saga)) return true;
+      }
+    }
+    return false;
   }
 
   private eventExistsInContext(eventName: string, context: ContextDefinition): boolean {
@@ -206,8 +214,7 @@ export class TestRunner {
     const policy = this.findPolicy(policyName, ir);
     if (!policy) return false;
 
-    const triggerExists = this.eventExistsInIr(policy.trigger, ir);
-    if (!triggerExists) return false;
+    if (!this.eventExistsInIr(policy.trigger, ir)) return false;
 
     if (policy.chainsTo) {
       return this.commandExistsInIr(policy.chainsTo, ir);
