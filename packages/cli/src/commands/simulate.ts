@@ -89,7 +89,7 @@ function writeScenarioFiles(
   for (const scenario of scenarios) {
     const fileName = `${scenario.scenarioId}.json`;
     const filePath = join(resolvedDir, fileName);
-    writeFileSync(filePath, JSON.stringify(scenario, null, 2), 'utf-8');
+    writeFileSync(filePath, JSON.stringify(scenario, null, 2) + '\n', 'utf-8');
 
     manifest.push({
       scenarioId: scenario.scenarioId,
@@ -105,7 +105,7 @@ function writeScenarioFiles(
   }
 
   const manifestPath = join(resolvedDir, 'manifest.json');
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
 
   const totalEvents = scenarios.reduce((sum, s) => sum + s.events.length, 0);
 
