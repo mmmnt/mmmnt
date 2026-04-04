@@ -1,0 +1,110 @@
+/* ============================================================
+   Critical CSS — Inlined in <head> to prevent FOUC
+   ============================================================ */
+
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/Outfit-Variable.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  size-adjust: 100%;
+  ascent-override: 95%;
+  descent-override: 25%;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  min-height: 100dvh;
+}
+
+/* Skip navigation */
+.skip-nav {
+  position: absolute;
+  top: -100%;
+  left: var(--space-4);
+  z-index: 1000;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  transition: top var(--duration-fast) var(--ease-out);
+}
+
+.skip-nav:focus {
+  top: var(--space-4);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Prose defaults */
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}

@@ -1,0 +1,530 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base
+  title="Get Started"
+  description="Install Moment, write your first .moment specification, and generate typed TypeScript, Gherkin tests, and documentation."
+>
+  <Nav slot="nav" />
+
+  <section class="gs-hero">
+    <div class="gs-hero__inner">
+      <h1 class="gs-hero__title">Get Started</h1>
+      <p class="gs-hero__subtitle">
+        From zero to generated artifacts in minutes. By the end of this guide,
+        you'll have typed TypeScript, test scaffolds, Gherkin features, spec documents,
+        and AsyncAPI contracts &mdash; all from a single <code>.moment</code> file.
+      </p>
+    </div>
+  </section>
+
+  <section class="gs-prereqs">
+    <div class="gs-prereqs__inner">
+      <h2 class="gs-prereqs__title">Before you begin</h2>
+      <div class="gs-prereqs__grid">
+        <div class="gs-prereqs__item">
+          <strong>Node.js 20+</strong>
+          <span>Required runtime</span>
+        </div>
+        <div class="gs-prereqs__item">
+          <strong>pnpm 10+</strong>
+          <span>Package manager (Moment uses pnpm workspaces)</span>
+        </div>
+        <div class="gs-prereqs__item">
+          <strong>TypeScript 5.8+</strong>
+          <span>For generated type artifacts</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gs-content">
+    <div class="gs-content__inner">
+
+      <!-- Step 1: Install -->
+      <div class="gs-step">
+        <div class="gs-step__number">1</div>
+        <div class="gs-step__body">
+          <h2 class="gs-step__title">Clone and build</h2>
+          <p class="gs-step__desc">
+            Moment is distributed as a monorepo. Clone it and build all packages.
+          </p>
+          <div class="gs-terminal">
+            <div class="gs-terminal__header">
+              <span class="gs-terminal__dot gs-terminal__dot--red"></span>
+              <span class="gs-terminal__dot gs-terminal__dot--yellow"></span>
+              <span class="gs-terminal__dot gs-terminal__dot--green"></span>
+            </div>
+            <div class="gs-terminal__body">
+              <pre><code>git clone https://github.com/mmmnt/mmmnt.git
+cd mmmnt
+pnpm install
+pnpm turbo build</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Write a spec -->
+      <div class="gs-step">
+        <div class="gs-step__number">2</div>
+        <div class="gs-step__body">
+          <h2 class="gs-step__title">Write your first specification</h2>
+          <p class="gs-step__desc">
+            Create a <code>.moment</code> file describing your domain. Here's a minimal example
+            with one bounded context, an aggregate, a command, and an event.
+          </p>
+          <div class="gs-terminal">
+            <div class="gs-terminal__header">
+              <span class="gs-terminal__dot gs-terminal__dot--red"></span>
+              <span class="gs-terminal__dot gs-terminal__dot--yellow"></span>
+              <span class="gs-terminal__dot gs-terminal__dot--green"></span>
+              <span class="gs-terminal__filename">shop.moment</span>
+            </div>
+            <div class="gs-terminal__body">
+              <pre><code>{`context "Shop" [Core]
+
+  aggregate "Product"
+    identity productId: UUID
+
+    command CreateProduct
+      input name: string, price: Money
+      precondition nameNotEmpty: "Name must not be empty"
+      emits ProductCreated
+
+    event ProductCreated
+      productId: UUID
+      name: string
+      price: Money
+      createdAt: DateTime
+
+  value-object Money
+    amount: number
+    currency: string
+
+  invariant SHOP-01 "Product name must not be empty"
+    scope Product`}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Parse -->
+      <div class="gs-step">
+        <div class="gs-step__number">3</div>
+        <div class="gs-step__body">
+          <h2 class="gs-step__title">Parse and generate</h2>
+          <p class="gs-step__desc">
+            Run the Moment CLI to parse your specification, derive test topologies,
+            and generate all artifacts.
+          </p>
+          <div class="gs-terminal">
+            <div class="gs-terminal__header">
+              <span class="gs-terminal__dot gs-terminal__dot--red"></span>
+              <span class="gs-terminal__dot gs-terminal__dot--yellow"></span>
+              <span class="gs-terminal__dot gs-terminal__dot--green"></span>
+            </div>
+            <div class="gs-terminal__body">
+              <pre><code>{`# Parse the specification into IR
+moment parse shop.moment
+
+# Derive test topologies and scenarios
+moment derive
+
+# Generate all output artifacts
+moment generate --all
+
+# Or run everything in watch mode
+moment watch shop.moment`}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Explore outputs -->
+      <div class="gs-step">
+        <div class="gs-step__number">4</div>
+        <div class="gs-step__body">
+          <h2 class="gs-step__title">Explore what was generated</h2>
+          <p class="gs-step__desc">
+            Moment produces several artifact types from your specification:
+          </p>
+          <ul class="gs-step__list">
+            <li>
+              <strong>TypeScript interfaces</strong> &mdash; Discriminated union types, readonly fields,
+              and aggregate classes ready for implementation
+            </li>
+            <li>
+              <strong>Test scaffolds</strong> &mdash; Pre-populated <code>.spec.ts</code> files with types,
+              setup steps, and assertion stubs
+            </li>
+            <li>
+              <strong>Gherkin features</strong> &mdash; BDD scenarios covering every command, event,
+              precondition, and invariant
+            </li>
+            <li>
+              <strong>Spec documents</strong> &mdash; Markdown with Mermaid diagrams for living documentation
+            </li>
+            <li>
+              <strong>AsyncAPI contracts</strong> &mdash; Event-driven API documentation
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- CLI Reference -->
+      <div class="gs-step">
+        <div class="gs-step__number">5</div>
+        <div class="gs-step__body">
+          <h2 class="gs-step__title">CLI command highlights</h2>
+          <p class="gs-step__desc">
+            Moment ships with 20+ CLI commands. Here are the ones you'll use most.
+          </p>
+          <div class="gs-commands">
+            <div class="gs-command">
+              <code class="gs-command__name">moment parse &lt;file&gt;</code>
+              <span class="gs-command__desc">Parse a .moment file into Intermediate Representation</span>
+            </div>
+            <div class="gs-command">
+              <code class="gs-command__name">moment derive</code>
+              <span class="gs-command__desc">Derive test topologies, scenarios, and impact catalogs</span>
+            </div>
+            <div class="gs-command">
+              <code class="gs-command__name">moment generate --all</code>
+              <span class="gs-command__desc">Generate Gherkin, spec docs, TypeScript, and test scaffolds</span>
+            </div>
+            <div class="gs-command">
+              <code class="gs-command__name">moment watch &lt;file&gt;</code>
+              <span class="gs-command__desc">Watch for changes and auto-regenerate artifacts</span>
+            </div>
+            <div class="gs-command">
+              <code class="gs-command__name">moment drift</code>
+              <span class="gs-command__desc">Detect implementation drift from specification</span>
+            </div>
+            <div class="gs-command">
+              <code class="gs-command__name">moment reconcile</code>
+              <span class="gs-command__desc">Reconcile specification with implementation changes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next steps -->
+      <div class="gs-next">
+        <h2 class="gs-next__title">Next steps</h2>
+        <div class="gs-next__links">
+          <a href="https://github.com/mmmnt/mmmnt/wiki" class="gs-next__link" target="_blank" rel="noopener noreferrer">
+            <strong>Full Documentation</strong>
+            <span>Deep dives into every package, the DSL grammar, and architecture</span>
+          </a>
+          <a href="/examples" class="gs-next__link">
+            <strong>See Examples</strong>
+            <span>Real-world domain specifications with generated output artifacts</span>
+          </a>
+          <a href="/ecosystem" class="gs-next__link">
+            <strong>Explore the Ecosystem</strong>
+            <span>How Moment works with Sift and Forge in the Complai workflow</span>
+          </a>
+          <a href="https://github.com/mmmnt/mmmnt" class="gs-next__link" target="_blank" rel="noopener noreferrer">
+            <strong>GitHub Repository</strong>
+            <span>Source code, issues, and releases</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .gs-hero {
+    padding: var(--space-20) var(--space-6) var(--space-10);
+    text-align: center;
+  }
+
+  .gs-hero__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+  }
+
+  .gs-hero__title {
+    font-size: var(--text-4xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-4);
+  }
+
+  .gs-hero__subtitle {
+    color: var(--color-text-secondary);
+    font-size: var(--text-lg);
+  }
+
+  .gs-content {
+    padding: var(--space-6);
+  }
+
+  .gs-content__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+  }
+
+  /* Prerequisites */
+  .gs-prereqs {
+    padding: 0 var(--space-6) var(--space-8);
+  }
+
+  .gs-prereqs__inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .gs-prereqs__title {
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-xs);
+  }
+
+  .gs-prereqs__grid {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+  }
+
+  .gs-prereqs__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .gs-prereqs__item strong {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  .gs-prereqs__item span {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+  }
+
+  /* Steps */
+  .gs-step {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-10) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .gs-step__number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--color-accent-muted);
+    color: var(--color-accent);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-lg);
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid var(--color-accent);
+  }
+
+  .gs-step__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gs-step__title {
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-2);
+  }
+
+  .gs-step__desc {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+    margin-bottom: var(--space-4);
+  }
+
+  .gs-step__desc code {
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+
+  .gs-step__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .gs-step__list li {
+    padding-left: var(--space-5);
+    position: relative;
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+    font-size: var(--text-sm);
+  }
+
+  .gs-step__list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  .gs-step__list strong {
+    color: var(--color-text-primary);
+  }
+
+  .gs-step__list code {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+  }
+
+  /* Terminal */
+  .gs-terminal {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .gs-terminal__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface-raised);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .gs-terminal__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .gs-terminal__dot--red { background: #ef4444; }
+  .gs-terminal__dot--yellow { background: #eab308; }
+  .gs-terminal__dot--green { background: #22c55e; }
+
+  .gs-terminal__filename {
+    margin-left: var(--space-2);
+    color: var(--color-text-tertiary);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+  }
+
+  .gs-terminal__body {
+    padding: var(--space-5);
+    overflow-x: auto;
+  }
+
+  .gs-terminal__body pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--color-text-primary);
+  }
+
+  /* Commands */
+  .gs-commands {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .gs-command {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .gs-command__name {
+    color: var(--color-accent);
+    font-size: var(--text-sm);
+  }
+
+  .gs-command__desc {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  /* Next steps */
+  .gs-next {
+    padding: var(--space-12) 0;
+  }
+
+  .gs-next__title {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-6);
+  }
+
+  .gs-next__links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+
+  .gs-next__link {
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .gs-next__link:hover {
+    border-color: var(--color-accent);
+    color: inherit;
+  }
+
+  .gs-next__link strong {
+    display: block;
+    margin-bottom: var(--space-1);
+    color: var(--color-text-primary);
+  }
+
+  .gs-next__link span {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  @media (max-width: 768px) {
+    .gs-step {
+      flex-direction: column;
+    }
+
+    .gs-next__links {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

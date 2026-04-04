@@ -1,0 +1,113 @@
+{
+  "envelope": {
+    "name": "ComplaiEventEnvelope",
+    "description": "The canonical event format that unifies all Complai tools. Every event flowing between Sift, Moment, and Forge is wrapped in this envelope.",
+    "fields": [
+      { "name": "eventId", "type": "UUID", "description": "Unique event identifier" },
+      { "name": "eventType", "type": "string", "description": "Discriminator for payload type" },
+      { "name": "version", "type": "string", "description": "Schema version (semver)" },
+      { "name": "productSource", "type": "string", "description": "Originating tool (sift | moment | forge)" },
+      { "name": "sessionId", "type": "UUID", "description": "Modeling session identifier" },
+      { "name": "causationEventIds", "type": "UUID[]", "description": "Events that caused this event" },
+      { "name": "correlationId", "type": "UUID", "description": "Correlation chain identifier" },
+      { "name": "timestamp", "type": "ISO-8601", "description": "Event creation timestamp" },
+      { "name": "payload", "type": "object", "description": "Event-specific data" }
+    ]
+  },
+  "tools": [
+    {
+      "id": "sift",
+      "name": "Sift",
+      "tagline": "Domain Discovery",
+      "description": "Upstream domain modeling tool that captures the initial domain exploration — bounded contexts, aggregates, commands, events, value objects, invariants, policies, and sagas. Publishes structured building block events that Moment imports.",
+      "events": [
+        "BoundedContextDefined",
+        "AggregateAdded",
+        "CommandDefined",
+        "EventDefined",
+        "ValueObjectDefined",
+        "InvariantDefined",
+        "PolicyDefined",
+        "SagaDefined"
+      ],
+      "output": "Domain event streams",
+      "position": "upstream",
+      "links": [
+        { "label": "SDD Methodology", "url": "https://sdd.mmmnt.dev/", "type": "site" },
+        { "label": "SDD on GitHub", "url": "https://github.com/listenrightmeow/signal-driven-development/", "type": "github" },
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": [
+        { "title": "Introducing Signal-Driven Development", "url": "https://listenrightmeow.hashnode.dev/introducing-signal-driven-development" },
+        { "title": "The Gap Report: DDD's Missing Feedback Loop", "url": "https://listenrightmeow.hashnode.dev/the-gap-report-ddds-missing-feedback-loop" },
+        { "title": "Event Storming Is a Language, Not a Workshop", "url": "https://listenrightmeow.hashnode.dev/event-storming-is-a-language-not-a-workshop" },
+        { "title": "When JTBD Meets DDD", "url": "https://listenrightmeow.hashnode.dev/when-jtbd-meets-ddd" }
+      ]
+    },
+    {
+      "id": "moment",
+      "name": "Moment",
+      "tagline": "Temporal DDD Modeling",
+      "description": "Transforms .moment specification files into typed TypeScript implementations, Gherkin test scenarios, and specification documents. Imports Sift's domain events and enriches them with temporal modeling — flows, crossings, projections, and saga orchestration.",
+      "events": [
+        "SpecificationParsed",
+        "TopologyDerived",
+        "ArtifactsGenerated",
+        "DriftDetected",
+        "SchemaTransitioned"
+      ],
+      "output": "Reconciliation events + typed artifacts",
+      "position": "core",
+      "links": [
+        { "label": "Moment Site", "url": "https://moment.mmmnt.dev/", "type": "site" },
+        { "label": "GitHub", "url": "https://github.com/mmmnt/mmmnt", "type": "github" },
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": [
+        { "title": "AI Made My Architecture Deeper, Not Simpler", "url": "https://listenrightmeow.hashnode.dev/ai-made-my-architecture-deeper-not-simpler" },
+        { "title": "The Coherence Problem", "url": "https://listenrightmeow.hashnode.dev/the-coherence-problem" },
+        { "title": "The Classification Gap: The Bug That Passes Every Test", "url": "https://listenrightmeow.hashnode.dev/the-classification-gap-the-bug-that-passes-every-test" },
+        { "title": "The Single-Seat Architect", "url": "https://listenrightmeow.hashnode.dev/the-single-seat-architect" }
+      ]
+    },
+    {
+      "id": "facet",
+      "name": "Facet",
+      "tagline": "Domain Flow Simulation",
+      "description": "Interactive visualization and simulation engine for domain flows. Consumes Moment's simulation scenarios (facet.json) to render event timelines, causation chains, crossing contracts, and branch paths — letting you test your domain model before writing implementation code.",
+      "events": [
+        "ScenarioLoaded",
+        "FlowSimulated",
+        "CausationChainRendered",
+        "BranchPathValidated"
+      ],
+      "output": "Interactive visualization",
+      "position": "simulation",
+      "links": [
+        { "label": "Facet App", "url": "https://facet.mmmnt.dev/", "type": "site" },
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": [
+        { "title": "The Candidate Lifecycle: When AI Models Your Domain, Who Confirms It?", "url": "https://listenrightmeow.hashnode.dev/the-candidate-lifecycle-when-ai-models-your-domain-who-confirms-it" }
+      ]
+    },
+    {
+      "id": "forge",
+      "name": "Forge",
+      "tagline": "Project System",
+      "description": "Gets your project into motion. Consumes Moment's typed artifacts and simulation scenarios to bootstrap project structure, wire up bounded contexts, and establish the development workflow.",
+      "events": [],
+      "output": "Coming soon",
+      "position": "downstream",
+      "links": [
+        { "label": "Blog", "url": "https://listenrightmeow.hashnode.dev/", "type": "blog" }
+      ],
+      "articles": []
+    }
+  ],
+  "dataFlow": [
+    { "from": "sift", "to": "moment", "channel": "Domain event streams", "description": "Sift publishes building block events that Moment imports as specification input" },
+    { "from": "moment", "to": "facet", "channel": "facet.json simulation scenarios", "description": "Moment generates Facet-compatible simulation scenarios with synthetic events, causation chains, and branch paths for visual validation" },
+    { "from": "moment", "to": "forge", "channel": "Typed artifacts + events", "description": "Moment produces typed artifacts and reconciliation events that Forge consumes to bootstrap project structure" }
+  ]
+}
