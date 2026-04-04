@@ -9,7 +9,11 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
-import { generateSimulationScenario } from '@mmmnt/derive';
+import {
+  generateSimulationScenario,
+  generateAllScenarios,
+  deriveNegativeScenarios,
+} from '@mmmnt/derive';
 import type { Diagnostic } from '@mmmnt/core';
 import type { SimulationScenario } from '@mmmnt/derive';
 import { updateManifestFromIr } from './update-manifest.js';
@@ -71,13 +75,14 @@ function formatScenarios(
 export async function runSimulate(argv: string[]): Promise<SimulateCommandResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { json: { type: 'boolean' }, flow: { type: 'string' } },
+    options: { json: { type: 'boolean' }, flow: { type: 'string' }, all: { type: 'boolean' } },
     allowPositionals: true,
     strict: false,
   });
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment simulate <file.moment> [--json] [--flow <name>]');
+  if (!filePath)
+    return fail('Usage: moment simulate <file.moment> [--json] [--flow <name>] [--all]');
 
   const content = readMomentFile(filePath);
   if (typeof content !== 'string') return content;
@@ -107,6 +112,12 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
     return fail(`Flow '${values.flow}' not found.`);
   }
 
-  const scenarios = targetFlows.map((flow) => generateSimulationScenario(ir, flow));
+  const scenarios: SimulationScenario[] = values.all
+    ? targetFlows.flatMap((flow) => [
+        ...generateAllScenarios(ir, flow),
+        ...deriveNegativeScenarios(ir, flow),
+      ])
+    : targetFlows.map((flow) => generateSimulationScenario(ir, flow));
+
   return formatScenarios(scenarios, values.json === true);
 }

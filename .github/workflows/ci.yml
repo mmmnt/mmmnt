@@ -62,6 +62,26 @@ jobs:
             $MOMENT cucumber-json "$f" > "test-results/cucumber/${NAME}.cucumber.json" || true
           done
 
+      - name: Generate facet.json for consumer examples
+        if: matrix.node-version == 22
+        run: |
+          MOMENT="node packages/cli/dist/moment.mjs"
+          for dir in examples/*/; do
+            SPEC=$(find "$dir/spec" -name "*.moment" -maxdepth 1 2>/dev/null | head -1)
+            if [ -n "$SPEC" ]; then
+              mkdir -p "${dir}facet"
+              $MOMENT simulate "$SPEC" --all --json > "${dir}facet/facet.json" || true
+              echo "Generated ${dir}facet/facet.json"
+            fi
+          done
+
+      - name: Upload facet.json artifacts
+        uses: actions/upload-artifact@v4
+        if: always() && matrix.node-version == 22
+        with:
+          name: facet-json
+          path: examples/*/facet/facet.json
+
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: always()
