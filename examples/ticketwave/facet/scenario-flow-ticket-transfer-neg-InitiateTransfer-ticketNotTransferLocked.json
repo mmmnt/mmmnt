@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-ticket-transfer-neg-InitiateTransfer-ticketNotTransferLocked",
+  "flowId": "flow-ticket-transfer",
+  "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Ticket must not be transfer-locked not met",
   "description": "Negative scenario: Ticket must not be transfer-locked precondition violation at InitiateTransfer",
   "given": "A transfer initiation scenario is initiated",

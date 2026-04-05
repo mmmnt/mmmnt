@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-RequestHold-customerHoldLimit",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
   "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
   "given": "A event discovery scenario is initiated",

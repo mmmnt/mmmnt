@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-ConfirmPayment-paymentPending",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Payment must be in pending state not met",
   "description": "Negative scenario: Payment must be in pending state precondition violation at ConfirmPayment",
   "given": "A event discovery scenario is initiated",

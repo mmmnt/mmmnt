@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-event-cancellation-neg-RefundPayment-paymentConfirmed",
+  "flowId": "flow-event-cancellation",
+  "flowName": "event-cancellation",
   "scenarioLabel": "Failure: Payment must have been confirmed not met",
   "description": "Negative scenario: Payment must have been confirmed precondition violation at RefundPayment",
   "given": "A event cancellation scenario is initiated",

@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-ticket-transfer-neg-AcceptTransfer-recipientVerified",
+  "flowId": "flow-ticket-transfer",
+  "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Recipient must have a verified account not met",
   "description": "Negative scenario: Recipient must have a verified account precondition violation at AcceptTransfer",
   "given": "A transfer initiation scenario is initiated",

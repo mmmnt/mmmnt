@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-ticket-transfer-neg-RevokeTicket-ticketNotRevoked",
+  "flowId": "flow-ticket-transfer",
+  "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Ticket must not already be revoked not met",
   "description": "Negative scenario: Ticket must not already be revoked precondition violation at RevokeTicket",
   "given": "A transfer initiation scenario is initiated",

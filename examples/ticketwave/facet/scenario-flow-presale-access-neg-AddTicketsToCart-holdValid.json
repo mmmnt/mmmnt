@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-presale-access-neg-AddTicketsToCart-holdValid",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
   "scenarioLabel": "Failure: Referenced hold must be active not met",
   "description": "Negative scenario: Referenced hold must be active precondition violation at AddTicketsToCart",
   "given": "A presale window opens scenario is initiated",

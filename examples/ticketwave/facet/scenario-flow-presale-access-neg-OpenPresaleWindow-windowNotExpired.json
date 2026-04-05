@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-presale-access-neg-OpenPresaleWindow-windowNotExpired",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
   "scenarioLabel": "Failure: Window must not have passed its end time not met",
   "description": "Negative scenario: Window must not have passed its end time precondition violation at OpenPresaleWindow",
   "given": "A presale window opens scenario is initiated",

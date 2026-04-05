@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-ticket-transfer-neg-IssueTickets-paymentConfirmed",
+  "flowId": "flow-ticket-transfer",
+  "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Payment must be confirmed before ticket issuance not met",
   "description": "Negative scenario: Payment must be confirmed before ticket issuance precondition violation at IssueTickets",
   "given": "A transfer initiation scenario is initiated",

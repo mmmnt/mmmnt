@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-GenerateMobilePass-ticketIssued",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Ticket must be issued not met",
   "description": "Negative scenario: Ticket must be issued precondition violation at GenerateMobilePass",
   "given": "A event discovery scenario is initiated",

@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-ticket-transfer-neg-AcceptTransfer-transferPending",
+  "flowId": "flow-ticket-transfer",
+  "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Transfer must be in pending state not met",
   "description": "Negative scenario: Transfer must be in pending state precondition violation at AcceptTransfer",
   "given": "A transfer initiation scenario is initiated",

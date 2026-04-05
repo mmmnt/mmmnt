@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-event-cancellation-0",
+  "flowId": "flow-event-cancellation",
+  "flowName": "event-cancellation",
   "scenarioLabel": "Happy Path: event-cancellation",
   "description": "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event.",
   "given": "A event cancellation scenario is initiated",

@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-ConvertHoldToReservation-holdActive",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Hold must be active not met",
   "description": "Negative scenario: Hold must be active precondition violation at ConvertHoldToReservation",
   "given": "A event discovery scenario is initiated",

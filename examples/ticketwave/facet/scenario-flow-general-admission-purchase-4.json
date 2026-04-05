@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-4",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure Path: general-admission-purchase [medium-risk]",
   "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
   "given": "A event discovery scenario is initiated",

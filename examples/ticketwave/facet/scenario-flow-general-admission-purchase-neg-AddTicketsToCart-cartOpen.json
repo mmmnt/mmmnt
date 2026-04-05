@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-cartOpen",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Cart must be in open state not met",
   "description": "Negative scenario: Cart must be in open state precondition violation at AddTicketsToCart",
   "given": "A event discovery scenario is initiated",
