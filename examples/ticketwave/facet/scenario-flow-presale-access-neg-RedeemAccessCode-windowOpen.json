@@ -7,7 +7,11 @@
   "given": "A presale window opens scenario is initiated",
   "when": "RedeemAccessCode is invoked without satisfying windowOpen",
   "then": "The command RedeemAccessCode is rejected",
-  "expectedPath": ["n00-OpenPresaleWindow", "n00-PresaleWindowOpened", "n01-RedeemAccessCode"],
+  "expectedPath": [
+    "n00-OpenPresaleWindow",
+    "n00-PresaleWindowOpened",
+    "n01-RedeemAccessCode"
+  ],
   "activeBranches": [],
   "events": [
     {
@@ -30,7 +34,9 @@
       "eventType": "PresaleWindowOpened",
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -45,7 +51,9 @@
       "eventType": "SimProcess.RedeemAccessCode",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -63,7 +71,9 @@
       "eventType": "SimFailure.RedeemAccessCode.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-003"],
+      "causationEventIds": [
+        "evt-003"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,

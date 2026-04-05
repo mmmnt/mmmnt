@@ -42,7 +42,9 @@
       "eventType": "EventCancelled",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -58,7 +60,9 @@
       "eventType": "EventCancelled",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -74,7 +78,9 @@
       "eventType": "EventCancelled",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-003"],
+      "causationEventIds": [
+        "evt-003"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -90,7 +96,9 @@
       "eventType": "EventCancelled",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-004"],
+      "causationEventIds": [
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -106,7 +114,13 @@
       "eventType": "SimProcess.ReleaseHold",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "causationEventIds": [
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -122,7 +136,13 @@
       "eventType": "HoldReleased",
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "causationEventIds": [
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
@@ -139,7 +159,13 @@
       "eventType": "SimProcess.RevokeTicket",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "causationEventIds": [
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
@@ -155,7 +181,13 @@
       "eventType": "TicketRevoked",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "causationEventIds": [
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
@@ -171,7 +203,13 @@
       "eventType": "SimProcess.RefundPayment",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-005", "evt-005", "evt-005", "evt-005", "evt-005"],
+      "causationEventIds": [
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005",
+        "evt-005"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
@@ -188,7 +226,9 @@
       "eventType": "SimFailure.RefundPayment.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-010"],
+      "causationEventIds": [
+        "evt-010"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,

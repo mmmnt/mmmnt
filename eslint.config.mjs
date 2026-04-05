@@ -4,7 +4,7 @@ import eslintComments from '@eslint-community/eslint-plugin-eslint-comments/conf
 
 export default [
   {
-    ignores: ['**/dist/', '**/node_modules/', '**/src/generated/'],
+    ignores: ['**/dist/', '**/node_modules/', '**/src/generated/', 'examples/**/facet/'],
   },
   eslintComments.recommended,
   {
@@ -33,7 +33,7 @@ export default [
       // Ban eslint-disable comments without corresponding enable
       '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
       '@eslint-community/eslint-comments/no-unused-disable': 'error',
-      // Ban v8 ignore inline comments
+      // Ban coverage-suppression inline comments
       'no-warning-comments': ['error', { terms: ['v8 ignore'], location: 'anywhere' }],
       // Complexity
       complexity: ['error', { max: 10 }],

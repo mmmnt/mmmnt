@@ -51,7 +51,9 @@
           "label": "TransferInitiated",
           "type": "event",
           "aggregate": "TicketTransfer",
-          "eventTypes": ["TransferInitiated"]
+          "eventTypes": [
+            "TransferInitiated"
+          ]
         }
       ]
     },
@@ -73,7 +75,9 @@
           "label": "TransferNotificationSent",
           "type": "event",
           "aggregate": "NotificationDispatch",
-          "eventTypes": ["TransferNotificationSent"]
+          "eventTypes": [
+            "TransferNotificationSent"
+          ]
         }
       ]
     },
@@ -95,7 +99,9 @@
           "label": "TransferAccepted",
           "type": "event",
           "aggregate": "TicketTransfer",
-          "eventTypes": ["TransferAccepted"]
+          "eventTypes": [
+            "TransferAccepted"
+          ]
         },
         {
           "id": "moment-2-Transfer-resolution::delivery::DeclineTransfer::br1",
@@ -110,7 +116,9 @@
           "label": "TransferDeclined",
           "type": "event",
           "aggregate": "TicketTransfer",
-          "eventTypes": ["TransferDeclined"]
+          "eventTypes": [
+            "TransferDeclined"
+          ]
         },
         {
           "id": "moment-2-Transfer-resolution::transferDeclined::TransferDeclined::br1",
@@ -118,7 +126,9 @@
           "label": "TransferDeclined",
           "type": "event",
           "terminal": true,
-          "eventTypes": ["TransferDeclined"]
+          "eventTypes": [
+            "TransferDeclined"
+          ]
         },
         {
           "id": "moment-2-Transfer-resolution::delivery::CancelTransfer::br2",
@@ -133,7 +143,9 @@
           "label": "TransferCancelled",
           "type": "event",
           "aggregate": "TicketTransfer",
-          "eventTypes": ["TransferCancelled"]
+          "eventTypes": [
+            "TransferCancelled"
+          ]
         },
         {
           "id": "moment-2-Transfer-resolution::transferExpired::TransferCancelled::br2",
@@ -141,7 +153,9 @@
           "label": "TransferCancelled",
           "type": "event",
           "terminal": true,
-          "eventTypes": ["TransferCancelled"]
+          "eventTypes": [
+            "TransferCancelled"
+          ]
         }
       ]
     },
@@ -163,7 +177,9 @@
           "label": "TicketRevoked",
           "type": "event",
           "aggregate": "DigitalTicket",
-          "eventTypes": ["TicketRevoked"]
+          "eventTypes": [
+            "TicketRevoked"
+          ]
         }
       ]
     },
@@ -185,7 +201,9 @@
           "label": "TicketsIssued",
           "type": "event",
           "aggregate": "DigitalTicket",
-          "eventTypes": ["TicketsIssued"]
+          "eventTypes": [
+            "TicketsIssued"
+          ]
         }
       ]
     },
@@ -207,7 +225,9 @@
           "label": "TicketDeliverySent",
           "type": "event",
           "aggregate": "NotificationDispatch",
-          "eventTypes": ["TicketDeliverySent"]
+          "eventTypes": [
+            "TicketDeliverySent"
+          ]
         }
       ]
     }
@@ -222,7 +242,12 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-0",
-        "requiredFields": ["transferId", "ticketId", "toEmail", "toName"],
+        "requiredFields": [
+          "transferId",
+          "ticketId",
+          "toEmail",
+          "toName"
+        ],
         "fieldTypes": {
           "transferId": "UUID",
           "ticketId": "UUID",
@@ -253,11 +278,15 @@
     }
   ],
   "eventRouting": {
-    "TransferInitiated": ["moment-0-Transfer-initiation::ctx-Delivery::TransferInitiated::main"],
+    "TransferInitiated": [
+      "moment-0-Transfer-initiation::ctx-Delivery::TransferInitiated::main"
+    ],
     "TransferNotificationSent": [
       "moment-1-Recipient-notification::ctx-Notifications::TransferNotificationSent::main"
     ],
-    "TransferAccepted": ["moment-2-Transfer-resolution::ctx-Delivery::TransferAccepted::br1"],
+    "TransferAccepted": [
+      "moment-2-Transfer-resolution::ctx-Delivery::TransferAccepted::br1"
+    ],
     "TransferDeclined": [
       "moment-2-Transfer-resolution::ctx-Delivery::TransferDeclined::br3",
       "moment-2-Transfer-resolution::ctx-Transfer Declined::TransferDeclined::br4"
@@ -266,8 +295,12 @@
       "moment-2-Transfer-resolution::ctx-Delivery::TransferCancelled::br6",
       "moment-2-Transfer-resolution::ctx-Transfer Expired::TransferCancelled::br7"
     ],
-    "TicketRevoked": ["moment-3-Original-ticket-revocation::ctx-Delivery::TicketRevoked::main"],
-    "TicketsIssued": ["moment-4-New-ticket-issuance::ctx-Delivery::TicketsIssued::main"],
+    "TicketRevoked": [
+      "moment-3-Original-ticket-revocation::ctx-Delivery::TicketRevoked::main"
+    ],
+    "TicketsIssued": [
+      "moment-4-New-ticket-issuance::ctx-Delivery::TicketsIssued::main"
+    ],
     "TicketDeliverySent": [
       "moment-5-Transfer-completion-notification::ctx-Notifications::TicketDeliverySent::main"
     ]
@@ -290,14 +323,20 @@
         "name": "Delivery",
         "classification": "Supporting",
         "laneId": "delivery",
-        "aggregates": ["DigitalTicket", "TicketTransfer"]
+        "aggregates": [
+          "DigitalTicket",
+          "TicketTransfer"
+        ]
       },
       {
         "contextId": "ctx-Notifications",
         "name": "Notifications",
         "classification": "Generic",
         "laneId": "notifications",
-        "aggregates": ["NotificationDispatch", "CommunicationPreference"]
+        "aggregates": [
+          "NotificationDispatch",
+          "CommunicationPreference"
+        ]
       }
     ],
     "relationships": [
@@ -305,7 +344,9 @@
         "sourceContextId": "ctx-Delivery",
         "targetContextId": "ctx-Notifications",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-0"]
+        "contractIds": [
+          "conn-0"
+        ]
       }
     ]
   }
