@@ -43,10 +43,20 @@ jobs:
         run: pnpm turbo lint
 
       - name: Build
-        run: pnpm turbo build
+        run: |
+          if [ "${{ matrix.node-version }}" = "20" ]; then
+            pnpm turbo build --filter='!@mmmnt/site'
+          else
+            pnpm turbo build
+          fi
 
       - name: Unit tests with coverage
-        run: pnpm turbo test -- --coverage --passWithNoTests
+        run: |
+          if [ "${{ matrix.node-version }}" = "20" ]; then
+            pnpm turbo test --filter='!@mmmnt/site' -- --coverage --passWithNoTests
+          else
+            pnpm turbo test -- --coverage --passWithNoTests
+          fi
 
       - name: Integration tests
         run: pnpm turbo test:integration -- --passWithNoTests
@@ -105,7 +115,12 @@ jobs:
           path: test-results/cucumber/*.cucumber.json
 
       - name: Snapshot freshness
-        run: pnpm turbo test -- --no-update --passWithNoTests
+        run: |
+          if [ "${{ matrix.node-version }}" = "20" ]; then
+            pnpm turbo test --filter='!@mmmnt/site' -- --no-update --passWithNoTests
+          else
+            pnpm turbo test -- --no-update --passWithNoTests
+          fi
 
       - name: Commitlint
         if: github.event_name == 'pull_request'
