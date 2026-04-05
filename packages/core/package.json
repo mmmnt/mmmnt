@@ -52,7 +52,7 @@
   "devDependencies": {
     "@types/node": "^25.5.2",
     "langium": "3.5.0",
-    "langium-cli": "3.5.2"
+    "langium-cli": "4.2.0"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
