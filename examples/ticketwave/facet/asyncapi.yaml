@@ -193,4 +193,3 @@ components:
             type: 'string'
           cancelledAt:
             type: 'string'
-

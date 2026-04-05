@@ -206,7 +206,7 @@ function writeArtifacts(ir: IntermediateRepresentation, outDir: string): Record<
 
   const asyncapi = generateAsyncApiSpec(ir);
   files.asyncApi = 'asyncapi.yaml';
-  writeFileSync(join(outDir, files.asyncApi), asyncapi + '\n', 'utf-8');
+  writeFileSync(join(outDir, files.asyncApi), asyncapi, 'utf-8');
 
   return files;
 }

@@ -15,11 +15,11 @@
     "docs": "typedoc"
   },
   "lint-staged": {
-    "!(examples/**/facet/**)*.{ts,mts,mjs}": [
+    "*.{ts,mts,mjs}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "!(examples/**/facet/**)*.{json,yaml,yml}": [
+    "*.{json,yaml,yml}": [
       "prettier --write"
     ]
   },
