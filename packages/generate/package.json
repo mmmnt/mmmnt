@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@cucumber/gherkin": "^29.0.0",
-    "@cucumber/messages": "^26.0.0"
+    "@cucumber/messages": "^32.2.0"
   },
   "publishConfig": {
     "access": "public",
