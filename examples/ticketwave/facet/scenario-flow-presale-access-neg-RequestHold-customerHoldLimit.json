@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-presale-access-neg-RequestHold-customerHoldLimit",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
   "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
   "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
   "given": "A presale window opens scenario is initiated",

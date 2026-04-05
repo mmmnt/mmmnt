@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-event-cancellation-neg-ReleaseHold-holdActive",
+  "flowId": "flow-event-cancellation",
+  "flowName": "event-cancellation",
   "scenarioLabel": "Failure: Hold must be active not met",
   "description": "Negative scenario: Hold must be active precondition violation at ReleaseHold",
   "given": "A event cancellation scenario is initiated",

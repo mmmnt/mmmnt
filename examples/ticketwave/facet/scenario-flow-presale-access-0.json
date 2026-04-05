@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-presale-access-0",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
   "scenarioLabel": "Happy Path: presale-access",
   "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
   "given": "A presale window opens scenario is initiated",

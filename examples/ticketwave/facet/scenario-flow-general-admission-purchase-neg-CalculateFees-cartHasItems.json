@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-CalculateFees-cartHasItems",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Cart must contain at least one line item not met",
   "description": "Negative scenario: Cart must contain at least one line item precondition violation at CalculateFees",
   "given": "A event discovery scenario is initiated",

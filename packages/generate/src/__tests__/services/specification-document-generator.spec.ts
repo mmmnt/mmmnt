@@ -217,12 +217,16 @@ describe('SpecificationDocumentGenerator', () => {
     const ir = makeIR({
       contexts: [
         makeContext('Ordering', { classification: 'Core', aggregates: [makeAggregate('Order')] }),
-        makeContext('Shipping', { classification: 'Supporting', aggregates: [makeAggregate('Shipment')] }),
+        makeContext('Shipping', {
+          classification: 'Supporting',
+          aggregates: [makeAggregate('Shipment')],
+        }),
       ],
       flows: [
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -268,6 +272,7 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -315,6 +320,7 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -362,7 +368,11 @@ describe('SpecificationDocumentGenerator', () => {
   it('renders data glossary from context-level value objects', () => {
     const ctx = makeContext('Ordering', { aggregates: [makeAggregate('Order')] });
     ctx.valueObjects = [
-      { id: 'vo-Address', name: 'Address', fields: [{ name: 'street', type: 'string', isArray: false, required: true }] },
+      {
+        id: 'vo-Address',
+        name: 'Address',
+        fields: [{ name: 'street', type: 'string', isArray: false, required: true }],
+      },
     ];
     const ir = makeIR({ contexts: [ctx] });
 
@@ -373,15 +383,30 @@ describe('SpecificationDocumentGenerator', () => {
 
   it('renders deprecated fields with strikethrough in glossary and events', () => {
     const vo = makeValueObject('Money');
-    vo.fields.push({ name: 'legacyCurrency', type: 'string', isArray: false, required: true, deprecated: { reason: 'Use currencyCode', replacement: 'currencyCode' } });
+    vo.fields.push({
+      name: 'legacyCurrency',
+      type: 'string',
+      isArray: false,
+      required: true,
+      deprecated: { reason: 'Use currencyCode', replacement: 'currencyCode' },
+    });
     const agg = makeAggregate('Order', { valueObjects: [vo] });
-    agg.events = [{
-      id: 'evt-1', name: 'OrderPlaced',
-      fields: [
-        { name: 'orderId', type: 'UUID', isArray: false, required: true },
-        { name: 'oldField', type: 'string', isArray: false, required: true, deprecated: { reason: 'Replaced', replacement: 'newField' } },
-      ],
-    }];
+    agg.events = [
+      {
+        id: 'evt-1',
+        name: 'OrderPlaced',
+        fields: [
+          { name: 'orderId', type: 'UUID', isArray: false, required: true },
+          {
+            name: 'oldField',
+            type: 'string',
+            isArray: false,
+            required: true,
+            deprecated: { reason: 'Replaced', replacement: 'newField' },
+          },
+        ],
+      },
+    ];
     const ir = makeIR({ contexts: [makeContext('Ordering', { aggregates: [agg] })] });
 
     const content = generator.generate(ir)[0].content;
@@ -392,13 +417,12 @@ describe('SpecificationDocumentGenerator', () => {
 
   it('renders moment branches with terminal and non-terminal paths', () => {
     const ir = makeIR({
-      contexts: [
-        makeContext('Ordering', { aggregates: [makeAggregate('Order')] }),
-      ],
+      contexts: [makeContext('Ordering', { aggregates: [makeAggregate('Order')] })],
       flows: [
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -416,7 +440,12 @@ describe('SpecificationDocumentGenerator', () => {
                 {
                   condition: 'invalid',
                   entries: [
-                    { contextId: 'ctx-Ordering', nodeName: 'OrderRejected', nodeKind: 'event', terminal: true },
+                    {
+                      contextId: 'ctx-Ordering',
+                      nodeName: 'OrderRejected',
+                      nodeKind: 'event',
+                      terminal: true,
+                    },
                   ],
                 },
               ],
@@ -437,12 +466,16 @@ describe('SpecificationDocumentGenerator', () => {
     const ir = makeIR({
       contexts: [
         makeContext('Ordering', { classification: 'Core', aggregates: [makeAggregate('Order')] }),
-        makeContext('Shipping', { classification: 'Supporting', aggregates: [makeAggregate('Shipment')] }),
+        makeContext('Shipping', {
+          classification: 'Supporting',
+          aggregates: [makeAggregate('Shipment')],
+        }),
       ],
       flows: [
         {
           id: 'flow-1',
           name: 'order-ship-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -478,12 +511,16 @@ describe('SpecificationDocumentGenerator', () => {
     const ir = makeIR({
       contexts: [
         makeContext('Ordering', { classification: 'Core', aggregates: [makeAggregate('Order')] }),
-        makeContext('Shipping', { classification: 'Supporting', aggregates: [makeAggregate('Shipment')] }),
+        makeContext('Shipping', {
+          classification: 'Supporting',
+          aggregates: [makeAggregate('Shipment')],
+        }),
       ],
       flows: [
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -538,6 +575,7 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -574,6 +612,7 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -602,6 +641,7 @@ describe('SpecificationDocumentGenerator', () => {
           id: 'flow-1',
           name: 'order-flow',
           description: 'A comprehensive order processing system. It handles everything.',
+          lanes: [],
           moments: [],
           connections: [],
         },
@@ -624,6 +664,7 @@ describe('SpecificationDocumentGenerator', () => {
           id: 'flow-1',
           name: 'short',
           description: 'Hi.',
+          lanes: [],
           moments: [],
           connections: [],
         },
@@ -657,8 +698,13 @@ describe('SpecificationDocumentGenerator', () => {
           id: 'flow-1',
           name: 'Flow Alpha',
           description: 'First flow',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Step A', contextEntries: [{ contextId: 'ctx-Sales', nodeName: 'SomeEvt', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Step A',
+              contextEntries: [{ contextId: 'ctx-Sales', nodeName: 'SomeEvt', nodeKind: 'event' }],
+            },
           ],
           connections: [],
         },
@@ -666,8 +712,13 @@ describe('SpecificationDocumentGenerator', () => {
           id: 'flow-2',
           name: 'Flow Beta',
           description: 'Second flow',
+          lanes: [],
           moments: [
-            { id: 'm1', name: 'Step B', contextEntries: [{ contextId: 'ctx-Sales', nodeName: 'OtherEvt', nodeKind: 'event' }] },
+            {
+              id: 'm1',
+              name: 'Step B',
+              contextEntries: [{ contextId: 'ctx-Sales', nodeName: 'OtherEvt', nodeKind: 'event' }],
+            },
           ],
           connections: [],
         },
@@ -688,13 +739,12 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'branching-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
               name: 'Decide',
-              contextEntries: [
-                { contextId: 'ctx-Sales', nodeName: 'Cmd', nodeKind: 'command' },
-              ],
+              contextEntries: [{ contextId: 'ctx-Sales', nodeName: 'Cmd', nodeKind: 'command' }],
               branches: [
                 {
                   condition: 'yes',
@@ -729,6 +779,7 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -760,6 +811,7 @@ describe('SpecificationDocumentGenerator', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -845,7 +897,19 @@ describe('SpecificationDocumentGenerator', () => {
     const ir = makeIR({
       contexts: [makeContext('Ordering', { aggregates: [makeAggregate('Order')] })],
       flows: [
-        { id: 'f1', name: 'simple', moments: [{ id: 'm0', name: 'Step', contextEntries: [{ contextId: 'ctx-Ordering', nodeName: 'Evt', nodeKind: 'event' }] }], connections: [] },
+        {
+          id: 'f1',
+          name: 'simple',
+          lanes: [],
+          moments: [
+            {
+              id: 'm0',
+              name: 'Step',
+              contextEntries: [{ contextId: 'ctx-Ordering', nodeName: 'Evt', nodeKind: 'event' }],
+            },
+          ],
+          connections: [],
+        },
       ],
     });
 

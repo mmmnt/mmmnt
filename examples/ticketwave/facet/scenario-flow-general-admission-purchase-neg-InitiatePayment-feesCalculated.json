@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-InitiatePayment-feesCalculated",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Fees must be calculated before payment not met",
   "description": "Negative scenario: Fees must be calculated before payment precondition violation at InitiatePayment",
   "given": "A event discovery scenario is initiated",

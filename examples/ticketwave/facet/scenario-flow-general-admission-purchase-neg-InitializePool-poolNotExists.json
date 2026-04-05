@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-InitializePool-poolNotExists",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Pool must not already exist for this event-tier-section combination not met",
   "description": "Negative scenario: Pool must not already exist for this event-tier-section combination precondition violation at InitializePool",
   "given": "A event discovery scenario is initiated",

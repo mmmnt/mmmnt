@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-RequestHold-ticketsAvailable",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
   "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
   "given": "A event discovery scenario is initiated",

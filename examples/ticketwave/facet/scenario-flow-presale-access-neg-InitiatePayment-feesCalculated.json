@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-presale-access-neg-InitiatePayment-feesCalculated",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
   "scenarioLabel": "Failure: Fees must be calculated before payment not met",
   "description": "Negative scenario: Fees must be calculated before payment precondition violation at InitiatePayment",
   "given": "A presale window opens scenario is initiated",

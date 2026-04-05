@@ -287,6 +287,7 @@ describe('IR Types', () => {
         id: 'flow-1',
         name: 'OrderFlow',
         description: 'The main order processing flow',
+        lanes: [],
         moments: [],
         connections: [],
       };

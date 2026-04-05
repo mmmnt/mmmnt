@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-event-cancellation-neg-RevokeTicket-ticketNotRevoked",
+  "flowId": "flow-event-cancellation",
+  "flowName": "event-cancellation",
   "scenarioLabel": "Failure: Ticket must not already be revoked not met",
   "description": "Negative scenario: Ticket must not already be revoked precondition violation at RevokeTicket",
   "given": "A event cancellation scenario is initiated",

@@ -729,6 +729,26 @@ describe('MomentValidator', () => {
         });
         expect(diagnostics.some((m) => m.includes('V5'))).toBe(false);
       });
+
+      it('V5 skips non-triggered-by connections on the same node', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "A" [Core]
+            moment "Step 1"
+              a: First
+            moment "Step 2"
+              a: Second
+                triggered-by First
+                triggers Third
+        `);
+        const validator = services.validation.MomentValidator;
+        const node = result.document.parseResult.value.flows[0].moments[1].nodes[0];
+        const diagnostics: string[] = [];
+        validator.checkV5(node, (severity, message) => {
+          if (severity === 'error') diagnostics.push(message as string);
+        });
+        expect(diagnostics.some((m) => m.includes('V5'))).toBe(false);
+      });
     });
 
     describe('Cross-file context integration', () => {
@@ -1108,6 +1128,27 @@ describe('MomentValidator', () => {
       );
       // PlaceOrder is a command in Ordering context → V9 error
       expect(diagnostics.some((m) => m.includes('V9'))).toBe(true);
+    });
+
+    it('V11 passes when context has no declared building blocks (empty fallback)', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Unknown" [Core]
+          moment "Step"
+            a: SomeEvent (×3)
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        edgeMockContext,
+      );
+      // Unknown context → blocks = [] via ?? fallback → no block found → no V11 error
+      expect(diagnostics.some((m) => m.includes('V11'))).toBe(false);
     });
 
     it('V11 checks multiplicity node with lane found and blocks resolved', async () => {

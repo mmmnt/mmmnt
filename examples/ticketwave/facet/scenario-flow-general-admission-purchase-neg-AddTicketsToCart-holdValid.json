@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-holdValid",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Referenced hold must be active not met",
   "description": "Negative scenario: Referenced hold must be active precondition violation at AddTicketsToCart",
   "given": "A event discovery scenario is initiated",

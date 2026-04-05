@@ -48,6 +48,7 @@ function makeFlow(overrides: Partial<FlowDefinition> = {}): FlowDefinition {
   return {
     id: overrides.id ?? 'flow-1',
     name: overrides.name ?? 'Place Order',
+    lanes: overrides.lanes ?? [],
     moments: overrides.moments ?? [
       {
         id: 'moment-1',

@@ -104,7 +104,7 @@ function makeFlow(
   moments: MomentDefinition[],
   connections: ConnectionDefinition[],
 ): FlowDefinition {
-  return { id, name, moments, connections };
+  return { id, name, lanes: [], moments, connections };
 }
 
 function makeIR(overrides: Partial<IntermediateRepresentation> = {}): IntermediateRepresentation {

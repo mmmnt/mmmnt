@@ -1,0 +1,430 @@
+{
+  "name": "event-cancellation",
+  "flowId": "flow-event-cancellation",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "catalog",
+      "label": "Catalog",
+      "contextId": "ctx-Catalog",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "contextId": "ctx-Inventory",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "contextId": "ctx-Checkout",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "delivery",
+      "label": "Delivery",
+      "contextId": "ctx-Delivery",
+      "classification": "Supporting",
+      "isBranch": false
+    },
+    {
+      "id": "notifications",
+      "label": "Notifications",
+      "contextId": "ctx-Notifications",
+      "classification": "Generic",
+      "isBranch": false
+    },
+    {
+      "id": "partialRefundFailure",
+      "label": "Partial Refund Failure",
+      "contextId": "ctx-Partial Refund Failure",
+      "classification": "Terminal",
+      "isBranch": true
+    }
+  ],
+  "frames": [
+    {
+      "id": "moment-0-Event-cancellation",
+      "moment": "Event cancellation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-0-Event-cancellation::catalog::CancelEvent::main",
+          "lane": "catalog",
+          "label": "CancelEvent",
+          "type": "command",
+          "aggregate": "Event"
+        },
+        {
+          "id": "moment-0-Event-cancellation::catalog::EventCancelled::main",
+          "lane": "catalog",
+          "label": "EventCancelled",
+          "type": "event",
+          "aggregate": "Event",
+          "eventTypes": ["EventCancelled"]
+        }
+      ]
+    },
+    {
+      "id": "moment-1-Cancellation-propagation-to-checkout",
+      "moment": "Cancellation propagation to checkout",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
+          "lane": "catalog",
+          "label": "EventCancelled",
+          "type": "event",
+          "aggregate": "Event",
+          "eventTypes": ["EventCancelled"]
+        }
+      ]
+    },
+    {
+      "id": "moment-2-Cancellation-propagation-to-delivery",
+      "moment": "Cancellation propagation to delivery",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
+          "lane": "catalog",
+          "label": "EventCancelled",
+          "type": "event",
+          "aggregate": "Event",
+          "eventTypes": ["EventCancelled"]
+        }
+      ]
+    },
+    {
+      "id": "moment-3-Cancellation-propagation-to-notifications",
+      "moment": "Cancellation propagation to notifications",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
+          "lane": "catalog",
+          "label": "EventCancelled",
+          "type": "event",
+          "aggregate": "Event",
+          "eventTypes": ["EventCancelled"]
+        }
+      ]
+    },
+    {
+      "id": "moment-4-Active-holds-release",
+      "moment": "Active holds release",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
+          "lane": "inventory",
+          "label": "ReleaseHold",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-4-Active-holds-release::inventory::HoldReleased::main",
+          "lane": "inventory",
+          "label": "HoldReleased",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "multiplicity": "N",
+          "eventTypes": ["HoldReleased"]
+        }
+      ]
+    },
+    {
+      "id": "moment-5-Ticket-revocation",
+      "moment": "Ticket revocation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
+          "lane": "delivery",
+          "label": "RevokeTicket",
+          "type": "command",
+          "aggregate": "DigitalTicket"
+        },
+        {
+          "id": "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
+          "lane": "delivery",
+          "label": "TicketRevoked",
+          "type": "event",
+          "aggregate": "DigitalTicket",
+          "multiplicity": "N",
+          "eventTypes": ["TicketRevoked"]
+        }
+      ]
+    },
+    {
+      "id": "moment-6-Refund-processing",
+      "moment": "Refund processing",
+      "isBranch": true,
+      "nodes": [
+        {
+          "id": "moment-6-Refund-processing::checkout::RefundPayment::br0",
+          "lane": "checkout",
+          "label": "RefundPayment",
+          "type": "command",
+          "aggregate": "Payment"
+        },
+        {
+          "id": "moment-6-Refund-processing::checkout::PaymentRefunded::br0",
+          "lane": "checkout",
+          "label": "PaymentRefunded",
+          "type": "event",
+          "aggregate": "Payment",
+          "multiplicity": "N",
+          "eventTypes": ["PaymentRefunded"]
+        },
+        {
+          "id": "moment-6-Refund-processing::checkout::RefundPayment::br1",
+          "lane": "checkout",
+          "label": "RefundPayment",
+          "type": "command",
+          "aggregate": "Payment"
+        },
+        {
+          "id": "moment-6-Refund-processing::checkout::PaymentRefunded::br1",
+          "lane": "checkout",
+          "label": "PaymentRefunded",
+          "type": "event",
+          "aggregate": "Payment",
+          "multiplicity": "N",
+          "eventTypes": ["PaymentRefunded"]
+        },
+        {
+          "id": "moment-6-Refund-processing::checkout::PaymentFailed::br1",
+          "lane": "checkout",
+          "label": "PaymentFailed",
+          "type": "event",
+          "aggregate": "Payment",
+          "optional": true,
+          "eventTypes": ["PaymentFailed"]
+        },
+        {
+          "id": "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1",
+          "lane": "partialRefundFailure",
+          "label": "PaymentFailed",
+          "type": "event",
+          "terminal": true,
+          "eventTypes": ["PaymentFailed"]
+        }
+      ]
+    },
+    {
+      "id": "moment-7-Cancellation-notifications",
+      "moment": "Cancellation notifications",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-7-Cancellation-notifications::notifications::SendEventCancellationNotice::main",
+          "lane": "notifications",
+          "label": "SendEventCancellationNotice",
+          "type": "command",
+          "aggregate": "NotificationDispatch"
+        },
+        {
+          "id": "moment-7-Cancellation-notifications::notifications::EventCancellationNoticeSent::main",
+          "lane": "notifications",
+          "label": "EventCancellationNoticeSent",
+          "type": "event",
+          "aggregate": "NotificationDispatch",
+          "multiplicity": "N",
+          "eventTypes": ["EventCancellationNoticeSent"]
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "moment-0-Event-cancellation",
+      "to": "ctx-Inventory",
+      "label": "EventCancelled",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-0",
+        "requiredFields": ["eventId", "reason"],
+        "fieldTypes": {
+          "eventId": "UUID",
+          "reason": "string"
+        }
+      }
+    },
+    {
+      "from": "moment-1-Cancellation-propagation-to-checkout",
+      "to": "ctx-Checkout",
+      "label": "EventCancelled",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-1",
+        "requiredFields": ["eventId", "reason"],
+        "fieldTypes": {
+          "eventId": "UUID",
+          "reason": "string"
+        }
+      }
+    },
+    {
+      "from": "moment-2-Cancellation-propagation-to-delivery",
+      "to": "ctx-Delivery",
+      "label": "EventCancelled",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-2",
+        "requiredFields": ["eventId", "reason"],
+        "fieldTypes": {
+          "eventId": "UUID",
+          "reason": "string"
+        }
+      }
+    },
+    {
+      "from": "moment-3-Cancellation-propagation-to-notifications",
+      "to": "ctx-Notifications",
+      "label": "EventCancelled",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-3",
+        "requiredFields": ["eventId", "reason"],
+        "fieldTypes": {
+          "eventId": "UUID",
+          "reason": "string"
+        }
+      }
+    },
+    {
+      "from": "moment-4-Active-holds-release",
+      "to": "ctx-Inventory",
+      "style": "happy"
+    },
+    {
+      "from": "moment-5-Ticket-revocation",
+      "to": "ctx-Delivery",
+      "style": "happy"
+    },
+    {
+      "from": "moment-6-Refund-processing",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-6-Refund-processing",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-7-Cancellation-notifications",
+      "to": "ctx-Notifications",
+      "style": "happy"
+    }
+  ],
+  "eventRouting": {
+    "EventCancelled": [
+      "moment-0-Event-cancellation::ctx-Catalog::EventCancelled::main",
+      "moment-1-Cancellation-propagation-to-checkout::ctx-Catalog::EventCancelled::main",
+      "moment-2-Cancellation-propagation-to-delivery::ctx-Catalog::EventCancelled::main",
+      "moment-3-Cancellation-propagation-to-notifications::ctx-Catalog::EventCancelled::main"
+    ],
+    "HoldReleased": ["moment-4-Active-holds-release::ctx-Inventory::HoldReleased::main"],
+    "TicketRevoked": ["moment-5-Ticket-revocation::ctx-Delivery::TicketRevoked::main"],
+    "PaymentRefunded": [
+      "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br1",
+      "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br3"
+    ],
+    "PaymentFailed": [
+      "moment-6-Refund-processing::ctx-Checkout::PaymentFailed::br4",
+      "moment-6-Refund-processing::ctx-Partial Refund Failure::PaymentFailed::br5"
+    ],
+    "EventCancellationNoticeSent": [
+      "moment-7-Cancellation-notifications::ctx-Notifications::EventCancellationNoticeSent::main"
+    ]
+  },
+  "branchPredicates": {
+    "moment-6-Refund-processing": {
+      "field": "outcome",
+      "defaultRoute": "all-successful",
+      "routes": {
+        "all-successful": "happy",
+        "partial-failure": "terminal"
+      }
+    }
+  },
+  "contextMap": {
+    "contexts": [
+      {
+        "contextId": "ctx-Catalog",
+        "name": "Catalog",
+        "classification": "Core",
+        "laneId": "catalog",
+        "aggregates": ["Event", "Venue", "Artist"]
+      },
+      {
+        "contextId": "ctx-Inventory",
+        "name": "Inventory",
+        "classification": "Core",
+        "laneId": "inventory",
+        "aggregates": ["TicketPool", "SeatHold"]
+      },
+      {
+        "contextId": "ctx-Delivery",
+        "name": "Delivery",
+        "classification": "Supporting",
+        "laneId": "delivery",
+        "aggregates": ["DigitalTicket", "TicketTransfer"]
+      },
+      {
+        "contextId": "ctx-Checkout",
+        "name": "Checkout",
+        "classification": "Core",
+        "laneId": "checkout",
+        "aggregates": ["Cart", "Payment"]
+      },
+      {
+        "contextId": "ctx-Notifications",
+        "name": "Notifications",
+        "classification": "Generic",
+        "laneId": "notifications",
+        "aggregates": ["NotificationDispatch", "CommunicationPreference"]
+      }
+    ],
+    "relationships": [
+      {
+        "sourceContextId": "ctx-Catalog",
+        "targetContextId": "ctx-Inventory",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": ["conn-0"]
+      },
+      {
+        "sourceContextId": "ctx-Catalog",
+        "targetContextId": "ctx-Checkout",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": ["conn-1"]
+      },
+      {
+        "sourceContextId": "ctx-Catalog",
+        "targetContextId": "ctx-Delivery",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": ["conn-2"]
+      },
+      {
+        "sourceContextId": "ctx-Catalog",
+        "targetContextId": "ctx-Notifications",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": ["conn-3"]
+      }
+    ]
+  }
+}

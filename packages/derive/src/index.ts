@@ -45,3 +45,15 @@ export {
   type SagaState,
   type SagaTransition,
 } from './engine/saga-state-machine-generator.js';
+
+export {
+  TopologyEmitter,
+  type SimulationTopology,
+  type TopologyLane,
+  type TopologyFrame,
+  type TopologyNode,
+  type TopologyConnection,
+  type TopologyBranchPredicate,
+  type TopologyContextMap,
+  type TopologySchemaContract,
+} from './engine/topology-emitter.js';

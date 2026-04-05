@@ -15,10 +15,7 @@ function makeEvent(name: string, fields: { name: string; type: string }[] = []):
   };
 }
 
-function makeAggregate(
-  name: string,
-  events: EventDefinition[] = [],
-): AggregateDefinition {
+function makeAggregate(name: string, events: EventDefinition[] = []): AggregateDefinition {
   return {
     id: `agg-${name}`,
     name,
@@ -77,6 +74,7 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'simple-flow',
+          lanes: [],
           moments: [],
           connections: [],
         },
@@ -102,6 +100,7 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -137,7 +136,7 @@ describe('generateAsyncApiSpec', () => {
     expect(output).toContain('order-placed:');
     expect(output).toContain("address: 'order-placed'");
     expect(output).toContain("$ref: '#/components/messages/OrderPlaced'");
-    expect(output).toContain("Published by Ordering, consumed by Shipping");
+    expect(output).toContain('Published by Ordering, consumed by Shipping');
 
     expect(output).toContain('components:');
     expect(output).toContain('  messages:');
@@ -161,8 +160,15 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'flow-a',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Ship', contextEntries: [{ contextId: 'ctx-Ordering', nodeName: 'OrderShipped', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Ship',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'OrderShipped', nodeKind: 'event' },
+              ],
+            },
           ],
           connections: [
             {
@@ -182,8 +188,15 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-2',
           name: 'flow-b',
+          lanes: [],
           moments: [
-            { id: 'm1', name: 'Ship Again', contextEntries: [{ contextId: 'ctx-Ordering', nodeName: 'OrderShipped', nodeKind: 'event' }] },
+            {
+              id: 'm1',
+              name: 'Ship Again',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'OrderShipped', nodeKind: 'event' },
+              ],
+            },
           ],
           connections: [
             {
@@ -230,8 +243,13 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'type-flow',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Step', contextEntries: [{ contextId: 'ctx-Test', nodeName: 'TestEvent', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Step',
+              contextEntries: [{ contextId: 'ctx-Test', nodeName: 'TestEvent', nodeKind: 'event' }],
+            },
           ],
           connections: [
             {
@@ -279,8 +297,15 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'cart-flow',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Add Item', contextEntries: [{ contextId: 'ctx-Cart', nodeName: 'OrderItemAdded', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Add Item',
+              contextEntries: [
+                { contextId: 'ctx-Cart', nodeName: 'OrderItemAdded', nodeKind: 'event' },
+              ],
+            },
           ],
           connections: [
             {
@@ -326,16 +351,20 @@ describe('generateAsyncApiSpec', () => {
 
   it('skips crossings when event is not found in IR', () => {
     const ir = makeIR({
-      contexts: [
-        makeContext('Ordering'),
-        makeContext('Shipping'),
-      ],
+      contexts: [makeContext('Ordering'), makeContext('Shipping')],
       flows: [
         {
           id: 'flow-1',
           name: 'broken-flow',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Step', contextEntries: [{ contextId: 'ctx-Ordering', nodeName: 'UnknownEvent', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Step',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'UnknownEvent', nodeKind: 'event' },
+              ],
+            },
           ],
           connections: [
             {
@@ -370,8 +399,15 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'triggered-flow',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Step', contextEntries: [{ contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Step',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' },
+              ],
+            },
           ],
           connections: [
             {
@@ -393,16 +429,20 @@ describe('generateAsyncApiSpec', () => {
   it('finds events in context-level events (not just aggregate events)', () => {
     const evt = makeEvent('DirectEvent', [{ name: 'data', type: 'string' }]);
     const ir = makeIR({
-      contexts: [
-        makeContext('Source', { events: [evt] }),
-        makeContext('Target'),
-      ],
+      contexts: [makeContext('Source', { events: [evt] }), makeContext('Target')],
       flows: [
         {
           id: 'flow-1',
           name: 'direct-flow',
+          lanes: [],
           moments: [
-            { id: 'm0', name: 'Step', contextEntries: [{ contextId: 'ctx-Source', nodeName: 'DirectEvent', nodeKind: 'event' }] },
+            {
+              id: 'm0',
+              name: 'Step',
+              contextEntries: [
+                { contextId: 'ctx-Source', nodeName: 'DirectEvent', nodeKind: 'event' },
+              ],
+            },
           ],
           connections: [
             {
@@ -424,7 +464,7 @@ describe('generateAsyncApiSpec', () => {
 
     const output = generateAsyncApiSpec(ir);
     expect(output).toContain('direct-event:');
-    expect(output).toContain("Published by Source, consumed by Target");
+    expect(output).toContain('Published by Source, consumed by Target');
   });
 
   it('skips crossing when producer context is not found', () => {
@@ -437,9 +477,8 @@ describe('generateAsyncApiSpec', () => {
         {
           id: 'flow-1',
           name: 'orphan-flow',
-          moments: [
-            { id: 'm0', name: 'Step', contextEntries: [] },
-          ],
+          lanes: [],
+          moments: [{ id: 'm0', name: 'Step', contextEntries: [] }],
           connections: [
             {
               id: 'conn-0',
@@ -469,38 +508,87 @@ describe('generateAsyncApiSpec', () => {
           ...makeIR().contexts[0],
           id: 'ctx-A',
           name: 'A',
-          aggregates: [{
-            id: 'agg-1', name: 'Order', identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
-            commands: [], events: [{
-              id: 'evt-1', name: 'OrderPlaced',
-              fields: [
-                { name: 'orderId', type: 'UUID', isArray: false, required: true },
-                { name: 'legacyId', type: 'string', isArray: false, required: true, deprecated: { reason: 'Use orderId', replacement: 'orderId' } },
+          aggregates: [
+            {
+              id: 'agg-1',
+              name: 'Order',
+              identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+              commands: [],
+              events: [
+                {
+                  id: 'evt-1',
+                  name: 'OrderPlaced',
+                  fields: [
+                    { name: 'orderId', type: 'UUID', isArray: false, required: true },
+                    {
+                      name: 'legacyId',
+                      type: 'string',
+                      isArray: false,
+                      required: true,
+                      deprecated: { reason: 'Use orderId', replacement: 'orderId' },
+                    },
+                  ],
+                },
               ],
-            }], valueObjects: [], invariants: [],
-          }],
-          domainServices: [], commands: [], events: [], policies: [], sagas: [], valueObjects: [], invariants: [],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
         },
         {
           ...makeIR().contexts[0],
-          id: 'ctx-B', name: 'B',
-          aggregates: [], domainServices: [], commands: [], events: [], policies: [], sagas: [], valueObjects: [], invariants: [],
+          id: 'ctx-B',
+          name: 'B',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [],
+          policies: [],
+          sagas: [],
+          valueObjects: [],
+          invariants: [],
         },
       ],
-      flows: [{
-        id: 'f1', name: 'Flow',
-        moments: [{ id: 'm1', name: 'M1', contextEntries: [{ contextId: 'ctx-A', nodeName: 'OrderPlaced', nodeKind: 'event' }] }],
-        connections: [{
-          id: 'c1', sourceMomentId: 'm1', targetContextId: 'ctx-B', eventId: 'evt-1',
-          connectionType: 'crosses-to' as const,
-          schemaContract: { eventType: 'OrderPlaced', fields: [{ name: 'orderId', type: 'UUID', required: true }], relationshipType: 'Partnership' },
-        }],
-      }],
+      flows: [
+        {
+          id: 'f1',
+          name: 'Flow',
+          lanes: [],
+          moments: [
+            {
+              id: 'm1',
+              name: 'M1',
+              contextEntries: [{ contextId: 'ctx-A', nodeName: 'OrderPlaced', nodeKind: 'event' }],
+            },
+          ],
+          connections: [
+            {
+              id: 'c1',
+              sourceMomentId: 'm1',
+              targetContextId: 'ctx-B',
+              eventId: 'evt-1',
+              connectionType: 'crosses-to' as const,
+              schemaContract: {
+                eventType: 'OrderPlaced',
+                fields: [{ name: 'orderId', type: 'UUID', required: true }],
+                relationshipType: 'Partnership',
+              },
+            },
+          ],
+        },
+      ],
     });
 
     const output = generateAsyncApiSpec(ir);
     // legacyId property should have deprecated: true
-    expect(output).toContain("legacyId:");
+    expect(output).toContain('legacyId:');
     expect(output).toMatch(/legacyId:\n\s+type:.*\n\s+deprecated:\s*true/);
     // orderId property should NOT have deprecated line immediately after it
     expect(output).not.toMatch(/orderId:\n\s+type:.*\n\s+deprecated:/);

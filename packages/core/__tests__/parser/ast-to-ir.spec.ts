@@ -320,6 +320,21 @@ describe('AstToIr', () => {
     expect(flow.id).toBe('flow-order-placed');
     expect(flow.name).toBe('order-placed');
     expect(flow.description).toBe('Order submission flow');
+    expect(flow.lanes).toHaveLength(2);
+    expect(flow.lanes[0]).toEqual({
+      id: 'ordering',
+      label: 'Ordering',
+      contextId: 'ctx-Ordering',
+      classification: 'Core',
+      isBranch: false,
+    });
+    expect(flow.lanes[1]).toEqual({
+      id: 'fulfillment',
+      label: 'Fulfillment',
+      contextId: 'ctx-Fulfillment',
+      classification: 'Supporting',
+      isBranch: false,
+    });
   });
 
   it('transforms frames with node placements to MomentDefinitions', async () => {
@@ -388,7 +403,13 @@ describe('AstToIr', () => {
             b: BackorderCreated [terminal]
     `);
 
-    const frame = ir.flows[0].moments[0];
+    const flow = ir.flows[0];
+    expect(flow.lanes).toHaveLength(2);
+    expect(flow.lanes[0].isBranch).toBe(false);
+    expect(flow.lanes[1].isBranch).toBe(true);
+    expect(flow.lanes[1].classification).toBe('Terminal');
+
+    const frame = flow.moments[0];
     expect(frame.branches).toHaveLength(2);
     expect(frame.branches![0].condition).toBe('available');
     expect(frame.branches![0].entries).toHaveLength(1);
@@ -412,6 +433,19 @@ describe('AstToIr', () => {
     expect(entries[0].multiplicity).toBe(3);
     expect(entries[1].optional).toBe(true);
     expect(entries[2].terminal).toBe(true);
+  });
+
+  it('transforms lane without classification', async () => {
+    const ir = await toIr(`
+      flow "test"
+        lane a "A"
+        moment "Step"
+          a: DoSomething
+    `);
+
+    expect(ir.flows[0].lanes).toHaveLength(1);
+    expect(ir.flows[0].lanes[0].classification).toBeUndefined();
+    expect(ir.flows[0].lanes[0].isBranch).toBe(false);
   });
 
   it('transforms triggered-by and triggers connections', async () => {
