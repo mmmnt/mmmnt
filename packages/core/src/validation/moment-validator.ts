@@ -12,11 +12,16 @@ import type {
   ContextCrossing,
   FieldDeclaration,
   FlowDeclaration,
-  Moment,
+  MomentDeclaration,
   LaneDeclaration,
   NodePlacement,
 } from '../generated/ast.js';
-import { isReturnsTo, isMoment, isFlowDeclaration, isTriggeredBy } from '../generated/ast.js';
+import {
+  isReturnsTo,
+  isMomentDeclaration,
+  isFlowDeclaration,
+  isTriggeredBy,
+} from '../generated/ast.js';
 
 // ---------------------------------------------------------------------------
 // Cross-file context interface
@@ -51,7 +56,7 @@ export function registerMomentValidationChecks(
   const registry = services.validation.ValidationRegistry;
   const validator = services.validation.MomentValidator;
   const checks: ValidationChecks<MomentAstType> = {
-    Moment: validator.checkMoment,
+    MomentDeclaration: validator.checkMoment,
     FieldDeclaration: validator.checkDeprecatedReplacement,
     NodePlacement: [
       validator.checkNodePlacement,
@@ -90,11 +95,11 @@ function collectSiblingNames(field: FieldDeclaration): Set<string> {
   return new Set(container.fields.map((f) => f.name));
 }
 
-function getMomentFromNode(node: { $container?: unknown }): Moment | undefined {
+function getMomentFromNode(node: { $container?: unknown }): MomentDeclaration | undefined {
   let current: unknown = node;
   while (current) {
-    if (isMoment(current as Record<string, unknown>)) {
-      return current as Moment;
+    if (isMomentDeclaration(current as Record<string, unknown>)) {
+      return current as MomentDeclaration;
     }
     current = (current as { $container?: unknown }).$container;
   }
@@ -124,10 +129,14 @@ export class MomentValidator {
     const replacement = field.deprecation.replacement.replace(/^"|"$/g, '');
     const siblings = collectSiblingNames(field);
     if (!siblings.has(replacement)) {
-      accept('warning', `V12: Deprecated field '${field.name}' references replacement '${replacement}' which does not exist on this type.`, {
-        node: field.deprecation,
-        property: 'replacement',
-      });
+      accept(
+        'warning',
+        `V12: Deprecated field '${field.name}' references replacement '${replacement}' which does not exist on this type.`,
+        {
+          node: field.deprecation,
+          property: 'replacement',
+        },
+      );
     }
   }
 
@@ -216,7 +225,7 @@ export class MomentValidator {
   // =========================================================================
   // V10: Moment with zero nodes AND zero whenBlocks -> error
   // =========================================================================
-  checkMoment(moment: Moment, accept: ValidationAcceptor): void {
+  checkMoment(moment: MomentDeclaration, accept: ValidationAcceptor): void {
     if (moment.nodes.length === 0 && moment.whenBlocks.length === 0) {
       accept('error', 'V10: Moment must contain at least one node or when block.', {
         node: moment,
@@ -437,7 +446,10 @@ export class MomentValidator {
     this.checkV11(node, accept, this.crossFileContext);
   }
 
-  private collectPriorMomentLabels(flow: FlowDeclaration, currentMoment: Moment): Set<string> {
+  private collectPriorMomentLabels(
+    flow: FlowDeclaration,
+    currentMoment: MomentDeclaration,
+  ): Set<string> {
     const labels = new Set<string>();
     for (const moment of flow.moments) {
       if (moment === currentMoment) break;
@@ -446,7 +458,10 @@ export class MomentValidator {
     return labels;
   }
 
-  private collectPriorNodeNames(flow: FlowDeclaration, currentMoment: Moment): Set<string> {
+  private collectPriorNodeNames(
+    flow: FlowDeclaration,
+    currentMoment: MomentDeclaration,
+  ): Set<string> {
     const names = new Set<string>();
     for (const moment of flow.moments) {
       if (moment === currentMoment) break;
@@ -462,7 +477,7 @@ export class MomentValidator {
     return names;
   }
 
-  private countReturnsToInMoment(moment: Moment): number {
+  private countReturnsToInMoment(moment: MomentDeclaration): number {
     let count = 0;
     for (const node of moment.nodes) {
       for (const conn of node.connections) {
