@@ -8,38 +8,38 @@
   "when": "The flow progresses through Event discovery, Pool initialization, Seat selection and hold, Hold fraud evaluation, Hold risk decision, Cart population, Fee calculation, Payment initiation, Payment fraud evaluation, Payment processing, Delivery trigger, Notification trigger, Hold conversion, Ticket issuance, Mobile pass generation, Order confirmation, Ticket delivery notification",
   "then": "The flow completes at Ticket delivery notification across Catalog, Inventory, AntiFraud, Checkout, Delivery, Notifications",
   "expectedPath": [
-    "n00-PublishEvent",
-    "n00-EventPublished",
-    "n01-InitializePool",
-    "n01-PoolInitialized",
-    "n02-RequestHold",
-    "n02-SeatsHeld",
-    "n03-EvaluateHoldRisk",
-    "n03-HoldRiskEvaluated",
-    "n04-CreateCart",
-    "n04-CartCreated",
-    "n05-AddTicketsToCart",
-    "n05-TicketsAddedToCart",
-    "n06-CalculateFees",
-    "n06-FeesCalculated",
-    "n07-InitiatePayment",
-    "n07-PaymentInitiated",
-    "n08-EvaluatePaymentRisk",
-    "n08-PaymentRiskEvaluated",
-    "n09-ConfirmPayment",
-    "n09-PaymentConfirmed",
-    "n10-PaymentConfirmed",
-    "n11-PaymentConfirmed",
-    "n12-ConvertHoldToReservation",
-    "n12-HoldConvertedToReservation",
-    "n13-IssueTickets",
-    "n13-TicketsIssued",
-    "n14-GenerateMobilePass",
-    "n14-MobilePassGenerated",
-    "n15-SendOrderConfirmation",
-    "n15-OrderConfirmationSent",
-    "n16-SendTicketDelivery",
-    "n16-TicketDeliverySent"
+    "moment-0-Event-discovery::catalog::PublishEvent::main",
+    "moment-0-Event-discovery::catalog::EventPublished::main",
+    "moment-1-Pool-initialization::inventory::InitializePool::main",
+    "moment-1-Pool-initialization::inventory::PoolInitialized::main",
+    "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
+    "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
+    "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
+    "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
+    "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
+    "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
+    "moment-5-Cart-population::checkout::AddTicketsToCart::main",
+    "moment-5-Cart-population::checkout::TicketsAddedToCart::main",
+    "moment-6-Fee-calculation::checkout::CalculateFees::main",
+    "moment-6-Fee-calculation::checkout::FeesCalculated::main",
+    "moment-7-Payment-initiation::checkout::InitiatePayment::main",
+    "moment-7-Payment-initiation::checkout::PaymentInitiated::main",
+    "moment-8-Payment-fraud-evaluation::antifraud::EvaluatePaymentRisk::main",
+    "moment-8-Payment-fraud-evaluation::antifraud::PaymentRiskEvaluated::main",
+    "moment-9-Payment-processing::checkout::ConfirmPayment::br0",
+    "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
+    "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
+    "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
+    "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
+    "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
+    "moment-13-Ticket-issuance::delivery::IssueTickets::main",
+    "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
+    "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
+    "moment-14-Mobile-pass-generation::delivery::MobilePassGenerated::main",
+    "moment-15-Order-confirmation::notifications::SendOrderConfirmation::main",
+    "moment-15-Order-confirmation::notifications::OrderConfirmationSent::main",
+    "moment-16-Ticket-delivery-notification::notifications::SendTicketDelivery::main",
+    "moment-16-Ticket-delivery-notification::notifications::TicketDeliverySent::main"
   ],
   "activeBranches": [
     {
@@ -64,7 +64,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PublishEvent",
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
         "eventId": "eventId-001"
       }
@@ -81,7 +81,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-EventPublished",
+        "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
         "eventId": "eventId-001",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -98,7 +98,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-InitializePool",
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -119,7 +119,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-PoolInitialized",
+        "nodeId": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
         "poolId": "poolId-001",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -142,7 +142,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-RequestHold",
+        "nodeId": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
         "processName": "RequestHold",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -164,7 +164,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-SeatsHeld",
+        "nodeId": "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
         "holdId": "holdId-001",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -206,7 +206,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-EvaluateHoldRisk",
+        "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
         "processName": "EvaluateHoldRisk",
         "holdId": "holdId-001",
         "customerId": "customerId-001",
@@ -230,7 +230,7 @@
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-HoldRiskEvaluated",
+        "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
         "assessmentId": "assessmentId-001",
         "holdId": "holdId-001",
         "customerId": "customerId-001",
@@ -257,7 +257,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-CreateCart",
+        "nodeId": "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
         "processName": "CreateCart",
         "customerId": "customerId-001",
         "sessionId": "sessionId-001"
@@ -279,7 +279,7 @@
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-CartCreated",
+        "nodeId": "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
         "cartId": "cartId-001",
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
@@ -303,7 +303,7 @@
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-AddTicketsToCart",
+        "nodeId": "moment-5-Cart-population::checkout::AddTicketsToCart::main",
         "processName": "AddTicketsToCart",
         "cartId": "cartId-001",
         "holdId": "holdId-001",
@@ -330,7 +330,7 @@
       "timestamp": "2026-01-01T10:00:11.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-TicketsAddedToCart",
+        "nodeId": "moment-5-Cart-population::checkout::TicketsAddedToCart::main",
         "cartId": "cartId-001",
         "lineItemId": "lineItemId-001",
         "holdId": "holdId-001",
@@ -360,7 +360,7 @@
       "timestamp": "2026-01-01T10:00:12.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n06-CalculateFees",
+        "nodeId": "moment-6-Fee-calculation::checkout::CalculateFees::main",
         "processName": "CalculateFees",
         "cartId": "cartId-001"
       }
@@ -383,7 +383,7 @@
       "timestamp": "2026-01-01T10:00:13.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n06-FeesCalculated",
+        "nodeId": "moment-6-Fee-calculation::checkout::FeesCalculated::main",
         "cartId": "cartId-001",
         "serviceFee": 0,
         "facilityFee": 0,
@@ -411,7 +411,7 @@
       "timestamp": "2026-01-01T10:00:14.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n07-InitiatePayment",
+        "nodeId": "moment-7-Payment-initiation::checkout::InitiatePayment::main",
         "processName": "InitiatePayment",
         "cartId": "cartId-001",
         "customerId": "customerId-001",
@@ -438,7 +438,7 @@
       "timestamp": "2026-01-01T10:00:15.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n07-PaymentInitiated",
+        "nodeId": "moment-7-Payment-initiation::checkout::PaymentInitiated::main",
         "paymentId": "paymentId-001",
         "cartId": "cartId-001",
         "customerId": "customerId-001",
@@ -469,7 +469,7 @@
       "timestamp": "2026-01-01T10:00:16.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n08-EvaluatePaymentRisk",
+        "nodeId": "moment-8-Payment-fraud-evaluation::antifraud::EvaluatePaymentRisk::main",
         "processName": "EvaluatePaymentRisk",
         "paymentId": "paymentId-001",
         "customerId": "customerId-001",
@@ -499,7 +499,7 @@
       "timestamp": "2026-01-01T10:00:17.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n08-PaymentRiskEvaluated",
+        "nodeId": "moment-8-Payment-fraud-evaluation::antifraud::PaymentRiskEvaluated::main",
         "assessmentId": "assessmentId-001",
         "paymentId": "paymentId-001",
         "customerId": "customerId-001",
@@ -531,7 +531,7 @@
       "timestamp": "2026-01-01T10:00:18.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n09-ConfirmPayment",
+        "nodeId": "moment-9-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId"
@@ -559,7 +559,7 @@
       "timestamp": "2026-01-01T10:00:19.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n09-PaymentConfirmed",
+        "nodeId": "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z"
@@ -587,7 +587,7 @@
       "timestamp": "2026-01-01T10:00:20.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n10-PaymentConfirmed",
+        "nodeId": "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z"
@@ -615,7 +615,7 @@
       "timestamp": "2026-01-01T10:00:21.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n11-PaymentConfirmed",
+        "nodeId": "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z"
@@ -646,7 +646,7 @@
       "timestamp": "2026-01-01T10:00:22.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n12-ConvertHoldToReservation",
+        "nodeId": "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
         "processName": "ConvertHoldToReservation",
         "holdId": "holdId-001",
         "paymentConfirmationId": "paymentConfirmationId-001"
@@ -677,7 +677,7 @@
       "timestamp": "2026-01-01T10:00:23.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n12-HoldConvertedToReservation",
+        "nodeId": "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
         "holdId": "holdId-001",
         "paymentConfirmationId": "paymentConfirmationId-001",
         "convertedAt": "2026-01-01T10:00:00.000Z"
@@ -708,7 +708,7 @@
       "timestamp": "2026-01-01T10:00:24.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n13-IssueTickets",
+        "nodeId": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
         "processName": "IssueTickets",
         "orderId": "orderId-001",
         "customerId": "customerId-001",
@@ -742,7 +742,7 @@
       "timestamp": "2026-01-01T10:00:25.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n13-TicketsIssued",
+        "nodeId": "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
         "orderId": "orderId-001",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
@@ -779,7 +779,7 @@
       "timestamp": "2026-01-01T10:00:26.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n14-GenerateMobilePass",
+        "nodeId": "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
         "processName": "GenerateMobilePass",
         "ticketId": "ticketId-001",
         "passFormat": "sample-passFormat"
@@ -812,7 +812,7 @@
       "timestamp": "2026-01-01T10:00:27.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n14-MobilePassGenerated",
+        "nodeId": "moment-14-Mobile-pass-generation::delivery::MobilePassGenerated::main",
         "ticketId": "ticketId-001",
         "passUrl": "sample-passUrl",
         "passFormat": "sample-passFormat",
@@ -846,7 +846,7 @@
       "timestamp": "2026-01-01T10:00:28.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n15-SendOrderConfirmation",
+        "nodeId": "moment-15-Order-confirmation::notifications::SendOrderConfirmation::main",
         "processName": "SendOrderConfirmation",
         "orderId": "orderId-001",
         "customerId": "customerId-001",
@@ -883,7 +883,7 @@
       "timestamp": "2026-01-01T10:00:29.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n15-OrderConfirmationSent",
+        "nodeId": "moment-15-Order-confirmation::notifications::OrderConfirmationSent::main",
         "dispatchId": "dispatchId-001",
         "orderId": "orderId-001",
         "customerId": "customerId-001",
@@ -918,7 +918,7 @@
       "timestamp": "2026-01-01T10:00:30.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n16-SendTicketDelivery",
+        "nodeId": "moment-16-Ticket-delivery-notification::notifications::SendTicketDelivery::main",
         "processName": "SendTicketDelivery",
         "orderId": "orderId-001",
         "customerId": "customerId-001",
@@ -953,7 +953,7 @@
       "timestamp": "2026-01-01T10:00:31.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n16-TicketDeliverySent",
+        "nodeId": "moment-16-Ticket-delivery-notification::notifications::TicketDeliverySent::main",
         "dispatchId": "dispatchId-001",
         "orderId": "orderId-001",
         "customerId": "customerId-001",

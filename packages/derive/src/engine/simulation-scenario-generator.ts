@@ -65,6 +65,9 @@ interface NodeInfo {
   momentIndex: number;
 }
 
+// Lane ID lookup: contextId → lane.id from the flow's lane declarations
+type LaneIndex = Map<string, string>;
+
 export interface SimulationOptions {
   readonly scenarioId?: string;
   readonly branchSelections?: Record<string, string>;
@@ -262,11 +265,12 @@ function collectOrderedNodes(
   flow: FlowDefinition,
   branchSelections: Record<string, string>,
 ): NodeInfo[] {
+  const laneIndex: LaneIndex = new Map(flow.lanes.map((l) => [l.contextId, l.id]));
   const nodes: NodeInfo[] = [];
 
   for (let i = 0; i < flow.moments.length; i++) {
     const moment = flow.moments[i];
-    const stopped = collectMomentNodes(nodes, moment, i, branchSelections);
+    const stopped = collectMomentNodes(nodes, moment, i, branchSelections, laneIndex);
     if (stopped) break;
   }
 
@@ -278,13 +282,14 @@ function collectMomentNodes(
   moment: MomentDefinition,
   momentIndex: number,
   branchSelections: Record<string, string>,
+  laneIndex: LaneIndex,
 ): boolean {
   if (moment.branches && moment.branches.length > 0) {
-    return collectBranchedMomentNodes(nodes, moment, momentIndex, branchSelections);
+    return collectBranchedMomentNodes(nodes, moment, momentIndex, branchSelections, laneIndex);
   }
 
   for (const entry of moment.contextEntries) {
-    nodes.push(entryToNode(entry, moment, momentIndex));
+    nodes.push(entryToNode(entry, moment, momentIndex, laneIndex, 'main'));
   }
   return false;
 }
@@ -294,6 +299,7 @@ function collectBranchedMomentNodes(
   moment: MomentDefinition,
   momentIndex: number,
   branchSelections: Record<string, string>,
+  laneIndex: LaneIndex,
 ): boolean {
   const selectedCondition = branchSelections[moment.name];
   const branch = selectedCondition
@@ -303,23 +309,31 @@ function collectBranchedMomentNodes(
   let hitTerminal = false;
 
   if (branch) {
+    const branchIdx = moment.branches!.indexOf(branch);
     for (const entry of branch.entries) {
-      nodes.push(entryToNode(entry, moment, momentIndex));
+      nodes.push(entryToNode(entry, moment, momentIndex, laneIndex, `br${branchIdx}`));
       if (entry.terminal) hitTerminal = true;
     }
   }
 
   for (const entry of moment.contextEntries) {
-    nodes.push(entryToNode(entry, moment, momentIndex));
+    nodes.push(entryToNode(entry, moment, momentIndex, laneIndex, 'main'));
   }
 
   return hitTerminal;
 }
 
-function entryToNode(entry: MomentEntry, moment: MomentDefinition, momentIndex: number): NodeInfo {
+function entryToNode(
+  entry: MomentEntry,
+  moment: MomentDefinition,
+  momentIndex: number,
+  laneIndex: LaneIndex,
+  scope: string,
+): NodeInfo {
   const contextName = entry.contextId.replace(/^ctx-/, '');
+  const laneId = laneIndex.get(entry.contextId) ?? entry.contextId;
   return {
-    nodeId: `n${String(momentIndex).padStart(2, '0')}-${entry.nodeName}`,
+    nodeId: `${moment.id}::${laneId}::${entry.nodeName}::${scope}`,
     nodeName: entry.nodeName,
     contextId: entry.contextId,
     contextName,

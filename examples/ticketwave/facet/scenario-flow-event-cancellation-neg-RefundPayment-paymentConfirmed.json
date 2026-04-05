@@ -8,16 +8,16 @@
   "when": "RefundPayment is invoked without satisfying paymentConfirmed",
   "then": "The command RefundPayment is rejected",
   "expectedPath": [
-    "n00-CancelEvent",
-    "n00-EventCancelled",
-    "n01-EventCancelled",
-    "n02-EventCancelled",
-    "n03-EventCancelled",
-    "n04-ReleaseHold",
-    "n04-HoldReleased",
-    "n05-RevokeTicket",
-    "n05-TicketRevoked",
-    "n06-RefundPayment"
+    "moment-0-Event-cancellation::catalog::CancelEvent::main",
+    "moment-0-Event-cancellation::catalog::EventCancelled::main",
+    "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
+    "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
+    "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
+    "moment-4-Active-holds-release::inventory::ReleaseHold::main",
+    "moment-4-Active-holds-release::inventory::HoldReleased::main",
+    "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
+    "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
+    "moment-6-Refund-processing::checkout::RefundPayment::br0"
   ],
   "activeBranches": [],
   "events": [
@@ -31,7 +31,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-CancelEvent",
+        "nodeId": "moment-0-Event-cancellation::catalog::CancelEvent::main",
         "processName": "CancelEvent",
         "eventId": "eventId-001",
         "reason": "sample-reason"
@@ -49,7 +49,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-EventCancelled",
+        "nodeId": "moment-0-Event-cancellation::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -67,7 +67,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-EventCancelled",
+        "nodeId": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -85,7 +85,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-EventCancelled",
+        "nodeId": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -103,7 +103,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-EventCancelled",
+        "nodeId": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -125,7 +125,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-ReleaseHold",
+        "nodeId": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
         "processName": "ReleaseHold",
         "holdId": "holdId-001",
         "reason": "sample-reason"
@@ -147,7 +147,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-HoldReleased",
+        "nodeId": "moment-4-Active-holds-release::inventory::HoldReleased::main",
         "holdId": "holdId-001",
         "reason": "sample-reason",
         "returnedQuantity": 0,
@@ -170,7 +170,7 @@
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-RevokeTicket",
+        "nodeId": "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
         "processName": "RevokeTicket",
         "ticketId": "ticketId-001",
         "reason": "sample-reason"
@@ -192,7 +192,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-TicketRevoked",
+        "nodeId": "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
         "ticketId": "ticketId-001",
         "reason": "sample-reason",
         "revokedAt": "2026-01-01T10:00:00.000Z"
@@ -214,7 +214,7 @@
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n06-RefundPayment",
+        "nodeId": "moment-6-Refund-processing::checkout::RefundPayment::br0",
         "processName": "RefundPayment",
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
@@ -233,7 +233,7 @@
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n06-RefundPayment",
+        "nodeId": "moment-6-Refund-processing::checkout::RefundPayment::br0",
         "failedPrecondition": "paymentConfirmed",
         "description": "Payment must have been confirmed"
       }

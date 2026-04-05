@@ -8,7 +8,7 @@
   "when": "PublishEvent is invoked without satisfying eventComplete",
   "then": "The command PublishEvent is rejected",
   "expectedPath": [
-    "n00-PublishEvent"
+    "moment-0-Event-discovery::catalog::PublishEvent::main"
   ],
   "activeBranches": [],
   "events": [
@@ -22,7 +22,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PublishEvent",
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
         "eventId": "eventId-001"
       }
@@ -39,7 +39,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PublishEvent",
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "failedPrecondition": "eventComplete",
         "description": "Event must have at least one ticket tier configured"
       }

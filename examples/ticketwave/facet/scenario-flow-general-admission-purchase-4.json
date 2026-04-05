@@ -8,17 +8,17 @@
   "when": "The flow progresses through Event discovery, Pool initialization, Seat selection and hold, Hold fraud evaluation, Hold risk decision",
   "then": "The flow completes at Hold risk decision across Catalog, Inventory, AntiFraud, Manual Review",
   "expectedPath": [
-    "n00-PublishEvent",
-    "n00-EventPublished",
-    "n01-InitializePool",
-    "n01-PoolInitialized",
-    "n02-RequestHold",
-    "n02-SeatsHeld",
-    "n03-EvaluateHoldRisk",
-    "n03-HoldRiskEvaluated",
-    "n04-FlagForManualReview",
-    "n04-FlaggedForManualReview",
-    "n04-FlaggedForManualReview"
+    "moment-0-Event-discovery::catalog::PublishEvent::main",
+    "moment-0-Event-discovery::catalog::EventPublished::main",
+    "moment-1-Pool-initialization::inventory::InitializePool::main",
+    "moment-1-Pool-initialization::inventory::PoolInitialized::main",
+    "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
+    "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
+    "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
+    "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
+    "moment-4-Hold-risk-decision::antifraud::FlagForManualReview::br2",
+    "moment-4-Hold-risk-decision::antifraud::FlaggedForManualReview::br2",
+    "moment-4-Hold-risk-decision::manualReview::FlaggedForManualReview::br2"
   ],
   "activeBranches": [
     {
@@ -43,7 +43,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PublishEvent",
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
         "eventId": "eventId-001"
       }
@@ -60,7 +60,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-EventPublished",
+        "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
         "eventId": "eventId-001",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -77,7 +77,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-InitializePool",
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -98,7 +98,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-PoolInitialized",
+        "nodeId": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
         "poolId": "poolId-001",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -121,7 +121,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-RequestHold",
+        "nodeId": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
         "processName": "RequestHold",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -143,7 +143,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-SeatsHeld",
+        "nodeId": "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
         "holdId": "holdId-001",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -185,7 +185,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-EvaluateHoldRisk",
+        "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
         "processName": "EvaluateHoldRisk",
         "holdId": "holdId-001",
         "customerId": "customerId-001",
@@ -209,7 +209,7 @@
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-HoldRiskEvaluated",
+        "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
         "assessmentId": "assessmentId-001",
         "holdId": "holdId-001",
         "customerId": "customerId-001",
@@ -236,7 +236,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-FlagForManualReview",
+        "nodeId": "moment-4-Hold-risk-decision::antifraud::FlagForManualReview::br2",
         "processName": "FlagForManualReview",
         "assessmentId": "assessmentId-001",
         "reason": "sample-reason",
@@ -259,7 +259,7 @@
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-FlaggedForManualReview",
+        "nodeId": "moment-4-Hold-risk-decision::antifraud::FlaggedForManualReview::br2",
         "assessmentId": "assessmentId-001",
         "reason": "sample-reason",
         "flaggedAt": "2026-01-01T10:00:00.000Z"
@@ -281,7 +281,7 @@
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-FlaggedForManualReview"
+        "nodeId": "moment-4-Hold-risk-decision::manualReview::FlaggedForManualReview::br2"
       }
     }
   ]

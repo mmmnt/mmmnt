@@ -8,13 +8,13 @@
   "when": "The flow progresses through Transfer initiation, Recipient notification, Transfer resolution",
   "then": "The flow completes at Transfer resolution across Delivery, Notifications, Transfer Expired",
   "expectedPath": [
-    "n00-InitiateTransfer",
-    "n00-TransferInitiated",
-    "n01-SendTransferNotification",
-    "n01-TransferNotificationSent",
-    "n02-CancelTransfer",
-    "n02-TransferCancelled",
-    "n02-TransferCancelled"
+    "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+    "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
+    "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
+    "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
+    "moment-2-Transfer-resolution::delivery::CancelTransfer::br2",
+    "moment-2-Transfer-resolution::delivery::TransferCancelled::br2",
+    "moment-2-Transfer-resolution::transferExpired::TransferCancelled::br2"
   ],
   "activeBranches": [
     {
@@ -34,7 +34,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-InitiateTransfer",
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "processName": "InitiateTransfer",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -54,7 +54,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-TransferInitiated",
+        "nodeId": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -93,7 +93,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-SendTransferNotification",
+        "nodeId": "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
         "processName": "SendTransferNotification",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
@@ -115,7 +115,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-TransferNotificationSent",
+        "nodeId": "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
         "dispatchId": "dispatchId-001",
         "transferId": "transferId-001",
         "toEmail": "sample-toEmail",
@@ -134,7 +134,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-CancelTransfer",
+        "nodeId": "moment-2-Transfer-resolution::delivery::CancelTransfer::br2",
         "processName": "CancelTransfer",
         "transferId": "transferId-001"
       }
@@ -151,7 +151,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-TransferCancelled",
+        "nodeId": "moment-2-Transfer-resolution::delivery::TransferCancelled::br2",
         "transferId": "transferId-001",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -168,7 +168,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-TransferCancelled"
+        "nodeId": "moment-2-Transfer-resolution::transferExpired::TransferCancelled::br2"
       }
     }
   ]

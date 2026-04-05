@@ -8,12 +8,12 @@
   "when": "ReleaseHold is invoked without satisfying holdActive",
   "then": "The command ReleaseHold is rejected",
   "expectedPath": [
-    "n00-CancelEvent",
-    "n00-EventCancelled",
-    "n01-EventCancelled",
-    "n02-EventCancelled",
-    "n03-EventCancelled",
-    "n04-ReleaseHold"
+    "moment-0-Event-cancellation::catalog::CancelEvent::main",
+    "moment-0-Event-cancellation::catalog::EventCancelled::main",
+    "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
+    "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
+    "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
+    "moment-4-Active-holds-release::inventory::ReleaseHold::main"
   ],
   "activeBranches": [],
   "events": [
@@ -27,7 +27,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-CancelEvent",
+        "nodeId": "moment-0-Event-cancellation::catalog::CancelEvent::main",
         "processName": "CancelEvent",
         "eventId": "eventId-001",
         "reason": "sample-reason"
@@ -45,7 +45,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-EventCancelled",
+        "nodeId": "moment-0-Event-cancellation::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -63,7 +63,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-EventCancelled",
+        "nodeId": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -81,7 +81,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-EventCancelled",
+        "nodeId": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -99,7 +99,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-EventCancelled",
+        "nodeId": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
         "eventId": "eventId-001",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
@@ -121,7 +121,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-ReleaseHold",
+        "nodeId": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
         "processName": "ReleaseHold",
         "holdId": "holdId-001",
         "reason": "sample-reason"
@@ -139,7 +139,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-ReleaseHold",
+        "nodeId": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
         "failedPrecondition": "holdActive",
         "description": "Hold must be active"
       }
