@@ -8,7 +8,7 @@ import type {
   DomainServiceDeclaration,
   FieldDeclaration,
   FlowDeclaration,
-  Moment,
+  MomentDeclaration,
   InputField,
   InvariantDeclaration,
   MomentFile,
@@ -286,7 +286,7 @@ function transformFlow(flow: FlowDeclaration): FlowDefinition {
 }
 
 function transformMoment(
-  moment: Moment,
+  moment: MomentDeclaration,
   index: number,
   laneContextMap?: Map<string, string>,
 ): MomentDefinition {
