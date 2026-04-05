@@ -8,17 +8,17 @@
   "when": "CalculateFees is invoked without satisfying cartHasItems",
   "then": "The command CalculateFees is rejected",
   "expectedPath": [
-    "n00-OpenPresaleWindow",
-    "n00-PresaleWindowOpened",
-    "n01-RedeemAccessCode",
-    "n01-AccessCodeRedeemed",
-    "n02-RequestHold",
-    "n02-SeatsHeld",
-    "n03-CreateCart",
-    "n03-CartCreated",
-    "n04-AddTicketsToCart",
-    "n04-TicketsAddedToCart",
-    "n05-CalculateFees"
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+    "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+    "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
+    "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
+    "moment-3-Presale-cart-creation::checkout::CreateCart::main",
+    "moment-3-Presale-cart-creation::checkout::CartCreated::main",
+    "moment-4-Presale-cart-population::checkout::AddTicketsToCart::main",
+    "moment-4-Presale-cart-population::checkout::TicketsAddedToCart::main",
+    "moment-5-Presale-fee-calculation::checkout::CalculateFees::main"
   ],
   "activeBranches": [],
   "events": [
@@ -32,7 +32,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-OpenPresaleWindow",
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "processName": "OpenPresaleWindow",
         "windowId": "windowId-001"
       }
@@ -49,7 +49,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PresaleWindowOpened",
+        "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
         "windowId": "windowId-001",
         "openedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -66,7 +66,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-RedeemAccessCode",
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
         "processName": "RedeemAccessCode",
         "codeId": "codeId-001",
         "code": "sample-code",
@@ -86,7 +86,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-AccessCodeRedeemed",
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
@@ -107,7 +107,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-RequestHold",
+        "nodeId": "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
         "processName": "RequestHold",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -129,7 +129,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-SeatsHeld",
+        "nodeId": "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
         "holdId": "holdId-001",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -154,7 +154,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-CreateCart",
+        "nodeId": "moment-3-Presale-cart-creation::checkout::CreateCart::main",
         "processName": "CreateCart",
         "customerId": "customerId-001",
         "sessionId": "sessionId-001"
@@ -173,7 +173,7 @@
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-CartCreated",
+        "nodeId": "moment-3-Presale-cart-creation::checkout::CartCreated::main",
         "cartId": "cartId-001",
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
@@ -194,7 +194,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-AddTicketsToCart",
+        "nodeId": "moment-4-Presale-cart-population::checkout::AddTicketsToCart::main",
         "processName": "AddTicketsToCart",
         "cartId": "cartId-001",
         "holdId": "holdId-001",
@@ -218,7 +218,7 @@
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-TicketsAddedToCart",
+        "nodeId": "moment-4-Presale-cart-population::checkout::TicketsAddedToCart::main",
         "cartId": "cartId-001",
         "lineItemId": "lineItemId-001",
         "holdId": "holdId-001",
@@ -245,7 +245,7 @@
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-CalculateFees",
+        "nodeId": "moment-5-Presale-fee-calculation::checkout::CalculateFees::main",
         "processName": "CalculateFees",
         "cartId": "cartId-001"
       }
@@ -262,7 +262,7 @@
       "timestamp": "2026-01-01T10:00:11.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n05-CalculateFees",
+        "nodeId": "moment-5-Presale-fee-calculation::checkout::CalculateFees::main",
         "failedPrecondition": "cartHasItems",
         "description": "Cart must contain at least one line item"
       }

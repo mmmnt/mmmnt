@@ -8,9 +8,9 @@
   "when": "InitializePool is invoked without satisfying poolNotExists",
   "then": "The command InitializePool is rejected",
   "expectedPath": [
-    "n00-PublishEvent",
-    "n00-EventPublished",
-    "n01-InitializePool"
+    "moment-0-Event-discovery::catalog::PublishEvent::main",
+    "moment-0-Event-discovery::catalog::EventPublished::main",
+    "moment-1-Pool-initialization::inventory::InitializePool::main"
   ],
   "activeBranches": [],
   "events": [
@@ -24,7 +24,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PublishEvent",
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
         "eventId": "eventId-001"
       }
@@ -41,7 +41,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-EventPublished",
+        "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
         "eventId": "eventId-001",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -58,7 +58,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-InitializePool",
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
         "eventId": "eventId-001",
         "tierId": "tierId-001",
@@ -79,7 +79,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-InitializePool",
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "failedPrecondition": "poolNotExists",
         "description": "Pool must not already exist for this event-tier-section combination"
       }

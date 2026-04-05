@@ -8,11 +8,11 @@
   "when": "AcceptTransfer is invoked without satisfying recipientVerified",
   "then": "The command AcceptTransfer is rejected",
   "expectedPath": [
-    "n00-InitiateTransfer",
-    "n00-TransferInitiated",
-    "n01-SendTransferNotification",
-    "n01-TransferNotificationSent",
-    "n02-AcceptTransfer"
+    "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+    "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
+    "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
+    "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
+    "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0"
   ],
   "activeBranches": [],
   "events": [
@@ -26,7 +26,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-InitiateTransfer",
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "processName": "InitiateTransfer",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -46,7 +46,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-TransferInitiated",
+        "nodeId": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -68,7 +68,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-SendTransferNotification",
+        "nodeId": "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
         "processName": "SendTransferNotification",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
@@ -90,7 +90,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-TransferNotificationSent",
+        "nodeId": "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
         "dispatchId": "dispatchId-001",
         "transferId": "transferId-001",
         "toEmail": "sample-toEmail",
@@ -109,7 +109,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-AcceptTransfer",
+        "nodeId": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
         "processName": "AcceptTransfer",
         "transferId": "transferId-001",
         "recipientCustomerId": "recipientCustomerId-001"
@@ -127,7 +127,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-AcceptTransfer",
+        "nodeId": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
         "failedPrecondition": "recipientVerified",
         "description": "Recipient must have a verified account"
       }

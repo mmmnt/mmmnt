@@ -8,7 +8,7 @@
   "when": "OpenPresaleWindow is invoked without satisfying windowNotExpired",
   "then": "The command OpenPresaleWindow is rejected",
   "expectedPath": [
-    "n00-OpenPresaleWindow"
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main"
   ],
   "activeBranches": [],
   "events": [
@@ -22,7 +22,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-OpenPresaleWindow",
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "processName": "OpenPresaleWindow",
         "windowId": "windowId-001"
       }
@@ -39,7 +39,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-OpenPresaleWindow",
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "failedPrecondition": "windowNotExpired",
         "description": "Window must not have passed its end time"
       }

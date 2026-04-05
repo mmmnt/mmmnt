@@ -8,7 +8,7 @@
   "when": "InitiateTransfer is invoked without satisfying ticketNotTransferLocked",
   "then": "The command InitiateTransfer is rejected",
   "expectedPath": [
-    "n00-InitiateTransfer"
+    "moment-0-Transfer-initiation::delivery::InitiateTransfer::main"
   ],
   "activeBranches": [],
   "events": [
@@ -22,7 +22,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-InitiateTransfer",
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "processName": "InitiateTransfer",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -42,7 +42,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-InitiateTransfer",
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "failedPrecondition": "ticketNotTransferLocked",
         "description": "Ticket must not be transfer-locked"
       }

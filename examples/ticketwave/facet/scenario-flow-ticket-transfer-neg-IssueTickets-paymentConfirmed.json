@@ -8,15 +8,15 @@
   "when": "IssueTickets is invoked without satisfying paymentConfirmed",
   "then": "The command IssueTickets is rejected",
   "expectedPath": [
-    "n00-InitiateTransfer",
-    "n00-TransferInitiated",
-    "n01-SendTransferNotification",
-    "n01-TransferNotificationSent",
-    "n02-AcceptTransfer",
-    "n02-TransferAccepted",
-    "n03-RevokeTicket",
-    "n03-TicketRevoked",
-    "n04-IssueTickets"
+    "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+    "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
+    "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
+    "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
+    "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
+    "moment-2-Transfer-resolution::delivery::TransferAccepted::br0",
+    "moment-3-Original-ticket-revocation::delivery::RevokeTicket::main",
+    "moment-3-Original-ticket-revocation::delivery::TicketRevoked::main",
+    "moment-4-New-ticket-issuance::delivery::IssueTickets::main"
   ],
   "activeBranches": [],
   "events": [
@@ -30,7 +30,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-InitiateTransfer",
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "processName": "InitiateTransfer",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -50,7 +50,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-TransferInitiated",
+        "nodeId": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
         "fromCustomerId": "fromCustomerId-001",
@@ -72,7 +72,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-SendTransferNotification",
+        "nodeId": "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
         "processName": "SendTransferNotification",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
@@ -94,7 +94,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-TransferNotificationSent",
+        "nodeId": "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
         "dispatchId": "dispatchId-001",
         "transferId": "transferId-001",
         "toEmail": "sample-toEmail",
@@ -113,7 +113,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-AcceptTransfer",
+        "nodeId": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
         "processName": "AcceptTransfer",
         "transferId": "transferId-001",
         "recipientCustomerId": "recipientCustomerId-001"
@@ -131,7 +131,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-TransferAccepted",
+        "nodeId": "moment-2-Transfer-resolution::delivery::TransferAccepted::br0",
         "transferId": "transferId-001",
         "ticketId": "ticketId-001",
         "recipientCustomerId": "recipientCustomerId-001",
@@ -153,7 +153,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-RevokeTicket",
+        "nodeId": "moment-3-Original-ticket-revocation::delivery::RevokeTicket::main",
         "processName": "RevokeTicket",
         "ticketId": "ticketId-001",
         "reason": "sample-reason"
@@ -173,7 +173,7 @@
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n03-TicketRevoked",
+        "nodeId": "moment-3-Original-ticket-revocation::delivery::TicketRevoked::main",
         "ticketId": "ticketId-001",
         "reason": "sample-reason",
         "revokedAt": "2026-01-01T10:00:00.000Z"
@@ -193,7 +193,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-IssueTickets",
+        "nodeId": "moment-4-New-ticket-issuance::delivery::IssueTickets::main",
         "processName": "IssueTickets",
         "orderId": "orderId-001",
         "customerId": "customerId-001",
@@ -214,7 +214,7 @@
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n04-IssueTickets",
+        "nodeId": "moment-4-New-ticket-issuance::delivery::IssueTickets::main",
         "failedPrecondition": "paymentConfirmed",
         "description": "Payment must be confirmed before ticket issuance"
       }

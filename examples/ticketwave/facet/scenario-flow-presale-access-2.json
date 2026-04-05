@@ -8,13 +8,13 @@
   "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome",
   "then": "The flow completes at Code validation outcome across Presale, Window Closed",
   "expectedPath": [
-    "n00-OpenPresaleWindow",
-    "n00-PresaleWindowOpened",
-    "n01-RedeemAccessCode",
-    "n01-AccessCodeRedeemed",
-    "n02-ClosePresaleWindow",
-    "n02-PresaleWindowClosed",
-    "n02-PresaleWindowClosed"
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+    "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+    "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
+    "moment-2-Code-validation-outcome::presale::PresaleWindowClosed::br2",
+    "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2"
   ],
   "activeBranches": [
     {
@@ -34,7 +34,7 @@
       "timestamp": "2026-01-01T10:00:00.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-OpenPresaleWindow",
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "processName": "OpenPresaleWindow",
         "windowId": "windowId-001"
       }
@@ -51,7 +51,7 @@
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n00-PresaleWindowOpened",
+        "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
         "windowId": "windowId-001",
         "openedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -68,7 +68,7 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-RedeemAccessCode",
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
         "processName": "RedeemAccessCode",
         "codeId": "codeId-001",
         "code": "sample-code",
@@ -88,7 +88,7 @@
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n01-AccessCodeRedeemed",
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
@@ -109,7 +109,7 @@
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-ClosePresaleWindow",
+        "nodeId": "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
         "processName": "ClosePresaleWindow",
         "windowId": "windowId-001"
       }
@@ -126,7 +126,7 @@
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-PresaleWindowClosed",
+        "nodeId": "moment-2-Code-validation-outcome::presale::PresaleWindowClosed::br2",
         "windowId": "windowId-001",
         "totalRedemptions": 0,
         "closedAt": "2026-01-01T10:00:00.000Z"
@@ -144,7 +144,7 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "n02-PresaleWindowClosed"
+        "nodeId": "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2"
       }
     }
   ]
