@@ -84,21 +84,21 @@ jobs:
           fi
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-node-${{ matrix.node-version }}
           path: packages/*/coverage/
 
       - name: Upload JUnit test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always() && matrix.node-version == 22
         with:
           name: junit-results
           path: packages/*/test-results/junit.xml
 
       - name: Upload Cucumber JSON results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always() && matrix.node-version == 22
         with:
           name: cucumber-results
@@ -710,7 +710,7 @@ jobs:
         run: node e2e/harness.mjs
 
       - name: Upload E2E artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-output
