@@ -40,7 +40,9 @@
       "eventType": "PresaleWindowOpened",
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -55,7 +57,9 @@
       "eventType": "SimProcess.RedeemAccessCode",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -73,7 +77,9 @@
       "eventType": "AccessCodeRedeemed",
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-003"],
+      "causationEventIds": [
+        "evt-003"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -92,7 +98,9 @@
       "eventType": "SimProcess.RequestHold",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-004"],
+      "causationEventIds": [
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -112,7 +120,9 @@
       "eventType": "SeatsHeld",
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-004"],
+      "causationEventIds": [
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -134,7 +144,10 @@
       "eventType": "SimProcess.CreateCart",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-004", "evt-006"],
+      "causationEventIds": [
+        "evt-004",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
@@ -150,7 +163,10 @@
       "eventType": "CartCreated",
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-004", "evt-006"],
+      "causationEventIds": [
+        "evt-004",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
@@ -167,7 +183,11 @@
       "eventType": "SimProcess.AddTicketsToCart",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-004", "evt-006", "evt-008"],
+      "causationEventIds": [
+        "evt-004",
+        "evt-006",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
@@ -187,7 +207,9 @@
       "eventType": "SimFailure.AddTicketsToCart.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
-      "causationEventIds": ["evt-009"],
+      "causationEventIds": [
+        "evt-009"
+      ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,

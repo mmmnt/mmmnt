@@ -7,7 +7,9 @@
   "given": "A transfer initiation scenario is initiated",
   "when": "InitiateTransfer is invoked without satisfying eventNotPassed",
   "then": "The command InitiateTransfer is rejected",
-  "expectedPath": ["n00-InitiateTransfer"],
+  "expectedPath": [
+    "n00-InitiateTransfer"
+  ],
   "activeBranches": [],
   "events": [
     {
@@ -33,7 +35,9 @@
       "eventType": "SimFailure.InitiateTransfer.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,

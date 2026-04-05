@@ -1,0 +1,107 @@
+[
+  {
+    "sagaName": "SeatHoldLifecycle",
+    "context": "Inventory",
+    "initialState": "Held",
+    "finalState": "Expired",
+    "states": [
+      {
+        "name": "Held",
+        "isInitial": true,
+        "isFinal": false
+      },
+      {
+        "name": "Converting",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Converted",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Expired",
+        "isInitial": false,
+        "isFinal": true
+      }
+    ],
+    "transitions": [
+      {
+        "from": "Held",
+        "to": "Converting"
+      },
+      {
+        "from": "Converting",
+        "to": "Converted"
+      },
+      {
+        "from": "Converted",
+        "to": "Expired"
+      }
+    ],
+    "compensation": "Release held seats back to the pool and notify customer",
+    "timeout": "holdExpiry",
+    "reachability": {
+      "allReachable": true,
+      "unreachableStates": []
+    }
+  },
+  {
+    "sagaName": "TransferLifecycle",
+    "context": "Delivery",
+    "initialState": "Pending",
+    "finalState": "Expired",
+    "states": [
+      {
+        "name": "Pending",
+        "isInitial": true,
+        "isFinal": false
+      },
+      {
+        "name": "Accepted",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Declined",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Cancelled",
+        "isInitial": false,
+        "isFinal": false
+      },
+      {
+        "name": "Expired",
+        "isInitial": false,
+        "isFinal": true
+      }
+    ],
+    "transitions": [
+      {
+        "from": "Pending",
+        "to": "Accepted"
+      },
+      {
+        "from": "Accepted",
+        "to": "Declined"
+      },
+      {
+        "from": "Declined",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Cancelled",
+        "to": "Expired"
+      }
+    ],
+    "compensation": "Return ticket ownership to original holder",
+    "timeout": "transferExpiry",
+    "reachability": {
+      "allReachable": true,
+      "unreachableStates": []
+    }
+  }
+]

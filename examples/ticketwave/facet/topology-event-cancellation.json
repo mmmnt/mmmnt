@@ -65,7 +65,9 @@
           "label": "EventCancelled",
           "type": "event",
           "aggregate": "Event",
-          "eventTypes": ["EventCancelled"]
+          "eventTypes": [
+            "EventCancelled"
+          ]
         }
       ]
     },
@@ -80,7 +82,9 @@
           "label": "EventCancelled",
           "type": "event",
           "aggregate": "Event",
-          "eventTypes": ["EventCancelled"]
+          "eventTypes": [
+            "EventCancelled"
+          ]
         }
       ]
     },
@@ -95,7 +99,9 @@
           "label": "EventCancelled",
           "type": "event",
           "aggregate": "Event",
-          "eventTypes": ["EventCancelled"]
+          "eventTypes": [
+            "EventCancelled"
+          ]
         }
       ]
     },
@@ -110,7 +116,9 @@
           "label": "EventCancelled",
           "type": "event",
           "aggregate": "Event",
-          "eventTypes": ["EventCancelled"]
+          "eventTypes": [
+            "EventCancelled"
+          ]
         }
       ]
     },
@@ -133,7 +141,9 @@
           "type": "event",
           "aggregate": "SeatHold",
           "multiplicity": "N",
-          "eventTypes": ["HoldReleased"]
+          "eventTypes": [
+            "HoldReleased"
+          ]
         }
       ]
     },
@@ -156,7 +166,9 @@
           "type": "event",
           "aggregate": "DigitalTicket",
           "multiplicity": "N",
-          "eventTypes": ["TicketRevoked"]
+          "eventTypes": [
+            "TicketRevoked"
+          ]
         }
       ]
     },
@@ -179,7 +191,9 @@
           "type": "event",
           "aggregate": "Payment",
           "multiplicity": "N",
-          "eventTypes": ["PaymentRefunded"]
+          "eventTypes": [
+            "PaymentRefunded"
+          ]
         },
         {
           "id": "moment-6-Refund-processing::checkout::RefundPayment::br1",
@@ -195,7 +209,9 @@
           "type": "event",
           "aggregate": "Payment",
           "multiplicity": "N",
-          "eventTypes": ["PaymentRefunded"]
+          "eventTypes": [
+            "PaymentRefunded"
+          ]
         },
         {
           "id": "moment-6-Refund-processing::checkout::PaymentFailed::br1",
@@ -204,7 +220,9 @@
           "type": "event",
           "aggregate": "Payment",
           "optional": true,
-          "eventTypes": ["PaymentFailed"]
+          "eventTypes": [
+            "PaymentFailed"
+          ]
         },
         {
           "id": "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1",
@@ -212,7 +230,9 @@
           "label": "PaymentFailed",
           "type": "event",
           "terminal": true,
-          "eventTypes": ["PaymentFailed"]
+          "eventTypes": [
+            "PaymentFailed"
+          ]
         }
       ]
     },
@@ -235,7 +255,9 @@
           "type": "event",
           "aggregate": "NotificationDispatch",
           "multiplicity": "N",
-          "eventTypes": ["EventCancellationNoticeSent"]
+          "eventTypes": [
+            "EventCancellationNoticeSent"
+          ]
         }
       ]
     }
@@ -250,7 +272,10 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-0",
-        "requiredFields": ["eventId", "reason"],
+        "requiredFields": [
+          "eventId",
+          "reason"
+        ],
         "fieldTypes": {
           "eventId": "UUID",
           "reason": "string"
@@ -266,7 +291,10 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-1",
-        "requiredFields": ["eventId", "reason"],
+        "requiredFields": [
+          "eventId",
+          "reason"
+        ],
         "fieldTypes": {
           "eventId": "UUID",
           "reason": "string"
@@ -282,7 +310,10 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-2",
-        "requiredFields": ["eventId", "reason"],
+        "requiredFields": [
+          "eventId",
+          "reason"
+        ],
         "fieldTypes": {
           "eventId": "UUID",
           "reason": "string"
@@ -298,7 +329,10 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-3",
-        "requiredFields": ["eventId", "reason"],
+        "requiredFields": [
+          "eventId",
+          "reason"
+        ],
         "fieldTypes": {
           "eventId": "UUID",
           "reason": "string"
@@ -338,8 +372,12 @@
       "moment-2-Cancellation-propagation-to-delivery::ctx-Catalog::EventCancelled::main",
       "moment-3-Cancellation-propagation-to-notifications::ctx-Catalog::EventCancelled::main"
     ],
-    "HoldReleased": ["moment-4-Active-holds-release::ctx-Inventory::HoldReleased::main"],
-    "TicketRevoked": ["moment-5-Ticket-revocation::ctx-Delivery::TicketRevoked::main"],
+    "HoldReleased": [
+      "moment-4-Active-holds-release::ctx-Inventory::HoldReleased::main"
+    ],
+    "TicketRevoked": [
+      "moment-5-Ticket-revocation::ctx-Delivery::TicketRevoked::main"
+    ],
     "PaymentRefunded": [
       "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br1",
       "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br3"
@@ -369,35 +407,51 @@
         "name": "Catalog",
         "classification": "Core",
         "laneId": "catalog",
-        "aggregates": ["Event", "Venue", "Artist"]
+        "aggregates": [
+          "Event",
+          "Venue",
+          "Artist"
+        ]
       },
       {
         "contextId": "ctx-Inventory",
         "name": "Inventory",
         "classification": "Core",
         "laneId": "inventory",
-        "aggregates": ["TicketPool", "SeatHold"]
+        "aggregates": [
+          "TicketPool",
+          "SeatHold"
+        ]
       },
       {
         "contextId": "ctx-Delivery",
         "name": "Delivery",
         "classification": "Supporting",
         "laneId": "delivery",
-        "aggregates": ["DigitalTicket", "TicketTransfer"]
+        "aggregates": [
+          "DigitalTicket",
+          "TicketTransfer"
+        ]
       },
       {
         "contextId": "ctx-Checkout",
         "name": "Checkout",
         "classification": "Core",
         "laneId": "checkout",
-        "aggregates": ["Cart", "Payment"]
+        "aggregates": [
+          "Cart",
+          "Payment"
+        ]
       },
       {
         "contextId": "ctx-Notifications",
         "name": "Notifications",
         "classification": "Generic",
         "laneId": "notifications",
-        "aggregates": ["NotificationDispatch", "CommunicationPreference"]
+        "aggregates": [
+          "NotificationDispatch",
+          "CommunicationPreference"
+        ]
       }
     ],
     "relationships": [
@@ -405,25 +459,33 @@
         "sourceContextId": "ctx-Catalog",
         "targetContextId": "ctx-Inventory",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-0"]
+        "contractIds": [
+          "conn-0"
+        ]
       },
       {
         "sourceContextId": "ctx-Catalog",
         "targetContextId": "ctx-Checkout",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-1"]
+        "contractIds": [
+          "conn-1"
+        ]
       },
       {
         "sourceContextId": "ctx-Catalog",
         "targetContextId": "ctx-Delivery",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-2"]
+        "contractIds": [
+          "conn-2"
+        ]
       },
       {
         "sourceContextId": "ctx-Catalog",
         "targetContextId": "ctx-Notifications",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-3"]
+        "contractIds": [
+          "conn-3"
+        ]
       }
     ]
   }

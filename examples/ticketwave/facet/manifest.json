@@ -578,5 +578,11 @@
         }
       ]
     }
-  ]
+  ],
+  "artifacts": {
+    "eventCatalog": "event-catalog.json",
+    "impactAnalysis": "impact-analysis.json",
+    "sagaStateMachines": "saga-state-machines.json",
+    "asyncApi": "asyncapi.yaml"
+  }
 }

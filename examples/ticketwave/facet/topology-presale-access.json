@@ -72,7 +72,9 @@
           "label": "PresaleWindowOpened",
           "type": "event",
           "aggregate": "PresaleWindow",
-          "eventTypes": ["PresaleWindowOpened"]
+          "eventTypes": [
+            "PresaleWindowOpened"
+          ]
         }
       ]
     },
@@ -94,7 +96,9 @@
           "label": "AccessCodeRedeemed",
           "type": "event",
           "aggregate": "AccessCode",
-          "eventTypes": ["AccessCodeRedeemed"]
+          "eventTypes": [
+            "AccessCodeRedeemed"
+          ]
         }
       ]
     },
@@ -116,7 +120,9 @@
           "label": "SeatsHeld",
           "type": "event",
           "aggregate": "SeatHold",
-          "eventTypes": ["SeatsHeld"]
+          "eventTypes": [
+            "SeatsHeld"
+          ]
         },
         {
           "id": "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1",
@@ -131,7 +137,9 @@
           "label": "AccessCodeInvalidated",
           "type": "event",
           "aggregate": "AccessCode",
-          "eventTypes": ["AccessCodeInvalidated"]
+          "eventTypes": [
+            "AccessCodeInvalidated"
+          ]
         },
         {
           "id": "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1",
@@ -139,7 +147,9 @@
           "label": "AccessCodeInvalidated",
           "type": "event",
           "terminal": true,
-          "eventTypes": ["AccessCodeInvalidated"]
+          "eventTypes": [
+            "AccessCodeInvalidated"
+          ]
         },
         {
           "id": "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
@@ -154,7 +164,9 @@
           "label": "PresaleWindowClosed",
           "type": "event",
           "aggregate": "PresaleWindow",
-          "eventTypes": ["PresaleWindowClosed"]
+          "eventTypes": [
+            "PresaleWindowClosed"
+          ]
         },
         {
           "id": "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2",
@@ -162,7 +174,9 @@
           "label": "PresaleWindowClosed",
           "type": "event",
           "terminal": true,
-          "eventTypes": ["PresaleWindowClosed"]
+          "eventTypes": [
+            "PresaleWindowClosed"
+          ]
         }
       ]
     },
@@ -184,7 +198,9 @@
           "label": "CartCreated",
           "type": "event",
           "aggregate": "Cart",
-          "eventTypes": ["CartCreated"]
+          "eventTypes": [
+            "CartCreated"
+          ]
         }
       ]
     },
@@ -206,7 +222,9 @@
           "label": "TicketsAddedToCart",
           "type": "event",
           "aggregate": "Cart",
-          "eventTypes": ["TicketsAddedToCart"]
+          "eventTypes": [
+            "TicketsAddedToCart"
+          ]
         }
       ]
     },
@@ -228,7 +246,9 @@
           "label": "FeesCalculated",
           "type": "event",
           "aggregate": "Cart",
-          "eventTypes": ["FeesCalculated"]
+          "eventTypes": [
+            "FeesCalculated"
+          ]
         }
       ]
     },
@@ -250,7 +270,9 @@
           "label": "PaymentInitiated",
           "type": "event",
           "aggregate": "Payment",
-          "eventTypes": ["PaymentInitiated"]
+          "eventTypes": [
+            "PaymentInitiated"
+          ]
         }
       ]
     },
@@ -272,7 +294,9 @@
           "label": "PaymentConfirmed",
           "type": "event",
           "aggregate": "Payment",
-          "eventTypes": ["PaymentConfirmed"]
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
         }
       ]
     },
@@ -287,7 +311,9 @@
           "label": "PaymentConfirmed",
           "type": "event",
           "aggregate": "Payment",
-          "eventTypes": ["PaymentConfirmed"]
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
         }
       ]
     },
@@ -309,7 +335,9 @@
           "label": "HoldConvertedToReservation",
           "type": "event",
           "aggregate": "SeatHold",
-          "eventTypes": ["HoldConvertedToReservation"]
+          "eventTypes": [
+            "HoldConvertedToReservation"
+          ]
         }
       ]
     },
@@ -331,7 +359,9 @@
           "label": "TicketsIssued",
           "type": "event",
           "aggregate": "DigitalTicket",
-          "eventTypes": ["TicketsIssued"]
+          "eventTypes": [
+            "TicketsIssued"
+          ]
         }
       ]
     },
@@ -353,7 +383,9 @@
           "label": "OrderConfirmationSent",
           "type": "event",
           "aggregate": "NotificationDispatch",
-          "eventTypes": ["OrderConfirmationSent"]
+          "eventTypes": [
+            "OrderConfirmationSent"
+          ]
         }
       ]
     },
@@ -375,7 +407,9 @@
           "label": "TicketDeliverySent",
           "type": "event",
           "aggregate": "NotificationDispatch",
-          "eventTypes": ["TicketDeliverySent"]
+          "eventTypes": [
+            "TicketDeliverySent"
+          ]
         }
       ]
     }
@@ -395,7 +429,14 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-1",
-        "requiredFields": ["holdId", "eventId", "tierId", "quantity", "customerId", "expiresAt"],
+        "requiredFields": [
+          "holdId",
+          "eventId",
+          "tierId",
+          "quantity",
+          "customerId",
+          "expiresAt"
+        ],
         "fieldTypes": {
           "holdId": "UUID",
           "eventId": "UUID",
@@ -440,7 +481,10 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-7",
-        "requiredFields": ["holdId", "paymentConfirmationId"],
+        "requiredFields": [
+          "holdId",
+          "paymentConfirmationId"
+        ],
         "fieldTypes": {
           "holdId": "UUID",
           "paymentConfirmationId": "UUID"
@@ -456,7 +500,12 @@
       "relationship": "CustomerSupplier",
       "schemaContract": {
         "contractId": "conn-8",
-        "requiredFields": ["orderId", "customerId", "eventId", "holdId"],
+        "requiredFields": [
+          "orderId",
+          "customerId",
+          "eventId",
+          "holdId"
+        ],
         "fieldTypes": {
           "orderId": "UUID",
           "customerId": "UUID",
@@ -493,7 +542,9 @@
     "AccessCodeRedeemed": [
       "moment-1-Access-code-redemption::ctx-Presale::AccessCodeRedeemed::main"
     ],
-    "SeatsHeld": ["moment-2-Code-validation-outcome::ctx-Inventory::SeatsHeld::br1"],
+    "SeatsHeld": [
+      "moment-2-Code-validation-outcome::ctx-Inventory::SeatsHeld::br1"
+    ],
     "AccessCodeInvalidated": [
       "moment-2-Code-validation-outcome::ctx-Presale::AccessCodeInvalidated::br3",
       "moment-2-Code-validation-outcome::ctx-Invalid Code::AccessCodeInvalidated::br4"
@@ -502,12 +553,18 @@
       "moment-2-Code-validation-outcome::ctx-Presale::PresaleWindowClosed::br6",
       "moment-2-Code-validation-outcome::ctx-Window Closed::PresaleWindowClosed::br7"
     ],
-    "CartCreated": ["moment-3-Presale-cart-creation::ctx-Checkout::CartCreated::main"],
+    "CartCreated": [
+      "moment-3-Presale-cart-creation::ctx-Checkout::CartCreated::main"
+    ],
     "TicketsAddedToCart": [
       "moment-4-Presale-cart-population::ctx-Checkout::TicketsAddedToCart::main"
     ],
-    "FeesCalculated": ["moment-5-Presale-fee-calculation::ctx-Checkout::FeesCalculated::main"],
-    "PaymentInitiated": ["moment-6-Presale-payment::ctx-Checkout::PaymentInitiated::main"],
+    "FeesCalculated": [
+      "moment-5-Presale-fee-calculation::ctx-Checkout::FeesCalculated::main"
+    ],
+    "PaymentInitiated": [
+      "moment-6-Presale-payment::ctx-Checkout::PaymentInitiated::main"
+    ],
     "PaymentConfirmed": [
       "moment-7-Presale-payment-confirmation::ctx-Checkout::PaymentConfirmed::main",
       "moment-8-Presale-delivery-trigger::ctx-Checkout::PaymentConfirmed::main"
@@ -515,7 +572,9 @@
     "HoldConvertedToReservation": [
       "moment-9-Presale-hold-conversion::ctx-Inventory::HoldConvertedToReservation::main"
     ],
-    "TicketsIssued": ["moment-10-Presale-ticket-issuance::ctx-Delivery::TicketsIssued::main"],
+    "TicketsIssued": [
+      "moment-10-Presale-ticket-issuance::ctx-Delivery::TicketsIssued::main"
+    ],
     "OrderConfirmationSent": [
       "moment-11-Presale-confirmation::ctx-Notifications::OrderConfirmationSent::main"
     ],
@@ -541,35 +600,51 @@
         "name": "Presale",
         "classification": "Supporting",
         "laneId": "presale",
-        "aggregates": ["PresaleWindow", "AccessCode", "Waitlist"]
+        "aggregates": [
+          "PresaleWindow",
+          "AccessCode",
+          "Waitlist"
+        ]
       },
       {
         "contextId": "ctx-Inventory",
         "name": "Inventory",
         "classification": "Core",
         "laneId": "inventory",
-        "aggregates": ["TicketPool", "SeatHold"]
+        "aggregates": [
+          "TicketPool",
+          "SeatHold"
+        ]
       },
       {
         "contextId": "ctx-Checkout",
         "name": "Checkout",
         "classification": "Core",
         "laneId": "checkout",
-        "aggregates": ["Cart", "Payment"]
+        "aggregates": [
+          "Cart",
+          "Payment"
+        ]
       },
       {
         "contextId": "ctx-Delivery",
         "name": "Delivery",
         "classification": "Supporting",
         "laneId": "delivery",
-        "aggregates": ["DigitalTicket", "TicketTransfer"]
+        "aggregates": [
+          "DigitalTicket",
+          "TicketTransfer"
+        ]
       },
       {
         "contextId": "ctx-Notifications",
         "name": "Notifications",
         "classification": "Generic",
         "laneId": "notifications",
-        "aggregates": ["NotificationDispatch", "CommunicationPreference"]
+        "aggregates": [
+          "NotificationDispatch",
+          "CommunicationPreference"
+        ]
       }
     ],
     "relationships": [
@@ -577,19 +652,25 @@
         "sourceContextId": "ctx-Inventory",
         "targetContextId": "ctx-Checkout",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-1"]
+        "contractIds": [
+          "conn-1"
+        ]
       },
       {
         "sourceContextId": "ctx-Checkout",
         "targetContextId": "ctx-Inventory",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-7"]
+        "contractIds": [
+          "conn-7"
+        ]
       },
       {
         "sourceContextId": "ctx-Checkout",
         "targetContextId": "ctx-Delivery",
         "relationshipType": "CustomerSupplier",
-        "contractIds": ["conn-8"]
+        "contractIds": [
+          "conn-8"
+        ]
       }
     ]
   }

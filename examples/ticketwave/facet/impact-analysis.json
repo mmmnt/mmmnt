@@ -1,0 +1,1453 @@
+{
+  "nodes": [
+    {
+      "type": "command",
+      "name": "CreateEvent",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:EventCreated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventCreated",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:CreateEvent"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "PublishEvent",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:EventPublished"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventPublished",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:PublishEvent"
+      ],
+      "triggers": [
+        "crossing:Catalog:EventPublished->Inventory"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "UpdateEventDetails",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:EventDetailsUpdated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventDetailsUpdated",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:UpdateEventDetails"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "CancelEvent",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:EventCancelled"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventCancelled",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:CancelEvent"
+      ],
+      "triggers": [
+        "crossing:Catalog:EventCancelled->Inventory",
+        "crossing:Catalog:EventCancelled->Checkout",
+        "crossing:Catalog:EventCancelled->Delivery",
+        "crossing:Catalog:EventCancelled->Notifications"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "RescheduleEvent",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:EventRescheduled"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventRescheduled",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:RescheduleEvent"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RegisterVenue",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:VenueRegistered"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "VenueRegistered",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:RegisterVenue"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "UpdateSeatMap",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:SeatMapUpdated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "SeatMapUpdated",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:UpdateSeatMap"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RegisterArtist",
+      "context": "Catalog",
+      "dependsOn": [],
+      "triggers": [
+        "event:Catalog:ArtistRegistered"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "ArtistRegistered",
+      "context": "Catalog",
+      "dependsOn": [
+        "command:Catalog:RegisterArtist"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "InitializePool",
+      "context": "Inventory",
+      "dependsOn": [],
+      "triggers": [
+        "event:Inventory:PoolInitialized"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PoolInitialized",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:InitializePool"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "AdjustPoolCapacity",
+      "context": "Inventory",
+      "dependsOn": [
+        "policy:Inventory:ReplenishOnHoldRelease"
+      ],
+      "triggers": [
+        "event:Inventory:PoolCapacityAdjusted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PoolCapacityAdjusted",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:AdjustPoolCapacity"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RequestHold",
+      "context": "Inventory",
+      "dependsOn": [],
+      "triggers": [
+        "event:Inventory:SeatsHeld"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "SeatsHeld",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:RequestHold"
+      ],
+      "triggers": [
+        "saga:Inventory:SeatHoldLifecycle",
+        "crossing:Inventory:SeatsHeld->Checkout"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "ExtendHold",
+      "context": "Inventory",
+      "dependsOn": [],
+      "triggers": [
+        "event:Inventory:HoldExtended"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "HoldExtended",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:ExtendHold"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "ReleaseHold",
+      "context": "Inventory",
+      "dependsOn": [],
+      "triggers": [
+        "event:Inventory:HoldReleased"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "HoldReleased",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:ReleaseHold"
+      ],
+      "triggers": [
+        "policy:Inventory:ReplenishOnHoldRelease",
+        "policy:Inventory:PromoteWaitlistOnRelease"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "ConvertHoldToReservation",
+      "context": "Inventory",
+      "dependsOn": [],
+      "triggers": [
+        "event:Inventory:HoldConvertedToReservation"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "HoldConvertedToReservation",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:ConvertHoldToReservation"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "ReplenishOnHoldRelease",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:HoldReleased"
+      ],
+      "triggers": [
+        "command:Inventory:AdjustPoolCapacity"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "PromoteWaitlistOnRelease",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:HoldReleased"
+      ],
+      "triggers": [
+        "command:Inventory:NotifyWaitlistPromotion"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "NotifyWaitlistPromotion",
+      "context": "Inventory",
+      "dependsOn": [
+        "policy:Inventory:PromoteWaitlistOnRelease"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "saga",
+      "name": "SeatHoldLifecycle",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:SeatsHeld"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "CreateCart",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:CartCreated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "CartCreated",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:CreateCart"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "AddTicketsToCart",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:TicketsAddedToCart"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TicketsAddedToCart",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:AddTicketsToCart"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RemoveTicketsFromCart",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:TicketsRemovedFromCart"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TicketsRemovedFromCart",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:RemoveTicketsFromCart"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "ApplyPromoCode",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:PromoCodeApplied"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PromoCodeApplied",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:ApplyPromoCode"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "CalculateFees",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:FeesCalculated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "FeesCalculated",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:CalculateFees"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "InitiatePayment",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:PaymentInitiated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentInitiated",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:InitiatePayment"
+      ],
+      "triggers": [
+        "crossing:Checkout:PaymentInitiated->AntiFraud"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "ConfirmPayment",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:PaymentConfirmed"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentConfirmed",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:ConfirmPayment"
+      ],
+      "triggers": [
+        "policy:Checkout:ConvertHoldOnPayment",
+        "crossing:Checkout:PaymentConfirmed->Inventory",
+        "crossing:Checkout:PaymentConfirmed->Delivery",
+        "crossing:Checkout:PaymentConfirmed->Notifications"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "FailPayment",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:PaymentFailed"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentFailed",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:FailPayment"
+      ],
+      "triggers": [
+        "policy:Checkout:ReleaseHoldOnPaymentFailure"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "RefundPayment",
+      "context": "Checkout",
+      "dependsOn": [],
+      "triggers": [
+        "event:Checkout:PaymentRefunded"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentRefunded",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:RefundPayment"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "ConvertHoldOnPayment",
+      "context": "Checkout",
+      "dependsOn": [
+        "event:Checkout:PaymentConfirmed"
+      ],
+      "triggers": [
+        "command:Checkout:ConvertHoldToReservation"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "ConvertHoldToReservation",
+      "context": "Checkout",
+      "dependsOn": [
+        "policy:Checkout:ConvertHoldOnPayment"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "ReleaseHoldOnPaymentFailure",
+      "context": "Checkout",
+      "dependsOn": [
+        "event:Checkout:PaymentFailed"
+      ],
+      "triggers": [
+        "command:Checkout:ReleaseHold"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "ReleaseHold",
+      "context": "Checkout",
+      "dependsOn": [
+        "policy:Checkout:ReleaseHoldOnPaymentFailure"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "CreatePresaleWindow",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:PresaleWindowCreated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PresaleWindowCreated",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:CreatePresaleWindow"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "OpenPresaleWindow",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:PresaleWindowOpened"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PresaleWindowOpened",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:OpenPresaleWindow"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "ClosePresaleWindow",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:PresaleWindowClosed"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PresaleWindowClosed",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:ClosePresaleWindow"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "GenerateAccessCodes",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:AccessCodesGenerated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "AccessCodesGenerated",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:GenerateAccessCodes"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RedeemAccessCode",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:AccessCodeRedeemed"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "AccessCodeRedeemed",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:RedeemAccessCode"
+      ],
+      "triggers": [
+        "policy:Presale:GrantAccessOnRedemption"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "InvalidateAccessCode",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:AccessCodeInvalidated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "AccessCodeInvalidated",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:InvalidateAccessCode"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "JoinWaitlist",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:WaitlistJoined"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistJoined",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:JoinWaitlist"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "PromoteFromWaitlist",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:WaitlistPromoted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistPromoted",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:PromoteFromWaitlist"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "LeaveWaitlist",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:WaitlistLeft"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistLeft",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:LeaveWaitlist"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "NotifyWaitlistPromotion",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:WaitlistPromotionNotified"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistPromotionNotified",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:NotifyWaitlistPromotion"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "GrantAccessOnRedemption",
+      "context": "Presale",
+      "dependsOn": [
+        "event:Presale:AccessCodeRedeemed"
+      ],
+      "triggers": [
+        "command:Presale:RequestHold"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "RequestHold",
+      "context": "Presale",
+      "dependsOn": [
+        "policy:Presale:GrantAccessOnRedemption"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "IssueTickets",
+      "context": "Delivery",
+      "dependsOn": [
+        "policy:Delivery:IssueOnPaymentConfirmed"
+      ],
+      "triggers": [
+        "event:Delivery:TicketsIssued"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TicketsIssued",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:IssueTickets"
+      ],
+      "triggers": [
+        "crossing:Delivery:TicketsIssued->Notifications"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "GenerateMobilePass",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "event:Delivery:MobilePassGenerated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "MobilePassGenerated",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:GenerateMobilePass"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RevokeTicket",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "event:Delivery:TicketRevoked"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TicketRevoked",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:RevokeTicket"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "InitiateTransfer",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "event:Delivery:TransferInitiated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TransferInitiated",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:InitiateTransfer"
+      ],
+      "triggers": [
+        "policy:Delivery:NotifyOnTransferInitiated",
+        "saga:Delivery:TransferLifecycle",
+        "crossing:Delivery:TransferInitiated->Notifications"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "AcceptTransfer",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "event:Delivery:TransferAccepted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TransferAccepted",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:AcceptTransfer"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "DeclineTransfer",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "event:Delivery:TransferDeclined"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TransferDeclined",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:DeclineTransfer"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "CancelTransfer",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "event:Delivery:TransferCancelled"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TransferCancelled",
+      "context": "Delivery",
+      "dependsOn": [
+        "command:Delivery:CancelTransfer"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "IssueOnPaymentConfirmed",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:PaymentConfirmed"
+      ],
+      "triggers": [
+        "command:Delivery:IssueTickets"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentConfirmed",
+      "context": "Delivery",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Delivery:IssueOnPaymentConfirmed"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "NotifyOnTransferInitiated",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:TransferInitiated"
+      ],
+      "triggers": [
+        "command:Delivery:SendTransferNotification"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "SendTransferNotification",
+      "context": "Delivery",
+      "dependsOn": [
+        "policy:Delivery:NotifyOnTransferInitiated"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "saga",
+      "name": "TransferLifecycle",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:TransferInitiated"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "EvaluateHoldRisk",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "policy:AntiFraud:EvaluateOnHoldRequest"
+      ],
+      "triggers": [
+        "event:AntiFraud:HoldRiskEvaluated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "HoldRiskEvaluated",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:EvaluateHoldRisk"
+      ],
+      "triggers": [
+        "policy:AntiFraud:BlockOnHighRisk"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "EvaluatePaymentRisk",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "policy:AntiFraud:EvaluateOnPaymentInitiated"
+      ],
+      "triggers": [
+        "event:AntiFraud:PaymentRiskEvaluated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentRiskEvaluated",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:EvaluatePaymentRisk"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "FlagForManualReview",
+      "context": "AntiFraud",
+      "dependsOn": [],
+      "triggers": [
+        "event:AntiFraud:FlaggedForManualReview"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "FlaggedForManualReview",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:FlagForManualReview"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "CompleteManualReview",
+      "context": "AntiFraud",
+      "dependsOn": [],
+      "triggers": [
+        "event:AntiFraud:ManualReviewCompleted"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "ManualReviewCompleted",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:CompleteManualReview"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "RecordPurchaseAttempt",
+      "context": "AntiFraud",
+      "dependsOn": [],
+      "triggers": [
+        "event:AntiFraud:PurchaseAttemptRecorded"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PurchaseAttemptRecorded",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:RecordPurchaseAttempt"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "BlockCustomer",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "policy:AntiFraud:BlockOnHighRisk"
+      ],
+      "triggers": [
+        "event:AntiFraud:CustomerBlocked"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "CustomerBlocked",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:BlockCustomer"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "UnblockCustomer",
+      "context": "AntiFraud",
+      "dependsOn": [],
+      "triggers": [
+        "event:AntiFraud:CustomerUnblocked"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "CustomerUnblocked",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "command:AntiFraud:UnblockCustomer"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "EvaluateOnHoldRequest",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "event:AntiFraud:SeatsHeld"
+      ],
+      "triggers": [
+        "command:AntiFraud:EvaluateHoldRisk"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "SeatsHeld",
+      "context": "AntiFraud",
+      "dependsOn": [],
+      "triggers": [
+        "policy:AntiFraud:EvaluateOnHoldRequest"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "BlockOnHighRisk",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "event:AntiFraud:HoldRiskEvaluated"
+      ],
+      "triggers": [
+        "command:AntiFraud:BlockCustomer"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "EvaluateOnPaymentInitiated",
+      "context": "AntiFraud",
+      "dependsOn": [
+        "event:AntiFraud:PaymentInitiated"
+      ],
+      "triggers": [
+        "command:AntiFraud:EvaluatePaymentRisk"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentInitiated",
+      "context": "AntiFraud",
+      "dependsOn": [],
+      "triggers": [
+        "policy:AntiFraud:EvaluateOnPaymentInitiated"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "SendOrderConfirmation",
+      "context": "Notifications",
+      "dependsOn": [
+        "policy:Notifications:ConfirmOnPayment"
+      ],
+      "triggers": [
+        "event:Notifications:OrderConfirmationSent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "OrderConfirmationSent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendOrderConfirmation"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SendTicketDelivery",
+      "context": "Notifications",
+      "dependsOn": [
+        "policy:Notifications:NotifyOnTicketsIssued"
+      ],
+      "triggers": [
+        "event:Notifications:TicketDeliverySent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TicketDeliverySent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendTicketDelivery"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SendTransferNotification",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "event:Notifications:TransferNotificationSent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TransferNotificationSent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendTransferNotification"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SendEventCancellationNotice",
+      "context": "Notifications",
+      "dependsOn": [
+        "policy:Notifications:NotifyOnEventCancelled"
+      ],
+      "triggers": [
+        "event:Notifications:EventCancellationNoticeSent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventCancellationNoticeSent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendEventCancellationNotice"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SendPresaleAccessNotice",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "event:Notifications:PresaleAccessNoticeSent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PresaleAccessNoticeSent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendPresaleAccessNotice"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SendWaitlistUpdate",
+      "context": "Notifications",
+      "dependsOn": [
+        "policy:Notifications:NotifyOnWaitlistPromotion"
+      ],
+      "triggers": [
+        "event:Notifications:WaitlistUpdateSent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistUpdateSent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendWaitlistUpdate"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "SendEventReminder",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "event:Notifications:EventReminderSent"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventReminderSent",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:SendEventReminder"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "UpdatePreferences",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "event:Notifications:PreferencesUpdated"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PreferencesUpdated",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:UpdatePreferences"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "command",
+      "name": "UnsubscribeAll",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "event:Notifications:AllChannelsUnsubscribed"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "AllChannelsUnsubscribed",
+      "context": "Notifications",
+      "dependsOn": [
+        "command:Notifications:UnsubscribeAll"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "ConfirmOnPayment",
+      "context": "Notifications",
+      "dependsOn": [
+        "event:Notifications:PaymentConfirmed"
+      ],
+      "triggers": [
+        "command:Notifications:SendOrderConfirmation"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentConfirmed",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Notifications:ConfirmOnPayment"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "NotifyOnTicketsIssued",
+      "context": "Notifications",
+      "dependsOn": [
+        "event:Notifications:TicketsIssued"
+      ],
+      "triggers": [
+        "command:Notifications:SendTicketDelivery"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "TicketsIssued",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Notifications:NotifyOnTicketsIssued"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "NotifyOnEventCancelled",
+      "context": "Notifications",
+      "dependsOn": [
+        "event:Notifications:EventCancelled"
+      ],
+      "triggers": [
+        "command:Notifications:SendEventCancellationNotice"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "EventCancelled",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Notifications:NotifyOnEventCancelled"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "NotifyOnWaitlistPromotion",
+      "context": "Notifications",
+      "dependsOn": [
+        "event:Notifications:WaitlistPromotionNotified"
+      ],
+      "triggers": [
+        "command:Notifications:SendWaitlistUpdate"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistPromotionNotified",
+      "context": "Notifications",
+      "dependsOn": [],
+      "triggers": [
+        "policy:Notifications:NotifyOnWaitlistPromotion"
+      ]
+    },
+    {
+      "type": "crossing",
+      "name": "EventPublished->Inventory",
+      "context": "Catalog",
+      "dependsOn": [
+        "event:Catalog:EventPublished"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "SeatsHeld->Checkout",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:SeatsHeld"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "PaymentInitiated->AntiFraud",
+      "context": "Checkout",
+      "dependsOn": [
+        "event:Checkout:PaymentInitiated"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "PaymentConfirmed->Inventory",
+      "context": "Checkout",
+      "dependsOn": [
+        "event:Checkout:PaymentConfirmed"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "PaymentConfirmed->Delivery",
+      "context": "Checkout",
+      "dependsOn": [
+        "event:Checkout:PaymentConfirmed"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "PaymentConfirmed->Notifications",
+      "context": "Checkout",
+      "dependsOn": [
+        "event:Checkout:PaymentConfirmed"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "TicketsIssued->Notifications",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:TicketsIssued"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "TransferInitiated->Notifications",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:TransferInitiated"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "EventCancelled->Inventory",
+      "context": "Catalog",
+      "dependsOn": [
+        "event:Catalog:EventCancelled"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "EventCancelled->Checkout",
+      "context": "Catalog",
+      "dependsOn": [
+        "event:Catalog:EventCancelled"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "EventCancelled->Delivery",
+      "context": "Catalog",
+      "dependsOn": [
+        "event:Catalog:EventCancelled"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "crossing",
+      "name": "EventCancelled->Notifications",
+      "context": "Catalog",
+      "dependsOn": [
+        "event:Catalog:EventCancelled"
+      ],
+      "triggers": []
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2026-04-05T06:15:23.374Z"
+  }
+}

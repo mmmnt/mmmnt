@@ -20,8 +20,12 @@ import {
   generateAllScenarios,
   deriveNegativeScenarios,
   TopologyEmitter,
+  generateEventCatalog,
+  generateImpactAnalysis,
+  generateSagaStateMachines,
 } from '@mmmnt/derive';
 import type { SimulationScenario } from '@mmmnt/derive';
+import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { updateManifestFromIr } from './update-manifest.js';
 
 export interface SimulateCommandResult {
@@ -160,7 +164,10 @@ function writeOutputFiles(
     });
   }
 
-  const manifest = { flows: manifestFlows };
+  // Write spec-level artifacts (ADR-029 §3)
+  const artifacts = writeArtifacts(ir, resolvedDir);
+
+  const manifest = { flows: manifestFlows, artifacts };
   writeFileSync(
     join(resolvedDir, 'manifest.json'),
     JSON.stringify(manifest, null, 2) + '\n',
@@ -169,9 +176,39 @@ function writeOutputFiles(
 
   return {
     success: true,
-    message: `Wrote ${groups.length} topology file(s), ${totalScenarios} scenario file(s), manifest.json to ${resolvedDir} (${totalEvents} total events)`,
+    message: `Wrote ${groups.length} topology file(s), ${totalScenarios} scenario file(s), ${Object.keys(artifacts).length} artifact(s), manifest.json to ${resolvedDir} (${totalEvents} total events)`,
     diagnostics: EMPTY,
   };
+}
+
+function writeArtifacts(ir: IntermediateRepresentation, outDir: string): Record<string, string> {
+  const files: Record<string, string> = {};
+
+  const catalog = generateEventCatalog(ir);
+  files.eventCatalog = 'event-catalog.json';
+  writeFileSync(join(outDir, files.eventCatalog), JSON.stringify(catalog, null, 2) + '\n', 'utf-8');
+
+  const impact = generateImpactAnalysis(ir);
+  files.impactAnalysis = 'impact-analysis.json';
+  writeFileSync(
+    join(outDir, files.impactAnalysis),
+    JSON.stringify(impact, null, 2) + '\n',
+    'utf-8',
+  );
+
+  const sagas = generateSagaStateMachines(ir);
+  files.sagaStateMachines = 'saga-state-machines.json';
+  writeFileSync(
+    join(outDir, files.sagaStateMachines),
+    JSON.stringify(sagas, null, 2) + '\n',
+    'utf-8',
+  );
+
+  const asyncapi = generateAsyncApiSpec(ir);
+  files.asyncApi = 'asyncapi.yaml';
+  writeFileSync(join(outDir, files.asyncApi), asyncapi + '\n', 'utf-8');
+
+  return files;
 }
 
 function kebab(s: string): string {

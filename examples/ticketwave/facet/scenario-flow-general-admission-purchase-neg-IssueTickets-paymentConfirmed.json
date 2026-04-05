@@ -56,7 +56,9 @@
       "eventType": "EventPublished",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -71,7 +73,9 @@
       "eventType": "SimProcess.InitializePool",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -90,7 +94,9 @@
       "eventType": "PoolInitialized",
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -111,7 +117,9 @@
       "eventType": "SimProcess.RequestHold",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -131,7 +139,9 @@
       "eventType": "SeatsHeld",
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -153,7 +163,10 @@
       "eventType": "SimProcess.EvaluateHoldRisk",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
@@ -174,7 +187,10 @@
       "eventType": "HoldRiskEvaluated",
       "productSource": "antifraud",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
@@ -195,7 +211,13 @@
       "eventType": "SimProcess.CreateCart",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
@@ -211,7 +233,13 @@
       "eventType": "CartCreated",
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
@@ -228,7 +256,14 @@
       "eventType": "SimProcess.AddTicketsToCart",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008", "evt-010"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008",
+        "evt-010"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,
@@ -248,7 +283,14 @@
       "eventType": "TicketsAddedToCart",
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008", "evt-010"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008",
+        "evt-010"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:11.000Z",
       "version": 1,
@@ -645,7 +687,9 @@
       "eventType": "SimFailure.IssueTickets.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-025"],
+      "causationEventIds": [
+        "evt-025"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:25.000Z",
       "version": 1,

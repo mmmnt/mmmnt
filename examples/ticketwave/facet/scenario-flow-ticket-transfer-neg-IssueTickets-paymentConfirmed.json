@@ -43,7 +43,9 @@
       "eventType": "TransferInitiated",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -63,7 +65,9 @@
       "eventType": "SimProcess.SendTransferNotification",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -83,7 +87,9 @@
       "eventType": "TransferNotificationSent",
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -100,7 +106,9 @@
       "eventType": "SimProcess.AcceptTransfer",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -116,7 +124,9 @@
       "eventType": "TransferAccepted",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -134,7 +144,11 @@
       "eventType": "SimProcess.RevokeTicket",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002", "evt-006", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
@@ -150,7 +164,11 @@
       "eventType": "TicketRevoked",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002", "evt-006", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
@@ -166,7 +184,11 @@
       "eventType": "SimProcess.IssueTickets",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-002", "evt-006", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
@@ -185,7 +207,9 @@
       "eventType": "SimFailure.IssueTickets.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
-      "causationEventIds": ["evt-009"],
+      "causationEventIds": [
+        "evt-009"
+      ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,

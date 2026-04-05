@@ -1,0 +1,2252 @@
+{
+  "events": [
+    {
+      "eventName": "EventCreated",
+      "schema": {
+        "fields": [
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "artistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "venueId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "startsAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "category",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Event",
+        "command": "CreateEvent"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "EventPublished",
+      "schema": {
+        "fields": [
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "publishedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Event",
+        "command": "PublishEvent"
+      },
+      "consumers": [
+        {
+          "context": "Inventory",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Event discovery",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "EventDetailsUpdated",
+      "schema": {
+        "fields": [
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "startsAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Event",
+        "command": "UpdateEventDetails"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "EventCancelled",
+      "schema": {
+        "fields": [
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "cancelledAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Event",
+        "command": "CancelEvent"
+      },
+      "consumers": [
+        {
+          "context": "Inventory",
+          "relationshipType": "crosses-to"
+        },
+        {
+          "context": "Checkout",
+          "relationshipType": "crosses-to"
+        },
+        {
+          "context": "Delivery",
+          "relationshipType": "crosses-to"
+        },
+        {
+          "context": "Notifications",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Event cancellation",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "EventRescheduled",
+      "schema": {
+        "fields": [
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "previousStartsAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "newStartsAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "rescheduledAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Event",
+        "command": "RescheduleEvent"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "VenueRegistered",
+      "schema": {
+        "fields": [
+          {
+            "name": "venueId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "address",
+            "type": "Address",
+            "isArray": false
+          },
+          {
+            "name": "capacity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "sections",
+            "type": "VenueSection",
+            "isArray": true
+          },
+          {
+            "name": "registeredAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Venue",
+        "command": "RegisterVenue"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "SeatMapUpdated",
+      "schema": {
+        "fields": [
+          {
+            "name": "venueId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sections",
+            "type": "VenueSection",
+            "isArray": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Venue",
+        "command": "UpdateSeatMap"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "ArtistRegistered",
+      "schema": {
+        "fields": [
+          {
+            "name": "artistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "genre",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "imageUrl",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "registeredAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "Artist",
+        "command": "RegisterArtist"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PoolInitialized",
+      "schema": {
+        "fields": [
+          {
+            "name": "poolId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "tierId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sectionId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "totalTickets",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "availableTickets",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "basePrice",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "initializedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "TicketPool",
+        "command": "InitializePool"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Pool initialization",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "PoolCapacityAdjusted",
+      "schema": {
+        "fields": [
+          {
+            "name": "poolId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "previousTotal",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "newTotal",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "adjustedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "TicketPool",
+        "command": "AdjustPoolCapacity"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "SeatsHeld",
+      "schema": {
+        "fields": [
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "tierId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sectionId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sessionId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "expiresAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "heldAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "SeatHold",
+        "command": "RequestHold"
+      },
+      "consumers": [
+        {
+          "context": "Checkout",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Seat selection and hold",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "HoldExtended",
+      "schema": {
+        "fields": [
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "newExpiresAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "extendedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "SeatHold",
+        "command": "ExtendHold"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "HoldReleased",
+      "schema": {
+        "fields": [
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "returnedQuantity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "releasedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "SeatHold",
+        "command": "ReleaseHold"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Active holds release",
+        "momentIndex": 4
+      }
+    },
+    {
+      "eventName": "HoldConvertedToReservation",
+      "schema": {
+        "fields": [
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "paymentConfirmationId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "convertedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "SeatHold",
+        "command": "ConvertHoldToReservation"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold conversion",
+        "momentIndex": 12
+      }
+    },
+    {
+      "eventName": "CartCreated",
+      "schema": {
+        "fields": [
+          {
+            "name": "cartId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sessionId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Cart",
+        "command": "CreateCart"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Cart population",
+        "momentIndex": 5
+      }
+    },
+    {
+      "eventName": "TicketsAddedToCart",
+      "schema": {
+        "fields": [
+          {
+            "name": "cartId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "lineItemId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "tierId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "unitPrice",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "lineTotal",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "addedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Cart",
+        "command": "AddTicketsToCart"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Cart population",
+        "momentIndex": 5
+      }
+    },
+    {
+      "eventName": "TicketsRemovedFromCart",
+      "schema": {
+        "fields": [
+          {
+            "name": "cartId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "lineItemId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "removedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Cart",
+        "command": "RemoveTicketsFromCart"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PromoCodeApplied",
+      "schema": {
+        "fields": [
+          {
+            "name": "cartId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "promoCode",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "discountType",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "discountValue",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "appliedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Cart",
+        "command": "ApplyPromoCode"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "FeesCalculated",
+      "schema": {
+        "fields": [
+          {
+            "name": "cartId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "serviceFee",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "facilityFee",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "processingFee",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "totalFees",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "calculatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Cart",
+        "command": "CalculateFees"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Fee calculation",
+        "momentIndex": 6
+      }
+    },
+    {
+      "eventName": "PaymentInitiated",
+      "schema": {
+        "fields": [
+          {
+            "name": "paymentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "cartId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "paymentMethod",
+            "type": "PaymentMethod",
+            "isArray": false
+          },
+          {
+            "name": "subtotal",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "totalFees",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "totalAmount",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "initiatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Payment",
+        "command": "InitiatePayment"
+      },
+      "consumers": [
+        {
+          "context": "AntiFraud",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Payment initiation",
+        "momentIndex": 7
+      }
+    },
+    {
+      "eventName": "PaymentConfirmed",
+      "schema": {
+        "fields": [
+          {
+            "name": "paymentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "gatewayTransactionId",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "confirmedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Payment",
+        "command": "ConfirmPayment"
+      },
+      "consumers": [
+        {
+          "context": "Inventory",
+          "relationshipType": "crosses-to"
+        },
+        {
+          "context": "Delivery",
+          "relationshipType": "crosses-to"
+        },
+        {
+          "context": "Notifications",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Delivery trigger",
+        "momentIndex": 10
+      }
+    },
+    {
+      "eventName": "PaymentFailed",
+      "schema": {
+        "fields": [
+          {
+            "name": "paymentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "failureReason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "gatewayErrorCode",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "failedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Payment",
+        "command": "FailPayment"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PaymentRefunded",
+      "schema": {
+        "fields": [
+          {
+            "name": "paymentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "refundAmount",
+            "type": "Money",
+            "isArray": false
+          },
+          {
+            "name": "refundedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "Payment",
+        "command": "RefundPayment"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PresaleWindowCreated",
+      "schema": {
+        "fields": [
+          {
+            "name": "windowId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "startsAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "endsAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "maxRedemptions",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "accessTier",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "PresaleWindow",
+        "command": "CreatePresaleWindow"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PresaleWindowOpened",
+      "schema": {
+        "fields": [
+          {
+            "name": "windowId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "openedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "PresaleWindow",
+        "command": "OpenPresaleWindow"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Presale window opens",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "PresaleWindowClosed",
+      "schema": {
+        "fields": [
+          {
+            "name": "windowId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "totalRedemptions",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "closedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "PresaleWindow",
+        "command": "ClosePresaleWindow"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "AccessCodesGenerated",
+      "schema": {
+        "fields": [
+          {
+            "name": "windowId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "codePrefix",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "generatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "AccessCode",
+        "command": "GenerateAccessCodes"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "AccessCodeRedeemed",
+      "schema": {
+        "fields": [
+          {
+            "name": "codeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "code",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "windowId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "redeemedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "AccessCode",
+        "command": "RedeemAccessCode"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Access code redemption",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "AccessCodeInvalidated",
+      "schema": {
+        "fields": [
+          {
+            "name": "codeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "invalidatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "AccessCode",
+        "command": "InvalidateAccessCode"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "WaitlistJoined",
+      "schema": {
+        "fields": [
+          {
+            "name": "waitlistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "tierId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "requestedQuantity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "position",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "joinedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "Waitlist",
+        "command": "JoinWaitlist"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "WaitlistPromoted",
+      "schema": {
+        "fields": [
+          {
+            "name": "waitlistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "promotedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "Waitlist",
+        "command": "PromoteFromWaitlist"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "WaitlistLeft",
+      "schema": {
+        "fields": [
+          {
+            "name": "waitlistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "leftAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "Waitlist",
+        "command": "LeaveWaitlist"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "WaitlistPromotionNotified",
+      "schema": {
+        "fields": [
+          {
+            "name": "waitlistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "availableQuantity",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "notifiedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "Waitlist",
+        "command": "NotifyWaitlistPromotion"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "TicketsIssued",
+      "schema": {
+        "fields": [
+          {
+            "name": "orderId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "tickets",
+            "type": "TicketAllocation",
+            "isArray": true
+          },
+          {
+            "name": "barcodes",
+            "type": "Barcode",
+            "isArray": true
+          },
+          {
+            "name": "issuedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "DigitalTicket",
+        "command": "IssueTickets"
+      },
+      "consumers": [
+        {
+          "context": "Notifications",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Ticket issuance",
+        "momentIndex": 13
+      }
+    },
+    {
+      "eventName": "MobilePassGenerated",
+      "schema": {
+        "fields": [
+          {
+            "name": "ticketId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "passUrl",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "passFormat",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "generatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "DigitalTicket",
+        "command": "GenerateMobilePass"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Mobile pass generation",
+        "momentIndex": 14
+      }
+    },
+    {
+      "eventName": "TicketRevoked",
+      "schema": {
+        "fields": [
+          {
+            "name": "ticketId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "revokedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "DigitalTicket",
+        "command": "RevokeTicket"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Original ticket revocation",
+        "momentIndex": 3
+      }
+    },
+    {
+      "eventName": "TransferInitiated",
+      "schema": {
+        "fields": [
+          {
+            "name": "transferId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "ticketId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "fromCustomerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "toEmail",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "toName",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "expiresAt",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "initiatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "TicketTransfer",
+        "command": "InitiateTransfer"
+      },
+      "consumers": [
+        {
+          "context": "Notifications",
+          "relationshipType": "crosses-to"
+        }
+      ],
+      "temporalLocation": {
+        "moment": "Transfer initiation",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "TransferAccepted",
+      "schema": {
+        "fields": [
+          {
+            "name": "transferId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "ticketId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "recipientCustomerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "newBarcode",
+            "type": "Barcode",
+            "isArray": false
+          },
+          {
+            "name": "acceptedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "TicketTransfer",
+        "command": "AcceptTransfer"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Original ticket revocation",
+        "momentIndex": 3
+      }
+    },
+    {
+      "eventName": "TransferDeclined",
+      "schema": {
+        "fields": [
+          {
+            "name": "transferId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "declinedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "TicketTransfer",
+        "command": "DeclineTransfer"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "TransferCancelled",
+      "schema": {
+        "fields": [
+          {
+            "name": "transferId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "cancelledAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "TicketTransfer",
+        "command": "CancelTransfer"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "HoldRiskEvaluated",
+      "schema": {
+        "fields": [
+          {
+            "name": "assessmentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "riskScore",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "riskLevel",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "signals",
+            "type": "RiskSignal",
+            "isArray": true
+          },
+          {
+            "name": "velocityCount",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "evaluatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "RiskAssessment",
+        "command": "EvaluateHoldRisk"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold fraud evaluation",
+        "momentIndex": 3
+      }
+    },
+    {
+      "eventName": "PaymentRiskEvaluated",
+      "schema": {
+        "fields": [
+          {
+            "name": "assessmentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "paymentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "riskScore",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "riskLevel",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "signals",
+            "type": "RiskSignal",
+            "isArray": true
+          },
+          {
+            "name": "evaluatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "RiskAssessment",
+        "command": "EvaluatePaymentRisk"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Payment fraud evaluation",
+        "momentIndex": 8
+      }
+    },
+    {
+      "eventName": "FlaggedForManualReview",
+      "schema": {
+        "fields": [
+          {
+            "name": "assessmentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "flaggedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "RiskAssessment",
+        "command": "FlagForManualReview"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "ManualReviewCompleted",
+      "schema": {
+        "fields": [
+          {
+            "name": "assessmentId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reviewerId",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "decision",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "notes",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "completedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "RiskAssessment",
+        "command": "CompleteManualReview"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PurchaseAttemptRecorded",
+      "schema": {
+        "fields": [
+          {
+            "name": "trackerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "ipAddress",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "sessionId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "attemptCount",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "windowStart",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "recordedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "VelocityTracker",
+        "command": "RecordPurchaseAttempt"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "CustomerBlocked",
+      "schema": {
+        "fields": [
+          {
+            "name": "trackerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "duration",
+            "type": "number",
+            "isArray": false
+          },
+          {
+            "name": "blockedUntil",
+            "type": "DateTime",
+            "isArray": false
+          },
+          {
+            "name": "blockedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "VelocityTracker",
+        "command": "BlockCustomer"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "CustomerUnblocked",
+      "schema": {
+        "fields": [
+          {
+            "name": "trackerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "unblockedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "VelocityTracker",
+        "command": "UnblockCustomer"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "OrderConfirmationSent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "orderId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "channel",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendOrderConfirmation"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Order confirmation",
+        "momentIndex": 15
+      }
+    },
+    {
+      "eventName": "TicketDeliverySent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "orderId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "channel",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendTicketDelivery"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Ticket delivery notification",
+        "momentIndex": 16
+      }
+    },
+    {
+      "eventName": "TransferNotificationSent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "transferId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "toEmail",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendTransferNotification"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Recipient notification",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "EventCancellationNoticeSent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "channel",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendEventCancellationNotice"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Cancellation notifications",
+        "momentIndex": 7
+      }
+    },
+    {
+      "eventName": "PresaleAccessNoticeSent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendPresaleAccessNotice"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "WaitlistUpdateSent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "waitlistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendWaitlistUpdate"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "EventReminderSent",
+      "schema": {
+        "fields": [
+          {
+            "name": "dispatchId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "sentAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "NotificationDispatch",
+        "command": "SendEventReminder"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "PreferencesUpdated",
+      "schema": {
+        "fields": [
+          {
+            "name": "preferenceId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "emailEnabled",
+            "type": "boolean",
+            "isArray": false
+          },
+          {
+            "name": "smsEnabled",
+            "type": "boolean",
+            "isArray": false
+          },
+          {
+            "name": "pushEnabled",
+            "type": "boolean",
+            "isArray": false
+          },
+          {
+            "name": "marketingOptIn",
+            "type": "boolean",
+            "isArray": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "CommunicationPreference",
+        "command": "UpdatePreferences"
+      },
+      "consumers": []
+    },
+    {
+      "eventName": "AllChannelsUnsubscribed",
+      "schema": {
+        "fields": [
+          {
+            "name": "preferenceId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "unsubscribedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "CommunicationPreference",
+        "command": "UnsubscribeAll"
+      },
+      "consumers": []
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2026-04-05T06:15:23.373Z",
+    "totalEvents": 56
+  }
+}
