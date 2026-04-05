@@ -53,14 +53,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-0-Event-cancellation::CancelEvent",
+          "id": "moment-0-Event-cancellation::catalog::CancelEvent::main",
           "lane": "catalog",
           "label": "CancelEvent",
           "type": "command",
           "aggregate": "Event"
         },
         {
-          "id": "moment-0-Event-cancellation::EventCancelled",
+          "id": "moment-0-Event-cancellation::catalog::EventCancelled::main",
           "lane": "catalog",
           "label": "EventCancelled",
           "type": "event",
@@ -75,7 +75,7 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-1-Cancellation-propagation-to-checkout::EventCancelled",
+          "id": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
           "lane": "catalog",
           "label": "EventCancelled",
           "type": "event",
@@ -90,7 +90,7 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-2-Cancellation-propagation-to-delivery::EventCancelled",
+          "id": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
           "lane": "catalog",
           "label": "EventCancelled",
           "type": "event",
@@ -105,7 +105,7 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-3-Cancellation-propagation-to-notifications::EventCancelled",
+          "id": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
           "lane": "catalog",
           "label": "EventCancelled",
           "type": "event",
@@ -120,14 +120,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-4-Active-holds-release::ReleaseHold",
+          "id": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
           "lane": "inventory",
           "label": "ReleaseHold",
           "type": "command",
           "aggregate": "SeatHold"
         },
         {
-          "id": "moment-4-Active-holds-release::HoldReleased",
+          "id": "moment-4-Active-holds-release::inventory::HoldReleased::main",
           "lane": "inventory",
           "label": "HoldReleased",
           "type": "event",
@@ -143,14 +143,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-5-Ticket-revocation::RevokeTicket",
+          "id": "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
           "lane": "delivery",
           "label": "RevokeTicket",
           "type": "command",
           "aggregate": "DigitalTicket"
         },
         {
-          "id": "moment-5-Ticket-revocation::TicketRevoked",
+          "id": "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
           "lane": "delivery",
           "label": "TicketRevoked",
           "type": "event",
@@ -166,14 +166,14 @@
       "isBranch": true,
       "nodes": [
         {
-          "id": "moment-6-Refund-processing::RefundPayment",
+          "id": "moment-6-Refund-processing::checkout::RefundPayment::br0",
           "lane": "checkout",
           "label": "RefundPayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-6-Refund-processing::PaymentRefunded",
+          "id": "moment-6-Refund-processing::checkout::PaymentRefunded::br0",
           "lane": "checkout",
           "label": "PaymentRefunded",
           "type": "event",
@@ -182,14 +182,14 @@
           "eventTypes": ["PaymentRefunded"]
         },
         {
-          "id": "moment-6-Refund-processing::RefundPayment",
+          "id": "moment-6-Refund-processing::checkout::RefundPayment::br1",
           "lane": "checkout",
           "label": "RefundPayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-6-Refund-processing::PaymentRefunded",
+          "id": "moment-6-Refund-processing::checkout::PaymentRefunded::br1",
           "lane": "checkout",
           "label": "PaymentRefunded",
           "type": "event",
@@ -198,7 +198,7 @@
           "eventTypes": ["PaymentRefunded"]
         },
         {
-          "id": "moment-6-Refund-processing::PaymentFailed",
+          "id": "moment-6-Refund-processing::checkout::PaymentFailed::br1",
           "lane": "checkout",
           "label": "PaymentFailed",
           "type": "event",
@@ -207,7 +207,7 @@
           "eventTypes": ["PaymentFailed"]
         },
         {
-          "id": "moment-6-Refund-processing::PaymentFailed",
+          "id": "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1",
           "lane": "partialRefundFailure",
           "label": "PaymentFailed",
           "type": "event",
@@ -222,14 +222,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-7-Cancellation-notifications::SendEventCancellationNotice",
+          "id": "moment-7-Cancellation-notifications::notifications::SendEventCancellationNotice::main",
           "lane": "notifications",
           "label": "SendEventCancellationNotice",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-7-Cancellation-notifications::EventCancellationNoticeSent",
+          "id": "moment-7-Cancellation-notifications::notifications::EventCancellationNoticeSent::main",
           "lane": "notifications",
           "label": "EventCancellationNoticeSent",
           "type": "event",
@@ -333,23 +333,23 @@
   ],
   "eventRouting": {
     "EventCancelled": [
-      "moment-0-Event-cancellation::EventCancelled",
-      "moment-1-Cancellation-propagation-to-checkout::EventCancelled",
-      "moment-2-Cancellation-propagation-to-delivery::EventCancelled",
-      "moment-3-Cancellation-propagation-to-notifications::EventCancelled"
+      "moment-0-Event-cancellation::ctx-Catalog::EventCancelled::main",
+      "moment-1-Cancellation-propagation-to-checkout::ctx-Catalog::EventCancelled::main",
+      "moment-2-Cancellation-propagation-to-delivery::ctx-Catalog::EventCancelled::main",
+      "moment-3-Cancellation-propagation-to-notifications::ctx-Catalog::EventCancelled::main"
     ],
-    "HoldReleased": ["moment-4-Active-holds-release::HoldReleased"],
-    "TicketRevoked": ["moment-5-Ticket-revocation::TicketRevoked"],
+    "HoldReleased": ["moment-4-Active-holds-release::ctx-Inventory::HoldReleased::main"],
+    "TicketRevoked": ["moment-5-Ticket-revocation::ctx-Delivery::TicketRevoked::main"],
     "PaymentRefunded": [
-      "moment-6-Refund-processing::PaymentRefunded",
-      "moment-6-Refund-processing::PaymentRefunded"
+      "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br1",
+      "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br3"
     ],
     "PaymentFailed": [
-      "moment-6-Refund-processing::PaymentFailed",
-      "moment-6-Refund-processing::PaymentFailed"
+      "moment-6-Refund-processing::ctx-Checkout::PaymentFailed::br4",
+      "moment-6-Refund-processing::ctx-Partial Refund Failure::PaymentFailed::br5"
     ],
     "EventCancellationNoticeSent": [
-      "moment-7-Cancellation-notifications::EventCancellationNoticeSent"
+      "moment-7-Cancellation-notifications::ctx-Notifications::EventCancellationNoticeSent::main"
     ]
   },
   "branchPredicates": {

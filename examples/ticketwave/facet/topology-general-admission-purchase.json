@@ -74,14 +74,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-0-Event-discovery::PublishEvent",
+          "id": "moment-0-Event-discovery::catalog::PublishEvent::main",
           "lane": "catalog",
           "label": "PublishEvent",
           "type": "command",
           "aggregate": "Event"
         },
         {
-          "id": "moment-0-Event-discovery::EventPublished",
+          "id": "moment-0-Event-discovery::catalog::EventPublished::main",
           "lane": "catalog",
           "label": "EventPublished",
           "type": "event",
@@ -96,14 +96,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-1-Pool-initialization::InitializePool",
+          "id": "moment-1-Pool-initialization::inventory::InitializePool::main",
           "lane": "inventory",
           "label": "InitializePool",
           "type": "command",
           "aggregate": "TicketPool"
         },
         {
-          "id": "moment-1-Pool-initialization::PoolInitialized",
+          "id": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
           "lane": "inventory",
           "label": "PoolInitialized",
           "type": "event",
@@ -118,14 +118,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-2-Seat-selection-and-hold::RequestHold",
+          "id": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
           "lane": "inventory",
           "label": "RequestHold",
           "type": "command",
           "aggregate": "SeatHold"
         },
         {
-          "id": "moment-2-Seat-selection-and-hold::SeatsHeld",
+          "id": "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
           "lane": "inventory",
           "label": "SeatsHeld",
           "type": "event",
@@ -140,14 +140,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-3-Hold-fraud-evaluation::EvaluateHoldRisk",
+          "id": "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
           "lane": "antifraud",
           "label": "EvaluateHoldRisk",
           "type": "command",
           "aggregate": "RiskAssessment"
         },
         {
-          "id": "moment-3-Hold-fraud-evaluation::HoldRiskEvaluated",
+          "id": "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
           "lane": "antifraud",
           "label": "HoldRiskEvaluated",
           "type": "event",
@@ -162,14 +162,14 @@
       "isBranch": true,
       "nodes": [
         {
-          "id": "moment-4-Hold-risk-decision::CreateCart",
+          "id": "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
           "lane": "checkout",
           "label": "CreateCart",
           "type": "command",
           "aggregate": "Cart"
         },
         {
-          "id": "moment-4-Hold-risk-decision::CartCreated",
+          "id": "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
           "lane": "checkout",
           "label": "CartCreated",
           "type": "event",
@@ -177,14 +177,14 @@
           "eventTypes": ["CartCreated"]
         },
         {
-          "id": "moment-4-Hold-risk-decision::BlockCustomer",
+          "id": "moment-4-Hold-risk-decision::antifraud::BlockCustomer::br1",
           "lane": "antifraud",
           "label": "BlockCustomer",
           "type": "command",
           "aggregate": "VelocityTracker"
         },
         {
-          "id": "moment-4-Hold-risk-decision::CustomerBlocked",
+          "id": "moment-4-Hold-risk-decision::antifraud::CustomerBlocked::br1",
           "lane": "antifraud",
           "label": "CustomerBlocked",
           "type": "event",
@@ -192,7 +192,7 @@
           "eventTypes": ["CustomerBlocked"]
         },
         {
-          "id": "moment-4-Hold-risk-decision::CustomerBlocked",
+          "id": "moment-4-Hold-risk-decision::botDetected::CustomerBlocked::br1",
           "lane": "botDetected",
           "label": "CustomerBlocked",
           "type": "event",
@@ -200,14 +200,14 @@
           "eventTypes": ["CustomerBlocked"]
         },
         {
-          "id": "moment-4-Hold-risk-decision::FlagForManualReview",
+          "id": "moment-4-Hold-risk-decision::antifraud::FlagForManualReview::br2",
           "lane": "antifraud",
           "label": "FlagForManualReview",
           "type": "command",
           "aggregate": "RiskAssessment"
         },
         {
-          "id": "moment-4-Hold-risk-decision::FlaggedForManualReview",
+          "id": "moment-4-Hold-risk-decision::antifraud::FlaggedForManualReview::br2",
           "lane": "antifraud",
           "label": "FlaggedForManualReview",
           "type": "event",
@@ -215,7 +215,7 @@
           "eventTypes": ["FlaggedForManualReview"]
         },
         {
-          "id": "moment-4-Hold-risk-decision::FlaggedForManualReview",
+          "id": "moment-4-Hold-risk-decision::manualReview::FlaggedForManualReview::br2",
           "lane": "manualReview",
           "label": "FlaggedForManualReview",
           "type": "event",
@@ -230,14 +230,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-5-Cart-population::AddTicketsToCart",
+          "id": "moment-5-Cart-population::checkout::AddTicketsToCart::main",
           "lane": "checkout",
           "label": "AddTicketsToCart",
           "type": "command",
           "aggregate": "Cart"
         },
         {
-          "id": "moment-5-Cart-population::TicketsAddedToCart",
+          "id": "moment-5-Cart-population::checkout::TicketsAddedToCart::main",
           "lane": "checkout",
           "label": "TicketsAddedToCart",
           "type": "event",
@@ -252,14 +252,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-6-Fee-calculation::CalculateFees",
+          "id": "moment-6-Fee-calculation::checkout::CalculateFees::main",
           "lane": "checkout",
           "label": "CalculateFees",
           "type": "command",
           "aggregate": "Cart"
         },
         {
-          "id": "moment-6-Fee-calculation::FeesCalculated",
+          "id": "moment-6-Fee-calculation::checkout::FeesCalculated::main",
           "lane": "checkout",
           "label": "FeesCalculated",
           "type": "event",
@@ -274,14 +274,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-7-Payment-initiation::InitiatePayment",
+          "id": "moment-7-Payment-initiation::checkout::InitiatePayment::main",
           "lane": "checkout",
           "label": "InitiatePayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-7-Payment-initiation::PaymentInitiated",
+          "id": "moment-7-Payment-initiation::checkout::PaymentInitiated::main",
           "lane": "checkout",
           "label": "PaymentInitiated",
           "type": "event",
@@ -296,14 +296,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-8-Payment-fraud-evaluation::EvaluatePaymentRisk",
+          "id": "moment-8-Payment-fraud-evaluation::antifraud::EvaluatePaymentRisk::main",
           "lane": "antifraud",
           "label": "EvaluatePaymentRisk",
           "type": "command",
           "aggregate": "RiskAssessment"
         },
         {
-          "id": "moment-8-Payment-fraud-evaluation::PaymentRiskEvaluated",
+          "id": "moment-8-Payment-fraud-evaluation::antifraud::PaymentRiskEvaluated::main",
           "lane": "antifraud",
           "label": "PaymentRiskEvaluated",
           "type": "event",
@@ -318,14 +318,14 @@
       "isBranch": true,
       "nodes": [
         {
-          "id": "moment-9-Payment-processing::ConfirmPayment",
+          "id": "moment-9-Payment-processing::checkout::ConfirmPayment::br0",
           "lane": "checkout",
           "label": "ConfirmPayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-9-Payment-processing::PaymentConfirmed",
+          "id": "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
           "lane": "checkout",
           "label": "PaymentConfirmed",
           "type": "event",
@@ -333,14 +333,14 @@
           "eventTypes": ["PaymentConfirmed"]
         },
         {
-          "id": "moment-9-Payment-processing::FailPayment",
+          "id": "moment-9-Payment-processing::checkout::FailPayment::br1",
           "lane": "checkout",
           "label": "FailPayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-9-Payment-processing::PaymentFailed",
+          "id": "moment-9-Payment-processing::checkout::PaymentFailed::br1",
           "lane": "checkout",
           "label": "PaymentFailed",
           "type": "event",
@@ -348,7 +348,7 @@
           "eventTypes": ["PaymentFailed"]
         },
         {
-          "id": "moment-9-Payment-processing::PaymentFailed",
+          "id": "moment-9-Payment-processing::paymentDeclined::PaymentFailed::br1",
           "lane": "paymentDeclined",
           "label": "PaymentFailed",
           "type": "event",
@@ -363,7 +363,7 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-10-Delivery-trigger::PaymentConfirmed",
+          "id": "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
           "lane": "checkout",
           "label": "PaymentConfirmed",
           "type": "event",
@@ -378,7 +378,7 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-11-Notification-trigger::PaymentConfirmed",
+          "id": "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
           "lane": "checkout",
           "label": "PaymentConfirmed",
           "type": "event",
@@ -393,14 +393,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-12-Hold-conversion::ConvertHoldToReservation",
+          "id": "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
           "lane": "inventory",
           "label": "ConvertHoldToReservation",
           "type": "command",
           "aggregate": "SeatHold"
         },
         {
-          "id": "moment-12-Hold-conversion::HoldConvertedToReservation",
+          "id": "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
           "lane": "inventory",
           "label": "HoldConvertedToReservation",
           "type": "event",
@@ -415,14 +415,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-13-Ticket-issuance::IssueTickets",
+          "id": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
           "lane": "delivery",
           "label": "IssueTickets",
           "type": "command",
           "aggregate": "DigitalTicket"
         },
         {
-          "id": "moment-13-Ticket-issuance::TicketsIssued",
+          "id": "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
           "lane": "delivery",
           "label": "TicketsIssued",
           "type": "event",
@@ -437,14 +437,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-14-Mobile-pass-generation::GenerateMobilePass",
+          "id": "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
           "lane": "delivery",
           "label": "GenerateMobilePass",
           "type": "command",
           "aggregate": "DigitalTicket"
         },
         {
-          "id": "moment-14-Mobile-pass-generation::MobilePassGenerated",
+          "id": "moment-14-Mobile-pass-generation::delivery::MobilePassGenerated::main",
           "lane": "delivery",
           "label": "MobilePassGenerated",
           "type": "event",
@@ -459,14 +459,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-15-Order-confirmation::SendOrderConfirmation",
+          "id": "moment-15-Order-confirmation::notifications::SendOrderConfirmation::main",
           "lane": "notifications",
           "label": "SendOrderConfirmation",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-15-Order-confirmation::OrderConfirmationSent",
+          "id": "moment-15-Order-confirmation::notifications::OrderConfirmationSent::main",
           "lane": "notifications",
           "label": "OrderConfirmationSent",
           "type": "event",
@@ -481,14 +481,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-16-Ticket-delivery-notification::SendTicketDelivery",
+          "id": "moment-16-Ticket-delivery-notification::notifications::SendTicketDelivery::main",
           "lane": "notifications",
           "label": "SendTicketDelivery",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-16-Ticket-delivery-notification::TicketDeliverySent",
+          "id": "moment-16-Ticket-delivery-notification::notifications::TicketDeliverySent::main",
           "lane": "notifications",
           "label": "TicketDeliverySent",
           "type": "event",
@@ -699,37 +699,47 @@
     }
   ],
   "eventRouting": {
-    "EventPublished": ["moment-0-Event-discovery::EventPublished"],
-    "PoolInitialized": ["moment-1-Pool-initialization::PoolInitialized"],
-    "SeatsHeld": ["moment-2-Seat-selection-and-hold::SeatsHeld"],
-    "HoldRiskEvaluated": ["moment-3-Hold-fraud-evaluation::HoldRiskEvaluated"],
-    "CartCreated": ["moment-4-Hold-risk-decision::CartCreated"],
+    "EventPublished": ["moment-0-Event-discovery::ctx-Catalog::EventPublished::main"],
+    "PoolInitialized": ["moment-1-Pool-initialization::ctx-Inventory::PoolInitialized::main"],
+    "SeatsHeld": ["moment-2-Seat-selection-and-hold::ctx-Inventory::SeatsHeld::main"],
+    "HoldRiskEvaluated": ["moment-3-Hold-fraud-evaluation::ctx-AntiFraud::HoldRiskEvaluated::main"],
+    "CartCreated": ["moment-4-Hold-risk-decision::ctx-Checkout::CartCreated::br1"],
     "CustomerBlocked": [
-      "moment-4-Hold-risk-decision::CustomerBlocked",
-      "moment-4-Hold-risk-decision::CustomerBlocked"
+      "moment-4-Hold-risk-decision::ctx-AntiFraud::CustomerBlocked::br3",
+      "moment-4-Hold-risk-decision::ctx-Bot Detected::CustomerBlocked::br4"
     ],
     "FlaggedForManualReview": [
-      "moment-4-Hold-risk-decision::FlaggedForManualReview",
-      "moment-4-Hold-risk-decision::FlaggedForManualReview"
+      "moment-4-Hold-risk-decision::ctx-AntiFraud::FlaggedForManualReview::br6",
+      "moment-4-Hold-risk-decision::ctx-Manual Review::FlaggedForManualReview::br7"
     ],
-    "TicketsAddedToCart": ["moment-5-Cart-population::TicketsAddedToCart"],
-    "FeesCalculated": ["moment-6-Fee-calculation::FeesCalculated"],
-    "PaymentInitiated": ["moment-7-Payment-initiation::PaymentInitiated"],
-    "PaymentRiskEvaluated": ["moment-8-Payment-fraud-evaluation::PaymentRiskEvaluated"],
+    "TicketsAddedToCart": ["moment-5-Cart-population::ctx-Checkout::TicketsAddedToCart::main"],
+    "FeesCalculated": ["moment-6-Fee-calculation::ctx-Checkout::FeesCalculated::main"],
+    "PaymentInitiated": ["moment-7-Payment-initiation::ctx-Checkout::PaymentInitiated::main"],
+    "PaymentRiskEvaluated": [
+      "moment-8-Payment-fraud-evaluation::ctx-AntiFraud::PaymentRiskEvaluated::main"
+    ],
     "PaymentConfirmed": [
-      "moment-9-Payment-processing::PaymentConfirmed",
-      "moment-10-Delivery-trigger::PaymentConfirmed",
-      "moment-11-Notification-trigger::PaymentConfirmed"
+      "moment-9-Payment-processing::ctx-Checkout::PaymentConfirmed::br1",
+      "moment-10-Delivery-trigger::ctx-Checkout::PaymentConfirmed::main",
+      "moment-11-Notification-trigger::ctx-Checkout::PaymentConfirmed::main"
     ],
     "PaymentFailed": [
-      "moment-9-Payment-processing::PaymentFailed",
-      "moment-9-Payment-processing::PaymentFailed"
+      "moment-9-Payment-processing::ctx-Checkout::PaymentFailed::br3",
+      "moment-9-Payment-processing::ctx-Payment Declined::PaymentFailed::br4"
     ],
-    "HoldConvertedToReservation": ["moment-12-Hold-conversion::HoldConvertedToReservation"],
-    "TicketsIssued": ["moment-13-Ticket-issuance::TicketsIssued"],
-    "MobilePassGenerated": ["moment-14-Mobile-pass-generation::MobilePassGenerated"],
-    "OrderConfirmationSent": ["moment-15-Order-confirmation::OrderConfirmationSent"],
-    "TicketDeliverySent": ["moment-16-Ticket-delivery-notification::TicketDeliverySent"]
+    "HoldConvertedToReservation": [
+      "moment-12-Hold-conversion::ctx-Inventory::HoldConvertedToReservation::main"
+    ],
+    "TicketsIssued": ["moment-13-Ticket-issuance::ctx-Delivery::TicketsIssued::main"],
+    "MobilePassGenerated": [
+      "moment-14-Mobile-pass-generation::ctx-Delivery::MobilePassGenerated::main"
+    ],
+    "OrderConfirmationSent": [
+      "moment-15-Order-confirmation::ctx-Notifications::OrderConfirmationSent::main"
+    ],
+    "TicketDeliverySent": [
+      "moment-16-Ticket-delivery-notification::ctx-Notifications::TicketDeliverySent::main"
+    ]
   },
   "branchPredicates": {
     "moment-4-Hold-risk-decision": {

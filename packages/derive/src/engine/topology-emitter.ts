@@ -121,7 +121,7 @@ export class TopologyEmitter {
       connections: buildConnections(flow),
       eventRouting: buildEventRouting(flow, ctxMap),
       branchPredicates: buildBranchPredicates(flow),
-      contextMap: buildContextMap(flow, ir, ctxMap),
+      contextMap: buildContextMap(flow, ctxMap),
     };
   }
 }
@@ -163,34 +163,40 @@ function buildFrameNodes(
   laneIndex: Map<string, LaneDefinition>,
 ): TopologyNode[] {
   const nodes: TopologyNode[] = [];
+  let branchIdx = 0;
 
   for (const entry of moment.contextEntries) {
-    nodes.push(entryToNode(entry, moment, ctxMap, laneIndex));
+    nodes.push(entryToNode(entry, moment, ctxMap, laneIndex, 'main'));
   }
 
   for (const branch of moment.branches ?? []) {
     for (const entry of branch.entries) {
-      nodes.push(entryToNode(entry, moment, ctxMap, laneIndex));
+      nodes.push(entryToNode(entry, moment, ctxMap, laneIndex, `br${branchIdx}`));
     }
+    branchIdx++;
   }
 
   return nodes;
 }
 
+// Review fix #1: Include lane + branch scope in node ID to prevent collisions
+// when the same event appears in both main entries and branch entries.
 function entryToNode(
   entry: MomentEntry,
   moment: MomentDefinition,
   ctxMap: Map<string, ContextDefinition>,
   laneIndex: Map<string, LaneDefinition>,
+  scope: string,
 ): TopologyNode {
   const ctx = ctxMap.get(entry.contextId);
   const lane = laneIndex.get(entry.contextId);
+  const laneId = lane?.id ?? entry.contextId;
   const nodeKind = resolveNodeKind(entry, ctx);
   const aggregate = findAggregate(entry.nodeName, ctx);
 
   return {
-    id: `${moment.id}::${entry.nodeName}`,
-    lane: lane?.id ?? entry.contextId,
+    id: `${moment.id}::${laneId}::${entry.nodeName}::${scope}`,
+    lane: laneId,
     label: entry.nodeName,
     type: nodeKind,
     aggregate: aggregate ?? undefined,
@@ -233,7 +239,7 @@ function findAggregate(nodeName: string, ctx: ContextDefinition | undefined): st
 function buildConnections(flow: FlowDefinition): TopologyConnection[] {
   return flow.connections.map((conn) => {
     const isCrossing = conn.connectionType === 'crosses-to';
-    const base: TopologyConnection = {
+    return {
       from: conn.sourceMomentId,
       to: conn.targetContextId,
       label: isCrossing ? conn.eventId.replace(/^evt-/, '') : undefined,
@@ -242,13 +248,14 @@ function buildConnections(flow: FlowDefinition): TopologyConnection[] {
       relationship: isCrossing ? conn.schemaContract.relationshipType : undefined,
       schemaContract: isCrossing ? mapSchemaContract(conn) : undefined,
     };
-    return base;
   });
 }
 
+// Review fix #4: Explicit branch for 'triggers' connection type.
 function mapConnectionStyle(conn: ConnectionDefinition): string {
   if (conn.connectionType === 'crosses-to') return 'cross';
   if (conn.connectionType === 'triggered-by') return 'happy';
+  if (conn.connectionType === 'triggers') return 'happy';
   if (conn.connectionType === 'returns-to') return 'return';
   return 'happy';
 }
@@ -272,11 +279,12 @@ function mapSchemaContract(
 // Event Routing
 // ---------------------------------------------------------------------------
 
+// Review fix #2: De-duplicate event routing entries via Set.
 function buildEventRouting(
   flow: FlowDefinition,
   ctxMap: Map<string, ContextDefinition>,
 ): Record<string, string[]> {
-  const routing: Record<string, string[]> = {};
+  const routing: Record<string, Set<string>> = {};
 
   for (const moment of flow.moments) {
     const allEntries = [
@@ -284,19 +292,27 @@ function buildEventRouting(
       ...(moment.branches ?? []).flatMap((b) => b.entries),
     ];
 
+    let branchIdx = 0;
     for (const entry of allEntries) {
       const ctx = ctxMap.get(entry.contextId);
       const kind = resolveNodeKind(entry, ctx);
       if (kind === 'event') {
-        const nodeId = `${moment.id}::${entry.nodeName}`;
-        const existing = routing[entry.nodeName] ?? [];
-        existing.push(nodeId);
+        const laneId = entry.contextId;
+        const scope = moment.contextEntries.includes(entry) ? 'main' : `br${branchIdx}`;
+        const nodeId = `${moment.id}::${laneId}::${entry.nodeName}::${scope}`;
+        const existing = routing[entry.nodeName] ?? new Set<string>();
+        existing.add(nodeId);
         routing[entry.nodeName] = existing;
       }
+      if (!moment.contextEntries.includes(entry)) branchIdx++;
     }
   }
 
-  return routing;
+  const result: Record<string, string[]> = {};
+  for (const [key, set] of Object.entries(routing)) {
+    result[key] = [...set];
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -329,9 +345,9 @@ function buildBranchPredicates(flow: FlowDefinition): Record<string, TopologyBra
 // Context Map
 // ---------------------------------------------------------------------------
 
+// Review fix #5: Removed unused `ir` parameter.
 function buildContextMap(
   flow: FlowDefinition,
-  ir: IntermediateRepresentation,
   ctxMap: Map<string, ContextDefinition>,
 ): TopologyContextMap {
   const contexts = buildBoundedContexts(flow, ctxMap);
@@ -373,6 +389,8 @@ function buildContextRelationships(flow: FlowDefinition): TopologyContextRelatio
     .filter((r): r is TopologyContextRelationship => r !== null);
 }
 
+// Review fix #3: Resolve source context by matching the crossing event name
+// against moment entries, instead of blindly taking contextEntries[0].
 function buildRelationship(
   conn: ConnectionDefinition & { connectionType: 'crosses-to' },
   flow: FlowDefinition,
@@ -380,9 +398,13 @@ function buildRelationship(
   const sourceMoment = flow.moments.find((m) => m.id === conn.sourceMomentId);
   if (!sourceMoment) return null;
 
-  const sourceCtxId =
-    sourceMoment.contextEntries[0]?.contextId ??
-    sourceMoment.branches?.[0]?.entries?.[0]?.contextId;
+  const eventName = conn.eventId.replace(/^evt-/, '');
+  const allEntries = [
+    ...sourceMoment.contextEntries,
+    ...(sourceMoment.branches ?? []).flatMap((b) => b.entries),
+  ];
+  const producingEntry = allEntries.find((e) => e.nodeName === eventName);
+  const sourceCtxId = producingEntry?.contextId ?? sourceMoment.contextEntries[0]?.contextId;
   if (!sourceCtxId) return null;
 
   return {

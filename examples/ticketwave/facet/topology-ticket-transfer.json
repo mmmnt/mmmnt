@@ -39,14 +39,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-0-Transfer-initiation::InitiateTransfer",
+          "id": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
           "lane": "delivery",
           "label": "InitiateTransfer",
           "type": "command",
           "aggregate": "TicketTransfer"
         },
         {
-          "id": "moment-0-Transfer-initiation::TransferInitiated",
+          "id": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
           "lane": "delivery",
           "label": "TransferInitiated",
           "type": "event",
@@ -61,14 +61,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-1-Recipient-notification::SendTransferNotification",
+          "id": "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
           "lane": "notifications",
           "label": "SendTransferNotification",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-1-Recipient-notification::TransferNotificationSent",
+          "id": "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
           "lane": "notifications",
           "label": "TransferNotificationSent",
           "type": "event",
@@ -83,14 +83,14 @@
       "isBranch": true,
       "nodes": [
         {
-          "id": "moment-2-Transfer-resolution::AcceptTransfer",
+          "id": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
           "lane": "delivery",
           "label": "AcceptTransfer",
           "type": "command",
           "aggregate": "TicketTransfer"
         },
         {
-          "id": "moment-2-Transfer-resolution::TransferAccepted",
+          "id": "moment-2-Transfer-resolution::delivery::TransferAccepted::br0",
           "lane": "delivery",
           "label": "TransferAccepted",
           "type": "event",
@@ -98,14 +98,14 @@
           "eventTypes": ["TransferAccepted"]
         },
         {
-          "id": "moment-2-Transfer-resolution::DeclineTransfer",
+          "id": "moment-2-Transfer-resolution::delivery::DeclineTransfer::br1",
           "lane": "delivery",
           "label": "DeclineTransfer",
           "type": "command",
           "aggregate": "TicketTransfer"
         },
         {
-          "id": "moment-2-Transfer-resolution::TransferDeclined",
+          "id": "moment-2-Transfer-resolution::delivery::TransferDeclined::br1",
           "lane": "delivery",
           "label": "TransferDeclined",
           "type": "event",
@@ -113,7 +113,7 @@
           "eventTypes": ["TransferDeclined"]
         },
         {
-          "id": "moment-2-Transfer-resolution::TransferDeclined",
+          "id": "moment-2-Transfer-resolution::transferDeclined::TransferDeclined::br1",
           "lane": "transferDeclined",
           "label": "TransferDeclined",
           "type": "event",
@@ -121,14 +121,14 @@
           "eventTypes": ["TransferDeclined"]
         },
         {
-          "id": "moment-2-Transfer-resolution::CancelTransfer",
+          "id": "moment-2-Transfer-resolution::delivery::CancelTransfer::br2",
           "lane": "delivery",
           "label": "CancelTransfer",
           "type": "command",
           "aggregate": "TicketTransfer"
         },
         {
-          "id": "moment-2-Transfer-resolution::TransferCancelled",
+          "id": "moment-2-Transfer-resolution::delivery::TransferCancelled::br2",
           "lane": "delivery",
           "label": "TransferCancelled",
           "type": "event",
@@ -136,7 +136,7 @@
           "eventTypes": ["TransferCancelled"]
         },
         {
-          "id": "moment-2-Transfer-resolution::TransferCancelled",
+          "id": "moment-2-Transfer-resolution::transferExpired::TransferCancelled::br2",
           "lane": "transferExpired",
           "label": "TransferCancelled",
           "type": "event",
@@ -151,14 +151,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-3-Original-ticket-revocation::RevokeTicket",
+          "id": "moment-3-Original-ticket-revocation::delivery::RevokeTicket::main",
           "lane": "delivery",
           "label": "RevokeTicket",
           "type": "command",
           "aggregate": "DigitalTicket"
         },
         {
-          "id": "moment-3-Original-ticket-revocation::TicketRevoked",
+          "id": "moment-3-Original-ticket-revocation::delivery::TicketRevoked::main",
           "lane": "delivery",
           "label": "TicketRevoked",
           "type": "event",
@@ -173,14 +173,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-4-New-ticket-issuance::IssueTickets",
+          "id": "moment-4-New-ticket-issuance::delivery::IssueTickets::main",
           "lane": "delivery",
           "label": "IssueTickets",
           "type": "command",
           "aggregate": "DigitalTicket"
         },
         {
-          "id": "moment-4-New-ticket-issuance::TicketsIssued",
+          "id": "moment-4-New-ticket-issuance::delivery::TicketsIssued::main",
           "lane": "delivery",
           "label": "TicketsIssued",
           "type": "event",
@@ -195,14 +195,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-5-Transfer-completion-notification::SendTicketDelivery",
+          "id": "moment-5-Transfer-completion-notification::notifications::SendTicketDelivery::main",
           "lane": "notifications",
           "label": "SendTicketDelivery",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-5-Transfer-completion-notification::TicketDeliverySent",
+          "id": "moment-5-Transfer-completion-notification::notifications::TicketDeliverySent::main",
           "lane": "notifications",
           "label": "TicketDeliverySent",
           "type": "event",
@@ -253,20 +253,24 @@
     }
   ],
   "eventRouting": {
-    "TransferInitiated": ["moment-0-Transfer-initiation::TransferInitiated"],
-    "TransferNotificationSent": ["moment-1-Recipient-notification::TransferNotificationSent"],
-    "TransferAccepted": ["moment-2-Transfer-resolution::TransferAccepted"],
+    "TransferInitiated": ["moment-0-Transfer-initiation::ctx-Delivery::TransferInitiated::main"],
+    "TransferNotificationSent": [
+      "moment-1-Recipient-notification::ctx-Notifications::TransferNotificationSent::main"
+    ],
+    "TransferAccepted": ["moment-2-Transfer-resolution::ctx-Delivery::TransferAccepted::br1"],
     "TransferDeclined": [
-      "moment-2-Transfer-resolution::TransferDeclined",
-      "moment-2-Transfer-resolution::TransferDeclined"
+      "moment-2-Transfer-resolution::ctx-Delivery::TransferDeclined::br3",
+      "moment-2-Transfer-resolution::ctx-Transfer Declined::TransferDeclined::br4"
     ],
     "TransferCancelled": [
-      "moment-2-Transfer-resolution::TransferCancelled",
-      "moment-2-Transfer-resolution::TransferCancelled"
+      "moment-2-Transfer-resolution::ctx-Delivery::TransferCancelled::br6",
+      "moment-2-Transfer-resolution::ctx-Transfer Expired::TransferCancelled::br7"
     ],
-    "TicketRevoked": ["moment-3-Original-ticket-revocation::TicketRevoked"],
-    "TicketsIssued": ["moment-4-New-ticket-issuance::TicketsIssued"],
-    "TicketDeliverySent": ["moment-5-Transfer-completion-notification::TicketDeliverySent"]
+    "TicketRevoked": ["moment-3-Original-ticket-revocation::ctx-Delivery::TicketRevoked::main"],
+    "TicketsIssued": ["moment-4-New-ticket-issuance::ctx-Delivery::TicketsIssued::main"],
+    "TicketDeliverySent": [
+      "moment-5-Transfer-completion-notification::ctx-Notifications::TicketDeliverySent::main"
+    ]
   },
   "branchPredicates": {
     "moment-2-Transfer-resolution": {

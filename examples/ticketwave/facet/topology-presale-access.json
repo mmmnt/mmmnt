@@ -60,14 +60,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-0-Presale-window-opens::OpenPresaleWindow",
+          "id": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
           "lane": "presale",
           "label": "OpenPresaleWindow",
           "type": "command",
           "aggregate": "PresaleWindow"
         },
         {
-          "id": "moment-0-Presale-window-opens::PresaleWindowOpened",
+          "id": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
           "lane": "presale",
           "label": "PresaleWindowOpened",
           "type": "event",
@@ -82,14 +82,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-1-Access-code-redemption::RedeemAccessCode",
+          "id": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
           "lane": "presale",
           "label": "RedeemAccessCode",
           "type": "command",
           "aggregate": "AccessCode"
         },
         {
-          "id": "moment-1-Access-code-redemption::AccessCodeRedeemed",
+          "id": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
           "lane": "presale",
           "label": "AccessCodeRedeemed",
           "type": "event",
@@ -104,14 +104,14 @@
       "isBranch": true,
       "nodes": [
         {
-          "id": "moment-2-Code-validation-outcome::RequestHold",
+          "id": "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
           "lane": "inventory",
           "label": "RequestHold",
           "type": "command",
           "aggregate": "SeatHold"
         },
         {
-          "id": "moment-2-Code-validation-outcome::SeatsHeld",
+          "id": "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
           "lane": "inventory",
           "label": "SeatsHeld",
           "type": "event",
@@ -119,14 +119,14 @@
           "eventTypes": ["SeatsHeld"]
         },
         {
-          "id": "moment-2-Code-validation-outcome::InvalidateAccessCode",
+          "id": "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1",
           "lane": "presale",
           "label": "InvalidateAccessCode",
           "type": "command",
           "aggregate": "AccessCode"
         },
         {
-          "id": "moment-2-Code-validation-outcome::AccessCodeInvalidated",
+          "id": "moment-2-Code-validation-outcome::presale::AccessCodeInvalidated::br1",
           "lane": "presale",
           "label": "AccessCodeInvalidated",
           "type": "event",
@@ -134,7 +134,7 @@
           "eventTypes": ["AccessCodeInvalidated"]
         },
         {
-          "id": "moment-2-Code-validation-outcome::AccessCodeInvalidated",
+          "id": "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1",
           "lane": "invalidCode",
           "label": "AccessCodeInvalidated",
           "type": "event",
@@ -142,14 +142,14 @@
           "eventTypes": ["AccessCodeInvalidated"]
         },
         {
-          "id": "moment-2-Code-validation-outcome::ClosePresaleWindow",
+          "id": "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
           "lane": "presale",
           "label": "ClosePresaleWindow",
           "type": "command",
           "aggregate": "PresaleWindow"
         },
         {
-          "id": "moment-2-Code-validation-outcome::PresaleWindowClosed",
+          "id": "moment-2-Code-validation-outcome::presale::PresaleWindowClosed::br2",
           "lane": "presale",
           "label": "PresaleWindowClosed",
           "type": "event",
@@ -157,7 +157,7 @@
           "eventTypes": ["PresaleWindowClosed"]
         },
         {
-          "id": "moment-2-Code-validation-outcome::PresaleWindowClosed",
+          "id": "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2",
           "lane": "windowClosed",
           "label": "PresaleWindowClosed",
           "type": "event",
@@ -172,14 +172,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-3-Presale-cart-creation::CreateCart",
+          "id": "moment-3-Presale-cart-creation::checkout::CreateCart::main",
           "lane": "checkout",
           "label": "CreateCart",
           "type": "command",
           "aggregate": "Cart"
         },
         {
-          "id": "moment-3-Presale-cart-creation::CartCreated",
+          "id": "moment-3-Presale-cart-creation::checkout::CartCreated::main",
           "lane": "checkout",
           "label": "CartCreated",
           "type": "event",
@@ -194,14 +194,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-4-Presale-cart-population::AddTicketsToCart",
+          "id": "moment-4-Presale-cart-population::checkout::AddTicketsToCart::main",
           "lane": "checkout",
           "label": "AddTicketsToCart",
           "type": "command",
           "aggregate": "Cart"
         },
         {
-          "id": "moment-4-Presale-cart-population::TicketsAddedToCart",
+          "id": "moment-4-Presale-cart-population::checkout::TicketsAddedToCart::main",
           "lane": "checkout",
           "label": "TicketsAddedToCart",
           "type": "event",
@@ -216,14 +216,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-5-Presale-fee-calculation::CalculateFees",
+          "id": "moment-5-Presale-fee-calculation::checkout::CalculateFees::main",
           "lane": "checkout",
           "label": "CalculateFees",
           "type": "command",
           "aggregate": "Cart"
         },
         {
-          "id": "moment-5-Presale-fee-calculation::FeesCalculated",
+          "id": "moment-5-Presale-fee-calculation::checkout::FeesCalculated::main",
           "lane": "checkout",
           "label": "FeesCalculated",
           "type": "event",
@@ -238,14 +238,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-6-Presale-payment::InitiatePayment",
+          "id": "moment-6-Presale-payment::checkout::InitiatePayment::main",
           "lane": "checkout",
           "label": "InitiatePayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-6-Presale-payment::PaymentInitiated",
+          "id": "moment-6-Presale-payment::checkout::PaymentInitiated::main",
           "lane": "checkout",
           "label": "PaymentInitiated",
           "type": "event",
@@ -260,14 +260,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-7-Presale-payment-confirmation::ConfirmPayment",
+          "id": "moment-7-Presale-payment-confirmation::checkout::ConfirmPayment::main",
           "lane": "checkout",
           "label": "ConfirmPayment",
           "type": "command",
           "aggregate": "Payment"
         },
         {
-          "id": "moment-7-Presale-payment-confirmation::PaymentConfirmed",
+          "id": "moment-7-Presale-payment-confirmation::checkout::PaymentConfirmed::main",
           "lane": "checkout",
           "label": "PaymentConfirmed",
           "type": "event",
@@ -282,7 +282,7 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-8-Presale-delivery-trigger::PaymentConfirmed",
+          "id": "moment-8-Presale-delivery-trigger::checkout::PaymentConfirmed::main",
           "lane": "checkout",
           "label": "PaymentConfirmed",
           "type": "event",
@@ -297,14 +297,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-9-Presale-hold-conversion::ConvertHoldToReservation",
+          "id": "moment-9-Presale-hold-conversion::inventory::ConvertHoldToReservation::main",
           "lane": "inventory",
           "label": "ConvertHoldToReservation",
           "type": "command",
           "aggregate": "SeatHold"
         },
         {
-          "id": "moment-9-Presale-hold-conversion::HoldConvertedToReservation",
+          "id": "moment-9-Presale-hold-conversion::inventory::HoldConvertedToReservation::main",
           "lane": "inventory",
           "label": "HoldConvertedToReservation",
           "type": "event",
@@ -319,14 +319,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-10-Presale-ticket-issuance::IssueTickets",
+          "id": "moment-10-Presale-ticket-issuance::delivery::IssueTickets::main",
           "lane": "delivery",
           "label": "IssueTickets",
           "type": "command",
           "aggregate": "DigitalTicket"
         },
         {
-          "id": "moment-10-Presale-ticket-issuance::TicketsIssued",
+          "id": "moment-10-Presale-ticket-issuance::delivery::TicketsIssued::main",
           "lane": "delivery",
           "label": "TicketsIssued",
           "type": "event",
@@ -341,14 +341,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-11-Presale-confirmation::SendOrderConfirmation",
+          "id": "moment-11-Presale-confirmation::notifications::SendOrderConfirmation::main",
           "lane": "notifications",
           "label": "SendOrderConfirmation",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-11-Presale-confirmation::OrderConfirmationSent",
+          "id": "moment-11-Presale-confirmation::notifications::OrderConfirmationSent::main",
           "lane": "notifications",
           "label": "OrderConfirmationSent",
           "type": "event",
@@ -363,14 +363,14 @@
       "isBranch": false,
       "nodes": [
         {
-          "id": "moment-12-Presale-ticket-delivery::SendTicketDelivery",
+          "id": "moment-12-Presale-ticket-delivery::notifications::SendTicketDelivery::main",
           "lane": "notifications",
           "label": "SendTicketDelivery",
           "type": "command",
           "aggregate": "NotificationDispatch"
         },
         {
-          "id": "moment-12-Presale-ticket-delivery::TicketDeliverySent",
+          "id": "moment-12-Presale-ticket-delivery::notifications::TicketDeliverySent::main",
           "lane": "notifications",
           "label": "TicketDeliverySent",
           "type": "event",
@@ -487,29 +487,41 @@
     }
   ],
   "eventRouting": {
-    "PresaleWindowOpened": ["moment-0-Presale-window-opens::PresaleWindowOpened"],
-    "AccessCodeRedeemed": ["moment-1-Access-code-redemption::AccessCodeRedeemed"],
-    "SeatsHeld": ["moment-2-Code-validation-outcome::SeatsHeld"],
+    "PresaleWindowOpened": [
+      "moment-0-Presale-window-opens::ctx-Presale::PresaleWindowOpened::main"
+    ],
+    "AccessCodeRedeemed": [
+      "moment-1-Access-code-redemption::ctx-Presale::AccessCodeRedeemed::main"
+    ],
+    "SeatsHeld": ["moment-2-Code-validation-outcome::ctx-Inventory::SeatsHeld::br1"],
     "AccessCodeInvalidated": [
-      "moment-2-Code-validation-outcome::AccessCodeInvalidated",
-      "moment-2-Code-validation-outcome::AccessCodeInvalidated"
+      "moment-2-Code-validation-outcome::ctx-Presale::AccessCodeInvalidated::br3",
+      "moment-2-Code-validation-outcome::ctx-Invalid Code::AccessCodeInvalidated::br4"
     ],
     "PresaleWindowClosed": [
-      "moment-2-Code-validation-outcome::PresaleWindowClosed",
-      "moment-2-Code-validation-outcome::PresaleWindowClosed"
+      "moment-2-Code-validation-outcome::ctx-Presale::PresaleWindowClosed::br6",
+      "moment-2-Code-validation-outcome::ctx-Window Closed::PresaleWindowClosed::br7"
     ],
-    "CartCreated": ["moment-3-Presale-cart-creation::CartCreated"],
-    "TicketsAddedToCart": ["moment-4-Presale-cart-population::TicketsAddedToCart"],
-    "FeesCalculated": ["moment-5-Presale-fee-calculation::FeesCalculated"],
-    "PaymentInitiated": ["moment-6-Presale-payment::PaymentInitiated"],
+    "CartCreated": ["moment-3-Presale-cart-creation::ctx-Checkout::CartCreated::main"],
+    "TicketsAddedToCart": [
+      "moment-4-Presale-cart-population::ctx-Checkout::TicketsAddedToCart::main"
+    ],
+    "FeesCalculated": ["moment-5-Presale-fee-calculation::ctx-Checkout::FeesCalculated::main"],
+    "PaymentInitiated": ["moment-6-Presale-payment::ctx-Checkout::PaymentInitiated::main"],
     "PaymentConfirmed": [
-      "moment-7-Presale-payment-confirmation::PaymentConfirmed",
-      "moment-8-Presale-delivery-trigger::PaymentConfirmed"
+      "moment-7-Presale-payment-confirmation::ctx-Checkout::PaymentConfirmed::main",
+      "moment-8-Presale-delivery-trigger::ctx-Checkout::PaymentConfirmed::main"
     ],
-    "HoldConvertedToReservation": ["moment-9-Presale-hold-conversion::HoldConvertedToReservation"],
-    "TicketsIssued": ["moment-10-Presale-ticket-issuance::TicketsIssued"],
-    "OrderConfirmationSent": ["moment-11-Presale-confirmation::OrderConfirmationSent"],
-    "TicketDeliverySent": ["moment-12-Presale-ticket-delivery::TicketDeliverySent"]
+    "HoldConvertedToReservation": [
+      "moment-9-Presale-hold-conversion::ctx-Inventory::HoldConvertedToReservation::main"
+    ],
+    "TicketsIssued": ["moment-10-Presale-ticket-issuance::ctx-Delivery::TicketsIssued::main"],
+    "OrderConfirmationSent": [
+      "moment-11-Presale-confirmation::ctx-Notifications::OrderConfirmationSent::main"
+    ],
+    "TicketDeliverySent": [
+      "moment-12-Presale-ticket-delivery::ctx-Notifications::TicketDeliverySent::main"
+    ]
   },
   "branchPredicates": {
     "moment-2-Code-validation-outcome": {
