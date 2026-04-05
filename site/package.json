@@ -13,7 +13,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@astrojs/preact": "^4.0.0",
+    "@astrojs/preact": "^5.1.1",
     "@astrojs/sitemap": "^3.3.0",
     "astro": "^5.7.0",
     "preact": "^10.25.0"
