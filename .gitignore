@@ -10,5 +10,8 @@ test-results/
 # Generated E2E artifacts (reproducible from harness)
 .moment/generated/
 
+# Generated API docs
+docs/api/
+
 # Astro build cache
 .astro/

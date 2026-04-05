@@ -11,7 +11,8 @@
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish"
+    "changeset:publish": "changeset publish",
+    "docs": "typedoc"
   },
   "lint-staged": {
     "*.{ts,mts,mjs}": [
@@ -37,6 +38,8 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "turbo": "^2.5.0",
+    "typedoc": "^0.28.18",
+    "typedoc-plugin-markdown": "^4.11.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.4"
   },
