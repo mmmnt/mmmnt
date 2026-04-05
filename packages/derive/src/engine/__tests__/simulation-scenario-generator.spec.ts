@@ -677,4 +677,77 @@ describe('SimulationScenarioGenerator', () => {
       expect(nodeNames.every((n) => !n.includes('Continue'))).toBe(true);
     });
   });
+
+  describe('node ID alignment with topology', () => {
+    it('produces expectedPath IDs in {momentId}::{laneId}::{nodeName}::{scope} format', () => {
+      const ctx = makeContext('ctx-ordering', 'Ordering');
+      const moment = makeMoment('moment-0-Place', 'Place', 'ctx-ordering', 'PlaceOrder');
+      const flow: FlowDefinition = {
+        id: 'f1',
+        name: 'Flow',
+        lanes: [{ id: 'ordering', label: 'Ordering', contextId: 'ctx-ordering', isBranch: false }],
+        moments: [moment],
+        connections: [],
+      };
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const scenario = generateSimulationScenario(ir, flow);
+
+      expect(scenario.expectedPath[0]).toBe('moment-0-Place::ordering::PlaceOrder::main');
+    });
+
+    it('uses br{index} scope matching branch position for branched moments', () => {
+      const ctx = makeContext('ctx-ordering', 'Ordering');
+      const branchMoment: MomentDefinition = {
+        id: 'moment-0-Decision',
+        name: 'Decision',
+        contextEntries: [],
+        branches: [
+          {
+            condition: 'approved',
+            entries: [{ contextId: 'ctx-ordering', nodeName: 'Confirm', nodeKind: 'command' }],
+          },
+          {
+            condition: 'rejected',
+            entries: [{ contextId: 'ctx-ordering', nodeName: 'Reject', nodeKind: 'command' }],
+          },
+        ],
+      };
+      const flow: FlowDefinition = {
+        id: 'f1',
+        name: 'Flow',
+        lanes: [{ id: 'ordering', label: 'Ordering', contextId: 'ctx-ordering', isBranch: false }],
+        moments: [branchMoment],
+        connections: [],
+      };
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      // Happy path selects first branch (approved) → br0
+      const happy = generateSimulationScenario(ir, flow);
+      expect(happy.expectedPath[0]).toBe('moment-0-Decision::ordering::Confirm::br0');
+
+      // Second branch (rejected) → br1
+      const rejected = generateSimulationScenario(ir, flow, {
+        branchSelections: { Decision: 'rejected' },
+      });
+      expect(rejected.expectedPath[0]).toBe('moment-0-Decision::ordering::Reject::br1');
+    });
+
+    it('falls back to contextId when no lane matches', () => {
+      const ctx = makeContext('ctx-unknown', 'Unknown');
+      const moment = makeMoment('moment-0-Step', 'Step', 'ctx-unknown', 'DoThing');
+      const flow: FlowDefinition = {
+        id: 'f1',
+        name: 'Flow',
+        lanes: [],
+        moments: [moment],
+        connections: [],
+      };
+      const ir = makeIR({ contexts: [ctx], flows: [flow] });
+
+      const scenario = generateSimulationScenario(ir, flow);
+
+      expect(scenario.expectedPath[0]).toBe('moment-0-Step::ctx-unknown::DoThing::main');
+    });
+  });
 });
