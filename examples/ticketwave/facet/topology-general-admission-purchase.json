@@ -1,0 +1,977 @@
+{
+  "name": "general-admission-purchase",
+  "flowId": "flow-general-admission-purchase",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "catalog",
+      "label": "Catalog",
+      "contextId": "ctx-Catalog",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "contextId": "ctx-Inventory",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "contextId": "ctx-Checkout",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "antifraud",
+      "label": "AntiFraud",
+      "contextId": "ctx-AntiFraud",
+      "classification": "Generic",
+      "isBranch": false
+    },
+    {
+      "id": "delivery",
+      "label": "Delivery",
+      "contextId": "ctx-Delivery",
+      "classification": "Supporting",
+      "isBranch": false
+    },
+    {
+      "id": "notifications",
+      "label": "Notifications",
+      "contextId": "ctx-Notifications",
+      "classification": "Generic",
+      "isBranch": false
+    },
+    {
+      "id": "botDetected",
+      "label": "Bot Detected",
+      "contextId": "ctx-Bot Detected",
+      "classification": "Terminal",
+      "isBranch": true
+    },
+    {
+      "id": "paymentDeclined",
+      "label": "Payment Declined",
+      "contextId": "ctx-Payment Declined",
+      "classification": "Terminal",
+      "isBranch": true
+    },
+    {
+      "id": "manualReview",
+      "label": "Manual Review",
+      "contextId": "ctx-Manual Review",
+      "classification": "Terminal",
+      "isBranch": true
+    }
+  ],
+  "frames": [
+    {
+      "id": "moment-0-Event-discovery",
+      "moment": "Event discovery",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-0-Event-discovery::catalog::PublishEvent::main",
+          "lane": "catalog",
+          "label": "PublishEvent",
+          "type": "command",
+          "aggregate": "Event"
+        },
+        {
+          "id": "moment-0-Event-discovery::catalog::EventPublished::main",
+          "lane": "catalog",
+          "label": "EventPublished",
+          "type": "event",
+          "aggregate": "Event",
+          "eventTypes": [
+            "EventPublished"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-1-Pool-initialization",
+      "moment": "Pool initialization",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-1-Pool-initialization::inventory::InitializePool::main",
+          "lane": "inventory",
+          "label": "InitializePool",
+          "type": "command",
+          "aggregate": "TicketPool"
+        },
+        {
+          "id": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
+          "lane": "inventory",
+          "label": "PoolInitialized",
+          "type": "event",
+          "aggregate": "TicketPool",
+          "eventTypes": [
+            "PoolInitialized"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-2-Seat-selection-and-hold",
+      "moment": "Seat selection and hold",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
+          "lane": "inventory",
+          "label": "RequestHold",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
+          "lane": "inventory",
+          "label": "SeatsHeld",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "SeatsHeld"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-3-Hold-fraud-evaluation",
+      "moment": "Hold fraud evaluation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
+          "lane": "antifraud",
+          "label": "EvaluateHoldRisk",
+          "type": "command",
+          "aggregate": "RiskAssessment"
+        },
+        {
+          "id": "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
+          "lane": "antifraud",
+          "label": "HoldRiskEvaluated",
+          "type": "event",
+          "aggregate": "RiskAssessment",
+          "eventTypes": [
+            "HoldRiskEvaluated"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-4-Hold-risk-decision",
+      "moment": "Hold risk decision",
+      "isBranch": true,
+      "nodes": [
+        {
+          "id": "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
+          "lane": "checkout",
+          "label": "CreateCart",
+          "type": "command",
+          "aggregate": "Cart"
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
+          "lane": "checkout",
+          "label": "CartCreated",
+          "type": "event",
+          "aggregate": "Cart",
+          "eventTypes": [
+            "CartCreated"
+          ]
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::antifraud::BlockCustomer::br1",
+          "lane": "antifraud",
+          "label": "BlockCustomer",
+          "type": "command",
+          "aggregate": "VelocityTracker"
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::antifraud::CustomerBlocked::br1",
+          "lane": "antifraud",
+          "label": "CustomerBlocked",
+          "type": "event",
+          "aggregate": "VelocityTracker",
+          "eventTypes": [
+            "CustomerBlocked"
+          ]
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::botDetected::CustomerBlocked::br1",
+          "lane": "botDetected",
+          "label": "CustomerBlocked",
+          "type": "event",
+          "terminal": true,
+          "eventTypes": [
+            "CustomerBlocked"
+          ]
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::antifraud::FlagForManualReview::br2",
+          "lane": "antifraud",
+          "label": "FlagForManualReview",
+          "type": "command",
+          "aggregate": "RiskAssessment"
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::antifraud::FlaggedForManualReview::br2",
+          "lane": "antifraud",
+          "label": "FlaggedForManualReview",
+          "type": "event",
+          "aggregate": "RiskAssessment",
+          "eventTypes": [
+            "FlaggedForManualReview"
+          ]
+        },
+        {
+          "id": "moment-4-Hold-risk-decision::manualReview::FlaggedForManualReview::br2",
+          "lane": "manualReview",
+          "label": "FlaggedForManualReview",
+          "type": "event",
+          "terminal": true,
+          "eventTypes": [
+            "FlaggedForManualReview"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-5-Cart-population",
+      "moment": "Cart population",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-5-Cart-population::checkout::AddTicketsToCart::main",
+          "lane": "checkout",
+          "label": "AddTicketsToCart",
+          "type": "command",
+          "aggregate": "Cart"
+        },
+        {
+          "id": "moment-5-Cart-population::checkout::TicketsAddedToCart::main",
+          "lane": "checkout",
+          "label": "TicketsAddedToCart",
+          "type": "event",
+          "aggregate": "Cart",
+          "eventTypes": [
+            "TicketsAddedToCart"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-6-Fee-calculation",
+      "moment": "Fee calculation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-6-Fee-calculation::checkout::CalculateFees::main",
+          "lane": "checkout",
+          "label": "CalculateFees",
+          "type": "command",
+          "aggregate": "Cart"
+        },
+        {
+          "id": "moment-6-Fee-calculation::checkout::FeesCalculated::main",
+          "lane": "checkout",
+          "label": "FeesCalculated",
+          "type": "event",
+          "aggregate": "Cart",
+          "eventTypes": [
+            "FeesCalculated"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-7-Payment-initiation",
+      "moment": "Payment initiation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-7-Payment-initiation::checkout::InitiatePayment::main",
+          "lane": "checkout",
+          "label": "InitiatePayment",
+          "type": "command",
+          "aggregate": "Payment"
+        },
+        {
+          "id": "moment-7-Payment-initiation::checkout::PaymentInitiated::main",
+          "lane": "checkout",
+          "label": "PaymentInitiated",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentInitiated"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-8-Payment-fraud-evaluation",
+      "moment": "Payment fraud evaluation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-8-Payment-fraud-evaluation::antifraud::EvaluatePaymentRisk::main",
+          "lane": "antifraud",
+          "label": "EvaluatePaymentRisk",
+          "type": "command",
+          "aggregate": "RiskAssessment"
+        },
+        {
+          "id": "moment-8-Payment-fraud-evaluation::antifraud::PaymentRiskEvaluated::main",
+          "lane": "antifraud",
+          "label": "PaymentRiskEvaluated",
+          "type": "event",
+          "aggregate": "RiskAssessment",
+          "eventTypes": [
+            "PaymentRiskEvaluated"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-9-Payment-processing",
+      "moment": "Payment processing",
+      "isBranch": true,
+      "nodes": [
+        {
+          "id": "moment-9-Payment-processing::checkout::ConfirmPayment::br0",
+          "lane": "checkout",
+          "label": "ConfirmPayment",
+          "type": "command",
+          "aggregate": "Payment"
+        },
+        {
+          "id": "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
+          "lane": "checkout",
+          "label": "PaymentConfirmed",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
+        },
+        {
+          "id": "moment-9-Payment-processing::checkout::FailPayment::br1",
+          "lane": "checkout",
+          "label": "FailPayment",
+          "type": "command",
+          "aggregate": "Payment"
+        },
+        {
+          "id": "moment-9-Payment-processing::checkout::PaymentFailed::br1",
+          "lane": "checkout",
+          "label": "PaymentFailed",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentFailed"
+          ]
+        },
+        {
+          "id": "moment-9-Payment-processing::paymentDeclined::PaymentFailed::br1",
+          "lane": "paymentDeclined",
+          "label": "PaymentFailed",
+          "type": "event",
+          "terminal": true,
+          "eventTypes": [
+            "PaymentFailed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-10-Delivery-trigger",
+      "moment": "Delivery trigger",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
+          "lane": "checkout",
+          "label": "PaymentConfirmed",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-11-Notification-trigger",
+      "moment": "Notification trigger",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
+          "lane": "checkout",
+          "label": "PaymentConfirmed",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-12-Hold-conversion",
+      "moment": "Hold conversion",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
+          "lane": "inventory",
+          "label": "ConvertHoldToReservation",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
+          "lane": "inventory",
+          "label": "HoldConvertedToReservation",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldConvertedToReservation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-13-Ticket-issuance",
+      "moment": "Ticket issuance",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
+          "lane": "delivery",
+          "label": "IssueTickets",
+          "type": "command",
+          "aggregate": "DigitalTicket"
+        },
+        {
+          "id": "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
+          "lane": "delivery",
+          "label": "TicketsIssued",
+          "type": "event",
+          "aggregate": "DigitalTicket",
+          "eventTypes": [
+            "TicketsIssued"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-14-Mobile-pass-generation",
+      "moment": "Mobile pass generation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
+          "lane": "delivery",
+          "label": "GenerateMobilePass",
+          "type": "command",
+          "aggregate": "DigitalTicket"
+        },
+        {
+          "id": "moment-14-Mobile-pass-generation::delivery::MobilePassGenerated::main",
+          "lane": "delivery",
+          "label": "MobilePassGenerated",
+          "type": "event",
+          "aggregate": "DigitalTicket",
+          "eventTypes": [
+            "MobilePassGenerated"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-15-Order-confirmation",
+      "moment": "Order confirmation",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-15-Order-confirmation::notifications::SendOrderConfirmation::main",
+          "lane": "notifications",
+          "label": "SendOrderConfirmation",
+          "type": "command",
+          "aggregate": "NotificationDispatch"
+        },
+        {
+          "id": "moment-15-Order-confirmation::notifications::OrderConfirmationSent::main",
+          "lane": "notifications",
+          "label": "OrderConfirmationSent",
+          "type": "event",
+          "aggregate": "NotificationDispatch",
+          "eventTypes": [
+            "OrderConfirmationSent"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-16-Ticket-delivery-notification",
+      "moment": "Ticket delivery notification",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-16-Ticket-delivery-notification::notifications::SendTicketDelivery::main",
+          "lane": "notifications",
+          "label": "SendTicketDelivery",
+          "type": "command",
+          "aggregate": "NotificationDispatch"
+        },
+        {
+          "id": "moment-16-Ticket-delivery-notification::notifications::TicketDeliverySent::main",
+          "lane": "notifications",
+          "label": "TicketDeliverySent",
+          "type": "event",
+          "aggregate": "NotificationDispatch",
+          "eventTypes": [
+            "TicketDeliverySent"
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "moment-0-Event-discovery",
+      "to": "ctx-Inventory",
+      "label": "EventPublished",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-0",
+        "requiredFields": [
+          "eventId"
+        ],
+        "fieldTypes": {
+          "eventId": "UUID"
+        }
+      }
+    },
+    {
+      "from": "moment-1-Pool-initialization",
+      "to": "ctx-Inventory",
+      "style": "happy"
+    },
+    {
+      "from": "moment-2-Seat-selection-and-hold",
+      "to": "ctx-Checkout",
+      "label": "SeatsHeld",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-2",
+        "requiredFields": [
+          "holdId",
+          "eventId",
+          "tierId",
+          "quantity",
+          "customerId",
+          "expiresAt"
+        ],
+        "fieldTypes": {
+          "holdId": "UUID",
+          "eventId": "UUID",
+          "tierId": "UUID",
+          "quantity": "number",
+          "customerId": "UUID",
+          "expiresAt": "DateTime"
+        }
+      }
+    },
+    {
+      "from": "moment-3-Hold-fraud-evaluation",
+      "to": "ctx-AntiFraud",
+      "style": "happy"
+    },
+    {
+      "from": "moment-4-Hold-risk-decision",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-4-Hold-risk-decision",
+      "to": "ctx-AntiFraud",
+      "style": "happy"
+    },
+    {
+      "from": "moment-4-Hold-risk-decision",
+      "to": "ctx-AntiFraud",
+      "style": "happy"
+    },
+    {
+      "from": "moment-5-Cart-population",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-6-Fee-calculation",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-7-Payment-initiation",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-7-Payment-initiation",
+      "to": "ctx-AntiFraud",
+      "label": "PaymentInitiated",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-10",
+        "requiredFields": [
+          "paymentId",
+          "customerId",
+          "amount"
+        ],
+        "fieldTypes": {
+          "paymentId": "UUID",
+          "customerId": "UUID",
+          "amount": "Money"
+        }
+      }
+    },
+    {
+      "from": "moment-8-Payment-fraud-evaluation",
+      "to": "ctx-AntiFraud",
+      "style": "happy"
+    },
+    {
+      "from": "moment-9-Payment-processing",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-9-Payment-processing",
+      "to": "ctx-Inventory",
+      "label": "PaymentConfirmed",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-13",
+        "requiredFields": [
+          "holdId",
+          "paymentConfirmationId"
+        ],
+        "fieldTypes": {
+          "holdId": "UUID",
+          "paymentConfirmationId": "UUID"
+        }
+      }
+    },
+    {
+      "from": "moment-9-Payment-processing",
+      "to": "ctx-Checkout",
+      "style": "happy"
+    },
+    {
+      "from": "moment-10-Delivery-trigger",
+      "to": "ctx-Delivery",
+      "label": "PaymentConfirmed",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-15",
+        "requiredFields": [
+          "orderId",
+          "customerId",
+          "eventId",
+          "holdId"
+        ],
+        "fieldTypes": {
+          "orderId": "UUID",
+          "customerId": "UUID",
+          "eventId": "UUID",
+          "holdId": "UUID"
+        }
+      }
+    },
+    {
+      "from": "moment-11-Notification-trigger",
+      "to": "ctx-Notifications",
+      "label": "PaymentConfirmed",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-16",
+        "requiredFields": [
+          "orderId",
+          "customerId"
+        ],
+        "fieldTypes": {
+          "orderId": "UUID",
+          "customerId": "UUID"
+        }
+      }
+    },
+    {
+      "from": "moment-12-Hold-conversion",
+      "to": "ctx-Inventory",
+      "style": "happy"
+    },
+    {
+      "from": "moment-13-Ticket-issuance",
+      "to": "ctx-Delivery",
+      "style": "happy"
+    },
+    {
+      "from": "moment-13-Ticket-issuance",
+      "to": "ctx-Notifications",
+      "label": "TicketsIssued",
+      "style": "cross",
+      "crossBoundary": true,
+      "relationship": "CustomerSupplier",
+      "schemaContract": {
+        "contractId": "conn-19",
+        "requiredFields": [
+          "orderId",
+          "customerId"
+        ],
+        "fieldTypes": {
+          "orderId": "UUID",
+          "customerId": "UUID"
+        }
+      }
+    },
+    {
+      "from": "moment-14-Mobile-pass-generation",
+      "to": "ctx-Delivery",
+      "style": "happy"
+    },
+    {
+      "from": "moment-15-Order-confirmation",
+      "to": "ctx-Notifications",
+      "style": "happy"
+    },
+    {
+      "from": "moment-16-Ticket-delivery-notification",
+      "to": "ctx-Notifications",
+      "style": "happy"
+    }
+  ],
+  "eventRouting": {
+    "EventPublished": [
+      "moment-0-Event-discovery::ctx-Catalog::EventPublished::main"
+    ],
+    "PoolInitialized": [
+      "moment-1-Pool-initialization::ctx-Inventory::PoolInitialized::main"
+    ],
+    "SeatsHeld": [
+      "moment-2-Seat-selection-and-hold::ctx-Inventory::SeatsHeld::main"
+    ],
+    "HoldRiskEvaluated": [
+      "moment-3-Hold-fraud-evaluation::ctx-AntiFraud::HoldRiskEvaluated::main"
+    ],
+    "CartCreated": [
+      "moment-4-Hold-risk-decision::ctx-Checkout::CartCreated::br1"
+    ],
+    "CustomerBlocked": [
+      "moment-4-Hold-risk-decision::ctx-AntiFraud::CustomerBlocked::br3",
+      "moment-4-Hold-risk-decision::ctx-Bot Detected::CustomerBlocked::br4"
+    ],
+    "FlaggedForManualReview": [
+      "moment-4-Hold-risk-decision::ctx-AntiFraud::FlaggedForManualReview::br6",
+      "moment-4-Hold-risk-decision::ctx-Manual Review::FlaggedForManualReview::br7"
+    ],
+    "TicketsAddedToCart": [
+      "moment-5-Cart-population::ctx-Checkout::TicketsAddedToCart::main"
+    ],
+    "FeesCalculated": [
+      "moment-6-Fee-calculation::ctx-Checkout::FeesCalculated::main"
+    ],
+    "PaymentInitiated": [
+      "moment-7-Payment-initiation::ctx-Checkout::PaymentInitiated::main"
+    ],
+    "PaymentRiskEvaluated": [
+      "moment-8-Payment-fraud-evaluation::ctx-AntiFraud::PaymentRiskEvaluated::main"
+    ],
+    "PaymentConfirmed": [
+      "moment-9-Payment-processing::ctx-Checkout::PaymentConfirmed::br1",
+      "moment-10-Delivery-trigger::ctx-Checkout::PaymentConfirmed::main",
+      "moment-11-Notification-trigger::ctx-Checkout::PaymentConfirmed::main"
+    ],
+    "PaymentFailed": [
+      "moment-9-Payment-processing::ctx-Checkout::PaymentFailed::br3",
+      "moment-9-Payment-processing::ctx-Payment Declined::PaymentFailed::br4"
+    ],
+    "HoldConvertedToReservation": [
+      "moment-12-Hold-conversion::ctx-Inventory::HoldConvertedToReservation::main"
+    ],
+    "TicketsIssued": [
+      "moment-13-Ticket-issuance::ctx-Delivery::TicketsIssued::main"
+    ],
+    "MobilePassGenerated": [
+      "moment-14-Mobile-pass-generation::ctx-Delivery::MobilePassGenerated::main"
+    ],
+    "OrderConfirmationSent": [
+      "moment-15-Order-confirmation::ctx-Notifications::OrderConfirmationSent::main"
+    ],
+    "TicketDeliverySent": [
+      "moment-16-Ticket-delivery-notification::ctx-Notifications::TicketDeliverySent::main"
+    ]
+  },
+  "branchPredicates": {
+    "moment-4-Hold-risk-decision": {
+      "field": "outcome",
+      "defaultRoute": "low-risk",
+      "routes": {
+        "low-risk": "happy",
+        "high-risk": "terminal",
+        "medium-risk": "terminal"
+      }
+    },
+    "moment-9-Payment-processing": {
+      "field": "outcome",
+      "defaultRoute": "approved",
+      "routes": {
+        "approved": "happy",
+        "declined": "terminal"
+      }
+    }
+  },
+  "contextMap": {
+    "contexts": [
+      {
+        "contextId": "ctx-Catalog",
+        "name": "Catalog",
+        "classification": "Core",
+        "laneId": "catalog",
+        "aggregates": [
+          "Event",
+          "Venue",
+          "Artist"
+        ]
+      },
+      {
+        "contextId": "ctx-Inventory",
+        "name": "Inventory",
+        "classification": "Core",
+        "laneId": "inventory",
+        "aggregates": [
+          "TicketPool",
+          "SeatHold"
+        ]
+      },
+      {
+        "contextId": "ctx-AntiFraud",
+        "name": "AntiFraud",
+        "classification": "Generic",
+        "laneId": "antifraud",
+        "aggregates": [
+          "RiskAssessment",
+          "VelocityTracker"
+        ]
+      },
+      {
+        "contextId": "ctx-Checkout",
+        "name": "Checkout",
+        "classification": "Core",
+        "laneId": "checkout",
+        "aggregates": [
+          "Cart",
+          "Payment"
+        ]
+      },
+      {
+        "contextId": "ctx-Delivery",
+        "name": "Delivery",
+        "classification": "Supporting",
+        "laneId": "delivery",
+        "aggregates": [
+          "DigitalTicket",
+          "TicketTransfer"
+        ]
+      },
+      {
+        "contextId": "ctx-Notifications",
+        "name": "Notifications",
+        "classification": "Generic",
+        "laneId": "notifications",
+        "aggregates": [
+          "NotificationDispatch",
+          "CommunicationPreference"
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "sourceContextId": "ctx-Catalog",
+        "targetContextId": "ctx-Inventory",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-0"
+        ]
+      },
+      {
+        "sourceContextId": "ctx-Inventory",
+        "targetContextId": "ctx-Checkout",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-2"
+        ]
+      },
+      {
+        "sourceContextId": "ctx-Checkout",
+        "targetContextId": "ctx-AntiFraud",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-10"
+        ]
+      },
+      {
+        "sourceContextId": "ctx-Checkout",
+        "targetContextId": "ctx-Inventory",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-13"
+        ]
+      },
+      {
+        "sourceContextId": "ctx-Checkout",
+        "targetContextId": "ctx-Delivery",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-15"
+        ]
+      },
+      {
+        "sourceContextId": "ctx-Checkout",
+        "targetContextId": "ctx-Notifications",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-16"
+        ]
+      },
+      {
+        "sourceContextId": "ctx-Delivery",
+        "targetContextId": "ctx-Notifications",
+        "relationshipType": "CustomerSupplier",
+        "contractIds": [
+          "conn-19"
+        ]
+      }
+    ]
+  }
+}

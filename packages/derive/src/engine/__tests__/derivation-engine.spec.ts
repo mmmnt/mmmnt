@@ -108,7 +108,7 @@ function makeFlow(
   moments: MomentDefinition[],
   connections: ConnectionDefinition[],
 ): FlowDefinition {
-  return { id, name, moments, connections };
+  return { id, name, lanes: [], moments, connections };
 }
 
 function makeIR(overrides: Partial<IntermediateRepresentation> = {}): IntermediateRepresentation {
@@ -601,7 +601,9 @@ describe('DerivationEngine', () => {
         (tc) => tc.momentId === 'saga-OrderFulfillment-Pending-to-Processing',
       );
       expect(transCase1).toBeDefined();
-      expect(transCase1!.assertions[0].schemaContract.eventType).toBe('OrderFulfillment.Processing');
+      expect(transCase1!.assertions[0].schemaContract.eventType).toBe(
+        'OrderFulfillment.Processing',
+      );
 
       const transCase2 = sagaCases.find(
         (tc) => tc.momentId === 'saga-OrderFulfillment-Processing-to-Completed',

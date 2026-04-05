@@ -123,6 +123,7 @@ function makeFlow(overrides: Partial<FlowDefinition> = {}): FlowDefinition {
   return {
     id: 'flow-1',
     name: 'Order Fulfillment Flow',
+    lanes: [],
     moments: [makeMoment()],
     connections: [makeCrossingConnection()],
     ...overrides,
@@ -230,6 +231,7 @@ function buildMultiContextIR(): IntermediateRepresentation {
   const flowSaleToInventory: FlowDefinition = {
     id: 'flow-sale-inventory',
     name: 'Sale To Inventory',
+    lanes: [],
     moments: [
       makeMoment({
         id: 'moment-sale',
@@ -250,6 +252,7 @@ function buildMultiContextIR(): IntermediateRepresentation {
   const flowInventoryToFulfillment: FlowDefinition = {
     id: 'flow-inventory-fulfillment',
     name: 'Inventory To Fulfillment',
+    lanes: [],
     moments: [
       makeMoment({
         id: 'moment-inventory',

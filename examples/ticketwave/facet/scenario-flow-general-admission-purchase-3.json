@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-3",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure Path: general-admission-purchase [high-risk, declined]",
   "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
   "given": "A event discovery scenario is initiated",
@@ -51,7 +53,9 @@
       "eventType": "EventPublished",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -66,7 +70,9 @@
       "eventType": "SimProcess.InitializePool",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -85,7 +91,9 @@
       "eventType": "PoolInitialized",
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -106,7 +114,9 @@
       "eventType": "SimProcess.RequestHold",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -126,7 +136,9 @@
       "eventType": "SeatsHeld",
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -148,7 +160,9 @@
       "eventType": "SimSaga.SeatHoldLifecycle.Held",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-006"],
+      "causationEventIds": [
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -163,7 +177,10 @@
       "eventType": "SimProcess.EvaluateHoldRisk",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
@@ -184,7 +201,10 @@
       "eventType": "HoldRiskEvaluated",
       "productSource": "antifraud",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002", "evt-006"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
@@ -205,7 +225,13 @@
       "eventType": "SimProcess.BlockCustomer",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
@@ -222,7 +248,13 @@
       "eventType": "CustomerBlocked",
       "productSource": "antifraud",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:09.000Z",
       "version": 1,
@@ -241,7 +273,13 @@
       "eventType": "CustomerBlocked",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-3",
-      "causationEventIds": ["evt-002", "evt-006", "evt-008", "evt-008", "evt-008"],
+      "causationEventIds": [
+        "evt-002",
+        "evt-006",
+        "evt-008",
+        "evt-008",
+        "evt-008"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-3",
       "timestamp": "2026-01-01T10:00:10.000Z",
       "version": 1,

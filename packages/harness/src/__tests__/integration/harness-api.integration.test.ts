@@ -69,6 +69,7 @@ const sampleIR: IntermediateRepresentation = {
     {
       id: 'flow-order-to-ship',
       name: 'Order to Ship',
+      lanes: [],
       moments: [
         {
           id: 'moment-place',

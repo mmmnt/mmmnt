@@ -40,7 +40,12 @@ function makeAggregate(overrides: Partial<AggregateDefinition> = {}): AggregateD
   return {
     id: overrides.id ?? 'agg-1',
     name: overrides.name ?? 'OrderAggregate',
-    identityField: overrides.identityField ?? { name: 'id', type: 'UUID', isArray: false, required: true },
+    identityField: overrides.identityField ?? {
+      name: 'id',
+      type: 'UUID',
+      isArray: false,
+      required: true,
+    },
     commands: overrides.commands ?? [],
     events: overrides.events ?? [],
     valueObjects: overrides.valueObjects ?? [],
@@ -88,7 +93,7 @@ function makeFlow(
   moments: MomentDefinition[],
   connections: ConnectionDefinition[] = [],
 ): FlowDefinition {
-  return { id, name, moments, connections };
+  return { id, name, lanes: [], moments, connections };
 }
 
 // ---------------------------------------------------------------------------
@@ -100,10 +105,20 @@ describe('SimulationScenarioGenerator', () => {
     it('generates a basic happy path scenario', () => {
       const ctx = makeContext('ctx-1', 'Ordering', {
         commands: [
-          { id: 'cmd-1', name: 'PlaceOrder', inputs: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }], preconditions: [], emitsEvent: 'OrderPlaced' },
+          {
+            id: 'cmd-1',
+            name: 'PlaceOrder',
+            inputs: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }],
+            preconditions: [],
+            emitsEvent: 'OrderPlaced',
+          },
         ],
         events: [
-          { id: 'evt-1', name: 'OrderPlaced', fields: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }] },
+          {
+            id: 'evt-1',
+            name: 'OrderPlaced',
+            fields: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }],
+          },
         ],
       });
       const moment1 = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder', 'command');
@@ -142,7 +157,13 @@ describe('SimulationScenarioGenerator', () => {
     it('resolves command events with SimProcess prefix', () => {
       const agg = makeAggregate({
         commands: [
-          { id: 'cmd-1', name: 'PlaceOrder', inputs: [], preconditions: [], emitsEvent: 'OrderPlaced' },
+          {
+            id: 'cmd-1',
+            name: 'PlaceOrder',
+            inputs: [],
+            preconditions: [],
+            emitsEvent: 'OrderPlaced',
+          },
         ],
       });
       const ctx = makeContext('ctx-1', 'Ordering', { aggregates: [agg] });
@@ -157,9 +178,7 @@ describe('SimulationScenarioGenerator', () => {
 
     it('resolves event nodes with plain event name', () => {
       const ctx = makeContext('ctx-1', 'Ordering', {
-        events: [
-          { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-        ],
+        events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
       });
       const moment = makeMoment('fr1', 'Notified', 'ctx-1', 'OrderPlaced', 'event');
       const flow = makeFlow('f1', 'Flow', [moment]);
@@ -278,6 +297,7 @@ describe('SimulationScenarioGenerator', () => {
         id: 'f1',
         name: 'Flow',
         description: 'Custom description',
+        lanes: [],
         moments: [moment],
         connections: [],
       };
@@ -309,8 +329,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [{ contextId: 'ctx-1', nodeName: 'Evaluate', nodeKind: 'command' }],
         branches: [
-          { condition: 'approved', entries: [{ contextId: 'ctx-1', nodeName: 'Approve', nodeKind: 'command' }] },
-          { condition: 'rejected', entries: [{ contextId: 'ctx-1', nodeName: 'Reject', nodeKind: 'command' }] },
+          {
+            condition: 'approved',
+            entries: [{ contextId: 'ctx-1', nodeName: 'Approve', nodeKind: 'command' }],
+          },
+          {
+            condition: 'rejected',
+            entries: [{ contextId: 'ctx-1', nodeName: 'Reject', nodeKind: 'command' }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Flow', [branchMoment]);
@@ -330,8 +356,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Step1',
         contextEntries: [],
         branches: [
-          { condition: 'A', entries: [{ contextId: 'ctx-1', nodeName: 'CmdA', nodeKind: 'command' }] },
-          { condition: 'B', entries: [{ contextId: 'ctx-1', nodeName: 'CmdB', nodeKind: 'command' }] },
+          {
+            condition: 'A',
+            entries: [{ contextId: 'ctx-1', nodeName: 'CmdA', nodeKind: 'command' }],
+          },
+          {
+            condition: 'B',
+            entries: [{ contextId: 'ctx-1', nodeName: 'CmdB', nodeKind: 'command' }],
+          },
         ],
       };
       const branch2: MomentDefinition = {
@@ -339,8 +371,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Step2',
         contextEntries: [],
         branches: [
-          { condition: 'X', entries: [{ contextId: 'ctx-1', nodeName: 'CmdX', nodeKind: 'command' }] },
-          { condition: 'Y', entries: [{ contextId: 'ctx-1', nodeName: 'CmdY', nodeKind: 'command' }] },
+          {
+            condition: 'X',
+            entries: [{ contextId: 'ctx-1', nodeName: 'CmdX', nodeKind: 'command' }],
+          },
+          {
+            condition: 'Y',
+            entries: [{ contextId: 'ctx-1', nodeName: 'CmdY', nodeKind: 'command' }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Flow', [branch1, branch2]);
@@ -359,8 +397,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [],
         branches: [
-          { condition: 'yes', entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }] },
-          { condition: 'no', entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }] },
+          {
+            condition: 'yes',
+            entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }],
+          },
+          {
+            condition: 'no',
+            entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Flow', [branchMoment]);
@@ -392,8 +436,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [],
         branches: [
-          { condition: 'approved', entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }] },
-          { condition: 'rejected', entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }] },
+          {
+            condition: 'approved',
+            entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }],
+          },
+          {
+            condition: 'rejected',
+            entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Order Flow', [branchMoment]);
@@ -413,8 +463,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [],
         branches: [
-          { condition: 'approved', entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }] },
-          { condition: 'rejected', entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command', terminal: true }] },
+          {
+            condition: 'approved',
+            entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }],
+          },
+          {
+            condition: 'rejected',
+            entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command', terminal: true }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Order Flow', [branchMoment]);
@@ -434,8 +490,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [],
         branches: [
-          { condition: 'path-A', entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }] },
-          { condition: 'path-B', entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }] },
+          {
+            condition: 'path-A',
+            entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }],
+          },
+          {
+            condition: 'path-B',
+            entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Order Flow', [branchMoment]);
@@ -452,9 +514,7 @@ describe('SimulationScenarioGenerator', () => {
   describe('saga transition injection', () => {
     it('injects saga transition events when trigger event matches', () => {
       const ctx = makeContext('ctx-1', 'Ordering', {
-        events: [
-          { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-        ],
+        events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
         sagas: [
           {
             id: 'saga-1',
@@ -547,9 +607,7 @@ describe('SimulationScenarioGenerator', () => {
 
     it('skips event nodes when deriving negative scenarios', () => {
       const ctx = makeContext('ctx-1', 'Ordering', {
-        events: [
-          { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-        ],
+        events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
       });
       const moment = makeMoment('fr1', 'Step', 'ctx-1', 'OrderPlaced', 'event');
       const flow = makeFlow('f1', 'Flow', [moment]);
@@ -569,8 +627,14 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [],
         branches: [
-          { condition: 'approved', entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }] },
-          { condition: 'rejected', entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }] },
+          {
+            condition: 'approved',
+            entries: [{ contextId: 'ctx-1', nodeName: 'A', nodeKind: 'command' }],
+          },
+          {
+            condition: 'rejected',
+            entries: [{ contextId: 'ctx-1', nodeName: 'B', nodeKind: 'command' }],
+          },
         ],
       };
       const flow = makeFlow('f1', 'Flow', [branchMoment]);
@@ -592,7 +656,12 @@ describe('SimulationScenarioGenerator', () => {
         name: 'Decision',
         contextEntries: [],
         branches: [
-          { condition: 'abort', entries: [{ contextId: 'ctx-1', nodeName: 'Abort', nodeKind: 'command', terminal: true }] },
+          {
+            condition: 'abort',
+            entries: [
+              { contextId: 'ctx-1', nodeName: 'Abort', nodeKind: 'command', terminal: true },
+            ],
+          },
         ],
       };
       const afterMoment = makeMoment('fr2', 'After', 'ctx-1', 'Continue');

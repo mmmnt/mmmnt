@@ -1,11 +1,17 @@
 {
   "scenarioId": "scenario-flow-general-admission-purchase-neg-InitializePool-poolNotExists",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Pool must not already exist for this event-tier-section combination not met",
   "description": "Negative scenario: Pool must not already exist for this event-tier-section combination precondition violation at InitializePool",
   "given": "A event discovery scenario is initiated",
   "when": "InitializePool is invoked without satisfying poolNotExists",
   "then": "The command InitializePool is rejected",
-  "expectedPath": ["n00-PublishEvent", "n00-EventPublished", "n01-InitializePool"],
+  "expectedPath": [
+    "n00-PublishEvent",
+    "n00-EventPublished",
+    "n01-InitializePool"
+  ],
   "activeBranches": [],
   "events": [
     {
@@ -28,7 +34,9 @@
       "eventType": "EventPublished",
       "productSource": "catalog",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -43,7 +51,9 @@
       "eventType": "SimProcess.InitializePool",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -62,7 +72,9 @@
       "eventType": "SimFailure.InitializePool.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": ["evt-003"],
+      "causationEventIds": [
+        "evt-003"
+      ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,

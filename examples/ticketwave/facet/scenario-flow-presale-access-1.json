@@ -1,5 +1,7 @@
 {
   "scenarioId": "scenario-flow-presale-access-1",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
   "scenarioLabel": "Failure Path: presale-access [invalid]",
   "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
   "given": "A presale window opens scenario is initiated",
@@ -42,7 +44,9 @@
       "eventType": "PresaleWindowOpened",
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access-1",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,
@@ -57,7 +61,9 @@
       "eventType": "SimProcess.RedeemAccessCode",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-1",
-      "causationEventIds": ["evt-002"],
+      "causationEventIds": [
+        "evt-002"
+      ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
@@ -75,7 +81,9 @@
       "eventType": "AccessCodeRedeemed",
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access-1",
-      "causationEventIds": ["evt-003"],
+      "causationEventIds": [
+        "evt-003"
+      ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:03.000Z",
       "version": 1,
@@ -94,7 +102,9 @@
       "eventType": "SimProcess.InvalidateAccessCode",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-1",
-      "causationEventIds": ["evt-004"],
+      "causationEventIds": [
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:04.000Z",
       "version": 1,
@@ -110,7 +120,9 @@
       "eventType": "AccessCodeInvalidated",
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access-1",
-      "causationEventIds": ["evt-004"],
+      "causationEventIds": [
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:05.000Z",
       "version": 1,
@@ -126,7 +138,9 @@
       "eventType": "AccessCodeInvalidated",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-1",
-      "causationEventIds": ["evt-004"],
+      "causationEventIds": [
+        "evt-004"
+      ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,

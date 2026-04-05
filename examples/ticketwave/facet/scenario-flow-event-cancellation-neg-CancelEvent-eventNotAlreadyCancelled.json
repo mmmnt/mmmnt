@@ -1,11 +1,15 @@
 {
   "scenarioId": "scenario-flow-event-cancellation-neg-CancelEvent-eventNotAlreadyCancelled",
+  "flowId": "flow-event-cancellation",
+  "flowName": "event-cancellation",
   "scenarioLabel": "Failure: Event must not already be cancelled not met",
   "description": "Negative scenario: Event must not already be cancelled precondition violation at CancelEvent",
   "given": "A event cancellation scenario is initiated",
   "when": "CancelEvent is invoked without satisfying eventNotAlreadyCancelled",
   "then": "The command CancelEvent is rejected",
-  "expectedPath": ["n00-CancelEvent"],
+  "expectedPath": [
+    "n00-CancelEvent"
+  ],
   "activeBranches": [],
   "events": [
     {
@@ -29,7 +33,9 @@
       "eventType": "SimFailure.CancelEvent.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
-      "causationEventIds": ["evt-001"],
+      "causationEventIds": [
+        "evt-001"
+      ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:01.000Z",
       "version": 1,

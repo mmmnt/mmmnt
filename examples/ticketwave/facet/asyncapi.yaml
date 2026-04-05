@@ -1,0 +1,195 @@
+asyncapi: '3.0.0'
+info:
+  title: 'Untitled'
+  version: '0.0.0'
+  description: ''
+
+channels:
+  event-published:
+    address: 'event-published'
+    messages:
+      EventPublished:
+        $ref: '#/components/messages/EventPublished'
+    description: 'Published by Catalog, consumed by Inventory'
+  seats-held:
+    address: 'seats-held'
+    messages:
+      SeatsHeld:
+        $ref: '#/components/messages/SeatsHeld'
+    description: 'Published by Inventory, consumed by Checkout'
+  payment-initiated:
+    address: 'payment-initiated'
+    messages:
+      PaymentInitiated:
+        $ref: '#/components/messages/PaymentInitiated'
+    description: 'Published by Checkout, consumed by AntiFraud'
+  payment-confirmed:
+    address: 'payment-confirmed'
+    messages:
+      PaymentConfirmed:
+        $ref: '#/components/messages/PaymentConfirmed'
+    description: 'Published by Checkout, consumed by Inventory'
+  payment-confirmed:
+    address: 'payment-confirmed'
+    messages:
+      PaymentConfirmed:
+        $ref: '#/components/messages/PaymentConfirmed'
+    description: 'Published by Checkout, consumed by Delivery'
+  payment-confirmed:
+    address: 'payment-confirmed'
+    messages:
+      PaymentConfirmed:
+        $ref: '#/components/messages/PaymentConfirmed'
+    description: 'Published by Checkout, consumed by Notifications'
+  tickets-issued:
+    address: 'tickets-issued'
+    messages:
+      TicketsIssued:
+        $ref: '#/components/messages/TicketsIssued'
+    description: 'Published by Delivery, consumed by Notifications'
+  transfer-initiated:
+    address: 'transfer-initiated'
+    messages:
+      TransferInitiated:
+        $ref: '#/components/messages/TransferInitiated'
+    description: 'Published by Delivery, consumed by Notifications'
+  event-cancelled:
+    address: 'event-cancelled'
+    messages:
+      EventCancelled:
+        $ref: '#/components/messages/EventCancelled'
+    description: 'Published by Catalog, consumed by Inventory'
+  event-cancelled:
+    address: 'event-cancelled'
+    messages:
+      EventCancelled:
+        $ref: '#/components/messages/EventCancelled'
+    description: 'Published by Catalog, consumed by Checkout'
+  event-cancelled:
+    address: 'event-cancelled'
+    messages:
+      EventCancelled:
+        $ref: '#/components/messages/EventCancelled'
+    description: 'Published by Catalog, consumed by Delivery'
+  event-cancelled:
+    address: 'event-cancelled'
+    messages:
+      EventCancelled:
+        $ref: '#/components/messages/EventCancelled'
+    description: 'Published by Catalog, consumed by Notifications'
+
+components:
+  messages:
+    EventPublished:
+      name: 'EventPublished'
+      payload:
+        type: object
+        properties:
+          eventId:
+            type: 'string'
+          publishedAt:
+            type: 'string'
+    SeatsHeld:
+      name: 'SeatsHeld'
+      payload:
+        type: object
+        properties:
+          holdId:
+            type: 'string'
+          eventId:
+            type: 'string'
+          tierId:
+            type: 'string'
+          sectionId:
+            type: 'string'
+          quantity:
+            type: 'number'
+          customerId:
+            type: 'string'
+          sessionId:
+            type: 'string'
+          expiresAt:
+            type: 'string'
+          heldAt:
+            type: 'string'
+    PaymentInitiated:
+      name: 'PaymentInitiated'
+      payload:
+        type: object
+        properties:
+          paymentId:
+            type: 'string'
+          cartId:
+            type: 'string'
+          customerId:
+            type: 'string'
+          paymentMethod:
+            type: 'string'
+          subtotal:
+            type: 'string'
+          totalFees:
+            type: 'string'
+          totalAmount:
+            type: 'string'
+          initiatedAt:
+            type: 'string'
+    PaymentConfirmed:
+      name: 'PaymentConfirmed'
+      payload:
+        type: object
+        properties:
+          paymentId:
+            type: 'string'
+          gatewayTransactionId:
+            type: 'string'
+          confirmedAt:
+            type: 'string'
+    TicketsIssued:
+      name: 'TicketsIssued'
+      payload:
+        type: object
+        properties:
+          orderId:
+            type: 'string'
+          customerId:
+            type: 'string'
+          eventId:
+            type: 'string'
+          holdId:
+            type: 'string'
+          tickets:
+            type: 'string'
+          barcodes:
+            type: 'string'
+          issuedAt:
+            type: 'string'
+    TransferInitiated:
+      name: 'TransferInitiated'
+      payload:
+        type: object
+        properties:
+          transferId:
+            type: 'string'
+          ticketId:
+            type: 'string'
+          fromCustomerId:
+            type: 'string'
+          toEmail:
+            type: 'string'
+          toName:
+            type: 'string'
+          expiresAt:
+            type: 'string'
+          initiatedAt:
+            type: 'string'
+    EventCancelled:
+      name: 'EventCancelled'
+      payload:
+        type: object
+        properties:
+          eventId:
+            type: 'string'
+          reason:
+            type: 'string'
+          cancelledAt:
+            type: 'string'

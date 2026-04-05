@@ -22,6 +22,7 @@ function makeIR(overrides: Partial<IntermediateRepresentation> = {}): Intermedia
       {
         id: 'flow-1',
         name: 'Place Order',
+        lanes: [],
         moments: [
           {
             id: 'moment-1',
@@ -101,6 +102,7 @@ describe('FlowTimelineRenderer', () => {
         {
           id: 'flow-1',
           name: 'Full Order',
+          lanes: [],
           moments: [
             {
               id: 'moment-1',
@@ -179,6 +181,7 @@ describe('FlowTimelineRenderer', () => {
         {
           id: 'flow-1',
           name: 'Order to Ship',
+          lanes: [],
           moments: [
             {
               id: 'moment-1',
@@ -291,6 +294,7 @@ describe('FlowTimelineRenderer', () => {
         {
           id: 'flow-1',
           name: 'Test',
+          lanes: [],
           moments: [
             {
               id: 'moment-1',

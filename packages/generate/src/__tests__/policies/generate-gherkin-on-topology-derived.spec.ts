@@ -50,6 +50,7 @@ function makeFlow(id: string, name: string) {
   return {
     id,
     name,
+    lanes: [],
     moments: [
       {
         id: 'moment-0',

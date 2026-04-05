@@ -25,6 +25,8 @@ import type {
 
 export interface SimulationScenario {
   readonly scenarioId: string;
+  readonly flowId: string;
+  readonly flowName: string;
   readonly scenarioLabel: string;
   readonly description: string;
   readonly given: string;
@@ -136,6 +138,8 @@ export function generateSimulationScenario(
 
   return {
     scenarioId: opts.scenarioId,
+    flowId: flow.id,
+    flowName: flow.name,
     scenarioLabel: label,
     description: flow.description ?? `Full lifecycle flow: ${flow.name}`,
     given: `A ${(flow.moments[0]?.name ?? '').toLowerCase()} scenario is initiated`,
@@ -210,9 +214,7 @@ function resolveScenarioLabel(
     return `Failure Path: ${flow.name} [${terminalConditions.join(', ')}]`;
   }
 
-  const selectedConditions = branchMoments
-    .map((m) => branchSelections[m.name])
-    .filter(Boolean);
+  const selectedConditions = branchMoments.map((m) => branchSelections[m.name]).filter(Boolean);
   return `Variant: ${flow.name} [${selectedConditions.join(', ')}]`;
 }
 
@@ -554,7 +556,14 @@ function injectSagaTransitions(
 
     for (const saga of matchingSagas) {
       eventCounter++;
-      const sagaEvent = buildSagaEvent(saga, sagaProgress, event, eventCounter, sessionId, correlationId);
+      const sagaEvent = buildSagaEvent(
+        saga,
+        sagaProgress,
+        event,
+        eventCounter,
+        sessionId,
+        correlationId,
+      );
       if (sagaEvent) result.push(sagaEvent);
     }
   }
@@ -626,9 +635,7 @@ export function deriveNegativeScenarios(
 
     const preconditions = findPreconditions(node, contextMap);
     for (const pre of preconditions) {
-      scenarios.push(
-        buildNegativeScenario(ir, flow, nodes, i, pre, contextMap, opts),
-      );
+      scenarios.push(buildNegativeScenario(ir, flow, nodes, i, pre, contextMap, opts));
     }
   }
 
@@ -672,6 +679,8 @@ function buildNegativeScenario(
 
   return {
     scenarioId: `${opts.scenarioId}-neg-${failNode.nodeName}-${precondition.name}`,
+    flowId: flow.id,
+    flowName: flow.name,
     scenarioLabel: `Failure: ${precondition.description} not met`,
     description: `Negative scenario: ${precondition.description} precondition violation at ${failNode.nodeName}`,
     given: `A ${(flow.moments[0]?.name ?? '').toLowerCase()} scenario is initiated`,
@@ -698,9 +707,7 @@ function buildFailureEvent(
     sessionId: opts.sessionId,
     causationEventIds: lastEvent ? [lastEvent.eventId] : [],
     correlationId: opts.correlationId,
-    timestamp: new Date(
-      opts.baseTime.getTime() + precedingEvents.length * 1000,
-    ).toISOString(),
+    timestamp: new Date(opts.baseTime.getTime() + precedingEvents.length * 1000).toISOString(),
     version: 1,
     payload: {
       nodeId: failNode.nodeId,

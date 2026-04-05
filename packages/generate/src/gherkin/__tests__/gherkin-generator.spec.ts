@@ -140,6 +140,7 @@ function makeBasicIR(): IntermediateRepresentation {
         id: 'flow-order',
         name: 'order-placed',
         description: 'Order triggers fulfillment',
+        lanes: [],
         moments: [
           {
             id: 'moment-0-Order-submission',
@@ -351,6 +352,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-deals',
           name: 'deal-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -395,9 +397,7 @@ describe('renderFeatureFromIr', () => {
               name: 'Payment',
               identityField: { name: 'paymentId', type: 'UUID', isArray: false, required: true },
               commands: [],
-              events: [
-                { id: 'evt-PaymentInitiated', name: 'PaymentInitiated', fields: [] },
-              ],
+              events: [{ id: 'evt-PaymentInitiated', name: 'PaymentInitiated', fields: [] }],
               valueObjects: [],
               invariants: [],
             },
@@ -424,12 +424,17 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-pay',
           name: 'payment-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
               name: 'Payment step',
               contextEntries: [
-                { contextId: 'ctx-Payments', nodeName: 'PaymentInitiated', nodeKind: 'event' as const },
+                {
+                  contextId: 'ctx-Payments',
+                  nodeName: 'PaymentInitiated',
+                  nodeKind: 'event' as const,
+                },
               ],
             },
           ],
@@ -468,9 +473,7 @@ describe('renderFeatureFromIr', () => {
                   emitsEvent: 'LoggedIn',
                 },
               ],
-              events: [
-                { id: 'evt-LoggedIn', name: 'LoggedIn', fields: [] },
-              ],
+              events: [{ id: 'evt-LoggedIn', name: 'LoggedIn', fields: [] }],
               valueObjects: [],
               invariants: [],
             },
@@ -496,6 +499,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-auth',
           name: 'auth-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -514,7 +518,12 @@ describe('renderFeatureFromIr', () => {
                 {
                   condition: 'invalid credentials',
                   entries: [
-                    { contextId: 'ctx-Auth', nodeName: 'Rejected', nodeKind: 'event' as const, terminal: true },
+                    {
+                      contextId: 'ctx-Auth',
+                      nodeName: 'Rejected',
+                      nodeKind: 'event' as const,
+                      terminal: true,
+                    },
                   ],
                 },
               ],
@@ -558,6 +567,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-proc',
           name: 'processing-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -575,7 +585,12 @@ describe('renderFeatureFromIr', () => {
                 {
                   condition: 'failed',
                   entries: [
-                    { contextId: 'ctx-Proc', nodeName: 'FailedEvent', nodeKind: 'event' as const, terminal: true },
+                    {
+                      contextId: 'ctx-Proc',
+                      nodeName: 'FailedEvent',
+                      nodeKind: 'event' as const,
+                      terminal: true,
+                    },
                   ],
                 },
               ],
@@ -631,6 +646,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-ord',
           name: 'order-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -642,13 +658,22 @@ describe('renderFeatureFromIr', () => {
                 {
                   condition: 'valid',
                   entries: [
-                    { contextId: 'ctx-Order', nodeName: 'OrderReceived', nodeKind: 'event' as const },
+                    {
+                      contextId: 'ctx-Order',
+                      nodeName: 'OrderReceived',
+                      nodeKind: 'event' as const,
+                    },
                   ],
                 },
                 {
                   condition: 'invalid',
                   entries: [
-                    { contextId: 'ctx-Order', nodeName: 'OrderRejected', nodeKind: 'event' as const, terminal: true },
+                    {
+                      contextId: 'ctx-Order',
+                      nodeName: 'OrderRejected',
+                      nodeKind: 'event' as const,
+                      terminal: true,
+                    },
                   ],
                 },
               ],
@@ -718,6 +743,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-billing',
           name: 'billing-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -776,12 +802,17 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-ship',
           name: 'shipping-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
               name: 'Create Shipment',
               contextEntries: [
-                { contextId: 'ctx-Shipping', nodeName: 'ShipmentCreated', nodeKind: 'event' as const },
+                {
+                  contextId: 'ctx-Shipping',
+                  nodeName: 'ShipmentCreated',
+                  nodeKind: 'event' as const,
+                },
               ],
             },
           ],
@@ -842,13 +873,22 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-inv',
           name: 'inventory-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
               name: 'Adjust Stock',
               contextEntries: [
-                { contextId: 'ctx-Inventory', nodeName: 'AdjustStock', nodeKind: 'command' as const },
-                { contextId: 'ctx-Inventory', nodeName: 'StockAdjusted', nodeKind: 'event' as const },
+                {
+                  contextId: 'ctx-Inventory',
+                  nodeName: 'AdjustStock',
+                  nodeKind: 'command' as const,
+                },
+                {
+                  contextId: 'ctx-Inventory',
+                  nodeName: 'StockAdjusted',
+                  nodeKind: 'event' as const,
+                },
               ],
             },
           ],
@@ -882,19 +922,30 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-notify',
           name: 'notify-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
               name: 'Send Notification',
               contextEntries: [
-                { contextId: 'ctx-Notify', nodeName: 'EmailSent', nodeKind: 'event' as const, optional: true },
+                {
+                  contextId: 'ctx-Notify',
+                  nodeName: 'EmailSent',
+                  nodeKind: 'event' as const,
+                  optional: true,
+                },
               ],
             },
             {
               id: 'moment-1',
               name: 'End Flow',
               contextEntries: [
-                { contextId: 'ctx-Notify', nodeName: 'FlowEnded', nodeKind: 'event' as const, terminal: true },
+                {
+                  contextId: 'ctx-Notify',
+                  nodeName: 'FlowEnded',
+                  nodeKind: 'event' as const,
+                  terminal: true,
+                },
               ],
             },
           ],
@@ -942,6 +993,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-multi',
           name: 'multi-ctx-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -950,15 +1002,11 @@ describe('renderFeatureFromIr', () => {
               branches: [
                 {
                   condition: 'route-A',
-                  entries: [
-                    { contextId: 'ctx-A', nodeName: 'EventA', nodeKind: 'event' as const },
-                  ],
+                  entries: [{ contextId: 'ctx-A', nodeName: 'EventA', nodeKind: 'event' as const }],
                 },
                 {
                   condition: 'route-B',
-                  entries: [
-                    { contextId: 'ctx-B', nodeName: 'EventB', nodeKind: 'event' as const },
-                  ],
+                  entries: [{ contextId: 'ctx-B', nodeName: 'EventB', nodeKind: 'event' as const }],
                 },
               ],
             },
@@ -995,6 +1043,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-plain',
           name: 'plain-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -1021,6 +1070,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-orphan',
           name: 'orphan-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
@@ -1062,6 +1112,7 @@ describe('renderFeatureFromIr', () => {
         {
           id: 'flow-core',
           name: 'core-flow',
+          lanes: [],
           moments: [
             {
               id: 'moment-0',
