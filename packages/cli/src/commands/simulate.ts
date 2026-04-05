@@ -5,7 +5,7 @@
  * expected paths, and branch selections for each flow in the spec.
  *
  * --all: generate all branch combinations + negative (precondition) scenarios
- * --out-dir <path>: write one file per scenario + manifest.json
+ * --out-dir <path>: write per-flow topology + per-scenario files + manifest.json
  * --json: output to stdout as JSON (single file, all scenarios)
  * --flow <name>: filter to a specific flow
  */
@@ -14,12 +14,13 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
+import type { IntermediateRepresentation, FlowDefinition, Diagnostic } from '@mmmnt/core';
 import {
   generateSimulationScenario,
   generateAllScenarios,
   deriveNegativeScenarios,
+  TopologyEmitter,
 } from '@mmmnt/derive';
-import type { Diagnostic } from '@mmmnt/core';
 import type { SimulationScenario } from '@mmmnt/derive';
 import { updateManifestFromIr } from './update-manifest.js';
 
@@ -77,47 +78,23 @@ function formatScenarios(
   };
 }
 
-function writeScenarioFiles(
-  scenarios: readonly SimulationScenario[],
-  outDir: string,
-): SimulateCommandResult {
-  const resolvedDir = resolve(outDir);
-  mkdirSync(resolvedDir, { recursive: true });
+// ---------------------------------------------------------------------------
+// --out-dir: write topology + scenarios + manifest grouped by flow
+// ---------------------------------------------------------------------------
 
-  const manifest: ScenarioManifestEntry[] = [];
-
-  for (const scenario of scenarios) {
-    const fileName = `${scenario.scenarioId}.json`;
-    const filePath = join(resolvedDir, fileName);
-    writeFileSync(filePath, JSON.stringify(scenario, null, 2) + '\n', 'utf-8');
-
-    manifest.push({
-      scenarioId: scenario.scenarioId,
-      scenarioLabel: scenario.scenarioLabel,
-      description: scenario.description,
-      file: fileName,
-      eventCount: scenario.events.length,
-      pathLength: scenario.expectedPath.length,
-      branchCount: scenario.activeBranches.length,
-      isHappyPath: scenario.scenarioLabel.startsWith('Happy Path:'),
-      isNegative: scenario.scenarioLabel.startsWith('Failure:'),
-    });
-  }
-
-  const manifestPath = join(resolvedDir, 'manifest.json');
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
-
-  const totalEvents = scenarios.reduce((sum, s) => sum + s.events.length, 0);
-
-  return {
-    success: true,
-    message: `Wrote ${scenarios.length} scenario file(s) + manifest.json to ${resolvedDir} (${totalEvents} total events)`,
-    diagnostics: EMPTY,
-    scenarios,
-  };
+interface FlowScenarioGroup {
+  flow: FlowDefinition;
+  scenarios: SimulationScenario[];
 }
 
-interface ScenarioManifestEntry {
+interface ManifestFlow {
+  flowId: string;
+  flowName: string;
+  topology: string;
+  scenarios: ManifestScenario[];
+}
+
+interface ManifestScenario {
   scenarioId: string;
   scenarioLabel: string;
   description: string;
@@ -128,6 +105,85 @@ interface ScenarioManifestEntry {
   isHappyPath: boolean;
   isNegative: boolean;
 }
+
+function writeOutputFiles(
+  groups: FlowScenarioGroup[],
+  ir: IntermediateRepresentation,
+  outDir: string,
+): SimulateCommandResult {
+  const resolvedDir = resolve(outDir);
+  mkdirSync(resolvedDir, { recursive: true });
+
+  const topoEmitter = new TopologyEmitter();
+  const manifestFlows: ManifestFlow[] = [];
+  let totalScenarios = 0;
+  let totalEvents = 0;
+
+  for (const group of groups) {
+    const flowSlug = kebab(group.flow.name);
+
+    // Write topology for this flow
+    const topology = topoEmitter.emit(ir, group.flow);
+    const topologyFile = `topology-${flowSlug}.json`;
+    writeFileSync(
+      join(resolvedDir, topologyFile),
+      JSON.stringify(topology, null, 2) + '\n',
+      'utf-8',
+    );
+
+    // Write each scenario
+    const manifestScenarios: ManifestScenario[] = [];
+    for (const scenario of group.scenarios) {
+      const fileName = `${scenario.scenarioId}.json`;
+      writeFileSync(join(resolvedDir, fileName), JSON.stringify(scenario, null, 2) + '\n', 'utf-8');
+      totalScenarios++;
+      totalEvents += scenario.events.length;
+
+      manifestScenarios.push({
+        scenarioId: scenario.scenarioId,
+        scenarioLabel: scenario.scenarioLabel,
+        description: scenario.description,
+        file: fileName,
+        eventCount: scenario.events.length,
+        pathLength: scenario.expectedPath.length,
+        branchCount: scenario.activeBranches.length,
+        isHappyPath: scenario.scenarioLabel.startsWith('Happy Path:'),
+        isNegative: scenario.scenarioLabel.startsWith('Failure:'),
+      });
+    }
+
+    manifestFlows.push({
+      flowId: group.flow.id,
+      flowName: group.flow.name,
+      topology: topologyFile,
+      scenarios: manifestScenarios,
+    });
+  }
+
+  const manifest = { flows: manifestFlows };
+  writeFileSync(
+    join(resolvedDir, 'manifest.json'),
+    JSON.stringify(manifest, null, 2) + '\n',
+    'utf-8',
+  );
+
+  return {
+    success: true,
+    message: `Wrote ${groups.length} topology file(s), ${totalScenarios} scenario file(s), manifest.json to ${resolvedDir} (${totalEvents} total events)`,
+    diagnostics: EMPTY,
+  };
+}
+
+function kebab(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
 export async function runSimulate(argv: string[]): Promise<SimulateCommandResult> {
   const { values, positionals } = parseArgs({
@@ -176,17 +232,24 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
     return fail(`Flow '${values.flow}' not found.`);
   }
 
+  const outDir = values['out-dir'];
+
+  if (outDir) {
+    const groups: FlowScenarioGroup[] = targetFlows.map((flow) => ({
+      flow,
+      scenarios: values.all
+        ? [...generateAllScenarios(ir, flow), ...deriveNegativeScenarios(ir, flow)]
+        : [generateSimulationScenario(ir, flow)],
+    }));
+    return writeOutputFiles(groups, ir, outDir);
+  }
+
   const scenarios: SimulationScenario[] = values.all
     ? targetFlows.flatMap((flow) => [
         ...generateAllScenarios(ir, flow),
         ...deriveNegativeScenarios(ir, flow),
       ])
     : targetFlows.map((flow) => generateSimulationScenario(ir, flow));
-
-  const outDir = values['out-dir'];
-  if (outDir) {
-    return writeScenarioFiles(scenarios, outDir);
-  }
 
   return formatScenarios(scenarios, values.json === true);
 }

@@ -46,6 +46,7 @@ import type {
   PolicyDefinition,
   SagaDefinition,
   FlowDefinition,
+  LaneDefinition,
   MomentDefinition,
   MomentEntry,
   BranchDefinition,
@@ -267,10 +268,18 @@ function buildLaneContextMap(flow: FlowDeclaration): Map<string, string> {
 function transformFlow(flow: FlowDeclaration): FlowDefinition {
   const name = unquote(flow.name);
   const laneContextMap = buildLaneContextMap(flow);
+  const lanes: LaneDefinition[] = flow.lanes.map((lane) => ({
+    id: lane.id,
+    label: unquote(lane.label),
+    contextId: laneContextMap.get(lane.id) ?? lane.id,
+    classification: lane.classification?.value,
+    isBranch: lane.isBranch ?? false,
+  }));
   return {
     id: `flow-${name}`,
     name,
     description: flow.description ? unquote(flow.description) : undefined,
+    lanes,
     moments: flow.moments.map((moment, idx) => transformMoment(moment, idx, laneContextMap)),
     connections: extractConnections(flow, laneContextMap),
   };

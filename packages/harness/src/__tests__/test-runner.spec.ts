@@ -39,6 +39,7 @@ function makeIR(overrides: Partial<IntermediateRepresentation> = {}): Intermedia
       {
         id: 'flow-1',
         name: 'Place Order',
+        lanes: [],
         moments: [
           {
             id: 'moment-1',
@@ -234,6 +235,7 @@ describe('TestRunner', () => {
         {
           id: 'flow-1',
           name: 'Place Order',
+          lanes: [],
           moments: [{ id: 'moment-1', name: 'Accept', contextEntries: [] }],
           connections: [],
         },
@@ -283,6 +285,7 @@ describe('TestRunner', () => {
         {
           id: 'flow-1',
           name: 'Place Order',
+          lanes: [],
           moments: [{ id: 'moment-1', name: 'Accept', contextEntries: [] }],
           connections: [],
         },

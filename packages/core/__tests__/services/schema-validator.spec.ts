@@ -58,6 +58,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [],
             connections: [
               {
@@ -96,6 +97,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [],
             connections: [
               {
@@ -134,6 +136,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [],
             connections: [
               {
@@ -171,6 +174,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [],
             connections: [
               {
@@ -209,6 +213,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [],
             connections: [
               {
@@ -246,6 +251,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [],
             connections: [
               {
@@ -279,6 +285,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [
               makeMoment({
                 id: 'moment-0',
@@ -317,6 +324,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [
               makeMoment({
                 id: 'moment-0',
@@ -354,6 +362,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [
               makeMoment({
                 id: 'moment-0',
@@ -387,6 +396,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-1',
             name: 'Test Flow',
+            lanes: [],
             moments: [
               makeMoment({
                 id: 'moment-0',
@@ -471,6 +481,7 @@ describe('SchemaValidator', () => {
           {
             id: 'flow-order',
             name: 'Order Flow',
+            lanes: [],
             moments: [
               makeMoment({
                 id: 'moment-0',

@@ -36,7 +36,12 @@ function makeAggregate(overrides: Partial<AggregateDefinition> = {}): AggregateD
   return {
     id: overrides.id ?? 'agg-1',
     name: overrides.name ?? 'OrderAggregate',
-    identityField: overrides.identityField ?? { name: 'id', type: 'UUID', isArray: false, required: true },
+    identityField: overrides.identityField ?? {
+      name: 'id',
+      type: 'UUID',
+      isArray: false,
+      required: true,
+    },
     commands: overrides.commands ?? [],
     events: overrides.events ?? [],
     valueObjects: overrides.valueObjects ?? [],
@@ -72,11 +77,25 @@ describe('EventCatalogGenerator', () => {
   it('catalogs events from aggregates', () => {
     const agg = makeAggregate({
       events: [
-        { id: 'evt-1', name: 'OrderPlaced', fields: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }] },
-        { id: 'evt-2', name: 'OrderShipped', fields: [{ name: 'trackingId', type: 'string', isArray: false, required: true }] },
+        {
+          id: 'evt-1',
+          name: 'OrderPlaced',
+          fields: [{ name: 'orderId', type: 'UUID', isArray: false, required: true }],
+        },
+        {
+          id: 'evt-2',
+          name: 'OrderShipped',
+          fields: [{ name: 'trackingId', type: 'string', isArray: false, required: true }],
+        },
       ],
       commands: [
-        { id: 'cmd-1', name: 'PlaceOrder', inputs: [], preconditions: [], emitsEvent: 'OrderPlaced' },
+        {
+          id: 'cmd-1',
+          name: 'PlaceOrder',
+          inputs: [],
+          preconditions: [],
+          emitsEvent: 'OrderPlaced',
+        },
       ],
     });
     const ctx = makeContext('ctx-1', 'Ordering', [agg]);
@@ -92,11 +111,15 @@ describe('EventCatalogGenerator', () => {
 
   it('maps producer command correctly', () => {
     const agg = makeAggregate({
-      events: [
-        { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-      ],
+      events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
       commands: [
-        { id: 'cmd-1', name: 'PlaceOrder', inputs: [], preconditions: [], emitsEvent: 'OrderPlaced' },
+        {
+          id: 'cmd-1',
+          name: 'PlaceOrder',
+          inputs: [],
+          preconditions: [],
+          emitsEvent: 'OrderPlaced',
+        },
       ],
     });
     const ctx = makeContext('ctx-1', 'Sales', [agg]);
@@ -111,9 +134,7 @@ describe('EventCatalogGenerator', () => {
 
   it('producer command is empty string when no matching command', () => {
     const agg = makeAggregate({
-      events: [
-        { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-      ],
+      events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
       commands: [],
     });
     const ctx = makeContext('ctx-1', 'Sales', [agg]);
@@ -126,9 +147,7 @@ describe('EventCatalogGenerator', () => {
 
   it('maps consumers from flow crossings', () => {
     const agg = makeAggregate({
-      events: [
-        { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-      ],
+      events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
     });
     const ctx1 = makeContext('ctx-1', 'Sales', [agg]);
     const ctx2 = makeContext('ctx-2', 'Shipping');
@@ -146,7 +165,13 @@ describe('EventCatalogGenerator', () => {
       name: 'Place Order',
       contextEntries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Order Flow', moments: [moment], connections: [conn] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Order Flow',
+      lanes: [],
+      moments: [moment],
+      connections: [conn],
+    };
     const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
     const catalog = generateEventCatalog(ir);
@@ -164,22 +189,38 @@ describe('EventCatalogGenerator', () => {
     const ctx2 = makeContext('ctx-2', 'Shipping');
 
     const conn1: ConnectionDefinition = {
-      id: 'c1', sourceMomentId: 'fr1', targetContextId: 'ctx-2', eventId: 'evt-1',
+      id: 'c1',
+      sourceMomentId: 'fr1',
+      targetContextId: 'ctx-2',
+      eventId: 'evt-1',
       connectionType: 'crosses-to',
       schemaContract: { eventType: 'OrderPlaced', fields: [], relationshipType: 'Partnership' },
     };
     const conn2: ConnectionDefinition = {
-      id: 'c2', sourceMomentId: 'fr2', targetContextId: 'ctx-2', eventId: 'evt-1',
+      id: 'c2',
+      sourceMomentId: 'fr2',
+      targetContextId: 'ctx-2',
+      eventId: 'evt-1',
       connectionType: 'crosses-to',
       schemaContract: { eventType: 'OrderPlaced', fields: [], relationshipType: 'Partnership' },
     };
     const moment1: MomentDefinition = {
-      id: 'fr1', name: 'M1', contextEntries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
+      id: 'fr1',
+      name: 'M1',
+      contextEntries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
     };
     const moment2: MomentDefinition = {
-      id: 'fr2', name: 'M2', contextEntries: [{ contextId: 'ctx-1', nodeName: 'ConfirmOrder', nodeKind: 'command' }],
+      id: 'fr2',
+      name: 'M2',
+      contextEntries: [{ contextId: 'ctx-1', nodeName: 'ConfirmOrder', nodeKind: 'command' }],
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Flow', moments: [moment1, moment2], connections: [conn1, conn2] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Flow',
+      lanes: [],
+      moments: [moment1, moment2],
+      connections: [conn1, conn2],
+    };
     const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
     const catalog = generateEventCatalog(ir);
@@ -197,7 +238,13 @@ describe('EventCatalogGenerator', () => {
       name: 'Accept Order',
       contextEntries: [{ contextId: 'ctx-1', nodeName: 'OrderPlaced', nodeKind: 'event' }],
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Flow', moments: [moment], connections: [] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Flow',
+      lanes: [],
+      moments: [moment],
+      connections: [],
+    };
     const ir = makeIR({ contexts: [ctx], flows: [flow] });
 
     const catalog = generateEventCatalog(ir);
@@ -219,11 +266,20 @@ describe('EventCatalogGenerator', () => {
       contextEntries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
     };
     const conn: ConnectionDefinition = {
-      id: 'c1', sourceMomentId: 'fr1', targetContextId: 'ctx-2', eventId: 'evt-1',
+      id: 'c1',
+      sourceMomentId: 'fr1',
+      targetContextId: 'ctx-2',
+      eventId: 'evt-1',
       connectionType: 'crosses-to',
       schemaContract: { eventType: 'OrderPlaced', fields: [], relationshipType: 'Partnership' },
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Flow', moments: [moment], connections: [conn] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Flow',
+      lanes: [],
+      moments: [moment],
+      connections: [conn],
+    };
     const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
     const catalog = generateEventCatalog(ir);
@@ -272,7 +328,15 @@ describe('EventCatalogGenerator', () => {
     const catalog = generateEventCatalog(ir);
 
     expect(catalog.events[0].schema.fields).toHaveLength(2);
-    expect(catalog.events[0].schema.fields[0]).toEqual({ name: 'orderId', type: 'UUID', isArray: false });
-    expect(catalog.events[0].schema.fields[1]).toEqual({ name: 'items', type: 'OrderItem', isArray: true });
+    expect(catalog.events[0].schema.fields[0]).toEqual({
+      name: 'orderId',
+      type: 'UUID',
+      isArray: false,
+    });
+    expect(catalog.events[0].schema.fields[1]).toEqual({
+      name: 'items',
+      type: 'OrderItem',
+      isArray: true,
+    });
   });
 });

@@ -36,7 +36,12 @@ function makeAggregate(overrides: Partial<AggregateDefinition> = {}): AggregateD
   return {
     id: overrides.id ?? 'agg-1',
     name: overrides.name ?? 'OrderAggregate',
-    identityField: overrides.identityField ?? { name: 'id', type: 'UUID', isArray: false, required: true },
+    identityField: overrides.identityField ?? {
+      name: 'id',
+      type: 'UUID',
+      isArray: false,
+      required: true,
+    },
     commands: overrides.commands ?? [],
     events: overrides.events ?? [],
     valueObjects: overrides.valueObjects ?? [],
@@ -72,11 +77,15 @@ describe('ImpactAnalysisGenerator', () => {
   it('creates command → event nodes with triggers/dependsOn edges', () => {
     const agg = makeAggregate({
       commands: [
-        { id: 'cmd-1', name: 'PlaceOrder', inputs: [], preconditions: [], emitsEvent: 'OrderPlaced' },
+        {
+          id: 'cmd-1',
+          name: 'PlaceOrder',
+          inputs: [],
+          preconditions: [],
+          emitsEvent: 'OrderPlaced',
+        },
       ],
-      events: [
-        { id: 'evt-1', name: 'OrderPlaced', fields: [] },
-      ],
+      events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
     });
     const ctx = makeContext('ctx-1', 'Sales', { aggregates: [agg] });
     const ir = makeIR({ contexts: [ctx] });
@@ -133,7 +142,9 @@ describe('ImpactAnalysisGenerator', () => {
     expect(evtNode!.triggers).toContain('policy:Sales:AutoApprove');
 
     // The chained command should depend on the policy
-    const cmdNode = analysis.nodes.find((n) => n.type === 'command' && n.name === 'SendConfirmation');
+    const cmdNode = analysis.nodes.find(
+      (n) => n.type === 'command' && n.name === 'SendConfirmation',
+    );
     expect(cmdNode).toBeDefined();
     expect(cmdNode!.dependsOn).toContain('policy:Sales:AutoApprove');
   });
@@ -184,7 +195,13 @@ describe('ImpactAnalysisGenerator', () => {
       name: 'M1',
       contextEntries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Flow', moments: [moment], connections: [conn] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Flow',
+      lanes: [],
+      moments: [moment],
+      connections: [conn],
+    };
     const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
     const analysis = generateImpactAnalysis(ir);
@@ -211,7 +228,13 @@ describe('ImpactAnalysisGenerator', () => {
       name: 'M1',
       contextEntries: [{ contextId: 'ctx-2', nodeName: 'Ship', nodeKind: 'command' }],
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Flow', moments: [moment], connections: [conn] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Flow',
+      lanes: [],
+      moments: [moment],
+      connections: [conn],
+    };
     const ir = makeIR({ contexts: [ctx2], flows: [flow] });
 
     const analysis = generateImpactAnalysis(ir);
@@ -235,15 +258,25 @@ describe('ImpactAnalysisGenerator', () => {
     });
     const ctx2 = makeContext('ctx-2', 'Shipping');
     const conn: ConnectionDefinition = {
-      id: 'c1', sourceMomentId: 'fr1', targetContextId: 'ctx-2', eventId: 'evt-1',
+      id: 'c1',
+      sourceMomentId: 'fr1',
+      targetContextId: 'ctx-2',
+      eventId: 'evt-1',
       connectionType: 'crosses-to',
       schemaContract: { eventType: 'OrderPlaced', fields: [], relationshipType: 'Partnership' },
     };
     const moment: MomentDefinition = {
-      id: 'fr1', name: 'M1',
+      id: 'fr1',
+      name: 'M1',
       contextEntries: [{ contextId: 'ctx-1', nodeName: 'PlaceOrder', nodeKind: 'command' }],
     };
-    const flow: FlowDefinition = { id: 'f1', name: 'Flow', moments: [moment], connections: [conn] };
+    const flow: FlowDefinition = {
+      id: 'f1',
+      name: 'Flow',
+      lanes: [],
+      moments: [moment],
+      connections: [conn],
+    };
     const ir = makeIR({ contexts: [ctx1, ctx2], flows: [flow] });
 
     const analysis = generateImpactAnalysis(ir);

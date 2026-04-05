@@ -19,7 +19,7 @@ export type {
   SagaDefinition,
 } from './context-definition.js';
 
-export type { FlowDefinition } from './flow-definition.js';
+export type { FlowDefinition, LaneDefinition } from './flow-definition.js';
 
 export type { MomentDefinition, MomentEntry, BranchDefinition } from './frame-definition.js';
 
