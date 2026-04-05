@@ -435,6 +435,19 @@ describe('AstToIr', () => {
     expect(entries[2].terminal).toBe(true);
   });
 
+  it('transforms lane without classification', async () => {
+    const ir = await toIr(`
+      flow "test"
+        lane a "A"
+        moment "Step"
+          a: DoSomething
+    `);
+
+    expect(ir.flows[0].lanes).toHaveLength(1);
+    expect(ir.flows[0].lanes[0].classification).toBeUndefined();
+    expect(ir.flows[0].lanes[0].isBranch).toBe(false);
+  });
+
   it('transforms triggered-by and triggers connections', async () => {
     const ir = await toIr(`
       flow "test"
