@@ -116,7 +116,7 @@ jobs:
   xray-import:
     runs-on: ubuntu-latest
     needs: [build]
-    if: ${{ needs.build.result == 'success' }}
+    if: ${{ needs.build.result == 'success' && github.actor != 'dependabot[bot]' }}
     steps:
       - name: Checkout (for shared scripts)
         uses: actions/checkout@v4
@@ -802,6 +802,7 @@ jobs:
           args: --license
 
       - name: Gitleaks
+        if: github.actor != 'dependabot[bot]'
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -810,7 +811,7 @@ jobs:
 
   close-test-issues:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'dependabot[bot]'
     needs: [build]
     env:
       JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
@@ -946,6 +947,11 @@ jobs:
           BRANCH="${{ github.head_ref || github.ref_name }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           COMMIT_MSG=$(echo "${{ github.event.head_commit.message || github.event.pull_request.title }}" | head -c 80)
+
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::notice::Discord webhook URL not available — skipping notification."
+            exit 0
+          fi
 
           curl -s -H "Content-Type: application/json" -d "{
             \"embeds\": [{
