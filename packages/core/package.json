@@ -50,7 +50,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.5.2",
     "langium": "3.5.0",
     "langium-cli": "3.5.2"
   },
