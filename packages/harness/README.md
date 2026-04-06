@@ -56,6 +56,8 @@ for (const result of results) {
 - **Aggregate factory support** -- supply your own aggregate factory functions to replay events against real implementations rather than stubs.
 - **Severity-graded violations** -- contract violations are graded by severity (error, warning, info) so teams can prioritize fixes.
 - **Source location tracking** -- violations include the source location in your implementation code for quick navigation.
+- **Structural saga validation (TE-03)** -- dispatches on `assertionType: 'saga'` to validate that the trigger event exists in the IR, that states are adjacent in the saga chain, and that both the compensation string and timeout are defined.
+- **Structural policy chain validation (TE-04)** -- dispatches on `assertionType: 'policy-chain'` to validate that the trigger event exists in the IR and that the `chainsTo` command exists in the IR.
 - **CI/CD integration** -- structured output and standard exit codes make the harness suitable for automated pipeline gates.
 
 ## API Reference
@@ -64,7 +66,7 @@ for (const result of results) {
 
 | Export | Description |
 |--------|-------------|
-| `TestRunner` | Orchestrates test suite execution against implementations. Manages setup steps, runs assertions, and aggregates results into `TestRunResult`. |
+| `TestRunner` | Orchestrates test suite execution against implementations. Dispatches on `assertionType` from each test case's assertions, routing to separate evaluation paths for `'saga'`, `'policy-chain'`, and `'payload'` assertion types. Manages setup steps, runs assertions, and aggregates results into `TestRunResult`. |
 
 ### Event Replay
 

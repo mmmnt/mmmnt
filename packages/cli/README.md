@@ -89,12 +89,13 @@ moment watch specs/
 | Command | Description |
 |---------|-------------|
 | `moment derive <file>` | Derive test topologies, simulation scenarios, event catalogs, impact analysis, and saga state machines from a specification. |
-| `moment simulate <file>` | Run simulation scenarios against the specification and report event flow traces. |
+| `moment simulate <file>` | Run simulation scenarios against the specification and report event flow traces. Supports `--all` to generate all branch combinations plus negative (precondition violation) scenarios, and `--out-dir <path>` to write per-flow topology files, individual scenario files, `manifest.json`, and ADR-029 artifacts (`event-catalog.json`, `impact-analysis.json`, `saga-state-machines.json`, `asyncapi.yaml`). |
 
 ### Code Generation
 
 | Command | Description |
 |---------|-------------|
+| `moment cucumber-json <file>` | Output Cucumber JSON to stdout for Xray import. Useful for integrating Moment-derived scenarios into Jira/Xray test management workflows. |
 | `moment emit-ts <file>` | Generate TypeScript interfaces, aggregate root classes, discriminated event union types, and test scaffold files from the specification. |
 | `moment generate <file>` | Generate Gherkin `.feature` files, a `specification.md` document with Mermaid diagrams, and an `asyncapi.yaml` specification. |
 

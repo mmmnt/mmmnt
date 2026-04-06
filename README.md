@@ -12,7 +12,7 @@
 
 A DSL and toolchain for temporal DDD modeling.
 
-Moment transforms `.moment` specification files into typed TypeScript implementations, Gherkin test scenarios, and specification documents — creating a single source of truth for how bounded contexts communicate through time.
+Moment transforms `.moment` specification files into typed TypeScript implementations, Gherkin test scenarios, simulation topologies, and specification documents — creating a single source of truth for how bounded contexts communicate through time.
 
 ## Documentation
 
@@ -20,7 +20,7 @@ Full documentation is maintained in the **[Moment Wiki](https://github.com/mmmnt
 
 - **[Product Overview](https://github.com/mmmnt/mmmnt/wiki/Moment)** — What Moment does, design principles, DSL examples
 - **[Architecture](https://github.com/mmmnt/mmmnt/wiki/Architecture-Overview)** — Bounded context map, data flow
-- **[Pipeline](https://github.com/mmmnt/mmmnt/wiki/Pipeline)** — Reactive policy chain: parse → derive → [generate + emit-ts]
+- **[Pipeline](https://github.com/mmmnt/mmmnt/wiki/Pipeline)** — Reactive policy chain: parse → derive → [generate + emit-ts + topology]
 - **[Package Reference](https://github.com/mmmnt/mmmnt/wiki/Package-Reference)** — All packages with dependency graph
 - **[Contributing](https://github.com/mmmnt/mmmnt/wiki/Contributing)** — Setup, conventions, testing
 
@@ -28,10 +28,16 @@ Full documentation is maintained in the **[Moment Wiki](https://github.com/mmmnt
 
 | Package | Description |
 |---------|-------------|
-| [`@mmmnt/core`](https://github.com/mmmnt/mmmnt/wiki/@mmmnt-core) | Parser (Langium), IR, validators, manifest, Sift import |
-| [`@mmmnt/derive`](https://github.com/mmmnt/mmmnt/wiki/@mmmnt-derive) | DerivationEngine: IR → TestSuiteTopology |
-| [`@mmmnt/generate`](https://github.com/mmmnt/mmmnt/wiki/@mmmnt-generate) | GherkinGenerator + SpecDocGenerator → .feature, .md |
-| [`@mmmnt/emit-ts`](https://github.com/mmmnt/mmmnt/wiki/@mmmnt-emit-ts) | TypeScriptEmitter + TestScaffoldEmitter → .ts, .spec.ts |
+| [`@mmmnt/core`](packages/core) | Langium parser, AST-to-IR transform, manifest management, Sift import |
+| [`@mmmnt/derive`](packages/derive) | Test topology, simulation scenarios, event catalog, impact analysis, saga state machines, topology emitter |
+| [`@mmmnt/emit-ts`](packages/emit-ts) | TypeScript types, aggregates, test scaffolds |
+| [`@mmmnt/generate`](packages/generate) | Gherkin features, specification docs, AsyncAPI, Cucumber JSON |
+| [`@mmmnt/harness`](packages/harness) | TestRunner (structural validation for payload, saga, policy), EventReplayEngine, ContractAssertionEngine |
+| [`@mmmnt/schema`](packages/schema) | Schema lifecycle governance, codex rule evaluation |
+| [`@mmmnt/sync`](packages/sync) | AST diff engine, cascade reconciliation, Sift event watching |
+| [`@mmmnt/viz`](packages/viz) | Context map + timeline rendering, VizDataEnvelope, live preview server |
+| [`@mmmnt/cli`](packages/cli) | 20+ commands: parse, derive, generate, emit-ts, simulate, test, viz, lint, and more |
+| [`@mmmnt/mcp`](packages/mcp) | Model Context Protocol server (7 tools, fully offline) |
 
 ## Quick Start
 
@@ -47,6 +53,8 @@ pnpm turbo test
 
 | Tag | Milestone |
 |-----|-----------|
+| [`v1.0.0`](https://github.com/mmmnt/mmmnt/releases/tag/v1.0.0) | Stable — full pipeline, all 10 packages, structural saga/policy validation, topology emitter, Facet output pipeline |
+| [`v0.1.0-m6`](https://github.com/mmmnt/mmmnt/releases/tag/v0.1.0-m6) | Schema governance, viz, MCP server, sync |
 | [`v0.1.0-m3`](https://github.com/mmmnt/mmmnt/releases/tag/v0.1.0-m3) | Derivation + Generation Pipeline |
 | [`v0.1.0-m2`](https://github.com/mmmnt/mmmnt/releases/tag/v0.1.0-m2) | Specification Parsing |
 
