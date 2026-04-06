@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type {
-  IntermediateRepresentation,
-  ContextDefinition,
-  SagaDefinition,
-} from '@mmmnt/core';
+import type { IntermediateRepresentation, ContextDefinition, SagaDefinition } from '@mmmnt/core';
 import { generateSagaStateMachines } from '../saga-state-machine-generator.js';
 
 // ---------------------------------------------------------------------------
@@ -29,11 +25,7 @@ function makeIR(overrides: Partial<IntermediateRepresentation> = {}): Intermedia
   };
 }
 
-function makeContext(
-  id: string,
-  name: string,
-  sagas: SagaDefinition[] = [],
-): ContextDefinition {
+function makeContext(id: string, name: string, sagas: SagaDefinition[] = []): ContextDefinition {
   return {
     id,
     name,
@@ -195,5 +187,41 @@ describe('SagaStateMachineGenerator', () => {
     expect(machine.states).toHaveLength(0);
     expect(machine.transitions).toHaveLength(0);
     expect(machine.reachability.allReachable).toBe(true);
+    expect(machine.earlyExitStates).toHaveLength(0);
+  });
+
+  it('earlyExitStates includes intermediate states for multi-state saga', () => {
+    const saga = makeSaga({ states: ['Held', 'Converting', 'Converted', 'Expired'] });
+    const ctx = makeContext('ctx-1', 'Inventory', [saga]);
+    const ir = makeIR({ contexts: [ctx] });
+
+    const machines = generateSagaStateMachines(ir);
+    const machine = machines[0];
+
+    expect(machine.earlyExitStates).toEqual(['Converting', 'Converted']);
+  });
+
+  it('earlyExitStates is empty for single-state saga', () => {
+    const saga = makeSaga({ states: ['Active'] });
+    const ctx = makeContext('ctx-1', 'Ordering', [saga]);
+    const ir = makeIR({ contexts: [ctx] });
+
+    const machines = generateSagaStateMachines(ir);
+    const machine = machines[0];
+
+    // Single state is both initial and final — no intermediate states
+    expect(machine.earlyExitStates).toHaveLength(0);
+  });
+
+  it('earlyExitStates is empty for two-state saga', () => {
+    const saga = makeSaga({ states: ['Pending', 'Complete'] });
+    const ctx = makeContext('ctx-1', 'Ordering', [saga]);
+    const ir = makeIR({ contexts: [ctx] });
+
+    const machines = generateSagaStateMachines(ir);
+    const machine = machines[0];
+
+    // No states between initial and final
+    expect(machine.earlyExitStates).toHaveLength(0);
   });
 });

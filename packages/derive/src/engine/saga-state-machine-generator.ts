@@ -49,8 +49,8 @@ function buildStateMachine(saga: SagaDefinition, contextName: string): SagaState
   const transitions = buildTransitions(sagaStates);
   const reachability = computeReachability(states, transitions, initialState);
 
-  // States where the saga can be preempted by a successful conversion
-  // on the happy path (any state that's not initial or final).
+  // States from which the saga may exit early: any state that is neither
+  // the initial state nor the final state.
   const earlyExitStates = sagaStates.filter((s) => s !== initialState && s !== finalState);
 
   return {
