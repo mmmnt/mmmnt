@@ -119,7 +119,7 @@ export class TopologyEmitter {
       lanes: buildLanes(flow),
       frames: buildFrames(flow, ctxMap, laneIndex),
       connections: buildConnections(flow),
-      eventRouting: buildEventRouting(flow, ctxMap),
+      eventRouting: buildEventRouting(flow, ctxMap, laneIndex),
       branchPredicates: buildBranchPredicates(flow),
       contextMap: buildContextMap(flow, ctxMap),
     };
@@ -279,32 +279,50 @@ function mapSchemaContract(
 // Event Routing
 // ---------------------------------------------------------------------------
 
-// Review fix #2: De-duplicate event routing entries via Set.
+// Route both events and commands so Facet's walker can resolve all path nodes.
+// Commands are routed under their SimProcess. prefixed event type.
 function buildEventRouting(
   flow: FlowDefinition,
   ctxMap: Map<string, ContextDefinition>,
+  laneIndex: Map<string, LaneDefinition>,
 ): Record<string, string[]> {
   const routing: Record<string, Set<string>> = {};
 
   for (const moment of flow.moments) {
-    const allEntries = [
-      ...moment.contextEntries,
-      ...(moment.branches ?? []).flatMap((b) => b.entries),
-    ];
-
     let branchIdx = 0;
-    for (const entry of allEntries) {
+
+    const addEntry = (entry: MomentEntry, scope: string): void => {
       const ctx = ctxMap.get(entry.contextId);
       const kind = resolveNodeKind(entry, ctx);
+      const lane = laneIndex.get(entry.contextId);
+      const laneId = lane?.id ?? entry.contextId;
+      const nodeId = `${moment.id}::${laneId}::${entry.nodeName}::${scope}`;
+
+      // Events are routed by their plain name
       if (kind === 'event') {
-        const laneId = entry.contextId;
-        const scope = moment.contextEntries.includes(entry) ? 'main' : `br${branchIdx}`;
-        const nodeId = `${moment.id}::${laneId}::${entry.nodeName}::${scope}`;
         const existing = routing[entry.nodeName] ?? new Set<string>();
         existing.add(nodeId);
         routing[entry.nodeName] = existing;
       }
-      if (!moment.contextEntries.includes(entry)) branchIdx++;
+
+      // Commands are routed by their SimProcess. prefixed event type
+      if (kind === 'command') {
+        const key = `SimProcess.${entry.nodeName}`;
+        const existing = routing[key] ?? new Set<string>();
+        existing.add(nodeId);
+        routing[key] = existing;
+      }
+    };
+
+    for (const entry of moment.contextEntries) {
+      addEntry(entry, 'main');
+    }
+
+    for (const branch of moment.branches ?? []) {
+      for (const entry of branch.entries) {
+        addEntry(entry, `br${branchIdx}`);
+      }
+      branchIdx++;
     }
   }
 

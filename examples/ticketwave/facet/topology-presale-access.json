@@ -536,50 +536,92 @@
     }
   ],
   "eventRouting": {
+    "SimProcess.OpenPresaleWindow": [
+      "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main"
+    ],
     "PresaleWindowOpened": [
-      "moment-0-Presale-window-opens::ctx-Presale::PresaleWindowOpened::main"
+      "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main"
+    ],
+    "SimProcess.RedeemAccessCode": [
+      "moment-1-Access-code-redemption::presale::RedeemAccessCode::main"
     ],
     "AccessCodeRedeemed": [
-      "moment-1-Access-code-redemption::ctx-Presale::AccessCodeRedeemed::main"
+      "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main"
+    ],
+    "SimProcess.RequestHold": [
+      "moment-2-Code-validation-outcome::inventory::RequestHold::br0"
     ],
     "SeatsHeld": [
-      "moment-2-Code-validation-outcome::ctx-Inventory::SeatsHeld::br1"
+      "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0"
+    ],
+    "SimProcess.InvalidateAccessCode": [
+      "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1"
     ],
     "AccessCodeInvalidated": [
-      "moment-2-Code-validation-outcome::ctx-Presale::AccessCodeInvalidated::br3",
-      "moment-2-Code-validation-outcome::ctx-Invalid Code::AccessCodeInvalidated::br4"
+      "moment-2-Code-validation-outcome::presale::AccessCodeInvalidated::br1",
+      "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1"
+    ],
+    "SimProcess.ClosePresaleWindow": [
+      "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2"
     ],
     "PresaleWindowClosed": [
-      "moment-2-Code-validation-outcome::ctx-Presale::PresaleWindowClosed::br6",
-      "moment-2-Code-validation-outcome::ctx-Window Closed::PresaleWindowClosed::br7"
+      "moment-2-Code-validation-outcome::presale::PresaleWindowClosed::br2",
+      "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2"
+    ],
+    "SimProcess.CreateCart": [
+      "moment-3-Presale-cart-creation::checkout::CreateCart::main"
     ],
     "CartCreated": [
-      "moment-3-Presale-cart-creation::ctx-Checkout::CartCreated::main"
+      "moment-3-Presale-cart-creation::checkout::CartCreated::main"
+    ],
+    "SimProcess.AddTicketsToCart": [
+      "moment-4-Presale-cart-population::checkout::AddTicketsToCart::main"
     ],
     "TicketsAddedToCart": [
-      "moment-4-Presale-cart-population::ctx-Checkout::TicketsAddedToCart::main"
+      "moment-4-Presale-cart-population::checkout::TicketsAddedToCart::main"
+    ],
+    "SimProcess.CalculateFees": [
+      "moment-5-Presale-fee-calculation::checkout::CalculateFees::main"
     ],
     "FeesCalculated": [
-      "moment-5-Presale-fee-calculation::ctx-Checkout::FeesCalculated::main"
+      "moment-5-Presale-fee-calculation::checkout::FeesCalculated::main"
+    ],
+    "SimProcess.InitiatePayment": [
+      "moment-6-Presale-payment::checkout::InitiatePayment::main"
     ],
     "PaymentInitiated": [
-      "moment-6-Presale-payment::ctx-Checkout::PaymentInitiated::main"
+      "moment-6-Presale-payment::checkout::PaymentInitiated::main"
+    ],
+    "SimProcess.ConfirmPayment": [
+      "moment-7-Presale-payment-confirmation::checkout::ConfirmPayment::main"
     ],
     "PaymentConfirmed": [
-      "moment-7-Presale-payment-confirmation::ctx-Checkout::PaymentConfirmed::main",
-      "moment-8-Presale-delivery-trigger::ctx-Checkout::PaymentConfirmed::main"
+      "moment-7-Presale-payment-confirmation::checkout::PaymentConfirmed::main",
+      "moment-8-Presale-delivery-trigger::checkout::PaymentConfirmed::main"
+    ],
+    "SimProcess.ConvertHoldToReservation": [
+      "moment-9-Presale-hold-conversion::inventory::ConvertHoldToReservation::main"
     ],
     "HoldConvertedToReservation": [
-      "moment-9-Presale-hold-conversion::ctx-Inventory::HoldConvertedToReservation::main"
+      "moment-9-Presale-hold-conversion::inventory::HoldConvertedToReservation::main"
+    ],
+    "SimProcess.IssueTickets": [
+      "moment-10-Presale-ticket-issuance::delivery::IssueTickets::main"
     ],
     "TicketsIssued": [
-      "moment-10-Presale-ticket-issuance::ctx-Delivery::TicketsIssued::main"
+      "moment-10-Presale-ticket-issuance::delivery::TicketsIssued::main"
+    ],
+    "SimProcess.SendOrderConfirmation": [
+      "moment-11-Presale-confirmation::notifications::SendOrderConfirmation::main"
     ],
     "OrderConfirmationSent": [
-      "moment-11-Presale-confirmation::ctx-Notifications::OrderConfirmationSent::main"
+      "moment-11-Presale-confirmation::notifications::OrderConfirmationSent::main"
+    ],
+    "SimProcess.SendTicketDelivery": [
+      "moment-12-Presale-ticket-delivery::notifications::SendTicketDelivery::main"
     ],
     "TicketDeliverySent": [
-      "moment-12-Presale-ticket-delivery::ctx-Notifications::TicketDeliverySent::main"
+      "moment-12-Presale-ticket-delivery::notifications::TicketDeliverySent::main"
     ]
   },
   "branchPredicates": {

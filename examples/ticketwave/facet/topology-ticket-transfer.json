@@ -278,31 +278,55 @@
     }
   ],
   "eventRouting": {
+    "SimProcess.InitiateTransfer": [
+      "moment-0-Transfer-initiation::delivery::InitiateTransfer::main"
+    ],
     "TransferInitiated": [
-      "moment-0-Transfer-initiation::ctx-Delivery::TransferInitiated::main"
+      "moment-0-Transfer-initiation::delivery::TransferInitiated::main"
+    ],
+    "SimProcess.SendTransferNotification": [
+      "moment-1-Recipient-notification::notifications::SendTransferNotification::main"
     ],
     "TransferNotificationSent": [
-      "moment-1-Recipient-notification::ctx-Notifications::TransferNotificationSent::main"
+      "moment-1-Recipient-notification::notifications::TransferNotificationSent::main"
+    ],
+    "SimProcess.AcceptTransfer": [
+      "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0"
     ],
     "TransferAccepted": [
-      "moment-2-Transfer-resolution::ctx-Delivery::TransferAccepted::br1"
+      "moment-2-Transfer-resolution::delivery::TransferAccepted::br0"
+    ],
+    "SimProcess.DeclineTransfer": [
+      "moment-2-Transfer-resolution::delivery::DeclineTransfer::br1"
     ],
     "TransferDeclined": [
-      "moment-2-Transfer-resolution::ctx-Delivery::TransferDeclined::br3",
-      "moment-2-Transfer-resolution::ctx-Transfer Declined::TransferDeclined::br4"
+      "moment-2-Transfer-resolution::delivery::TransferDeclined::br1",
+      "moment-2-Transfer-resolution::transferDeclined::TransferDeclined::br1"
+    ],
+    "SimProcess.CancelTransfer": [
+      "moment-2-Transfer-resolution::delivery::CancelTransfer::br2"
     ],
     "TransferCancelled": [
-      "moment-2-Transfer-resolution::ctx-Delivery::TransferCancelled::br6",
-      "moment-2-Transfer-resolution::ctx-Transfer Expired::TransferCancelled::br7"
+      "moment-2-Transfer-resolution::delivery::TransferCancelled::br2",
+      "moment-2-Transfer-resolution::transferExpired::TransferCancelled::br2"
+    ],
+    "SimProcess.RevokeTicket": [
+      "moment-3-Original-ticket-revocation::delivery::RevokeTicket::main"
     ],
     "TicketRevoked": [
-      "moment-3-Original-ticket-revocation::ctx-Delivery::TicketRevoked::main"
+      "moment-3-Original-ticket-revocation::delivery::TicketRevoked::main"
+    ],
+    "SimProcess.IssueTickets": [
+      "moment-4-New-ticket-issuance::delivery::IssueTickets::main"
     ],
     "TicketsIssued": [
-      "moment-4-New-ticket-issuance::ctx-Delivery::TicketsIssued::main"
+      "moment-4-New-ticket-issuance::delivery::TicketsIssued::main"
+    ],
+    "SimProcess.SendTicketDelivery": [
+      "moment-5-Transfer-completion-notification::notifications::SendTicketDelivery::main"
     ],
     "TicketDeliverySent": [
-      "moment-5-Transfer-completion-notification::ctx-Notifications::TicketDeliverySent::main"
+      "moment-5-Transfer-completion-notification::notifications::TicketDeliverySent::main"
     ]
   },
   "branchPredicates": {
