@@ -2,11 +2,13 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPointStrategy": "packages",
   "entryPoints": [
+    "packages/cli",
     "packages/core",
     "packages/derive",
     "packages/emit-ts",
     "packages/generate",
     "packages/harness",
+    "packages/mcp",
     "packages/schema",
     "packages/sync",
     "packages/viz"

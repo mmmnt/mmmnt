@@ -72,6 +72,7 @@ for (const scenario of scenarios) {
 | `generateEventCatalog(ir)` | Builds a catalog of every event with producer/consumer context, payload schema, and flow participation. |
 | `generateImpactAnalysis(ir)` | Produces a dependency graph showing how changes to one context or event propagate across the system. |
 | `generateSagaStateMachines(ir)` | Extracts saga state machines from multi-step flows, with states and transitions. |
+| `TopologyEmitter` | Class that produces a `SimulationTopology` per flow, containing lanes, frames, connections, eventRouting, branchPredicates, and contextMap. |
 
 ### Policies
 
@@ -91,15 +92,23 @@ for (const scenario of scenarios) {
 | `PayloadValidationStep` | A constraint on event or command payload fields. |
 | `FieldConstraint` | A validation rule for a single field within a payload. |
 | `TopologyMetadata` | Metadata about the derived topology including source specification and derivation timestamp. |
-| `SimulationScenario` | A simulation run with ordered events and active branches. |
+| `SimulationScenario` | A simulation run with ordered events and active branches. Includes `flowId: string` and `flowName: string` identifying the source flow. |
 | `SimulationEvent` | A single event within a simulation scenario. |
 | `ActiveBranch` | A branch condition active during a simulation. |
 | `SimulationOptions` | Options controlling simulation scope and behavior. |
 | `EventCatalog` / `EventCatalogEntry` | Catalog of events with producer/consumer metadata. |
 | `ImpactAnalysis` / `ImpactNode` | Directed graph of impact propagation across contexts. |
-| `SagaStateMachine` | State machine with states and transitions extracted from flows. |
+| `SagaStateMachine` | State machine with states and transitions extracted from flows. Includes `earlyExitStates: readonly string[]` listing states from which the saga may exit early (any state that is neither initial nor final). |
 | `SagaState` | A single state within a saga state machine. |
 | `SagaTransition` | A transition between saga states, triggered by an event. |
+| `SimulationTopology` | Complete topology for a single flow, produced by `TopologyEmitter`. Contains lanes, frames, connections, eventRouting, branchPredicates, and contextMap. |
+| `TopologyLane` | A lane within a simulation topology, representing a bounded context or actor. |
+| `TopologyFrame` | A frame grouping related nodes within a topology lane. |
+| `TopologyNode` | A single node (command, event, or policy) within a topology frame. |
+| `TopologyConnection` | A directed connection between two topology nodes. |
+| `TopologyBranchPredicate` | A predicate describing a branching condition within the topology. |
+| `TopologyContextMap` | A mapping of context relationships and dependencies within the topology. |
+| `TopologySchemaContract` | A schema contract describing the payload shape exchanged between topology nodes. |
 
 ## Examples
 

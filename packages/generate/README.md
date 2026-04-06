@@ -76,6 +76,10 @@ for (const feature of features) {
 - **Event catalog** table with producers, consumers, and payload summaries
 - **Glossary** of domain terms extracted from the specification
 
+### Cucumber JSON
+
+- Cucumber JSON output is available via `generateCucumberJson` for CI/QMS integration, enabling direct import into tools like Xray for test management and traceability reporting.
+
 ### AsyncAPI Specification
 
 - Standards-compliant AsyncAPI 3.0 YAML
@@ -93,6 +97,7 @@ for (const feature of features) {
 | `renderFeatureFromIr(ir)` | Lower-level function that renders a single feature from IR data without requiring a topology. |
 | `SpecificationDocumentGenerator` | Produces a Markdown specification document with embedded Mermaid diagrams covering context maps, flows, and event catalogs. |
 | `generateAsyncApiSpec(ir)` | Generates an AsyncAPI 3.0 YAML specification from the IR with channels, messages, and payload schemas. |
+| `generateCucumberJson(manifest, topology, ir)` | Converts Gherkin features and test topology into Cucumber JSON format for Xray import and CI/QMS integration. |
 
 ### Policies
 
@@ -107,6 +112,9 @@ for (const feature of features) {
 | `GeneratedFeatureFile` | A generated `.feature` file with path and content. |
 | `GeneratedDocument` | A generated document with path, content, and format metadata. |
 | `GenerationManifest` | Summary of all generated artifacts from a single run, with file counts and paths. |
+| `CucumberFeature` | Represents a single Cucumber JSON feature object with scenarios and metadata. |
+| `CucumberScenario` | Represents a scenario within a Cucumber JSON feature, including steps and tags. |
+| `CucumberStep` | Represents an individual Given/When/Then step within a Cucumber JSON scenario. |
 
 ## Examples
 
