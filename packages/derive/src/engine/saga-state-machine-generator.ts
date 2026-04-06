@@ -9,6 +9,7 @@ export interface SagaStateMachine {
   readonly transitions: readonly SagaTransition[];
   readonly compensation: string;
   readonly timeout: string;
+  readonly earlyExitStates: readonly string[];
   readonly reachability: {
     readonly allReachable: boolean;
     readonly unreachableStates: readonly string[];
@@ -26,9 +27,7 @@ export interface SagaTransition {
   readonly to: string;
 }
 
-export function generateSagaStateMachines(
-  ir: IntermediateRepresentation,
-): SagaStateMachine[] {
+export function generateSagaStateMachines(ir: IntermediateRepresentation): SagaStateMachine[] {
   const machines: SagaStateMachine[] = [];
 
   for (const context of ir.contexts) {
@@ -50,6 +49,10 @@ function buildStateMachine(saga: SagaDefinition, contextName: string): SagaState
   const transitions = buildTransitions(sagaStates);
   const reachability = computeReachability(states, transitions, initialState);
 
+  // States from which the saga may exit early: any state that is neither
+  // the initial state nor the final state.
+  const earlyExitStates = sagaStates.filter((s) => s !== initialState && s !== finalState);
+
   return {
     sagaName: saga.name,
     context: contextName,
@@ -59,6 +62,7 @@ function buildStateMachine(saga: SagaDefinition, contextName: string): SagaState
     transitions,
     compensation: saga.compensation,
     timeout: saga.timeout,
+    earlyExitStates,
     reachability,
   };
 }
@@ -103,9 +107,7 @@ function computeReachability(
   }
 
   const reachable = bfsReachable(initialState, adjacency);
-  const unreachableStates = states
-    .filter((s) => !reachable.has(s.name))
-    .map((s) => s.name);
+  const unreachableStates = states.filter((s) => !reachable.has(s.name)).map((s) => s.name);
 
   return {
     allReachable: unreachableStates.length === 0,

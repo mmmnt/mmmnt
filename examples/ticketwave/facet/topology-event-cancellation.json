@@ -366,28 +366,44 @@
     }
   ],
   "eventRouting": {
+    "SimProcess.CancelEvent": [
+      "moment-0-Event-cancellation::catalog::CancelEvent::main"
+    ],
     "EventCancelled": [
-      "moment-0-Event-cancellation::ctx-Catalog::EventCancelled::main",
-      "moment-1-Cancellation-propagation-to-checkout::ctx-Catalog::EventCancelled::main",
-      "moment-2-Cancellation-propagation-to-delivery::ctx-Catalog::EventCancelled::main",
-      "moment-3-Cancellation-propagation-to-notifications::ctx-Catalog::EventCancelled::main"
+      "moment-0-Event-cancellation::catalog::EventCancelled::main",
+      "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
+      "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
+      "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main"
+    ],
+    "SimProcess.ReleaseHold": [
+      "moment-4-Active-holds-release::inventory::ReleaseHold::main"
     ],
     "HoldReleased": [
-      "moment-4-Active-holds-release::ctx-Inventory::HoldReleased::main"
+      "moment-4-Active-holds-release::inventory::HoldReleased::main"
+    ],
+    "SimProcess.RevokeTicket": [
+      "moment-5-Ticket-revocation::delivery::RevokeTicket::main"
     ],
     "TicketRevoked": [
-      "moment-5-Ticket-revocation::ctx-Delivery::TicketRevoked::main"
+      "moment-5-Ticket-revocation::delivery::TicketRevoked::main"
+    ],
+    "SimProcess.RefundPayment": [
+      "moment-6-Refund-processing::checkout::RefundPayment::br0",
+      "moment-6-Refund-processing::checkout::RefundPayment::br1"
     ],
     "PaymentRefunded": [
-      "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br1",
-      "moment-6-Refund-processing::ctx-Checkout::PaymentRefunded::br3"
+      "moment-6-Refund-processing::checkout::PaymentRefunded::br0",
+      "moment-6-Refund-processing::checkout::PaymentRefunded::br1"
     ],
     "PaymentFailed": [
-      "moment-6-Refund-processing::ctx-Checkout::PaymentFailed::br4",
-      "moment-6-Refund-processing::ctx-Partial Refund Failure::PaymentFailed::br5"
+      "moment-6-Refund-processing::checkout::PaymentFailed::br1",
+      "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1"
+    ],
+    "SimProcess.SendEventCancellationNotice": [
+      "moment-7-Cancellation-notifications::notifications::SendEventCancellationNotice::main"
     ],
     "EventCancellationNoticeSent": [
-      "moment-7-Cancellation-notifications::ctx-Notifications::EventCancellationNoticeSent::main"
+      "moment-7-Cancellation-notifications::notifications::EventCancellationNoticeSent::main"
     ]
   },
   "branchPredicates": {

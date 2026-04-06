@@ -772,64 +772,118 @@
     }
   ],
   "eventRouting": {
+    "SimProcess.PublishEvent": [
+      "moment-0-Event-discovery::catalog::PublishEvent::main"
+    ],
     "EventPublished": [
-      "moment-0-Event-discovery::ctx-Catalog::EventPublished::main"
+      "moment-0-Event-discovery::catalog::EventPublished::main"
+    ],
+    "SimProcess.InitializePool": [
+      "moment-1-Pool-initialization::inventory::InitializePool::main"
     ],
     "PoolInitialized": [
-      "moment-1-Pool-initialization::ctx-Inventory::PoolInitialized::main"
+      "moment-1-Pool-initialization::inventory::PoolInitialized::main"
+    ],
+    "SimProcess.RequestHold": [
+      "moment-2-Seat-selection-and-hold::inventory::RequestHold::main"
     ],
     "SeatsHeld": [
-      "moment-2-Seat-selection-and-hold::ctx-Inventory::SeatsHeld::main"
+      "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main"
+    ],
+    "SimProcess.EvaluateHoldRisk": [
+      "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main"
     ],
     "HoldRiskEvaluated": [
-      "moment-3-Hold-fraud-evaluation::ctx-AntiFraud::HoldRiskEvaluated::main"
+      "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main"
+    ],
+    "SimProcess.CreateCart": [
+      "moment-4-Hold-risk-decision::checkout::CreateCart::br0"
     ],
     "CartCreated": [
-      "moment-4-Hold-risk-decision::ctx-Checkout::CartCreated::br1"
+      "moment-4-Hold-risk-decision::checkout::CartCreated::br0"
+    ],
+    "SimProcess.BlockCustomer": [
+      "moment-4-Hold-risk-decision::antifraud::BlockCustomer::br1"
     ],
     "CustomerBlocked": [
-      "moment-4-Hold-risk-decision::ctx-AntiFraud::CustomerBlocked::br3",
-      "moment-4-Hold-risk-decision::ctx-Bot Detected::CustomerBlocked::br4"
+      "moment-4-Hold-risk-decision::antifraud::CustomerBlocked::br1",
+      "moment-4-Hold-risk-decision::botDetected::CustomerBlocked::br1"
+    ],
+    "SimProcess.FlagForManualReview": [
+      "moment-4-Hold-risk-decision::antifraud::FlagForManualReview::br2"
     ],
     "FlaggedForManualReview": [
-      "moment-4-Hold-risk-decision::ctx-AntiFraud::FlaggedForManualReview::br6",
-      "moment-4-Hold-risk-decision::ctx-Manual Review::FlaggedForManualReview::br7"
+      "moment-4-Hold-risk-decision::antifraud::FlaggedForManualReview::br2",
+      "moment-4-Hold-risk-decision::manualReview::FlaggedForManualReview::br2"
+    ],
+    "SimProcess.AddTicketsToCart": [
+      "moment-5-Cart-population::checkout::AddTicketsToCart::main"
     ],
     "TicketsAddedToCart": [
-      "moment-5-Cart-population::ctx-Checkout::TicketsAddedToCart::main"
+      "moment-5-Cart-population::checkout::TicketsAddedToCart::main"
+    ],
+    "SimProcess.CalculateFees": [
+      "moment-6-Fee-calculation::checkout::CalculateFees::main"
     ],
     "FeesCalculated": [
-      "moment-6-Fee-calculation::ctx-Checkout::FeesCalculated::main"
+      "moment-6-Fee-calculation::checkout::FeesCalculated::main"
+    ],
+    "SimProcess.InitiatePayment": [
+      "moment-7-Payment-initiation::checkout::InitiatePayment::main"
     ],
     "PaymentInitiated": [
-      "moment-7-Payment-initiation::ctx-Checkout::PaymentInitiated::main"
+      "moment-7-Payment-initiation::checkout::PaymentInitiated::main"
+    ],
+    "SimProcess.EvaluatePaymentRisk": [
+      "moment-8-Payment-fraud-evaluation::antifraud::EvaluatePaymentRisk::main"
     ],
     "PaymentRiskEvaluated": [
-      "moment-8-Payment-fraud-evaluation::ctx-AntiFraud::PaymentRiskEvaluated::main"
+      "moment-8-Payment-fraud-evaluation::antifraud::PaymentRiskEvaluated::main"
+    ],
+    "SimProcess.ConfirmPayment": [
+      "moment-9-Payment-processing::checkout::ConfirmPayment::br0"
     ],
     "PaymentConfirmed": [
-      "moment-9-Payment-processing::ctx-Checkout::PaymentConfirmed::br1",
-      "moment-10-Delivery-trigger::ctx-Checkout::PaymentConfirmed::main",
-      "moment-11-Notification-trigger::ctx-Checkout::PaymentConfirmed::main"
+      "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
+      "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
+      "moment-11-Notification-trigger::checkout::PaymentConfirmed::main"
+    ],
+    "SimProcess.FailPayment": [
+      "moment-9-Payment-processing::checkout::FailPayment::br1"
     ],
     "PaymentFailed": [
-      "moment-9-Payment-processing::ctx-Checkout::PaymentFailed::br3",
-      "moment-9-Payment-processing::ctx-Payment Declined::PaymentFailed::br4"
+      "moment-9-Payment-processing::checkout::PaymentFailed::br1",
+      "moment-9-Payment-processing::paymentDeclined::PaymentFailed::br1"
+    ],
+    "SimProcess.ConvertHoldToReservation": [
+      "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main"
     ],
     "HoldConvertedToReservation": [
-      "moment-12-Hold-conversion::ctx-Inventory::HoldConvertedToReservation::main"
+      "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main"
+    ],
+    "SimProcess.IssueTickets": [
+      "moment-13-Ticket-issuance::delivery::IssueTickets::main"
     ],
     "TicketsIssued": [
-      "moment-13-Ticket-issuance::ctx-Delivery::TicketsIssued::main"
+      "moment-13-Ticket-issuance::delivery::TicketsIssued::main"
+    ],
+    "SimProcess.GenerateMobilePass": [
+      "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main"
     ],
     "MobilePassGenerated": [
-      "moment-14-Mobile-pass-generation::ctx-Delivery::MobilePassGenerated::main"
+      "moment-14-Mobile-pass-generation::delivery::MobilePassGenerated::main"
+    ],
+    "SimProcess.SendOrderConfirmation": [
+      "moment-15-Order-confirmation::notifications::SendOrderConfirmation::main"
     ],
     "OrderConfirmationSent": [
-      "moment-15-Order-confirmation::ctx-Notifications::OrderConfirmationSent::main"
+      "moment-15-Order-confirmation::notifications::OrderConfirmationSent::main"
+    ],
+    "SimProcess.SendTicketDelivery": [
+      "moment-16-Ticket-delivery-notification::notifications::SendTicketDelivery::main"
     ],
     "TicketDeliverySent": [
-      "moment-16-Ticket-delivery-notification::ctx-Notifications::TicketDeliverySent::main"
+      "moment-16-Ticket-delivery-notification::notifications::TicketDeliverySent::main"
     ]
   },
   "branchPredicates": {
