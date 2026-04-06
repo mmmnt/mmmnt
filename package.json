@@ -15,7 +15,8 @@
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "moment": "node packages/cli/dist/moment.mjs"
   },
   "lint-staged": {
     "*.{ts,mts,mjs}": [
