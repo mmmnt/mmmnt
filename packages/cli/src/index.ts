@@ -1,6 +1,7 @@
 import { runInit } from './commands/init.js';
 import { runParse, formatDiagnostic } from './commands/parse.js';
 import { runWatch } from './commands/watch.js';
+import { runServe } from './commands/serve.js';
 import { runDerive } from './commands/derive.js';
 import { runGenerate } from './commands/generate.js';
 import { runCucumberJson } from './commands/cucumber-json.js';
@@ -369,6 +370,21 @@ switch (command) {
     }
     break;
   }
+  case 'serve': {
+    runServe(args)
+      .then((result) => {
+        if (!result.success) {
+          console.error(result.message);
+          process.exitCode = 1;
+        }
+        // If successful, the server stays running — don't exit
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
   case 'cucumber-json': {
     runCucumberJson(args)
       .then((result) => {
@@ -394,7 +410,7 @@ switch (command) {
     } else {
       console.error('Usage: moment <command> [options]');
       console.error(
-        'Commands: init, parse, watch, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, reconcile, status, cucumber-json, auth',
+        'Commands: init, parse, watch, serve, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, reconcile, status, cucumber-json, auth',
       );
     }
     process.exitCode = 1;

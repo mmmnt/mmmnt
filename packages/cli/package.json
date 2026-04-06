@@ -42,15 +42,19 @@
   "dependencies": {
     "@mmmnt/core": "workspace:*",
     "@mmmnt/derive": "workspace:*",
+    "@mmmnt/emit-ts": "workspace:*",
     "@mmmnt/generate": "workspace:*",
     "@mmmnt/harness": "workspace:*",
-    "@mmmnt/viz": "workspace:*",
-    "@mmmnt/emit-ts": "workspace:*",
+    "@mmmnt/schema": "workspace:*",
     "@mmmnt/sync": "workspace:*",
-    "@mmmnt/schema": "workspace:*"
+    "@mmmnt/viz": "workspace:*"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.20.0"
   }
 }
