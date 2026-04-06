@@ -11,11 +11,11 @@
  * MMNT-4881
  */
 
-import { readFileSync, existsSync, watchFile, unwatchFile } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { readFileSync, existsSync, watch, type FSWatcher } from 'node:fs';
+import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
-import { WebSocketServer, type WebSocket } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { MomentParser } from '@mmmnt/core';
 import type { IntermediateRepresentation, Diagnostic } from '@mmmnt/core';
 import {
@@ -188,7 +188,7 @@ interface TrackedClient {
 
 function broadcast(clients: Set<TrackedClient>, message: string): void {
   for (const client of clients) {
-    if (client.ws.readyState === client.ws.OPEN) {
+    if (client.ws.readyState === WebSocket.OPEN) {
       client.ws.send(message);
     }
   }
@@ -350,22 +350,28 @@ function setupFileWatcher(
     }
   };
 
-  watchFile(specPath, { interval: 500 }, () => {
-    void rebuild();
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const watcher = watch(specPath, () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      void rebuild();
+    }, 300);
   });
+
+  return watcher;
 }
 
 function setupGracefulShutdown(
   wss: WebSocketServer,
   clients: Set<TrackedClient>,
   pingInterval: ReturnType<typeof setInterval>,
-  specPath: string,
+  fileWatcher: FSWatcher,
   log: (msg: string) => void,
 ): void {
   const shutdown = (): void => {
     log('\nShutting down...');
     clearInterval(pingInterval);
-    unwatchFile(specPath);
+    fileWatcher.close();
 
     for (const client of clients) {
       if (client.pongTimer) clearTimeout(client.pongTimer);
@@ -394,11 +400,13 @@ export interface ServeCommandResult {
   readonly message: string;
 }
 
-export async function runServe(
-  argv: string[],
-  log: (msg: string) => void = console.log,
-  logError: (msg: string) => void = console.error,
-): Promise<ServeCommandResult> {
+interface ServeArgs {
+  resolvedPath: string;
+  port: number;
+  includeAll: boolean;
+}
+
+function parseServeArgs(argv: string[]): ServeArgs | ServeCommandResult {
   const { values, positionals } = parseArgs({
     args: argv,
     options: {
@@ -419,8 +427,24 @@ export async function runServe(
     return { success: false, message: `Error: File not found: ${resolvedPath}` };
   }
 
-  const port = parseInt(values.port ?? '4321', 10);
-  const includeAll = values.all === true;
+  const rawPort = values.port ?? '4321';
+  const port = parseInt(rawPort, 10);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return { success: false, message: `Error: Invalid port "${rawPort}". Expected 1-65535.` };
+  }
+
+  return { resolvedPath, port, includeAll: values.all === true };
+}
+
+export async function runServe(
+  argv: string[],
+  log: (msg: string) => void = console.log,
+  logError: (msg: string) => void = console.error,
+): Promise<ServeCommandResult> {
+  const parsed = parseServeArgs(argv);
+  if ('success' in parsed) return parsed;
+
+  const { resolvedPath, port, includeAll } = parsed;
   const sessionId = randomUUID();
   const clients = new Set<TrackedClient>();
 
@@ -443,7 +467,7 @@ export async function runServe(
 
   setupConnectionHandler(wss, clients, sessionId, () => lastResult, resolvedPath, log);
   const pingInterval = startHeartbeat(clients, log);
-  setupFileWatcher(
+  const fileWatcher = setupFileWatcher(
     resolvedPath,
     includeAll,
     clients,
@@ -454,7 +478,7 @@ export async function runServe(
     log,
     logError,
   );
-  setupGracefulShutdown(wss, clients, pingInterval, resolvedPath, log);
+  setupGracefulShutdown(wss, clients, pingInterval, fileWatcher, log);
 
   return { success: true, message: `Serving on ws://localhost:${port}` };
 }
@@ -466,7 +490,14 @@ async function startServerWithRetry(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       return await startServer(port);
-    } catch {
+    } catch (err: unknown) {
+      const code =
+        typeof err === 'object' && err !== null && 'code' in err
+          ? String((err as { code?: unknown }).code)
+          : undefined;
+
+      if (code !== 'EADDRINUSE') throw err;
+
       if (attempt < 2) {
         log(`Port ${port} in use, retrying in 1s...`);
         await sleep(1000);
@@ -478,7 +509,7 @@ async function startServerWithRetry(
 
 function startServer(port: number): Promise<WebSocketServer> {
   return new Promise((resolve, reject) => {
-    const wss = new WebSocketServer({ port });
+    const wss = new WebSocketServer({ port, host: '127.0.0.1' });
     wss.on('listening', () => resolve(wss));
     wss.on('error', (err) => reject(err));
   });
