@@ -28,6 +28,7 @@
     ]
   },
   "devDependencies": {
+    "@anthropic-ai/claude-code": "^2.1.92",
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.30.0",
     "@commitlint/cli": "^20.5.0",
