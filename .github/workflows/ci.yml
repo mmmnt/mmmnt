@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -134,7 +134,7 @@ jobs:
     if: ${{ needs.build.result == 'success' && github.actor != 'dependabot[bot]' }}
     steps:
       - name: Checkout (for shared scripts)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Download JUnit test results
         uses: actions/download-artifact@v8
         with:
@@ -655,7 +655,7 @@ jobs:
     needs: [build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -699,7 +699,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -776,7 +776,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -833,7 +833,7 @@ jobs:
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
     steps:
       - name: Checkout (for shared scripts)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Transition linked Test issues to Done
         run: |
