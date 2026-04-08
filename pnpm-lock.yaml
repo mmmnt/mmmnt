@@ -148,8 +148,8 @@ importers:
         version: link:../derive
     devDependencies:
       '@cucumber/gherkin':
-        specifier: ^29.0.0
-        version: 29.0.0
+        specifier: ^39.0.0
+        version: 39.0.0
       '@cucumber/messages':
         specifier: ^32.2.0
         version: 32.2.0
@@ -557,11 +557,8 @@ packages:
       conventional-commits-parser:
         optional: true
 
-  '@cucumber/gherkin@29.0.0':
-    resolution: {integrity: sha512-6t3V7fFsLlyhLSj4FS+fPz22pPVcFhFZ3QOP7otFYmkhZ4g1ierj5pf7fxJWvEsI555hGatg+Iql6cqK93RFUg==}
-
-  '@cucumber/messages@25.0.1':
-    resolution: {integrity: sha512-RjjhmzcauX5eYfcKns5pgenefDJQcfXE3ZDrVWdUDGcoaoyFVDmj+ZzQZWRWqFrfMjP3lKHJss6LtvIP/z+h8g==}
+  '@cucumber/gherkin@39.0.0':
+    resolution: {integrity: sha512-6tCR0ZIF0tVkd2iBqA3IcYUovwdpJM6oorACisgIdDJMsKufOq962qk9jncRUi5Bja1kEAAEKpxcRtvnp9k/dg==}
 
   '@cucumber/messages@32.2.0':
     resolution: {integrity: sha512-oYp1dgL2TByYWL51Z+rNm+/mFtJhiPU9WS03goes9EALb8d9GFcXRbG1JluFLFaChF1YDqIzLac0kkC3tv1DjQ==}
@@ -1767,9 +1764,6 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
-
-  '@types/uuid@9.0.8':
-    resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -4140,10 +4134,6 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  uuid@9.0.1:
-    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
-    hasBin: true
-
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
@@ -4954,16 +4944,9 @@ snapshots:
     optionalDependencies:
       conventional-commits-parser: 6.4.0
 
-  '@cucumber/gherkin@29.0.0':
+  '@cucumber/gherkin@39.0.0':
     dependencies:
-      '@cucumber/messages': 25.0.1
-
-  '@cucumber/messages@25.0.1':
-    dependencies:
-      '@types/uuid': 9.0.8
-      class-transformer: 0.5.1
-      reflect-metadata: 0.2.2
-      uuid: 9.0.1
+      '@cucumber/messages': 32.2.0
 
   '@cucumber/messages@32.2.0':
     dependencies:
@@ -5827,8 +5810,6 @@ snapshots:
       '@types/node': 25.5.2
 
   '@types/unist@3.0.3': {}
-
-  '@types/uuid@9.0.8': {}
 
   '@types/ws@8.18.1':
     dependencies:
@@ -8660,8 +8641,6 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
-
-  uuid@9.0.1: {}
 
   vary@1.1.2: {}
 
