@@ -12,6 +12,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "audit:deps": "node scripts/audit-deps.mjs",
+    "smoke:install": "node scripts/smoke-test-install.mjs",
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version",

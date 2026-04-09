@@ -68,6 +68,21 @@ jobs:
             pnpm turbo test -- --coverage --passWithNoTests
           fi
 
+      # Pack every @mmmnt/* package, install the tarballs into a throwaway
+      # consumer project, and run the full CLI happy path (init → parse →
+      # generate → emit-ts → simulate → serve) plus dynamic imports of every
+      # library package. Catches packaging-level bugs workspace tests miss:
+      # missing dist files, wrong main/exports paths, runtime deps only in
+      # devDependencies, broken bin links, or dist output that doesn't
+      # resolve from outside the monorepo.
+      #
+      # Scoped to Node 22 only — the consumer-install path isn't
+      # Node-version-sensitive enough to justify running it twice, and the
+      # job adds ~40s wall clock.
+      - name: Pack-and-install smoke test
+        if: matrix.node-version == 22
+        run: pnpm smoke:install
+
       - name: Integration tests
         run: pnpm turbo test:integration -- --passWithNoTests
         continue-on-error: true
