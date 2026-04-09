@@ -15,6 +15,7 @@ import { SiftSpecificationImporter } from '@mmmnt/core';
 import { SiftEventStreamReader } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { SiftImportInput } from '@mmmnt/core';
+import { assertPathWithin } from './project-fs.js';
 
 export interface ImportResult {
   readonly success: boolean;
@@ -51,7 +52,11 @@ export async function runImportFromSift(argv: string[]): Promise<ImportResult> {
   return executeImport(resolvedDir, values['output-dir'], values.json === true);
 }
 
-function executeImport(domainDir: string, outputDir: string | undefined, asJson: boolean): ImportResult {
+function executeImport(
+  domainDir: string,
+  outputDir: string | undefined,
+  asJson: boolean,
+): ImportResult {
   // Read and replay JSONL event stream
   const reader = new SiftEventStreamReader();
   const readResult = reader.read(domainDir);
@@ -72,27 +77,40 @@ function executeImport(domainDir: string, outputDir: string | undefined, asJson:
 
   if (importResult.diagnostics.some((d) => d.severity === 'error')) {
     const errorCount = importResult.diagnostics.filter((d) => d.severity === 'error').length;
-    return { success: false, message: `Import failed with ${errorCount} error(s)`, diagnostics: importResult.diagnostics, filesWritten: 0, eventsProcessed: readResult.eventsProcessed };
+    return {
+      success: false,
+      message: `Import failed with ${errorCount} error(s)`,
+      diagnostics: importResult.diagnostics,
+      filesWritten: 0,
+      eventsProcessed: readResult.eventsProcessed,
+    };
   }
 
   const outDir = resolve(outputDir ?? dirname(domainDir));
   const filesWritten = writeOutputFiles(importer, siftInput, outDir);
   writeFingerprint(siftInput, importResult, domainDir, outDir);
 
-  return buildResult(importResult, filesWritten, readResult.eventsProcessed, readResult.filesRead, asJson);
+  return buildResult(
+    importResult,
+    filesWritten,
+    readResult.eventsProcessed,
+    readResult.filesRead,
+    asJson,
+  );
 }
 
 function sanitizeFileName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-function assertPathWithin(filePath: string, baseDir: string): void {
-  if (!resolve(filePath).startsWith(resolve(baseDir))) {
-    throw new Error(`Path traversal detected: ${filePath} escapes ${baseDir}`);
-  }
-}
-
-function writeOutputFiles(importer: SiftSpecificationImporter, input: SiftImportInput, outDir: string): number {
+function writeOutputFiles(
+  importer: SiftSpecificationImporter,
+  input: SiftImportInput,
+  outDir: string,
+): number {
   let count = 0;
   const momentDir = join(outDir, '.moment');
 
@@ -121,7 +139,9 @@ function writeFingerprint(
   // Idempotent: skip write if content unchanged (EXIT-C4)
   if (existsSync(fpPath)) {
     try {
-      const existing = JSON.parse(readFileSync(fpPath, 'utf-8')) as { sift?: { contentHash?: string } };
+      const existing = JSON.parse(readFileSync(fpPath, 'utf-8')) as {
+        sift?: { contentHash?: string };
+      };
       if (existing.sift?.contentHash === contentHash) return;
     } catch {
       // Unreadable — overwrite
@@ -145,7 +165,9 @@ function writeFingerprint(
 
 function computeDomainHash(domainDir: string): string {
   const { readdirSync } = require('node:fs') as typeof import('node:fs');
-  const files = readdirSync(domainDir).filter((f: string) => f.endsWith('.jsonl')).sort();
+  const files = readdirSync(domainDir)
+    .filter((f: string) => f.endsWith('.jsonl'))
+    .sort();
   const hash = createHash('sha256');
   for (const file of files) {
     hash.update(readFileSync(join(domainDir, file), 'utf-8'));
@@ -158,8 +180,10 @@ function countAggregates(input: SiftImportInput): number {
 }
 
 function countDomainEvents(input: SiftImportInput): number {
-  return input.buildingBlocks.reduce((sum, b) =>
-    sum + b.aggregates.reduce((s, a) => s + a.events.length, 0), 0);
+  return input.buildingBlocks.reduce(
+    (sum, b) => sum + b.aggregates.reduce((s, a) => s + a.events.length, 0),
+    0,
+  );
 }
 
 function buildResult(
@@ -179,7 +203,14 @@ function buildResult(
 
   if (asJson) {
     const json = JSON.stringify(summary, null, 2);
-    return { success: true, message: json, diagnostics: importResult.diagnostics, filesWritten, eventsProcessed, json };
+    return {
+      success: true,
+      message: json,
+      diagnostics: importResult.diagnostics,
+      filesWritten,
+      eventsProcessed,
+      json,
+    };
   }
 
   return {

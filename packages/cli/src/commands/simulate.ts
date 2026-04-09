@@ -10,7 +10,7 @@
  * --flow <name>: filter to a specific flow
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
@@ -27,6 +27,7 @@ import {
 import type { SimulationScenario } from '@mmmnt/derive';
 import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { updateManifestFromIr } from './update-manifest.js';
+import { assertPathWithin } from './project-fs.js';
 
 export interface SimulateCommandResult {
   readonly success: boolean;
@@ -110,6 +111,25 @@ interface ManifestScenario {
   isNegative: boolean;
 }
 
+/**
+ * Write a file into `baseDir`, guarding against path traversal.
+ *
+ * The filename may include user-controlled substrings. Concretely, scenario
+ * files are written as `${scenario.scenarioId}.json` where `scenarioId` is
+ * built by the derive package as `scenario-${flow.id}` and `flow.id` is
+ * `flow-${flow.name}`. `flow.name` is a langium STRING with no character
+ * restrictions, so a `.moment` file declaring `flow "../../etc/evil"`
+ * produces a filename containing `../` segments that `path.join` would
+ * normalize through, escaping `baseDir`. `assertPathWithin` rejects any
+ * resolved target that falls outside the directory using a path-separator
+ * boundary check (so `/base-sibling` can't masquerade as inside `/base`).
+ */
+function writeSafe(baseDir: string, filename: string, content: string): void {
+  const fullPath = join(baseDir, filename);
+  assertPathWithin(fullPath, baseDir);
+  writeFileSync(fullPath, content, 'utf-8');
+}
+
 function writeOutputFiles(
   groups: FlowScenarioGroup[],
   ir: IntermediateRepresentation,
@@ -126,20 +146,19 @@ function writeOutputFiles(
   for (const group of groups) {
     const flowSlug = kebab(group.flow.name);
 
-    // Write topology for this flow
+    // Write topology for this flow. flowSlug is kebab-sanitized so traversal
+    // is impossible here, but writeSafe is used uniformly for consistency.
     const topology = topoEmitter.emit(ir, group.flow);
     const topologyFile = `topology-${flowSlug}.json`;
-    writeFileSync(
-      join(resolvedDir, topologyFile),
-      JSON.stringify(topology, null, 2) + '\n',
-      'utf-8',
-    );
+    writeSafe(resolvedDir, topologyFile, JSON.stringify(topology, null, 2) + '\n');
 
-    // Write each scenario
+    // Write each scenario. scenarioId is NOT kebab-sanitized and may contain
+    // raw user content via flow.name → flow.id → `scenario-${flow.id}`, so
+    // writeSafe's path-traversal guard is load-bearing here.
     const manifestScenarios: ManifestScenario[] = [];
     for (const scenario of group.scenarios) {
       const fileName = `${scenario.scenarioId}.json`;
-      writeFileSync(join(resolvedDir, fileName), JSON.stringify(scenario, null, 2) + '\n', 'utf-8');
+      writeSafe(resolvedDir, fileName, JSON.stringify(scenario, null, 2) + '\n');
       totalScenarios++;
       totalEvents += scenario.events.length;
 
@@ -167,12 +186,11 @@ function writeOutputFiles(
   // Write spec-level artifacts (ADR-029 §3)
   const artifacts = writeArtifacts(ir, resolvedDir);
 
+  // Manifest filename is hardcoded, so path traversal is impossible, but
+  // keep writeSafe uniform so future refactors don't accidentally introduce
+  // a writeFileSync that forgets the guard.
   const manifest = { flows: manifestFlows, artifacts };
-  writeFileSync(
-    join(resolvedDir, 'manifest.json'),
-    JSON.stringify(manifest, null, 2) + '\n',
-    'utf-8',
-  );
+  writeSafe(resolvedDir, 'manifest.json', JSON.stringify(manifest, null, 2) + '\n');
 
   return {
     success: true,
@@ -186,27 +204,19 @@ function writeArtifacts(ir: IntermediateRepresentation, outDir: string): Record<
 
   const catalog = generateEventCatalog(ir);
   files.eventCatalog = 'event-catalog.json';
-  writeFileSync(join(outDir, files.eventCatalog), JSON.stringify(catalog, null, 2) + '\n', 'utf-8');
+  writeSafe(outDir, files.eventCatalog, JSON.stringify(catalog, null, 2) + '\n');
 
   const impact = generateImpactAnalysis(ir);
   files.impactAnalysis = 'impact-analysis.json';
-  writeFileSync(
-    join(outDir, files.impactAnalysis),
-    JSON.stringify(impact, null, 2) + '\n',
-    'utf-8',
-  );
+  writeSafe(outDir, files.impactAnalysis, JSON.stringify(impact, null, 2) + '\n');
 
   const sagas = generateSagaStateMachines(ir);
   files.sagaStateMachines = 'saga-state-machines.json';
-  writeFileSync(
-    join(outDir, files.sagaStateMachines),
-    JSON.stringify(sagas, null, 2) + '\n',
-    'utf-8',
-  );
+  writeSafe(outDir, files.sagaStateMachines, JSON.stringify(sagas, null, 2) + '\n');
 
   const asyncapi = generateAsyncApiSpec(ir);
   files.asyncApi = 'asyncapi.yaml';
-  writeFileSync(join(outDir, files.asyncApi), asyncapi, 'utf-8');
+  writeSafe(outDir, files.asyncApi, asyncapi);
 
   return files;
 }
@@ -216,6 +226,33 @@ function kebab(s: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+}
+
+/**
+ * Run simulate in --out-dir mode. Builds the scenario groups and delegates
+ * to writeOutputFiles, catching any path-traversal error from assertPathWithin
+ * so the CLI returns a structured failure instead of crashing with an
+ * unhandled stack trace.
+ */
+function runOutDirWrite(
+  flows: FlowDefinition[],
+  ir: IntermediateRepresentation,
+  outDir: string,
+  includeAll: boolean,
+): SimulateCommandResult {
+  const groups: FlowScenarioGroup[] = flows.map((flow) => ({
+    flow,
+    scenarios: includeAll
+      ? [...generateAllScenarios(ir, flow), ...deriveNegativeScenarios(ir, flow)]
+      : [generateSimulationScenario(ir, flow)],
+  }));
+
+  try {
+    return writeOutputFiles(groups, ir, outDir);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return fail(msg);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -272,13 +309,7 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
   const outDir = values['out-dir'];
 
   if (outDir) {
-    const groups: FlowScenarioGroup[] = targetFlows.map((flow) => ({
-      flow,
-      scenarios: values.all
-        ? [...generateAllScenarios(ir, flow), ...deriveNegativeScenarios(ir, flow)]
-        : [generateSimulationScenario(ir, flow)],
-    }));
-    return writeOutputFiles(groups, ir, outDir);
+    return runOutDirWrite(targetFlows, ir, outDir, values.all === true);
   }
 
   const scenarios: SimulationScenario[] = values.all
