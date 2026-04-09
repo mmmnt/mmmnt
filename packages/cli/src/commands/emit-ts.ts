@@ -11,6 +11,7 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { updateManifestFromIr } from './update-manifest.js';
+import { resolveOutputBaseDir, writeOutputFiles } from './project-fs.js';
 import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
@@ -24,6 +25,8 @@ export interface EmitTsCommandResult {
   readonly scaffoldFileCount?: number;
   readonly dryRun?: boolean;
   readonly fileList?: readonly string[];
+  readonly outDir?: string;
+  readonly filesWritten?: readonly string[];
 }
 
 const EMPTY: readonly Diagnostic[] = [];
@@ -44,13 +47,16 @@ function readFile(path: string): string | EmitTsCommandResult {
 export async function runEmitTs(argv: string[]): Promise<EmitTsCommandResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { 'dry-run': { type: 'boolean' } },
+    options: {
+      'dry-run': { type: 'boolean' },
+      out: { type: 'string', short: 'o' },
+    },
     allowPositionals: true,
     strict: false,
   });
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment emit-ts <file.moment>');
+  if (!filePath) return fail('Usage: moment emit-ts <file.moment> [--dry-run] [--out <dir>]');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
@@ -98,11 +104,26 @@ export async function runEmitTs(argv: string[]): Promise<EmitTsCommandResult> {
     };
   }
 
+  const outDir = resolveOutputBaseDir(
+    resolvedPath,
+    typeof values.out === 'string' ? values.out : undefined,
+  );
+
+  const combined = new Map<string, string>();
+  for (const [path, content] of tsOutput.files) combined.set(path, content);
+  for (const [path, content] of scaffoldOutput.files) combined.set(path, content);
+
+  const filesWritten = writeOutputFiles(combined, outDir);
+
   return {
     success: true,
-    message: `Emitted: ${tsFileCount} TypeScript file(s), ${scaffoldFileCount} scaffold file(s)`,
+    message:
+      `Emitted: ${tsFileCount} TypeScript file(s), ${scaffoldFileCount} scaffold file(s)\n` +
+      `Wrote ${filesWritten.length} file(s) to ${outDir}`,
     diagnostics: EMPTY,
     tsFileCount,
     scaffoldFileCount,
+    outDir,
+    filesWritten,
   };
 }

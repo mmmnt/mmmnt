@@ -11,6 +11,7 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { updateManifestFromIr } from './update-manifest.js';
+import { resolveOutputBaseDir, writeOutputFiles } from './project-fs.js';
 import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator, SpecificationDocumentGenerator } from '@mmmnt/generate';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
@@ -24,6 +25,8 @@ export interface GenerateCommandResult {
   readonly featureCount?: number;
   readonly specCount?: number;
   readonly docCount?: number;
+  readonly outDir?: string;
+  readonly filesWritten?: readonly string[];
 }
 
 const EMPTY: readonly Diagnostic[] = [];
@@ -42,15 +45,17 @@ function readFile(path: string): string | GenerateCommandResult {
 }
 
 export async function runGenerate(argv: string[]): Promise<GenerateCommandResult> {
-  const { positionals } = parseArgs({
+  const { values, positionals } = parseArgs({
     args: argv,
-    options: {},
+    options: {
+      out: { type: 'string', short: 'o' },
+    },
     allowPositionals: true,
     strict: false,
   });
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment generate <file.moment>');
+  if (!filePath) return fail('Usage: moment generate <file.moment> [--out <dir>]');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
@@ -85,8 +90,26 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
 
   const gherkinManifest = gherkinGen.generate(ir, topology);
   const docs = docGen.generate(ir);
-  tsEmitter.emit(ir, { scope: { level: 'system' } });
+  const tsOutput = tsEmitter.emit(ir, { scope: { level: 'system' } });
   const scaffoldOutput = scaffoldEmitter.emit(ir, topology);
+
+  // Step 4: Write everything to disk
+  const outDir = resolveOutputBaseDir(
+    resolvedPath,
+    typeof values.out === 'string' ? values.out : undefined,
+  );
+
+  const allFiles = new Map<string, string>();
+  for (const [path, content] of tsOutput.files) allFiles.set(path, content);
+  for (const [path, content] of scaffoldOutput.files) allFiles.set(path, content);
+  for (const feature of gherkinManifest.featuresGenerated) {
+    allFiles.set(feature.filePath, feature.content);
+  }
+  for (const doc of docs) {
+    allFiles.set(doc.filePath, doc.content);
+  }
+
+  const filesWritten = writeOutputFiles(allFiles, outDir);
 
   const featureCount = gherkinManifest.featuresGenerated.length;
   const docCount = docs.length;
@@ -94,10 +117,14 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
 
   return {
     success: true,
-    message: `Generated: ${featureCount} .feature file(s), ${specCount} .spec.ts file(s), ${docCount} document(s)`,
+    message:
+      `Generated: ${featureCount} .feature file(s), ${specCount} .spec.ts file(s), ${docCount} document(s)\n` +
+      `Wrote ${filesWritten.length} file(s) to ${outDir}`,
     diagnostics: EMPTY,
     featureCount,
     specCount,
     docCount,
+    outDir,
+    filesWritten,
   };
 }
