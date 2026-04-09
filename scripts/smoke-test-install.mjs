@@ -34,18 +34,20 @@
  *      happens to be on npmjs).
  *   3. `npm install` inside the consumer dir.
  *   4. Smoke-test the CLI binary end-to-end:
- *        - `moment` (no args) → prints usage
+ *        - Verify `node_modules/.bin/moment` and `node_modules/.bin/mcp`
+ *          exist as real files (bin links resolved correctly)
  *        - `moment init --dir <proj> --name smoke` → writes .manifest.yaml
  *          and .moment/contexts + flows dirs
  *        - Copy a valid fixture .moment into the project
  *        - `moment parse <file>` → parses successfully
- *        - `moment generate --out <out> <file>` → writes TS, specs,
- *          features, docs to disk (this is the disk-write fix #136)
- *        - `moment emit-ts --out <out> <file>` → writes TS + scaffolds
+ *        - `moment generate --out <out> <file>` → writes features +
+ *          specification.md to disk (this is the disk-write fix #136)
+ *        - `moment emit-ts --out <out> <file>` → writes src/ + __tests__/
  *        - `moment simulate --out-dir <out> --all <file>` → writes
- *          topology + scenarios + manifest.json
- *        - `moment serve <facet-dir>` → starts, binds port, serves the
- *          baked directory (the #139 feature)
+ *          topology + scenarios + manifest.json + event-catalog.json
+ *        - `moment serve <facet-dir>` → starts, binds an ephemeral port,
+ *          prints its ready banner; verified by spawn-with-timeout (the
+ *          #139 feature)
  *      Each step asserts the expected files exist on disk afterward.
  *   5. Smoke-test every library package by dynamic `import()` — verifies
  *      the published main/exports path resolves and at least one symbol
@@ -76,6 +78,7 @@ import {
   mkdirSync,
 } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -83,18 +86,57 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const KEEP = process.argv.includes('--keep') || process.env.KEEP_SMOKE_DIR === '1';
 
-const LIBRARY_PACKAGES = [
-  '@mmmnt/core',
-  '@mmmnt/derive',
-  '@mmmnt/emit-ts',
-  '@mmmnt/generate',
-  '@mmmnt/harness',
-  '@mmmnt/schema',
-  '@mmmnt/sync',
-  '@mmmnt/viz',
-];
+/** Read a package.json and return its parsed contents, or null if unreadable. */
+function readPackageJson(pkgDir) {
+  const pkgJsonPath = resolve(pkgDir, 'package.json');
+  if (!existsSync(pkgJsonPath)) return null;
+  try {
+    return JSON.parse(readFileSync(pkgJsonPath, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
 
-const BIN_PACKAGES = ['@mmmnt/cli', '@mmmnt/mcp'];
+/** True if the given pkg should be included in the smoke test (publishable @mmmnt/*). */
+function isSmokeablePackage(pkg) {
+  if (!pkg || pkg.private === true) return false;
+  if (typeof pkg.name !== 'string' || !pkg.name.startsWith('@mmmnt/')) return false;
+  return true;
+}
+
+/** Classify a pkg as 'bin' (has bin entry), 'library' (has main/module/exports), or null. */
+function classifyPackage(pkg) {
+  if (pkg.bin && Object.keys(pkg.bin).length > 0) return 'bin';
+  if (pkg.main || pkg.module || pkg.exports) return 'library';
+  return null;
+}
+
+/**
+ * Discover publishable @mmmnt/* packages by scanning packages/*\/package.json
+ * rather than hard-coding a list. Classifies each into "library" (installed
+ * and imported by consumers) or "bin" (installed and executed).
+ *
+ * Avoids the maintenance hazard where a new package silently escapes the
+ * smoke test because someone added it to packages/ but forgot to update
+ * a constant in this file.
+ */
+function discoverPackages() {
+  const packagesDir = resolve(ROOT, 'packages');
+  const libs = [];
+  const bins = [];
+  for (const entry of readdirSync(packagesDir).sort()) {
+    const pkgDir = resolve(packagesDir, entry);
+    if (!statSync(pkgDir).isDirectory()) continue;
+    const pkg = readPackageJson(pkgDir);
+    if (!isSmokeablePackage(pkg)) continue;
+    const kind = classifyPackage(pkg);
+    if (kind === 'bin') bins.push(pkg.name);
+    else if (kind === 'library') libs.push(pkg.name);
+  }
+  return { libs, bins };
+}
+
+const { libs: LIBRARY_PACKAGES, bins: BIN_PACKAGES } = discoverPackages();
 const ALL_PACKAGES = [...LIBRARY_PACKAGES, ...BIN_PACKAGES];
 
 // Vet clinic has multiple contexts + flows + sagas + policies + crossings,
@@ -271,16 +313,49 @@ function smokeSimulate(momentBin, projectSpec, consumerDir) {
 }
 
 /**
+ * Allocate a free ephemeral TCP port by binding a server to port 0,
+ * reading the assigned port, and closing. Avoids hardcoding a port that
+ * might already be in use on the CI runner.
+ */
+function allocateEphemeralPort() {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', rejectPromise);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address !== 'object') {
+        rejectPromise(new Error('listener returned a non-object address'));
+        return;
+      }
+      const { port } = address;
+      server.close(() => resolvePromise(port));
+    });
+  });
+}
+
+/**
  * Start `moment serve <facet-dir>` and verify it printed its ready banner.
  *
- * We use spawnSync with a timeout because the serve command is a long-running
- * process with no exit path. The timeout fires, the process dies, and we
- * check that (a) the only reason it died was the timeout (not a crash) and
- * (b) the banner made it to stdout before the timeout. That's sufficient
- * to smoke-test startup without needing an async port probe.
+ * The serve command is a long-running process with no exit path, so we use
+ * spawnSync with a timeout. The success criteria are BOTH of:
+ *
+ *   (1) the process was killed BY the timeout rather than exiting on its own,
+ *       proven by `serveProcess.error?.code === 'ETIMEDOUT'`. spawnSync only
+ *       populates `error` on launch failures or signal-kills — a clean early
+ *       exit (even with status 0) leaves `error` undefined, which we want to
+ *       fail on.
+ *   (2) the ready banner for the allocated port is present in the captured
+ *       output (the process got past parse → derive → payload hydration →
+ *       WS server bind before we killed it).
+ *
+ * Without the ETIMEDOUT assertion, a quick crash or early-return error that
+ * happened to print the banner first could pass. With it, the only passing
+ * shape is "serve started cleanly, printed the banner, and was still running
+ * when we killed it".
  */
-function smokeServe(momentBin, facetDir, consumerDir) {
-  const servePort = 4444;
+async function smokeServe(momentBin, facetDir, consumerDir) {
+  const servePort = await allocateEphemeralPort();
   log(`starting moment serve ${facetDir} --port ${servePort} (background)`);
   const serveProcess = spawnSync(momentBin, ['serve', facetDir, '--port', String(servePort)], {
     cwd: consumerDir,
@@ -288,11 +363,16 @@ function smokeServe(momentBin, facetDir, consumerDir) {
     timeout: 10000,
     detached: false,
   });
-  if (serveProcess.error && serveProcess.error.code !== 'ETIMEDOUT') {
-    fail(`moment serve crashed: ${serveProcess.error.message}`);
-  }
   const serveOutput =
     (serveProcess.stdout?.toString() ?? '') + (serveProcess.stderr?.toString() ?? '');
+
+  if (serveProcess.error?.code !== 'ETIMEDOUT') {
+    const detail = serveProcess.error
+      ? `error: ${serveProcess.error.message}`
+      : `exited early with status ${serveProcess.status}`;
+    fail(`moment serve did not run until the timeout — ${detail}\nOutput:\n${serveOutput}`);
+  }
+
   if (!serveOutput.includes(`ws://localhost:${servePort}`)) {
     fail(`moment serve never printed its ready banner. Output:\n${serveOutput}`);
   }
@@ -353,7 +433,7 @@ async function main() {
     smokeGenerate(momentBin, projectSpec, consumer);
     smokeEmitTs(momentBin, projectSpec, consumer);
     const facetDir = smokeSimulate(momentBin, projectSpec, consumer);
-    smokeServe(momentBin, facetDir, consumer);
+    await smokeServe(momentBin, facetDir, consumer);
     smokeLibraryImports(consumer);
 
     log('');
