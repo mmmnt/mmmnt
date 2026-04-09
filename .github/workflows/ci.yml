@@ -42,6 +42,16 @@ jobs:
       - name: Lint
         run: pnpm turbo lint
 
+      # Fail fast if any library package imports a module that isn't declared
+      # in its dependencies/peerDependencies. Catches the class of bug that
+      # shipped in @mmmnt/core@0.1.1 — `langium` was only in devDependencies,
+      # so consumers running `npm install @mmmnt/core` couldn't resolve it
+      # and every command that parsed a .moment file crashed. Workspace tests
+      # didn't catch it because pnpm's hoisted workspace resolves devDeps too.
+      # Static analysis of package.json ↔ source imports, ~1s to run.
+      - name: Runtime dependency audit
+        run: pnpm audit:deps
+
       - name: Build
         run: |
           if [ "${{ matrix.node-version }}" = "20" ]; then
