@@ -57,33 +57,42 @@ jobs:
           set -euo pipefail
 
           HEAD_SHA=$(git rev-parse --short HEAD)
-          HEAD_MSG=$(git log -1 --pretty=%s)
+          HEAD_SUBJECT=$(git log -1 --pretty=%s)
+          HEAD_BODY=$(git log -1 --pretty=%b)
 
           echo "Head SHA:     $HEAD_SHA"
-          echo "Head subject: $HEAD_MSG"
+          echo "Head subject: $HEAD_SUBJECT"
 
           # Skip the version-packages release commit itself.
-          if [[ "$HEAD_MSG" == "chore: version packages"* ]]; then
+          if [[ "$HEAD_SUBJECT" == "chore: version packages"* ]]; then
             echo "Version-packages commit; nothing to changeset."
             exit 0
           fi
 
           # Skip auto-changeset commits to avoid runaway loops.
-          if [[ "$HEAD_MSG" == "chore: auto-changeset"* ]]; then
+          if [[ "$HEAD_SUBJECT" == "chore: auto-changeset"* ]]; then
             echo "Auto-changeset commit; skipping."
             exit 0
           fi
 
           # Conventional commit → bump level mapping.
-          # `feat!:`, `fix!:`, etc. or `BREAKING CHANGE` → major
-          # `feat:`                                      → minor
-          # `fix:`, `perf:`, `refactor:`                 → patch
-          # everything else                              → no changeset
-          if echo "$HEAD_MSG" | grep -qE '^(feat|fix|perf|refactor)(\([^)]+\))?!:|BREAKING CHANGE'; then
+          # The `!` marker on the subject OR a `BREAKING CHANGE` footer in the
+          # body produces a major bump. Subject is matched for the type/scope;
+          # body is searched for the breaking-change footer per the spec
+          # (https://www.conventionalcommits.org/#specification).
+          #
+          # `feat!:`, `fix!:`, etc. on subject  → major
+          # `BREAKING CHANGE:` in body          → major
+          # `feat:`                             → minor
+          # `fix:`, `perf:`, `refactor:`        → patch
+          # everything else                    → no changeset
+          if echo "$HEAD_SUBJECT" | grep -qE '^(feat|fix|perf|refactor)(\([^)]+\))?!:'; then
             BUMP=major
-          elif echo "$HEAD_MSG" | grep -qE '^feat(\([^)]+\))?:'; then
+          elif echo "$HEAD_BODY" | grep -qE '^BREAKING[ -]CHANGE:'; then
+            BUMP=major
+          elif echo "$HEAD_SUBJECT" | grep -qE '^feat(\([^)]+\))?:'; then
             BUMP=minor
-          elif echo "$HEAD_MSG" | grep -qE '^(fix|perf|refactor)(\([^)]+\))?:'; then
+          elif echo "$HEAD_SUBJECT" | grep -qE '^(fix|perf|refactor)(\([^)]+\))?:'; then
             BUMP=patch
           else
             echo "Not a releasable conventional-commit type; no changeset generated."
@@ -102,7 +111,7 @@ jobs:
             echo "'@mmmnt/cli': $BUMP"
             echo '---'
             echo
-            echo "${HEAD_MSG}"
+            echo "${HEAD_SUBJECT}"
           } > "$CHANGESET_FILE"
 
           echo "Wrote ${CHANGESET_FILE}:"
@@ -115,12 +124,20 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$CHANGESET_FILE"
-          git commit -m "chore: auto-changeset for ${HEAD_SHA} [skip ci]"
 
-          if git push origin "HEAD:${{ github.event.workflow_run.head_branch }}"; then
-            echo "Pushed auto-changeset back to ${{ github.event.workflow_run.head_branch }}."
+          # Guard against re-runs on the same SHA (or identical staged content):
+          # `git commit` exits non-zero on "nothing to commit", which would fail
+          # the whole job under `set -e`.
+          if git diff --cached --quiet; then
+            echo "No staged changes for ${CHANGESET_FILE}; skipping commit and push."
           else
-            echo "::warning::Could not push auto-changeset back to main (branch protection?). The changeset still exists in the working tree and will be consumed by changesets/action in this run."
+            git commit -m "chore: auto-changeset for ${HEAD_SHA} [skip ci]"
+
+            if git push origin "HEAD:${{ github.event.workflow_run.head_branch }}"; then
+              echo "Pushed auto-changeset back to ${{ github.event.workflow_run.head_branch }}."
+            else
+              echo "::warning::Could not push auto-changeset back to main (branch protection?). The changeset still exists in the working tree and will be consumed by changesets/action in this run."
+            fi
           fi
 
       - name: Create Release PR or Publish
