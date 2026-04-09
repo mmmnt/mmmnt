@@ -1,12 +1,16 @@
 name: Release
 
+# Triggered automatically when CI completes on main. The release job only
+# runs when CI succeeded, so a broken merge cannot ship.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: true
+  group: release-main
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -15,10 +19,15 @@ permissions:
 
 jobs:
   release:
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout (head SHA from triggering CI run)
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -38,6 +47,82 @@ jobs:
         env:
           GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
 
+      # Auto-generate a changeset from the merge commit's conventional title
+      # so devs do not have to remember `pnpm changeset` per PR. The file is
+      # written into the working tree (and best-effort committed back to main
+      # so subsequent runs can see it). The next step consumes it.
+      - name: Auto-generate changeset from merge commit
+        id: auto_changeset
+        run: |
+          set -euo pipefail
+
+          HEAD_SHA=$(git rev-parse --short HEAD)
+          HEAD_MSG=$(git log -1 --pretty=%s)
+
+          echo "Head SHA:     $HEAD_SHA"
+          echo "Head subject: $HEAD_MSG"
+
+          # Skip the version-packages release commit itself.
+          if [[ "$HEAD_MSG" == "chore: version packages"* ]]; then
+            echo "Version-packages commit; nothing to changeset."
+            exit 0
+          fi
+
+          # Skip auto-changeset commits to avoid runaway loops.
+          if [[ "$HEAD_MSG" == "chore: auto-changeset"* ]]; then
+            echo "Auto-changeset commit; skipping."
+            exit 0
+          fi
+
+          # Conventional commit → bump level mapping.
+          # `feat!:`, `fix!:`, etc. or `BREAKING CHANGE` → major
+          # `feat:`                                      → minor
+          # `fix:`, `perf:`, `refactor:`                 → patch
+          # everything else                              → no changeset
+          if echo "$HEAD_MSG" | grep -qE '^(feat|fix|perf|refactor)(\([^)]+\))?!:|BREAKING CHANGE'; then
+            BUMP=major
+          elif echo "$HEAD_MSG" | grep -qE '^feat(\([^)]+\))?:'; then
+            BUMP=minor
+          elif echo "$HEAD_MSG" | grep -qE '^(fix|perf|refactor)(\([^)]+\))?:'; then
+            BUMP=patch
+          else
+            echo "Not a releasable conventional-commit type; no changeset generated."
+            exit 0
+          fi
+
+          echo "Bump level: $BUMP"
+
+          mkdir -p .changeset
+          CHANGESET_FILE=".changeset/auto-${HEAD_SHA}.md"
+
+          # `fixed` group in .changeset/config.json bumps every package together,
+          # so naming a single package is enough.
+          {
+            echo '---'
+            echo "'@mmmnt/cli': $BUMP"
+            echo '---'
+            echo
+            echo "${HEAD_MSG}"
+          } > "$CHANGESET_FILE"
+
+          echo "Wrote ${CHANGESET_FILE}:"
+          cat "$CHANGESET_FILE"
+
+          # Best-effort: commit the changeset back to main so the next release
+          # run sees it even if the changesets action's version PR is delayed.
+          # `[skip ci]` prevents CI from re-running, which also means
+          # `workflow_run` will not retrigger this workflow.
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$CHANGESET_FILE"
+          git commit -m "chore: auto-changeset for ${HEAD_SHA} [skip ci]"
+
+          if git push origin "HEAD:${{ github.event.workflow_run.head_branch }}"; then
+            echo "Pushed auto-changeset back to ${{ github.event.workflow_run.head_branch }}."
+          else
+            echo "::warning::Could not push auto-changeset back to main (branch protection?). The changeset still exists in the working tree and will be consumed by changesets/action in this run."
+          fi
+
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
@@ -51,7 +136,9 @@ jobs:
 
   discord-notify:
     runs-on: ubuntu-latest
-    if: always()
+    # Don't notify if release was skipped because CI failed — the CI workflow
+    # already announces its own failure on main.
+    if: always() && needs.release.result != 'skipped'
     needs: [release]
     steps:
       - name: Notify Discord
