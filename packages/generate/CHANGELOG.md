@@ -1,5 +1,25 @@
 # @mmmnt/generate
 
+## 0.2.0
+
+### Minor Changes
+
+- 6e7d6ed: **feat(generate): Cucumber JSON formatter and `moment cucumber-json` command**
+
+  Adds a Cucumber JSON formatter to `@mmmnt/generate` and a corresponding
+  `moment cucumber-json <file.moment>` CLI command. Output is suitable for
+  import into Xray (Jira test management) via the
+  `/import/execution/cucumber` endpoint, enabling Moment-derived BDD scenarios
+  to flow directly into existing test management workflows.
+
+### Patch Changes
+
+- Updated dependencies [6e7d6ed]
+- Updated dependencies [6e7d6ed]
+- Updated dependencies [6e7d6ed]
+  - @mmmnt/core@0.2.0
+  - @mmmnt/derive@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
