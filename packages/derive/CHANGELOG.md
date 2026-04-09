@@ -1,5 +1,36 @@
 # @mmmnt/derive
 
+## 0.2.0
+
+### Minor Changes
+
+- 6e7d6ed: **feat(cli/derive): `moment simulate` redesign — `--all`, per-scenario files, ADR-029 artifacts**
+
+  Substantial reshape of the simulate command and its derivation pipeline:
+  - **`--all` flag** generates every branch combination plus negative
+    (precondition-violation) scenarios in a single run.
+  - **Per-scenario file output** under `--out-dir`: each scenario lands in its
+    own `<scenarioId>.json` instead of being lumped into one file. A
+    `manifest.json` indexes the run.
+  - **`TopologyEmitter`** writes per-flow `topology-<flow>.json` files alongside
+    the scenarios.
+  - **ADR-029 artifacts**: `event-catalog.json`, `impact-analysis.json`,
+    `saga-state-machines.json`, and `asyncapi.yaml` are emitted into the same
+    `--out-dir` so downstream consumers (Facet, Xray, AsyncAPI tooling) get a
+    complete bundle from one command.
+  - **Trailing newline** on all generated JSON for prettier/git-friendly diffs.
+
+### Patch Changes
+
+- 6e7d6ed: **fix(derive): topology routing and saga state machine output**
+  - Align scenario node IDs with the topology's node ID scheme so cross-references
+    resolve correctly when consumers join scenarios to topology nodes.
+  - Fix topology routing so connections traverse the correct edges, and correct
+    the saga state machine emitter output shape.
+
+- Updated dependencies [6e7d6ed]
+  - @mmmnt/core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

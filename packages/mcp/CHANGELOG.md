@@ -1,5 +1,21 @@
 # @mmmnt/mcp
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [6e7d6ed]
+- Updated dependencies [6e7d6ed]
+- Updated dependencies [6e7d6ed]
+- Updated dependencies [6e7d6ed]
+  - @mmmnt/core@0.2.0
+  - @mmmnt/generate@0.2.0
+  - @mmmnt/derive@0.2.0
+  - @mmmnt/emit-ts@0.2.0
+  - @mmmnt/schema@0.2.0
+  - @mmmnt/viz@0.2.0
+  - @mmmnt/sync@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
