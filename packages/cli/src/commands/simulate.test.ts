@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runSimulate } from './simulate.js';
 
@@ -58,18 +58,29 @@ describe('moment simulate path-traversal guard', () => {
   });
 
   it('rejects a flow name crafted to escape --out-dir via ../', async () => {
-    // Enough `../` segments to climb above the tmpdir's workDir and out/
-    // subdir. The first `scenario-flow-..` directory absorbs one `..` during
-    // path.join normalization, so you need N+2 `..` to escape by N levels.
-    const specPath = writeSpec('"../../../../../../../../../tmp/pwned-by-simulate-test"');
+    // Craft a flow name that escapes exactly one level out of outDir into
+    // the test workDir. The first `scenario-flow-..` directory segment
+    // absorbs one `..` during path.join normalization, so THREE `..`
+    // segments climb: one to cancel scenario-flow-.., one to climb out of
+    // outDir's parent (workDir/out → workDir), one more kept by the path
+    // renderer. Then 'escaped/sentinel.json' lands at
+    // <workDir>/escaped/sentinel.json — outside outDir but inside the
+    // temp workspace so the test is hermetic and cross-platform.
+    const specPath = writeSpec('"../../../escaped/sentinel"');
     const outDir = join(workDir, 'out');
+    // This is the path the exploit would write to if the guard were
+    // absent. It's derived from workDir so tests don't collide across
+    // runners or touch any global filesystem state.
+    const escapeTarget = join(workDir, 'escaped', 'sentinel.json');
 
     const result = await runSimulate([specPath, '--all', '--out-dir', outDir]);
 
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/Path traversal detected/);
-    // And crucially: no file was written outside outDir.
-    expect(existsSync(resolve('/tmp/pwned-by-simulate-test.json'))).toBe(false);
+    // Crucial assertion: nothing was written at the escape path.
+    expect(existsSync(escapeTarget)).toBe(false);
+    // And no `escaped/` sibling directory was created next to outDir.
+    expect(existsSync(join(workDir, 'escaped'))).toBe(false);
   });
 
   // NOTE: absolute paths in flow names are NOT a traversal vector via this

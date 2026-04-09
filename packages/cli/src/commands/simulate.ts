@@ -114,11 +114,14 @@ interface ManifestScenario {
 /**
  * Write a file into `baseDir`, guarding against path traversal.
  *
- * The filename may include user-controlled substrings (e.g. `scenario-${scenarioId}.json`
- * where scenarioId is derived from `flow.id` which is `flow-${flow.name}` and flow.name
- * is a langium STRING — arbitrary content). Without this guard, a `.moment` file
- * declaring `flow "../../etc/evil"` would write outside `baseDir`. `assertPathWithin`
- * rejects any resolved target that falls outside the directory using a path-separator
+ * The filename may include user-controlled substrings. Concretely, scenario
+ * files are written as `${scenario.scenarioId}.json` where `scenarioId` is
+ * built by the derive package as `scenario-${flow.id}` and `flow.id` is
+ * `flow-${flow.name}`. `flow.name` is a langium STRING with no character
+ * restrictions, so a `.moment` file declaring `flow "../../etc/evil"`
+ * produces a filename containing `../` segments that `path.join` would
+ * normalize through, escaping `baseDir`. `assertPathWithin` rejects any
+ * resolved target that falls outside the directory using a path-separator
  * boundary check (so `/base-sibling` can't masquerade as inside `/base`).
  */
 function writeSafe(baseDir: string, filename: string, content: string): void {
