@@ -22,12 +22,29 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
+      # Generate a short-lived installation token for the mmmnt-release
+      # GitHub App. We use this (instead of the default GITHUB_TOKEN) as the
+      # auth identity for `changesets/action`'s branch push and PR open, so
+      # the resulting version-packages PR gets CI runs. Bot-authored pushes
+      # via GITHUB_TOKEN don't trigger other workflows (GitHub anti-loop
+      # protection), which is what previously blocked the version PR on
+      # required status checks. See mmmnt/mmmnt#140.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout (head SHA from triggering CI run)
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Using the app token here means subsequent `git push` operations
+          # (e.g. the auto-changeset step pushing back to main) authenticate
+          # as the app, matching the changesets/action step below.
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
@@ -148,7 +165,12 @@ jobs:
           title: 'chore: version packages'
           commit: 'chore: version packages'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # App token (not secrets.GITHUB_TOKEN) so the version-packages PR
+          # is authored by the mmmnt-release app. GitHub cascades workflow
+          # runs for app-authored pushes; it suppresses cascades for pushes
+          # authored via the default GITHUB_TOKEN. This is why the previous
+          # version PR (mmmnt/mmmnt#140) got stuck with no CI runs.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_CONFIG_PROVENANCE: true
 
   discord-notify:
