@@ -57,12 +57,16 @@ describe('MMNT-25 Langium Pipeline > Structural Configuration', () => {
     expect(fileExists('src/grammar')).toBe(true);
   });
 
-  it('package.json includes langium and langium-cli in devDependencies', () => {
+  it('package.json includes langium in dependencies and langium-cli in devDependencies', () => {
     const pkg = readJson('package.json') as {
+      dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
     };
 
-    expect(pkg.devDependencies).toHaveProperty('langium');
+    // langium is imported by runtime source (parser, validator, generated code),
+    // so it must be a runtime dependency — not a devDependency.
+    expect(pkg.dependencies).toHaveProperty('langium');
+    // langium-cli is only used at build time to generate the parser.
     expect(pkg.devDependencies).toHaveProperty('langium-cli');
   });
 });
@@ -97,9 +101,9 @@ describe('MMNT-25 Langium Pipeline > Contract Compliance', () => {
 describe('MMNT-25 Langium Pipeline > Version Pinning', () => {
   it('langium version is pinned (exact, not range)', () => {
     const pkg = readJson('package.json') as {
-      devDependencies: Record<string, string>;
+      dependencies: Record<string, string>;
     };
-    const version = pkg.devDependencies['langium'];
+    const version = pkg.dependencies['langium'];
     expect(version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
