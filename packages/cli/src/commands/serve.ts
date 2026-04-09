@@ -11,8 +11,8 @@
  * MMNT-4881
  */
 
-import { readFileSync, readdirSync, existsSync, statSync, watch, type FSWatcher } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { readFileSync, existsSync, statSync, watch, type FSWatcher } from 'node:fs';
+import { resolve, join, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -102,7 +102,7 @@ interface PipelineResult {
   artifacts: ArtifactPayload;
 }
 
-async function runPipeline(specPath: string, includeAll: boolean): Promise<PipelineResult> {
+export async function runPipeline(specPath: string, includeAll: boolean): Promise<PipelineResult> {
   const content = readFileSync(specPath, 'utf-8');
   const parser = new MomentParser();
   const result = await parser.parseContent(content);
@@ -248,10 +248,22 @@ function loadFacetManifest(dir: string): FacetManifest {
   };
 }
 
-/** Read the artifact file named in `manifest.artifacts.<kind>`, if present. */
+/**
+ * Read the artifact file named in `manifest.artifacts.<kind>`, if present.
+ * Best-effort: returns null on missing file, malformed JSON, or a path that
+ * would escape the facet directory. Artifacts are non-essential for the
+ * happy serve flow, so one bad artifact file should not kill startup.
+ */
 function loadArtifact(dir: string, filename: string | undefined): unknown {
   if (!filename) return null;
-  const fullPath = join(dir, filename);
+  let fullPath: string;
+  try {
+    fullPath = resolveWithinFacetDir(dir, filename);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[serve] refusing to load artifact ${filename}: ${msg}`);
+    return null;
+  }
   if (!existsSync(fullPath)) return null;
   try {
     return readJson(fullPath);
@@ -273,10 +285,93 @@ function shouldIncludeScenario(scenario: FacetManifestScenario, includeAll: bool
 }
 
 /**
+ * Defense in depth against path traversal via manifest-controlled filenames.
+ * A malicious `manifest.json` could list `../secrets.json` or an absolute
+ * path; we resolve against the base directory and verify the result stays
+ * inside it using a path-separator boundary check so that `/base-sibling`
+ * cannot masquerade as being inside `/base`.
+ */
+function resolveWithinFacetDir(dir: string, relative: string): string {
+  const resolvedBase = resolve(dir);
+  const resolvedTarget = resolve(resolvedBase, relative);
+  const baseWithSep = resolvedBase.endsWith(sep) ? resolvedBase : resolvedBase + sep;
+  if (resolvedTarget !== resolvedBase && !resolvedTarget.startsWith(baseWithSep)) {
+    throw new Error(
+      `Facet manifest references '${relative}' which escapes the facet directory ${dir}`,
+    );
+  }
+  return resolvedTarget;
+}
+
+/**
+ * Read a JSON file that's required by the manifest. Throws on missing file
+ * or parse failure with a message that names which manifest entry caused it.
+ * Malformed scenario/topology files in a manifest-driven directory are a bug
+ * upstream and must not be tolerated silently.
+ */
+function readRequiredJson(fullPath: string, manifestEntry: string): unknown {
+  if (!existsSync(fullPath)) {
+    throw new Error(`Facet manifest references '${manifestEntry}' that does not exist`);
+  }
+  try {
+    return readJson(fullPath);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Facet file '${manifestEntry}' is not valid JSON: ${msg}`);
+  }
+}
+
+/**
+ * Normalize the artifact-filename map from the manifest, applying defaults
+ * so both the returned WS manifest and the disk loader see the same names.
+ * Without this, the WS manifest could advertise a default filename while the
+ * loader looks at the (possibly undefined) raw value and returns null.
+ */
+function normalizeArtifactFilenames(raw: Readonly<Record<string, string>>): {
+  readonly eventCatalog: string;
+  readonly impactAnalysis: string;
+  readonly sagaStateMachines: string;
+} {
+  return {
+    eventCatalog: raw.eventCatalog ?? 'event-catalog.json',
+    impactAnalysis: raw.impactAnalysis ?? 'impact-analysis.json',
+    sagaStateMachines: raw.sagaStateMachines ?? 'saga-state-machines.json',
+  };
+}
+
+/**
+ * Read the topology + scenarios for a single flow, enforcing the
+ * path-within-directory guard for every manifest-controlled filename.
+ */
+function loadFlowAssets(
+  dir: string,
+  flow: FacetManifestFlow,
+  includeAll: boolean,
+  topologies: Record<string, SimulationTopology>,
+  scenarios: Record<string, SimulationScenario>,
+): number {
+  const topologyPath = resolveWithinFacetDir(dir, flow.topology);
+  topologies[flow.topology] = readRequiredJson(topologyPath, flow.topology) as SimulationTopology;
+
+  const selected = flow.scenarios.filter((s) => shouldIncludeScenario(s, includeAll));
+  for (const scenarioEntry of selected) {
+    const scenarioPath = resolveWithinFacetDir(dir, scenarioEntry.file);
+    scenarios[scenarioEntry.file] = readRequiredJson(
+      scenarioPath,
+      scenarioEntry.file,
+    ) as SimulationScenario;
+  }
+
+  return selected.length;
+}
+
+/**
  * Build a `PipelineResult` by reading a directory of facet artifacts written
  * by `moment simulate --out-dir`. **Manifest-driven**, not glob-based: uses
  * `manifest.json` as the authoritative index of flows → topology + scenarios
- * + artifacts. Fails fast if the manifest is missing or malformed.
+ * + artifacts. Fails fast if the manifest is missing or malformed, if any
+ * referenced file is missing or unreadable, or if the manifest tries to
+ * escape the facet directory.
  *
  * `includeAll = false` (the default) filters to happy-path scenarios only.
  * `includeAll = true` serves every scenario in the manifest.
@@ -289,34 +384,17 @@ export function runFacetDirPipeline(dir: string, includeAll: boolean): PipelineR
   const manifestFlows: ManifestFlow[] = [];
 
   for (const flow of facetManifest.flows) {
-    const topologyPath = join(dir, flow.topology);
-    if (!existsSync(topologyPath)) {
-      throw new Error(
-        `Facet manifest references topology file '${flow.topology}' that does not exist`,
-      );
-    }
-    topologies[flow.topology] = readJson(topologyPath) as SimulationTopology;
-
-    const selectedScenarios = flow.scenarios.filter((s) => shouldIncludeScenario(s, includeAll));
-    for (const scenarioEntry of selectedScenarios) {
-      const scenarioPath = join(dir, scenarioEntry.file);
-      if (!existsSync(scenarioPath)) {
-        throw new Error(
-          `Facet manifest references scenario file '${scenarioEntry.file}' that does not exist`,
-        );
-      }
-      scenarios[scenarioEntry.file] = readJson(scenarioPath) as SimulationScenario;
-    }
-
+    const scenarioCount = loadFlowAssets(dir, flow, includeAll, topologies, scenarios);
     manifestFlows.push({
       flowId: flow.flowId,
       flowName: flow.flowName,
       topology: flow.topology,
-      scenarioCount: selectedScenarios.length,
+      scenarioCount,
     });
   }
 
-  const artifacts = facetManifest.artifacts;
+  // Normalize once so the WS manifest and the artifact loader agree on names.
+  const artifactNames = normalizeArtifactFilenames(facetManifest.artifacts);
 
   return {
     // No IR in facet-dir mode — downstream pushUpdates/connection handlers
@@ -329,18 +407,14 @@ export function runFacetDirPipeline(dir: string, includeAll: boolean): PipelineR
     } as unknown as IntermediateRepresentation,
     manifest: {
       flows: manifestFlows,
-      artifacts: {
-        eventCatalog: artifacts.eventCatalog ?? 'event-catalog.json',
-        impactAnalysis: artifacts.impactAnalysis ?? 'impact-analysis.json',
-        sagaStateMachines: artifacts.sagaStateMachines ?? 'saga-state-machines.json',
-      },
+      artifacts: artifactNames,
     },
     topologies,
     scenarios,
     artifacts: {
-      eventCatalog: loadArtifact(dir, artifacts.eventCatalog),
-      impactAnalysis: loadArtifact(dir, artifacts.impactAnalysis),
-      sagaStateMachines: loadArtifact(dir, artifacts.sagaStateMachines),
+      eventCatalog: loadArtifact(dir, artifactNames.eventCatalog),
+      impactAnalysis: loadArtifact(dir, artifactNames.impactAnalysis),
+      sagaStateMachines: loadArtifact(dir, artifactNames.sagaStateMachines),
     },
   };
 }
@@ -485,7 +559,7 @@ function setupFileWatcher(
   setResult: (r: PipelineResult) => void,
   log: (msg: string) => void,
   logError: (msg: string) => void,
-): void {
+): FSWatcher {
   let rebuildInFlight = false;
   let rebuildQueued = false;
 
@@ -630,7 +704,7 @@ async function initialPipeline(
     : await runPipeline(resolvedPath, includeAll);
 }
 
-function describeMode(isFacetDir: boolean, includeAll: boolean): string {
+export function describeMode(isFacetDir: boolean, includeAll: boolean): string {
   if (!isFacetDir) return 'spec file';
   return `facet dir, ${includeAll ? 'all scenarios' : 'happy path only'}`;
 }
