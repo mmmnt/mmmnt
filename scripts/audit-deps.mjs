@@ -36,56 +36,22 @@
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
+import { builtinModules } from 'node:module';
 
-const BUILTINS = new Set([
-  'assert',
-  'async_hooks',
-  'buffer',
-  'child_process',
-  'cluster',
-  'console',
-  'constants',
-  'crypto',
-  'dgram',
-  'diagnostics_channel',
-  'dns',
-  'domain',
-  'events',
-  'fs',
-  'http',
-  'http2',
-  'https',
-  'inspector',
-  'module',
-  'net',
-  'os',
-  'path',
-  'perf_hooks',
-  'process',
-  'punycode',
-  'querystring',
-  'readline',
-  'repl',
-  'stream',
-  'string_decoder',
-  'sys',
-  'timers',
-  'tls',
-  'trace_events',
-  'tty',
-  'url',
-  'util',
-  'v8',
-  'vm',
-  'wasi',
-  'worker_threads',
-  'zlib',
-]);
+// Derive the builtin set from Node's own list so we always reflect the
+// current Node version rather than a hand-maintained snapshot. Normalizes
+// both bare (`fs`) and `node:` forms; subpath imports like `fs/promises`,
+// `timers/promises`, `path/posix` are handled by testing the first
+// path segment against the set.
+const BUILTINS = new Set(
+  builtinModules.map((name) => (name.startsWith('node:') ? name.slice(5) : name)),
+);
 
 function isBuiltin(spec) {
-  if (spec.startsWith('node:')) return true;
-  return BUILTINS.has(spec);
+  const normalized = spec.startsWith('node:') ? spec.slice(5) : spec;
+  if (BUILTINS.has(normalized)) return true;
+  return BUILTINS.has(normalized.split('/')[0]);
 }
 
 function isRelative(spec) {
@@ -244,17 +210,28 @@ for (const pkgDir of pkgDirs) {
   } else if (bundledBinOnly) {
     console.log(`○ ${summary}`);
     for (const m of missing) {
-      const rel = m.file.replace(ROOT + '/', '');
-      console.log(`    · ${m.base}  (imported as '${m.spec}' from ${rel})  — bundled`);
+      console.log(
+        `    · ${m.base}  (imported as '${m.spec}' from ${toReportPath(ROOT, m.file)})  — bundled`,
+      );
     }
   } else {
     anyMissing = true;
     console.log(`✗ ${summary}`);
     for (const m of missing) {
-      const rel = m.file.replace(ROOT + '/', '');
-      console.log(`    ⚠️  ${m.base}  (imported as '${m.spec}' from ${rel})`);
+      console.log(
+        `    ⚠️  ${m.base}  (imported as '${m.spec}' from ${toReportPath(ROOT, m.file)})`,
+      );
     }
   }
+}
+
+/**
+ * Cross-platform report path helper. `path.relative` handles symlinks, casing,
+ * and the POSIX-vs-Windows separator split; the final forward-slash
+ * normalization keeps CI log output consistent regardless of runner OS.
+ */
+function toReportPath(rootDir, filePath) {
+  return relative(rootDir, filePath).split(sep).join('/');
 }
 
 if (anyMissing) {
