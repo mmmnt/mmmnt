@@ -7,7 +7,7 @@
  * (project root from `.manifest.yaml` or cwd) and write files to disk.
  */
 
-import { dirname, join, parse as parsePath, resolve, isAbsolute } from 'node:path';
+import { dirname, join, parse as parsePath, resolve, isAbsolute, sep } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
 /**
@@ -42,14 +42,40 @@ export function resolveOutputBaseDir(sourceFilePath: string, explicitOut?: strin
 }
 
 /**
+ * Assert that `candidatePath` resolves to a location inside `baseDir`.
+ * Uses a path-separator boundary check so that `/base-other/foo` is not
+ * treated as being inside `/base`.
+ */
+function assertPathWithin(candidatePath: string, baseDir: string): void {
+  const resolvedBase = resolve(baseDir);
+  const resolvedCandidate = resolve(candidatePath);
+  const baseWithSep = resolvedBase.endsWith(sep) ? resolvedBase : resolvedBase + sep;
+  if (resolvedCandidate !== resolvedBase && !resolvedCandidate.startsWith(baseWithSep)) {
+    throw new Error(
+      `Path traversal detected: ${candidatePath} escapes output directory ${baseDir}`,
+    );
+  }
+}
+
+/**
  * Write each entry in `files` to disk under `baseDir`. Keys are treated as
  * project-relative POSIX paths; directories are created as needed.
- * Returns the list of absolute paths written.
+ *
+ * Rejects absolute paths and any relative path whose resolved location falls
+ * outside `baseDir` (defense in depth against path traversal via
+ * user-controlled names in .moment specs). Returns absolute paths written.
  */
 export function writeOutputFiles(files: Map<string, string>, baseDir: string): string[] {
+  const resolvedBase = resolve(baseDir);
   const written: string[] = [];
   for (const [relativePath, content] of files) {
-    const absolutePath = join(baseDir, relativePath);
+    if (isAbsolute(relativePath)) {
+      throw new Error(
+        `Refusing to write absolute path '${relativePath}' — emitter outputs must be project-relative`,
+      );
+    }
+    const absolutePath = join(resolvedBase, relativePath);
+    assertPathWithin(absolutePath, resolvedBase);
     mkdirSync(dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, content, 'utf-8');
     written.push(absolutePath);
