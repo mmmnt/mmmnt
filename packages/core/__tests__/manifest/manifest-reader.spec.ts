@@ -267,6 +267,109 @@ flows:
     });
   });
 
+  describe('path-traversal guard on manifest fields', () => {
+    it('rejects an absolute generators[].outputDir', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+generators:
+  - format: typescript
+    outputDir: /etc/evil
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow(
+        /generators\[0\]\.outputDir '\/etc\/evil' must be a relative path/,
+      );
+    });
+
+    it('rejects a generators[].outputDir that escapes the manifest dir via ../', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+generators:
+  - format: gherkin
+    outputDir: ../../../outside
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow(
+        /generators\[0\]\.outputDir '\.\.\/\.\.\/\.\.\/outside' escapes the manifest directory/,
+      );
+    });
+
+    it('accepts a relative generators[].outputDir that stays inside the manifest dir', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+generators:
+  - format: typescript
+    outputDir: src/generated
+`);
+      const result = reader.readManifest(manifestPath);
+      expect(result.generators).toEqual([{ format: 'typescript', outputDir: 'src/generated' }]);
+    });
+
+    it('allows empty/missing outputDir (defaults to empty string)', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+generators:
+  - format: markdown
+`);
+      const result = reader.readManifest(manifestPath);
+      expect(result.generators[0].outputDir).toBe('');
+    });
+
+    it('rejects an absolute contexts[].path', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+contexts:
+  - name: Evil
+    path: /etc/passwd
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow(
+        /contexts\[0\]\.path '\/etc\/passwd' must be a relative path/,
+      );
+    });
+
+    it('rejects a contexts[].path that escapes the manifest dir via ../', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+contexts:
+  - name: Escape
+    path: ../../../etc/passwd
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow(
+        /contexts\[0\]\.path '\.\.\/\.\.\/\.\.\/etc\/passwd' escapes the manifest directory/,
+      );
+    });
+
+    it('rejects an absolute flows[].path', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+flows:
+  - name: Evil
+    path: /tmp/anything
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow(
+        /flows\[0\]\.path '\/tmp\/anything' must be a relative path/,
+      );
+    });
+
+    it('rejects a flows[].path that escapes the manifest dir via ../', () => {
+      const manifestPath = writeManifest(`
+name: TestProject
+version: "1.0.0"
+flows:
+  - name: Escape
+    path: ../../../../etc/evil
+`);
+      expect(() => reader.readManifest(manifestPath)).toThrow(
+        /flows\[0\]\.path '\.\.\/\.\.\/\.\.\/\.\.\/etc\/evil' escapes the manifest directory/,
+      );
+    });
+  });
+
   describe('defaults', () => {
     it('applies default watch config when absent', () => {
       const manifestPath = writeManifest(`
