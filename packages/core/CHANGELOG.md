@@ -1,5 +1,11 @@
 # @mmmnt/core
 
+## 0.3.0
+
+### Minor Changes
+
+- Version bump only (fixed group release). See [`@mmmnt/cli@0.3.0`](../cli/CHANGELOG.md#030) for the user-facing changes in this release.
+
 ## 0.2.0
 
 ### Patch Changes
