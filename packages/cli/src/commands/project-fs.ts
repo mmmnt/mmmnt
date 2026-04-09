@@ -45,8 +45,14 @@ export function resolveOutputBaseDir(sourceFilePath: string, explicitOut?: strin
  * Assert that `candidatePath` resolves to a location inside `baseDir`.
  * Uses a path-separator boundary check so that `/base-other/foo` is not
  * treated as being inside `/base`.
+ *
+ * Exported for reuse across writer commands (generate, emit-ts, simulate,
+ * import-from-sift, serve facet-dir mode). Any command that writes files
+ * whose paths are derived from user-controlled content in a `.moment`
+ * spec or manifest should guard the resolved path with this before
+ * calling writeFileSync.
  */
-function assertPathWithin(candidatePath: string, baseDir: string): void {
+export function assertPathWithin(candidatePath: string, baseDir: string): void {
   const resolvedBase = resolve(baseDir);
   const resolvedCandidate = resolve(candidatePath);
   const baseWithSep = resolvedBase.endsWith(sep) ? resolvedBase : resolvedBase + sep;
