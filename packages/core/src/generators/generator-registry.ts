@@ -1,5 +1,6 @@
 /**
- * GeneratorRegistry — open registry replacing the hardcoded ALLOWED_FORMATS.
+ * GeneratorRegistry — open registry that will replace the hardcoded
+ * ALLOWED_FORMATS once manifest schema v2 lands (MMNT-5431).
  *
  * Per ADR-032 R1 and ADR-034 G3: @mmmnt/core exports the interface +
  * registry class. Each generator package exports a registerGenerators()
@@ -56,14 +57,17 @@ export class GeneratorRegistry {
    * order for determinism.
    */
   planExecutionOrder(requestedFormats?: readonly string[]): string[] {
-    const formats = requestedFormats ? [...requestedFormats] : [...this.descriptors.keys()];
+    const formats = requestedFormats
+      ? [...new Set(requestedFormats)]
+      : [...this.descriptors.keys()];
 
     // Build adjacency list from dependsOn edges.
-    const graph = new Map<string, string[]>();
+    const formatSet = new Set(formats);
+    const graph = new Map<string, Set<string>>();
     const inDegree = new Map<string, number>();
 
     for (const format of formats) {
-      if (!graph.has(format)) graph.set(format, []);
+      if (!graph.has(format)) graph.set(format, new Set());
       if (!inDegree.has(format)) inDegree.set(format, 0);
     }
 
@@ -71,7 +75,7 @@ export class GeneratorRegistry {
       const descriptor = this.descriptors.get(format);
       if (!descriptor) continue;
       for (const dep of descriptor.dependsOn) {
-        if (!formats.includes(dep)) continue;
+        if (!formatSet.has(dep)) continue;
         addEdge(graph, inDegree, dep, format);
       }
     }
@@ -80,15 +84,17 @@ export class GeneratorRegistry {
   }
 }
 
-/** Add a directed edge dep → dependent in the adjacency list. */
+/** Add a directed edge dep → dependent in the adjacency list (idempotent). */
 function addEdge(
-  graph: Map<string, string[]>,
+  graph: Map<string, Set<string>>,
   inDegree: Map<string, number>,
   from: string,
   to: string,
 ): void {
-  if (!graph.has(from)) graph.set(from, []);
-  graph.get(from)!.push(to);
+  if (!graph.has(from)) graph.set(from, new Set());
+  const neighbors = graph.get(from)!;
+  if (neighbors.has(to)) return; // deduplicate edges
+  neighbors.add(to);
   inDegree.set(to, (inDegree.get(to) ?? 0) + 1);
 }
 
@@ -98,7 +104,7 @@ function addEdge(
  */
 function topologicalSort(
   allNodes: string[],
-  graph: Map<string, string[]>,
+  graph: Map<string, Set<string>>,
   inDegree: Map<string, number>,
 ): string[] {
   // Start with nodes that have no incoming edges, sorted for determinism.

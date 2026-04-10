@@ -141,6 +141,22 @@ describe('GeneratorRegistry', () => {
       expect(() => registry.planExecutionOrder()).toThrow(/Dependency cycle/);
     });
 
+    it('deduplicates requested formats', () => {
+      registry.register(makeDescriptor('topology'));
+      registry.register(makeDescriptor('test-scaffold', { dependsOn: ['topology'] }));
+
+      const order = registry.planExecutionOrder(['topology', 'topology', 'test-scaffold']);
+      expect(order).toEqual(['topology', 'test-scaffold']);
+    });
+
+    it('handles duplicate dependsOn entries without double-counting', () => {
+      registry.register(makeDescriptor('topology'));
+      registry.register(makeDescriptor('test-scaffold', { dependsOn: ['topology', 'topology'] }));
+
+      const order = registry.planExecutionOrder();
+      expect(order).toEqual(['topology', 'test-scaffold']);
+    });
+
     it('handles formats not in registry gracefully in requested set', () => {
       registry.register(makeDescriptor('topology'));
       // Request a format that's registered + one that isn't

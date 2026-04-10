@@ -3,7 +3,7 @@
  *
  * Per ADR-032 R1 and ADR-034 G2: generators return in-memory content
  * (Map<string, string>) and the framework handles disk writes with
- * centralized path safety via assertPathWithin.
+ * centralized path safety (the CLI's assertPathWithin helper).
  */
 
 import type { IntermediateRepresentation, Diagnostic } from '../ir/index.js';
