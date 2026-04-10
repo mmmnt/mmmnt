@@ -117,6 +117,24 @@ describe('ProjectLoader', () => {
     });
   });
 
+  describe('metadata merge', () => {
+    it('uses metadata override when provided', async () => {
+      const result = await loader.loadProject([resolve(MINIMAL_CONTEXTS, 'ordering.moment')], {
+        name: 'overridden',
+        version: '9.9.9',
+      });
+
+      expect(result.ir.metadata.name).toBe('overridden');
+      expect(result.ir.metadata.version).toBe('9.9.9');
+    });
+
+    it('uses first file metadata when no override provided', async () => {
+      const result = await loader.loadProject([resolve(MINIMAL_CONTEXTS, 'ordering.moment')]);
+
+      expect(result.ir.metadata).toBeDefined();
+    });
+  });
+
   describe('multi-context fixture (3 contexts + flow with crossings)', () => {
     it('loads the multi-context fixture end-to-end', async () => {
       const result = await loader.loadProject([
