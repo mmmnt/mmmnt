@@ -11,7 +11,7 @@ Command-line interface for the Moment domain specification language and implemen
 
 From initializing a new project to parsing specifications, deriving test topologies, generating TypeScript code and BDD scenarios, running conformance tests, detecting implementation drift, and managing schema lifecycles -- every operation is available as a single CLI command. The CLI handles file I/O, output formatting, error reporting, and watch mode so that the underlying library packages remain focused on their core logic.
 
-The CLI is designed for both interactive development and CI/CD pipeline integration. All commands produce structured output suitable for scripting, and exit codes follow standard conventions for use in automated workflows. The `--format json` flag is available on most commands for machine-readable output, and `--verbose` enables detailed logging for debugging.
+The CLI is designed for both interactive development and CI/CD pipeline integration. All commands produce structured output suitable for scripting, and exit codes follow standard conventions for use in automated workflows. Many commands support the `--json` flag for machine-readable output; see the Common Options table below for details.
 
 ## Installation
 
@@ -37,7 +37,7 @@ yarn global add @mmmnt/cli
 
 ```bash
 # Initialize a new Moment project
-moment init my-service
+moment init --name my-service
 
 # Parse and validate a .moment specification
 moment parse specs/my-service.moment
@@ -63,11 +63,11 @@ moment watch specs/
 - **Unified entry point** -- a single `moment` binary that wraps all `@mmmnt` packages, so you do not need to import or configure individual libraries.
 - **20+ commands** -- covers the full lifecycle from project initialization through specification, derivation, generation, testing, synchronization, and governance.
 - **Watch mode** -- monitors `.moment` files and automatically re-parses and regenerates artifacts on save.
-- **Structured output** -- all commands support `--format json` for machine-readable output in CI/CD pipelines.
+- **Structured output** -- most commands support `--json` for machine-readable output in CI/CD pipelines.
 - **Standard exit codes** -- non-zero exit on validation failures, drift detection, or test failures for pipeline gating.
 - **Subcommand structure** -- complex operations like `sync` and `schema` use subcommands (`sync status`, `sync propose`, `sync accept`, `schema status`) for organized workflows.
 - **Authentication support** -- `moment auth` subcommands manage credentials for Moment cloud services when applicable.
-- **Verbose mode** -- `--verbose` enables detailed logging for debugging specification issues or generation failures.
+- **Verbose mode** -- `moment status --verbose` enables detailed logging for the unified status command.
 
 ## Commands
 
@@ -75,7 +75,7 @@ moment watch specs/
 
 | Command | Description |
 |---------|-------------|
-| `moment init <name>` | Initialize a new Moment project with directory structure, `moment.manifest.json`, and a starter `.moment` specification file. |
+| `moment init --name <name>` | Initialize a new Moment project with `.manifest.yaml`, `.moment/contexts/`, and `.moment/flows/` directories. Optionally specify `--dir <path>` for the target directory (defaults to `.`). |
 
 ### Specification
 
@@ -126,7 +126,7 @@ moment watch specs/
 | Command | Description |
 |---------|-------------|
 | `moment schema status <file>` | Display schema lifecycle status for all events and commands in the specification, grouped by phase. |
-| `moment lint <file>` | Run codex governance rules against the specification and report policy violations. Supports `--format json` for CI integration. |
+| `moment lint <file>` | Run codex governance rules against the specification and report policy violations. Supports `--json` for CI integration. |
 
 ### Import
 
@@ -142,15 +142,21 @@ moment watch specs/
 | `moment auth status` | Display current authentication status and account information. |
 | `moment auth logout` | Clear stored authentication credentials. |
 
-## Global Options
+## Common Options
 
-| Option | Description |
-|--------|-------------|
-| `--help` | Display help for any command. |
-| `--version` | Display the installed CLI version. |
-| `--output <dir>` | Override the default output directory for generated artifacts. |
-| `--format <fmt>` | Output format: `text` (default), `json`, or `silent`. |
-| `--verbose` | Enable verbose logging for debugging. |
+These are commonly used options available on the commands indicated, not globally on every command. Individual commands may support additional command-specific flags not listed here.
+
+| Option | Available on | Description |
+|--------|-------------|-------------|
+| `--json` | derive, simulate, lint, schema status, sync status/propose/accept, reconcile, status, import | Machine-readable JSON output to stdout. |
+| `--out <dir>` | generate, emit-ts | Override the output directory for generated artifacts (defaults to the project root or cwd). |
+| `--out-dir <dir>` | simulate | Write topology, scenario, and artifact files to the specified directory. |
+| `--output-dir <dir>` | import --from-sift | Write imported `.moment` files to the specified directory. |
+| `--all` | simulate, serve | Generate all branch combinations and negative scenarios (simulate) or serve all scenarios including negatives (serve). |
+| `--all` | sync accept | Accept all pending proposals. |
+| `--dry-run` | emit-ts | List files that would be emitted without writing them. |
+| `--verbose` | status | Enable detailed output. |
+| `--port <n>` | serve | WebSocket port (default 4321). |
 
 ## Examples
 
@@ -158,7 +164,7 @@ moment watch specs/
 
 ```bash
 # Scaffold a new project
-moment init my-service
+moment init --name my-service --dir my-service
 cd my-service
 
 # Write your .moment specification, then generate everything
@@ -207,7 +213,7 @@ moment sync status specs/my-service.moment
 moment test specs/my-service.moment
 
 # Lint governance rules
-moment lint specs/my-service.moment --format json
+moment lint specs/my-service.moment --json
 
 # Generate documentation artifacts
 moment generate specs/my-service.moment
@@ -239,8 +245,8 @@ moment schema status specs/my-service.moment
 moment lint specs/my-service.moment
 
 # Machine-readable output for dashboards
-moment schema status specs/my-service.moment --format json
-moment lint specs/my-service.moment --format json
+moment schema status specs/my-service.moment --json
+moment lint specs/my-service.moment --json
 ```
 
 ## Integration
