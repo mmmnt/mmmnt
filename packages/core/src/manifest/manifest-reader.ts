@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { isAbsolute, resolve, dirname, sep } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type {
   ManifestConfiguration,
@@ -9,6 +9,37 @@ import type {
 } from '../ir/index.js';
 
 const ALLOWED_FORMATS = new Set(['typescript', 'gherkin', 'markdown'] as const);
+
+/**
+ * Reject a manifest-declared path that is absolute or escapes the manifest
+ * directory when resolved. Both constraints matter: the manifest is checked
+ * into the project, so any field that names a file/directory should stay
+ * inside the project root (which is the manifest's own directory).
+ *
+ * An unguarded outputDir like `/etc/` or `../../../outside` would cause any
+ * downstream writer (generate, emit-ts, simulate) to write outside the
+ * project. An unguarded file-ref path like `../../etc/passwd` would cause
+ * the parser to read and interpret an arbitrary file as a .moment spec.
+ *
+ * Uses a path-separator boundary check so `/base-sibling` can't masquerade
+ * as being inside `/base` — same shape as the guard in @mmmnt/cli's
+ * project-fs.ts, duplicated here because @mmmnt/core can't depend on cli.
+ */
+function assertPathWithinManifestDir(field: string, value: string, manifestDir: string): void {
+  if (isAbsolute(value)) {
+    throw new Error(
+      `Manifest validation failed: ${field} '${value}' must be a relative path (absolute paths are rejected).`,
+    );
+  }
+  const resolvedBase = resolve(manifestDir);
+  const resolvedTarget = resolve(resolvedBase, value);
+  const baseWithSep = resolvedBase.endsWith(sep) ? resolvedBase : resolvedBase + sep;
+  if (resolvedTarget !== resolvedBase && !resolvedTarget.startsWith(baseWithSep)) {
+    throw new Error(
+      `Manifest validation failed: ${field} '${value}' escapes the manifest directory (${manifestDir}).`,
+    );
+  }
+}
 
 export class ManifestReader {
   readManifest(manifestPath: string): ManifestConfiguration {
@@ -28,9 +59,9 @@ export class ManifestReader {
     const version = typeof obj.version === 'string' ? obj.version : '0.0.0';
     const description = typeof obj.description === 'string' ? obj.description : undefined;
 
-    const contexts = this.parseFileRefs(obj.contexts);
-    const flows = this.parseFileRefs(obj.flows);
-    const generators = this.parseGenerators(obj.generators);
+    const contexts = this.parseFileRefs(obj.contexts, 'contexts', manifestDir);
+    const flows = this.parseFileRefs(obj.flows, 'flows', manifestDir);
+    const generators = this.parseGenerators(obj.generators, manifestDir);
     const watch = this.parseWatch(obj.watch);
 
     this.validateFileRefs(manifestDir, contexts, flows);
@@ -38,7 +69,7 @@ export class ManifestReader {
     return { name, version, description, contexts, flows, generators, watch };
   }
 
-  private parseFileRefs(entries: unknown): FileRef[] {
+  private parseFileRefs(entries: unknown, fieldName: string, manifestDir: string): FileRef[] {
     if (entries == null) {
       return [];
     }
@@ -57,11 +88,16 @@ export class ManifestReader {
           `Manifest validation failed: file reference at index ${index} must have string 'name' and 'path'.`,
         );
       }
+      // Defense in depth: reject file refs that point outside the manifest
+      // directory. Without this guard, a malicious manifest could name a
+      // `.moment` spec at an absolute path or via `../` climbs, and the
+      // parser would happily read and interpret arbitrary files.
+      assertPathWithinManifestDir(`${fieldName}[${index}].path`, candidate.path, manifestDir);
       return { name: candidate.name, path: candidate.path };
     });
   }
 
-  private parseGenerators(entries: unknown): GeneratorConfig[] {
+  private parseGenerators(entries: unknown, manifestDir: string): GeneratorConfig[] {
     if (entries == null) {
       return [];
     }
@@ -88,9 +124,16 @@ export class ManifestReader {
           `Manifest validation failed: 'outputDir' for generator at index ${index} must be a string.`,
         );
       }
+      const outputDir = typeof candidate.outputDir === 'string' ? candidate.outputDir : '';
+      // Reject absolute paths and traversal escapes. An unguarded outputDir
+      // like `/etc/` or `../../../outside` would make any downstream writer
+      // (generate, emit-ts) write outside the project.
+      if (outputDir !== '') {
+        assertPathWithinManifestDir(`generators[${index}].outputDir`, outputDir, manifestDir);
+      }
       return {
         format: candidate.format as 'typescript' | 'gherkin' | 'markdown',
-        outputDir: typeof candidate.outputDir === 'string' ? candidate.outputDir : '',
+        outputDir,
       };
     });
   }
