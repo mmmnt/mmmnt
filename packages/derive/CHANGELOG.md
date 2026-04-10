@@ -1,5 +1,12 @@
 # @mmmnt/derive
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [[`5d4f13e`](https://github.com/mmmnt/mmmnt/commit/5d4f13e7ca741c2f41a9ee93335b6842673632e0)]:
+  - @mmmnt/core@0.3.1
+
 ## 0.3.0
 
 ### Patch Changes

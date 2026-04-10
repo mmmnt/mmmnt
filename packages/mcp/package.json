@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/mcp",
   "description": "Model Context Protocol server exposing Moment domain services as AI agent tools",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/mcp#readme",
