@@ -11,12 +11,7 @@ import { resolve, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-import {
-  ASTDiffEngine,
-  LocalGitArtifactStore,
-  PushFlowSaga,
-  SyncState,
-} from '@mmmnt/sync';
+import { ASTDiffEngine, LocalGitArtifactStore, PushFlowSaga, SyncState } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { ImplementationChangeProposal } from '@mmmnt/sync';
 
@@ -125,6 +120,20 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
 
   // Auto-accept mode or skip (non-interactive CLI defaults to skip)
   const autoAccept = values['auto-accept'] === true;
+
+  // GUARD: --auto-accept has the same "silent no-op" bug as sync accept.
+  // SyncState.acceptProposal() runs in memory but is never persisted and
+  // the proposals are never applied to files on disk. Fail loudly until
+  // the full persistence + application pipeline is implemented.
+  if (autoAccept) {
+    return fail(
+      'Error: --auto-accept is not yet fully implemented — accepted proposals are not ' +
+        'persisted and not applied to files. Omit --auto-accept to generate proposals ' +
+        'for manual review instead. ' +
+        'See https://github.com/mmmnt/mmmnt/issues for tracking.',
+    );
+  }
+
   const counts = processProposals(proposals, syncState, autoAccept);
 
   // Drive saga to terminal state
@@ -207,6 +216,8 @@ function formatProposalSummary(
   }
 
   lines.push('');
-  lines.push(`Accepted: ${counts.accepted}, Rejected: ${counts.rejected}, Skipped: ${counts.skipped}`);
+  lines.push(
+    `Accepted: ${counts.accepted}, Rejected: ${counts.rejected}, Skipped: ${counts.skipped}`,
+  );
   return lines.join('\n');
 }

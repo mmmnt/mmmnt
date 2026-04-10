@@ -9,11 +9,7 @@ import { resolve, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-import {
-  ASTDiffEngine,
-  LocalGitArtifactStore,
-  SyncState,
-} from '@mmmnt/sync';
+import { ASTDiffEngine, LocalGitArtifactStore, SyncState } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import type { ImplementationChangeProposal } from '@mmmnt/sync';
 
@@ -63,7 +59,12 @@ export async function runSyncAccept(argv: string[]): Promise<SyncAcceptResult> {
   const proposals = await generateProposals(ir, resolvedPath);
 
   if (proposals.length === 0) {
-    return { success: true, message: 'No pending proposals to accept', diagnostics: EMPTY, acceptedCount: 0 };
+    return {
+      success: true,
+      message: 'No pending proposals to accept',
+      diagnostics: EMPTY,
+      acceptedCount: 0,
+    };
   }
 
   return executeAccept(proposals, values.all === true, positionals.slice(1), values.json === true);
@@ -75,6 +76,21 @@ function executeAccept(
   proposalIds: string[],
   asJson: boolean,
 ): SyncAcceptResult {
+  // GUARD: sync accept is not yet fully implemented. The SyncState aggregate
+  // below records and "accepts" proposals in memory, but:
+  //   1. The acceptance is never persisted to .domain/sync-state.jsonl
+  //   2. The proposed changes are never applied to the actual TypeScript files
+  // So the command would report "Accepted N proposal(s)" while doing nothing
+  // on disk — a silent no-op that misleads users. Fail loudly until both
+  // persistence and application are implemented. See the post-mortem P1 #3
+  // analysis for the full breakdown.
+  return fail(
+    'Error: sync accept is not yet fully implemented — accepted proposals are not ' +
+      'persisted and not applied to files. Use `moment sync propose` to generate ' +
+      'proposals, then apply them manually. ' +
+      'See https://github.com/mmmnt/mmmnt/issues for tracking.',
+  );
+
   const syncState = new SyncState();
   for (const p of proposals) {
     syncState.recordProposal(p);
@@ -85,8 +101,15 @@ function executeAccept(
   }
 
   const result = acceptAll
-    ? acceptAllProposals(syncState, proposals.map((p) => p.proposalId))
-    : acceptByIds(syncState, proposalIds, proposals.map((p) => p.proposalId));
+    ? acceptAllProposals(
+        syncState,
+        proposals.map((p) => p.proposalId),
+      )
+    : acceptByIds(
+        syncState,
+        proposalIds,
+        proposals.map((p) => p.proposalId),
+      );
 
   if (!result.success || !asJson) return result;
 
@@ -94,7 +117,9 @@ function executeAccept(
   return { ...result, message: json, json };
 }
 
-async function parseSpecFile(filePath: string): Promise<SyncAcceptResult | { ir: IntermediateRepresentation; resolvedPath: string }> {
+async function parseSpecFile(
+  filePath: string,
+): Promise<SyncAcceptResult | { ir: IntermediateRepresentation; resolvedPath: string }> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
@@ -116,7 +141,10 @@ async function parseSpecFile(filePath: string): Promise<SyncAcceptResult | { ir:
   return { ir: parseResult.ir!, resolvedPath };
 }
 
-async function generateProposals(ir: IntermediateRepresentation, resolvedPath: string): Promise<ImplementationChangeProposal[]> {
+async function generateProposals(
+  ir: IntermediateRepresentation,
+  resolvedPath: string,
+): Promise<ImplementationChangeProposal[]> {
   const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
   const repoRoot = dirname(resolvedPath);
   const store = new LocalGitArtifactStore(repoRoot);
@@ -125,10 +153,7 @@ async function generateProposals(ir: IntermediateRepresentation, resolvedPath: s
   return new ASTDiffEngine().generateProposals({ expected: tsOutput.files, actual });
 }
 
-function acceptAllProposals(
-  syncState: SyncState,
-  allIds: string[],
-): SyncAcceptResult {
+function acceptAllProposals(syncState: SyncState, allIds: string[]): SyncAcceptResult {
   for (const id of allIds) {
     syncState.acceptProposal(id);
   }
