@@ -11,12 +11,7 @@ import { resolve, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-import {
-  ASTDiffEngine,
-  LocalGitArtifactStore,
-  PushFlowSaga,
-  SyncState,
-} from '@mmmnt/sync';
+import { ASTDiffEngine, LocalGitArtifactStore, PushFlowSaga, SyncState } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { ImplementationChangeProposal } from '@mmmnt/sync';
 
@@ -57,6 +52,19 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
     allowPositionals: true,
     strict: false,
   });
+
+  // Fail fast for --auto-accept before doing any expensive work (parse,
+  // emit, diff). The guard is here rather than after the pipeline because
+  // auto-accept has the same "silent no-op" bug as sync accept — SyncState
+  // accepts in memory but never persists or applies to files on disk.
+  if (values['auto-accept'] === true) {
+    return fail(
+      'Error: --auto-accept is not yet fully implemented — accepted proposals are not ' +
+        'persisted and not applied to files. Omit --auto-accept to generate proposals ' +
+        'for manual review instead. ' +
+        'See https://github.com/mmmnt/mmmnt/issues for tracking.',
+    );
+  }
 
   const filePath = positionals[0];
   if (!filePath) return fail('Usage: moment sync propose <file.moment>');
@@ -123,8 +131,11 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
     syncState.recordProposal(p);
   }
 
-  // Auto-accept mode or skip (non-interactive CLI defaults to skip)
-  const autoAccept = values['auto-accept'] === true;
+  // autoAccept is always false here — the guard at the top of runSyncPropose
+  // rejects --auto-accept before we reach this point. Kept as a local for
+  // API compatibility with processProposals until the real implementation
+  // lands.
+  const autoAccept = false;
   const counts = processProposals(proposals, syncState, autoAccept);
 
   // Drive saga to terminal state
@@ -207,6 +218,8 @@ function formatProposalSummary(
   }
 
   lines.push('');
-  lines.push(`Accepted: ${counts.accepted}, Rejected: ${counts.rejected}, Skipped: ${counts.skipped}`);
+  lines.push(
+    `Accepted: ${counts.accepted}, Rejected: ${counts.rejected}, Skipped: ${counts.skipped}`,
+  );
   return lines.join('\n');
 }

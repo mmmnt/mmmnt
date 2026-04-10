@@ -2,7 +2,11 @@ name: Release
 
 # Triggered automatically when CI completes on main. The release job only
 # runs when CI succeeded, so a broken merge cannot ship.
+# Also supports manual triggering via the Actions UI as a safety valve
+# when workflow_run doesn't fire (e.g. the chicken-and-egg gotcha after
+# a workflow file change, or to re-run a failed publish).
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -19,7 +23,9 @@ permissions:
 
 jobs:
   release:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       # Generate a short-lived installation token for the mmmnt-release
@@ -36,10 +42,13 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Checkout (head SHA from triggering CI run)
+      - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          # workflow_run provides head_sha; workflow_dispatch uses the
+          # default branch HEAD (github.sha). The || fallback keeps
+          # both triggers working without a separate checkout step.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
           # Using the app token here means subsequent `git push` operations
           # (e.g. the auto-changeset step pushing back to main) authenticate
@@ -150,8 +159,9 @@ jobs:
           else
             git commit -m "chore: auto-changeset for ${HEAD_SHA} [skip ci]"
 
-            if git push origin "HEAD:${{ github.event.workflow_run.head_branch }}"; then
-              echo "Pushed auto-changeset back to ${{ github.event.workflow_run.head_branch }}."
+            TARGET_BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+            if git push origin "HEAD:${TARGET_BRANCH}"; then
+              echo "Pushed auto-changeset back to ${TARGET_BRANCH}."
             else
               echo "::warning::Could not push auto-changeset back to main (branch protection?). The changeset still exists in the working tree and will be consumed by changesets/action in this run."
             fi

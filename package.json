@@ -53,6 +53,11 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "hono": ">=4.12.12 <5",
+      "@hono/node-server": ">=1.19.13 <2",
+      "picomatch": ">=4.0.2 <5"
+    }
   }
 }
