@@ -11,7 +11,7 @@ Command-line interface for the Moment domain specification language and implemen
 
 From initializing a new project to parsing specifications, deriving test topologies, generating TypeScript code and BDD scenarios, running conformance tests, detecting implementation drift, and managing schema lifecycles -- every operation is available as a single CLI command. The CLI handles file I/O, output formatting, error reporting, and watch mode so that the underlying library packages remain focused on their core logic.
 
-The CLI is designed for both interactive development and CI/CD pipeline integration. All commands produce structured output suitable for scripting, and exit codes follow standard conventions for use in automated workflows. The `--json` flag is available on most commands for machine-readable output.
+The CLI is designed for both interactive development and CI/CD pipeline integration. All commands produce structured output suitable for scripting, and exit codes follow standard conventions for use in automated workflows. Many commands support the `--json` flag for machine-readable output; see the Common Options table below for details.
 
 ## Installation
 
@@ -144,14 +144,16 @@ moment watch specs/
 
 ## Common Options
 
-These options are available on the commands indicated, not globally on every command.
+These are commonly used options available on the commands indicated, not globally on every command. Individual commands may support additional command-specific flags not listed here.
 
 | Option | Available on | Description |
 |--------|-------------|-------------|
 | `--json` | derive, simulate, lint, schema status, sync status/propose/accept, reconcile, status, import | Machine-readable JSON output to stdout. |
 | `--out <dir>` | generate, emit-ts | Override the output directory for generated artifacts (defaults to the project root or cwd). |
 | `--out-dir <dir>` | simulate | Write topology, scenario, and artifact files to the specified directory. |
+| `--output-dir <dir>` | import --from-sift | Write imported `.moment` files to the specified directory. |
 | `--all` | simulate, serve | Generate all branch combinations and negative scenarios (simulate) or serve all scenarios including negatives (serve). |
+| `--all` | sync accept | Accept all pending proposals. |
 | `--dry-run` | emit-ts | List files that would be emitted without writing them. |
 | `--verbose` | status | Enable detailed output. |
 | `--port <n>` | serve | WebSocket port (default 4321). |
@@ -167,8 +169,8 @@ cd my-service
 
 # Write your .moment specification, then generate everything
 moment derive specs/my-service.moment
-moment emit-ts --out src/generated specs/my-service.moment
-moment generate --out . specs/my-service.moment
+moment emit-ts specs/my-service.moment
+moment generate specs/my-service.moment
 ```
 
 ### Continuous Development
