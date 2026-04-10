@@ -26,15 +26,15 @@ describe('moment sync propose', () => {
     expect(result.diagnostics).toHaveLength(0);
   });
 
-  it('--auto-accept accepts all proposals without interaction', async () => {
+  it('--auto-accept returns "not yet fully implemented" error', async () => {
+    // --auto-accept is guarded because it has the same "silent no-op" bug
+    // as sync accept — SyncState accepts in memory but never persists or
+    // applies to disk. The guard fires before any pipeline work.
     const result = await runSyncPropose(['--auto-accept', VALID_FIXTURE]);
 
-    expect(result.success).toBe(true);
-    if (result.proposals && result.proposals.length > 0) {
-      expect(result.accepted).toBe(result.proposals.length);
-      expect(result.rejected).toBe(0);
-      expect(result.skipped).toBe(0);
-    }
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('not yet fully implemented');
+    expect(result.message).toContain('not persisted');
   });
 
   it('without --auto-accept skips all proposals', async () => {

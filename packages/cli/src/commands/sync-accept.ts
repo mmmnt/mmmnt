@@ -4,14 +4,8 @@
  * Delegates to SyncState.acceptProposal() — no state logic in CLI (EXIT-C1).
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { MomentParser } from '@mmmnt/core';
-import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-import { ASTDiffEngine, LocalGitArtifactStore, SyncState } from '@mmmnt/sync';
-import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
-import type { ImplementationChangeProposal } from '@mmmnt/sync';
+import type { Diagnostic } from '@mmmnt/core';
 
 export interface SyncAcceptResult {
   readonly success: boolean;
@@ -52,158 +46,21 @@ export async function runSyncAccept(argv: string[]): Promise<SyncAcceptResult> {
   const filePath = positionals[0];
   if (!filePath) return fail(USAGE);
 
-  const parsed = await parseSpecFile(filePath);
-  if (!('ir' in parsed)) return parsed;
-
-  const { ir, resolvedPath } = parsed;
-  const proposals = await generateProposals(ir, resolvedPath);
-
-  if (proposals.length === 0) {
-    return {
-      success: true,
-      message: 'No pending proposals to accept',
-      diagnostics: EMPTY,
-      acceptedCount: 0,
-    };
-  }
-
-  return executeAccept(proposals, values.all === true, positionals.slice(1), values.json === true);
-}
-
-function executeAccept(
-  proposals: ImplementationChangeProposal[],
-  acceptAll: boolean,
-  proposalIds: string[],
-  asJson: boolean,
-): SyncAcceptResult {
-  // GUARD: sync accept is not yet fully implemented. The SyncState aggregate
-  // below records and "accepts" proposals in memory, but:
-  //   1. The acceptance is never persisted to .domain/sync-state.jsonl
-  //   2. The proposed changes are never applied to the actual TypeScript files
-  // So the command would report "Accepted N proposal(s)" while doing nothing
-  // on disk — a silent no-op that misleads users. Fail loudly until both
-  // persistence and application are implemented. See the post-mortem P1 #3
-  // analysis for the full breakdown.
+  // GUARD: sync accept is not yet fully implemented. SyncState records and
+  // "accepts" proposals in memory, but (1) the acceptance is never persisted
+  // to .domain/sync-state.jsonl and (2) the proposed changes are never
+  // applied to the actual TypeScript files. Fail fast before doing any
+  // expensive parse/emit/diff work.
   return fail(
     'Error: sync accept is not yet fully implemented — accepted proposals are not ' +
       'persisted and not applied to files. Use `moment sync propose` to generate ' +
       'proposals, then apply them manually. ' +
       'See https://github.com/mmmnt/mmmnt/issues for tracking.',
   );
-
-  const syncState = new SyncState();
-  for (const p of proposals) {
-    syncState.recordProposal(p);
-  }
-
-  if (!acceptAll && proposalIds.length === 0) {
-    return fail(USAGE);
-  }
-
-  const result = acceptAll
-    ? acceptAllProposals(
-        syncState,
-        proposals.map((p) => p.proposalId),
-      )
-    : acceptByIds(
-        syncState,
-        proposalIds,
-        proposals.map((p) => p.proposalId),
-      );
-
-  if (!result.success || !asJson) return result;
-
-  const json = JSON.stringify({ accepted: result.acceptedCount }, null, 2);
-  return { ...result, message: json, json };
 }
 
-async function parseSpecFile(
-  filePath: string,
-): Promise<SyncAcceptResult | { ir: IntermediateRepresentation; resolvedPath: string }> {
-  const resolvedPath = resolve(filePath);
-  if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
-
-  const content = readFile(resolvedPath);
-  if (typeof content !== 'string') return content;
-
-  const parseResult = await new MomentParser().parseContent(content);
-
-  if (!parseResult.success) {
-    return {
-      success: false,
-      message: `Parse failed with ${parseResult.diagnostics.length} diagnostic(s)`,
-      diagnostics: parseResult.diagnostics,
-      filePath: resolvedPath,
-      acceptedCount: 0,
-    };
-  }
-
-  return { ir: parseResult.ir!, resolvedPath };
-}
-
-async function generateProposals(
-  ir: IntermediateRepresentation,
-  resolvedPath: string,
-): Promise<ImplementationChangeProposal[]> {
-  const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-  const repoRoot = dirname(resolvedPath);
-  const store = new LocalGitArtifactStore(repoRoot);
-  const actual = await readActualFiles(store, [...tsOutput.files.keys()]);
-
-  return new ASTDiffEngine().generateProposals({ expected: tsOutput.files, actual });
-}
-
-function acceptAllProposals(syncState: SyncState, allIds: string[]): SyncAcceptResult {
-  for (const id of allIds) {
-    syncState.acceptProposal(id);
-  }
-  return {
-    success: true,
-    message: `Accepted ${allIds.length} proposal(s)`,
-    diagnostics: EMPTY,
-    acceptedCount: allIds.length,
-  };
-}
-
-function acceptByIds(
-  syncState: SyncState,
-  requestedIds: string[],
-  validIds: string[],
-): SyncAcceptResult {
-  const uniqueIds = [...new Set(requestedIds)];
-  const validSet = new Set(validIds);
-  const invalid = uniqueIds.filter((id) => !validSet.has(id));
-
-  if (invalid.length > 0) {
-    return fail(`Error: Unknown proposal ID(s): ${invalid.join(', ')}`);
-  }
-
-  for (const id of uniqueIds) {
-    syncState.acceptProposal(id);
-  }
-
-  return {
-    success: true,
-    message: `Accepted ${uniqueIds.length} proposal(s)`,
-    diagnostics: EMPTY,
-    acceptedCount: uniqueIds.length,
-  };
-}
-
-async function readActualFiles(
-  store: LocalGitArtifactStore,
-  paths: string[],
-): Promise<Map<string, string>> {
-  const actual = new Map<string, string>();
-  for (const path of paths) {
-    try {
-      const content = await store.readArtifact(path);
-      actual.set(path, content);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.startsWith('Artifact not found')) continue;
-      throw err;
-    }
-  }
-  return actual;
-}
+// parseSpecFile, generateProposals, executeAccept, acceptAllProposals,
+// acceptByIds, and readActualFiles were all removed because they are
+// unreachable below the fail() guard above. They'll be restored (with
+// real persistence + disk writes) when the full sync-accept pipeline
+// is implemented.

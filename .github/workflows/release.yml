@@ -42,10 +42,13 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Checkout (head SHA from triggering CI run)
+      - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          # workflow_run provides head_sha; workflow_dispatch uses the
+          # default branch HEAD (github.sha). The || fallback keeps
+          # both triggers working without a separate checkout step.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
           # Using the app token here means subsequent `git push` operations
           # (e.g. the auto-changeset step pushing back to main) authenticate
@@ -156,8 +159,9 @@ jobs:
           else
             git commit -m "chore: auto-changeset for ${HEAD_SHA} [skip ci]"
 
-            if git push origin "HEAD:${{ github.event.workflow_run.head_branch }}"; then
-              echo "Pushed auto-changeset back to ${{ github.event.workflow_run.head_branch }}."
+            TARGET_BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+            if git push origin "HEAD:${TARGET_BRANCH}"; then
+              echo "Pushed auto-changeset back to ${TARGET_BRANCH}."
             else
               echo "::warning::Could not push auto-changeset back to main (branch protection?). The changeset still exists in the working tree and will be consumed by changesets/action in this run."
             fi
