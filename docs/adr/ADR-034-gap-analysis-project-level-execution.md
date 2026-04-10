@@ -168,7 +168,7 @@ Three different "base directory" concepts appear in the requirements with unclea
 - Is `output.root` relative to the manifest directory or to `--cwd`?
 - How do the path-traversal guards from #146 interact with `output.root`? If `output.root` is `../shared-output`, does that fail the validation?
 
-**Recommendation:** `--cwd` defaults to `.` (process cwd). Manifest is loaded from `--cwd/.manifest.yaml` (or `--manifest <path>`). All relative paths in the manifest resolve against the manifest directory (consistent with current behavior and #146's guards). `output.root` is relative to the manifest directory and must pass `assertPathWithinManifestDir` — if you want shared output, use an absolute path (which #146 rejects) or a symlink. This is a deliberate security-over-convenience tradeoff.
+**Recommendation:** `--cwd` defaults to `.` (process cwd). Manifest is loaded from `--cwd/.manifest.yaml` (or `--manifest <path>`). All relative paths in the manifest resolve against the manifest directory (consistent with current behavior and #146's guards). `output.root` is relative to the manifest directory and must pass `assertPathWithinManifestDir`; under the current validation policy, shared output outside the project is only supported via a symlink. Allowing absolute or escaping output roots would require an explicit change to that validation policy under defined conditions. This is a deliberate security-over-convenience tradeoff.
 
 ---
 
