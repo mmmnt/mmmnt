@@ -107,8 +107,8 @@ describe('validateCrossFileReferences', () => {
   it('passes when relationship endpoints exist', () => {
     const ir = makeIr({
       contexts: [
-        { id: 'ctx-A', name: 'A', aggregates: [] } as any,
-        { id: 'ctx-B', name: 'B', aggregates: [] } as any,
+        { id: 'ctx-A', name: 'A', aggregates: [], events: [] } as any,
+        { id: 'ctx-B', name: 'B', aggregates: [], events: [] } as any,
       ],
       relationships: [
         {
@@ -156,6 +156,7 @@ describe('validateCrossFileReferences', () => {
           id: 'ctx-Target',
           name: 'Target',
           aggregates: [{ events: [{ name: 'ExistingEvent' }] }],
+          events: [{ name: 'ExistingEvent' }],
         } as any,
       ],
       flows: [

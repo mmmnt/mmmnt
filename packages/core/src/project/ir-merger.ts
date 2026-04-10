@@ -49,7 +49,7 @@ function detectDuplicateContexts(irs: readonly IntermediateRepresentation[]): Di
       if (existing !== undefined) {
         diagnostics.push({
           severity: 'error',
-          message: `Duplicate context name '${ctx.name}' — declared in file ${existing + 1} and file ${i + 1}. Each context must be defined in exactly one file.`,
+          message: `Duplicate context name '${ctx.name}' — declared in IR #${existing + 1} and IR #${i + 1}. Each context must be defined in exactly one file.`,
           ruleId: 'PM-01',
         });
       } else {

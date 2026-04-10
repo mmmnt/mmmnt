@@ -50,7 +50,8 @@ export class ProjectLoader {
    *   Order doesn't matter — paths are sorted lexicographically internally
    *   for deterministic merge order.
    * @param metadataOverride Optional metadata to use instead of deriving
-   *   from the first file (useful when the manifest provides name/version).
+   *   from the first successfully parsed file (useful when the manifest
+   *   provides name/version).
    */
   async loadProject(
     filePaths: readonly string[],

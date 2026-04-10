@@ -25,15 +25,13 @@ function buildKnownContextIds(ir: IntermediateRepresentation): Set<string> {
   return new Set(ir.contexts.map((c) => c.id));
 }
 
-/** Build event names per context for crossing validation. */
+/** Build event names per context for crossing validation. Uses the
+ *  flattened ctx.events rather than walking aggregates — simpler and
+ *  resilient if event modeling changes. */
 function buildEventsByContext(ir: IntermediateRepresentation): Map<string, Set<string>> {
   const result = new Map<string, Set<string>>();
   for (const ctx of ir.contexts) {
-    const events = new Set<string>();
-    for (const agg of ctx.aggregates) {
-      for (const evt of agg.events) events.add(evt.name);
-    }
-    result.set(ctx.id, events);
+    result.set(ctx.id, new Set(ctx.events.map((evt) => evt.name)));
   }
   return result;
 }
@@ -69,7 +67,8 @@ function validateLanes(
   }
 }
 
-/** Validate that crossing connections target existing contexts and events. */
+/** Validate crossing connections only — non-crossing connections reference
+ *  their own lane's context which is already covered by PM-02. */
 function validateConnections(
   flow: FlowDefinition,
   knownContextIds: Set<string>,
@@ -77,28 +76,48 @@ function validateConnections(
   diagnostics: Diagnostic[],
 ): void {
   for (const conn of flow.connections) {
+    if (conn.connectionType !== 'crosses-to') continue;
     if (!knownContextIds.has(conn.targetContextId)) {
       diagnostics.push({
         severity: 'error',
         message: `Flow '${flow.name}', connection '${conn.id}': target context '${conn.targetContextId}' is not defined in any loaded file.`,
         ruleId: 'PM-03',
       });
+      continue;
     }
-    if (conn.connectionType === 'crosses-to') {
-      const targetEvents = eventsByContext.get(conn.targetContextId);
-      const eventName = conn.eventId.replace(/^evt-/, '');
-      if (targetEvents && !targetEvents.has(eventName)) {
-        diagnostics.push({
-          severity: 'warning',
-          message: `Flow '${flow.name}': crossing event '${eventName}' is not declared in target context '${conn.targetContextId}'.`,
-          ruleId: 'PM-04',
-        });
-      }
+    const targetEvents = eventsByContext.get(conn.targetContextId);
+    const eventName = conn.eventId.replace(/^evt-/, '');
+    if (targetEvents && !targetEvents.has(eventName)) {
+      diagnostics.push({
+        severity: 'warning',
+        message: `Flow '${flow.name}': crossing event '${eventName}' is not declared in target context '${conn.targetContextId}'.`,
+        ruleId: 'PM-04',
+      });
     }
   }
 }
 
-/** Validate that moment entries reference existing contexts. */
+/** Check a single context entry against known IDs, skipping synthetic lane contexts. */
+function checkEntry(
+  flowName: string,
+  momentName: string,
+  entry: { contextId: string; nodeName: string },
+  knownContextIds: Set<string>,
+  branchLaneContextIds: Set<string>,
+  diagnostics: Diagnostic[],
+): void {
+  if (branchLaneContextIds.has(entry.contextId)) return;
+  if (!knownContextIds.has(entry.contextId)) {
+    diagnostics.push({
+      severity: 'error',
+      message: `Flow '${flowName}', moment '${momentName}': node '${entry.nodeName}' references context '${entry.contextId}' which is not defined in any loaded file.`,
+      ruleId: 'PM-05',
+    });
+  }
+}
+
+/** Validate that moment entries (including branch when-block entries)
+ *  reference existing contexts. */
 function validateMomentEntries(
   flow: FlowDefinition,
   knownContextIds: Set<string>,
@@ -107,14 +126,21 @@ function validateMomentEntries(
 ): void {
   for (const moment of flow.moments) {
     for (const entry of moment.contextEntries) {
-      if (branchLaneContextIds.has(entry.contextId)) continue;
-      if (entry.terminal) continue;
-      if (!knownContextIds.has(entry.contextId)) {
-        diagnostics.push({
-          severity: 'error',
-          message: `Flow '${flow.name}', moment '${moment.name}': node '${entry.nodeName}' references context '${entry.contextId}' which is not defined in any loaded file.`,
-          ruleId: 'PM-05',
-        });
+      checkEntry(flow.name, moment.name, entry, knownContextIds, branchLaneContextIds, diagnostics);
+    }
+    // Also validate entries inside branch when-blocks.
+    if (moment.branches) {
+      for (const branch of moment.branches) {
+        for (const entry of branch.entries) {
+          checkEntry(
+            flow.name,
+            moment.name,
+            entry,
+            knownContextIds,
+            branchLaneContextIds,
+            diagnostics,
+          );
+        }
       }
     }
   }

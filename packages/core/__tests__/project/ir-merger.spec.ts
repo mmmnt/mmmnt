@@ -82,6 +82,7 @@ describe('mergeIrs', () => {
     expect(result.diagnostics).toHaveLength(1);
     expect(result.diagnostics[0].ruleId).toBe('PM-01');
     expect(result.diagnostics[0].message).toContain('Duplicate context name');
+    expect(result.diagnostics[0].message).toContain('IR #');
   });
 
   it('uses first IR metadata when no override', () => {
