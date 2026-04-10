@@ -14,3 +14,10 @@ export {
 } from './import/index.js';
 export { ProjectLoader, mergeIrs, validateCrossFileReferences } from './project/index.js';
 export type { ProjectLoadResult, MergeResult, CrossFileValidationResult } from './project/index.js';
+export { GeneratorRegistry } from './generators/index.js';
+export type {
+  GeneratorDescriptor,
+  GeneratorRunContext,
+  GeneratorRunResult,
+  GeneratorScope,
+} from './generators/index.js';
