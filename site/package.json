@@ -16,10 +16,10 @@
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "@astrojs/preact": "^5.1.1",
-    "@astrojs/sitemap": "^3.3.0",
-    "astro": "^6.1.4",
-    "preact": "^10.25.0"
+    "@astrojs/preact": "^5.1.5",
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^6.4.7",
+    "preact": "^10.29.2"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.9.0",
