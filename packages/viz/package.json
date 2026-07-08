@@ -52,7 +52,7 @@
   "dependencies": {
     "@mmmnt/core": "workspace:*",
     "chokidar": "^5.0.0",
-    "picomatch": "^4.0.4"
+    "picomatch": "^4.0.5"
   },
   "devDependencies": {
     "@types/picomatch": "^4.0.3"
