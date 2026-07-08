@@ -51,12 +51,12 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
-    "langium-cli": "4.2.0"
+    "langium-cli": "4.3.0"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
-    "langium": "4.2.1",
-    "yaml": "^2.8.3"
+    "langium": "4.3.1",
+    "yaml": "^2.9.0"
   },
   "publishConfig": {
     "access": "public",
