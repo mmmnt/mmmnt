@@ -2,404 +2,413 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+
+const title = 'Why Moment';
+const description =
+  'DDD maps the domain in two dimensions; systems run in three. Moment adds the temporal dimension — flows, crossings, and contracts you can specify, simulate, and test before implementation.';
 ---
 
-<Base
-  title="Why Moment"
-  description="Why teams choose Moment for domain-driven development. The problem with scattered domain knowledge and how temporal DDD modeling solves it."
->
-  <Nav slot="nav" />
+<Base title={title} description={description}>
+  <div style="position:relative; overflow:hidden;">
+    <Nav active="why" />
 
-  <section class="why-hero">
-    <div class="why-hero__inner">
-      <h1 class="why-hero__title">Why Moment</h1>
-      <p class="why-hero__subtitle">
-        No tool in the DDD or Event Sourcing ecosystem lets you test domain flows
-        before you write implementation code. Moment is the first.
+    <div
+      style="position:absolute; inset:0; top:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px); background-size:48px 48px; pointer-events:none;"
+    >
+    </div>
+    <div
+      style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:1000px; height:520px; background:radial-gradient(ellipse at center, rgba(34,211,238,0.09), transparent 70%); pointer-events:none;"
+    >
+    </div>
+
+    {/* HERO */}
+    <section
+      class="site-container"
+      style="position:relative; max-width:1000px; margin:0 auto; padding:88px 40px 20px;"
+    >
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:22px;"
+      >
+        Why Moment
+      </div>
+      <h1
+        style="font-weight:600; font-size:54px; line-height:1.05; letter-spacing:-.025em; margin:0 0 24px; max-width:820px; color:#F2FBFC;"
+      >
+        Domain-driven design maps the domain in two dimensions. Systems run in three.
+      </h1>
+      <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
+        Contexts, aggregates, and events give you a static map. But behavior happens over <span
+          style="color:#C9E8ED;">time</span
+        > — events cross boundaries, sagas orchestrate, contracts are honored or broken. That third
+        dimension has never been specified, simulated, or tested before implementation. Moment is the
+        layer that closes it.
       </p>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ THE PROBLEM ============ -->
-  <section class="why-section">
-    <div class="why-section__inner">
-      <h2 class="why-section__title">The problem</h2>
-      <div class="why-narrative">
-        <div class="why-narrative__block">
-          <h3 class="why-narrative__heading">Domain knowledge fragments on contact with code</h3>
-          <p>
-            Your team runs an Event Storming. You map bounded contexts on a whiteboard.
-            Then someone opens an IDE and starts writing types. Someone else writes tests.
-            A third person updates the wiki. A fourth defines the API contract.
+    {/* THE GAP */}
+    <section class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:72px 40px;">
+      <div
+        style="display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;"
+      >
+        <div style="background:#07090D; padding:40px 38px;">
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:#9a6a6a; margin-bottom:18px;"
+          >
+            Every other discipline
+          </div>
+          <p style="font-size:17px; line-height:1.6; color:#C9CDD6; margin:0 0 18px;">
+            Validates the design before building it. Circuits get simulated. Structures get
+            stress-modeled. Schemas get migrations tested in staging.
           </p>
-          <p>
-            By the end of the sprint, you have six representations of the same domain model.
-            They already disagree.
-          </p>
-        </div>
-        <div class="why-narrative__block">
-          <h3 class="why-narrative__heading">Flows are the untested frontier</h3>
-          <p>
-            Most teams test individual commands and queries. Very few test the flows between
-            bounded contexts &mdash; the temporal sequences where events cross boundaries,
-            contracts are exchanged, and sagas coordinate long-running processes.
-          </p>
-          <p>
-            These flows are where the hardest bugs live: race conditions, broken contracts,
-            missing compensation logic, and orphaned events. And they're exactly what
-            nobody writes tests for.
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0;">
+            There is a rehearsal step between intent and implementation.
           </p>
         </div>
-        <div class="why-narrative__block">
-          <h3 class="why-narrative__heading">Boilerplate doesn't scale</h3>
-          <p>
-            Every new aggregate means writing TypeScript interfaces, aggregate classes,
-            test stubs, Gherkin scenarios, specification documents, and API contracts.
-            Multiply by every bounded context. Multiply by every change.
+        <div style="background:#07090D; padding:40px 38px;">
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE; margin-bottom:18px;"
+          >
+            Domain-driven design
+          </div>
+          <p style="font-size:17px; line-height:1.6; color:#C9CDD6; margin:0 0 18px;">
+            Goes straight from the whiteboard to the code. The event flows between bounded contexts —
+            where incidents are actually born — are written directly into production.
           </p>
-          <p>
-            The cost isn't just time &mdash; it's drift. Manual artifacts diverge from
-            intent. Tests cover the wrong cases. Documentation describes last month's model.
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0;">
+            There is no rehearsal. Moment adds it.
           </p>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ THE SOLUTION ============ -->
-  <section class="why-section why-section--alt">
-    <div class="why-section__inner">
-      <h2 class="why-section__title">How Moment solves it</h2>
-      <div class="why-solution">
-        <div class="why-solution__item">
-          <div class="why-solution__number">1</div>
-          <div class="why-solution__body">
-            <h3 class="why-solution__heading">Single source of truth</h3>
-            <p>
-              The <code>.moment</code> specification is the canonical definition of your domain.
-              Contexts, aggregates, commands, events, flows, crossings, sagas, policies &mdash;
-              all in one file, in one language, version-controlled alongside your code.
+    {/* 2D VS 3D */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:84px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          The missing dimension
+        </div>
+        <h2
+          style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 44px; max-width:720px; color:#F2FBFC;"
+        >
+          Moment adds time to a two-dimensional domain design.
+        </h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:22px;">
+          <div
+            style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:30px 30px;"
+          >
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92; margin-bottom:18px;"
+            >
+              2D — the static map (DDD today)
+            </div>
+            <svg viewBox="0 0 420 200" width="100%" style="display:block; margin-bottom:20px;">
+              <rect
+                x="20"
+                y="30"
+                width="170"
+                height="140"
+                rx="10"
+                fill="rgba(255,255,255,0.03)"
+                stroke="rgba(255,255,255,0.12)"></rect>
+              <rect
+                x="230"
+                y="30"
+                width="170"
+                height="140"
+                rx="10"
+                fill="rgba(255,255,255,0.03)"
+                stroke="rgba(255,255,255,0.12)"></rect>
+              <text x="34" y="52" font-family="JetBrains Mono, monospace" font-size="11" fill="#90A2AA"
+                >Ordering</text
+              >
+              <text x="244" y="52" font-family="JetBrains Mono, monospace" font-size="11" fill="#90A2AA"
+                >Fulfillment</text
+              >
+              <rect
+                x="40"
+                y="70"
+                width="120"
+                height="26"
+                rx="6"
+                fill="#0d141a"
+                stroke="rgba(255,255,255,0.14)"></rect><text
+                x="100"
+                y="87"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="11"
+                fill="#cdd2da">Order</text
+              >
+              <rect
+                x="40"
+                y="110"
+                width="120"
+                height="26"
+                rx="6"
+                fill="#0d141a"
+                stroke="rgba(255,255,255,0.14)"></rect><text
+                x="100"
+                y="127"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="11"
+                fill="#cdd2da">LineItem</text
+              >
+              <rect
+                x="250"
+                y="70"
+                width="120"
+                height="26"
+                rx="6"
+                fill="#0d141a"
+                stroke="rgba(255,255,255,0.14)"></rect><text
+                x="310"
+                y="87"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="11"
+                fill="#cdd2da">Shipment</text
+              >
+            </svg>
+            <p style="font-size:14.5px; line-height:1.6; color:#90A2AA; margin:0;">
+              You can see the pieces and where they live. You cannot see what happens when, in what
+              order, or what data moves between them.
+            </p>
+          </div>
+          <div
+            style="background:linear-gradient(180deg, rgba(34,211,238,0.08), rgba(34,211,238,0.02)); border:1px solid rgba(34,211,238,0.28); border-radius:14px; padding:30px 30px;"
+          >
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; margin-bottom:18px;"
+            >
+              + time — the flow (Moment)
+            </div>
+            <svg viewBox="0 0 420 200" width="100%" style="display:block; margin-bottom:20px;">
+              <defs
+                ><marker id="wa" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto"
+                  ><path d="M0,0 L8,4 L0,8 Z" fill="#22D3EE"></path></marker
+                ></defs
+              >
+              <line x1="30" y1="24" x2="30" y2="180" stroke="rgba(34,211,238,0.25)" stroke-width="1"
+              ></line>
+              <text x="8" y="20" font-family="JetBrains Mono, monospace" font-size="9" fill="#5b7077"
+                >t</text
+              >
+              <rect
+                x="60"
+                y="34"
+                width="120"
+                height="26"
+                rx="6"
+                fill="#0d141a"
+                stroke="rgba(34,211,238,0.4)"></rect><text
+                x="120"
+                y="51"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="11"
+                fill="#cfe9ee">PlaceOrder</text
+              >
+              <circle cx="72" cy="88" r="4" fill="#9DE6C6"></circle><text
+                x="84"
+                y="92"
+                font-family="Geist"
+                font-size="11"
+                fill="#9DE6C6">OrderPlaced</text
+              >
+              <path
+                d="M120,100 C210,120 210,130 292,150"
+                fill="none"
+                stroke="#22D3EE"
+                stroke-width="1.6"
+                stroke-dasharray="5 5"
+                marker-end="url(#wa)"></path>
+              <text
+                x="150"
+                y="120"
+                font-family="JetBrains Mono, monospace"
+                font-size="9"
+                fill="#22D3EE">crosses-to · contract</text
+              >
+              <rect
+                x="240"
+                y="140"
+                width="150"
+                height="26"
+                rx="6"
+                fill="#0e1318"
+                stroke="rgba(255,255,255,0.16)"></rect><text
+                x="315"
+                y="157"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="11"
+                fill="#cdd2da">InitiateFulfillment</text
+              >
+            </svg>
+            <p style="font-size:14.5px; line-height:1.6; color:#B9CCD1; margin:0;">
+              Now the sequence is explicit: which event triggers which, where it crosses a boundary,
+              and the exact contract the crossing must carry.
             </p>
           </div>
         </div>
-        <div class="why-solution__item">
-          <div class="why-solution__number">2</div>
-          <div class="why-solution__body">
-            <h3 class="why-solution__heading">Temporal modeling with flows</h3>
-            <p>
-              Flows define how events move through time across bounded contexts. Lanes,
-              moments, branches, crossings with contracts, <code>triggered-by</code> chains,
-              and terminal states make the temporal dimension explicit and testable.
+      </div>
+    </section>
+
+    {/* THE MOMENT — unit of value */}
+    <section
+      style="position:relative; border-top:1px solid rgba(255,255,255,0.06); background:#0A0F14;"
+    >
+      <div
+        class="site-container"
+        style="max-width:1200px; margin:0 auto; padding:72px 40px; display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center;"
+      >
+        <div>
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+          >
+            The unit of value
+          </div>
+          <h2
+            style="font-weight:600; font-size:32px; line-height:1.12; letter-spacing:-.02em; margin:0 0 14px; color:#F2FBFC;"
+          >
+            A <span style="color:#7FE9F5;">moment</span> is a behavioral assertion.
+          </h2>
+          <p style="font-size:16px; line-height:1.62; color:#90A2AA; margin:0 0 16px;">
+            It states when, where, and how an event participates in a cross-context flow — including
+            the schema contract the crossing carries. Every crossing must declare its contract
+            explicitly.
+          </p>
+          <p style="font-size:15px; line-height:1.62; color:#90A2AA; margin:0;">
+            An implicit crossing is not a shortcut. It is a specification error, and Moment reports
+            it as one.
+          </p>
+        </div>
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:13px; background:#07090D; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:24px 24px; line-height:1.8;"
+        >
+          <div><span style="color:#22D3EE;">moment</span> <span style="color:#9DE6C6;">"Submission"</span></div>
+          <div style="padding-left:22px;">ordering: <span style="color:#E7C9A0;">OrderPlaced</span></div>
+          <div style="padding-left:22px;"><span style="color:#C58CFF;">crosses-to</span> fulfillment</div>
+          <div style="padding-left:44px;"><span style="color:#5b7077;">via</span> CustomerSupplier</div>
+          <div style="padding-left:44px;"><span style="color:#5b7077;">contract</span> {'{ orderId, items }'}</div>
+          <div
+            style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); color:#7fbf9a;"
+          >
+            ✓ contract asserted at the boundary
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* CONVERGENCE */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:84px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          Convergence, not correctness
+        </div>
+        <h2
+          style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 14px; max-width:720px; color:#F2FBFC;"
+        >
+          Gaps between spec and code are diagnosed by severity — and driven to zero.
+        </h2>
+        <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0 0 44px;">
+          Moment never claims your system is “correct.” It measures the distance between the design
+          you agreed to and the code you shipped, and gives you a gate to close it.
+        </p>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px;">
+          <div
+            style="background:#0A0F14; border:1px solid rgba(224,90,90,0.25); border-radius:12px; padding:26px 26px;"
+          >
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#e07a7a; margin-bottom:14px;"
+            >
+              ERROR
+            </div>
+            <div style="font-weight:600; font-size:16px; margin-bottom:8px; color:#E6F0F2;">
+              Blocks convergence
+            </div>
+            <p style="margin:0; font-size:14px; line-height:1.55; color:#90A2AA;">
+              A crossing with no contract, an event no flow consumes, a saga with no terminal state.
+              The gate stays shut.
+            </p>
+          </div>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(224,178,90,0.25); border-radius:12px; padding:26px 26px;"
+          >
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#e0b25a; margin-bottom:14px;"
+            >
+              WARNING
+            </div>
+            <div style="font-weight:600; font-size:16px; margin-bottom:8px; color:#E6F0F2;">
+              Advisory
+            </div>
+            <p style="margin:0; font-size:14px; line-height:1.55; color:#90A2AA;">
+              Implementation added a field the spec doesn’t know about. Reconcile in either direction
+              when you’re ready.
+            </p>
+          </div>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(34,211,238,0.25); border-radius:12px; padding:26px 26px;"
+          >
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#22D3EE; margin-bottom:14px;"
+            >
+              INFO
+            </div>
+            <div style="font-weight:600; font-size:16px; margin-bottom:8px; color:#E6F0F2;">
+              Fitness signal
+            </div>
+            <p style="margin:0; font-size:14px; line-height:1.55; color:#90A2AA;">
+              Coverage, naming drift, unused contracts. Tracked over time so the model stays healthy,
+              not just legal.
             </p>
           </div>
         </div>
-        <div class="why-solution__item">
-          <div class="why-solution__number">3</div>
-          <div class="why-solution__body">
-            <h3 class="why-solution__heading">Deterministic artifact generation</h3>
-            <p>
-              Same input, same output. Every time. TypeScript types with discriminated unions,
-              test scaffolds with crossing assertions, Gherkin features with flow coverage,
-              spec docs with Mermaid diagrams, and AsyncAPI contracts. Six artifact types
-              from one specification.
-            </p>
-          </div>
+      </div>
+    </section>
+
+    {/* INDEPENDENCE */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1000px; margin:0 auto; padding:80px 40px; text-align:center;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:18px;"
+        >
+          No lock-in by construction
         </div>
-        <div class="why-solution__item">
-          <div class="why-solution__number">4</div>
-          <div class="why-solution__body">
-            <h3 class="why-solution__heading">Drift detection closes the loop</h3>
-            <p>
-              <code>moment drift</code> compares your specification against implementation
-              using AST-level diffing. When they diverge, you know exactly what changed,
-              where, and why. Reconcile in either direction.
-            </p>
-          </div>
+        <h2
+          style="font-weight:600; font-size:34px; line-height:1.12; letter-spacing:-.02em; margin:0 auto 16px; max-width:720px; color:#F2FBFC;"
+        >
+          The full pipeline runs with zero Complai dependency.
+        </h2>
+        <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0 auto 32px;">
+          No <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;"
+            >@mmmnt</span
+          > package may take a runtime or build-time dependency on any Complai service. The open-source
+          community uses the entire toolchain without ever knowing Complai exists. Everything commercial
+          plugs in around Moment — never inside it.
+        </p>
+        <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <a
+            href="/dsl"
+            class="btn-primary"
+            style="font-size:15px; font-weight:600; padding:13px 24px; border-radius:8px;"
+            >Read the DSL →</a
+          >
+          <a
+            href="/get-started"
+            class="btn-secondary"
+            style="font-size:15px; font-weight:500; padding:13px 22px; border-radius:8px;">Get started</a
+          >
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ FACET DIFFERENTIATOR ============ -->
-  <section class="why-section">
-    <div class="why-section__inner">
-      <h2 class="why-section__title">The breakthrough: test your domain before you code</h2>
-      <div class="why-narrative">
-        <div class="why-narrative__block">
-          <h3 class="why-narrative__heading">Moment + Facet: simulate, visualize, then implement</h3>
-          <p>
-            Run <code>moment simulate</code> to generate Facet-compatible simulation scenarios
-            from your specification. Each scenario includes synthetic events with causation chains,
-            correlation tracking, and branch path resolution.
-          </p>
-          <p>
-            Load the scenarios into Facet to see your domain flows rendered as interactive
-            timelines. Validate that events flow correctly between bounded contexts.
-            Verify crossing contracts carry the required fields. Confirm saga states
-            transition in the right order. See which branches lead to terminal states.
-          </p>
-          <p>
-            <strong>All of this happens before you write a single aggregate class, command handler,
-            or event listener.</strong> When you do start implementing, you're building against
-            a domain model that's already been visually validated. Your test scaffolds,
-            Gherkin features, and TypeScript types are generated from the same source of truth.
-          </p>
-        </div>
-        <div class="why-narrative__block">
-          <h3 class="why-narrative__heading">Why this doesn't exist anywhere else</h3>
-          <p>
-            DDD tooling today starts at the code level. You model with EventStorming,
-            then jump directly to implementation. There's no intermediate step where you
-            validate the temporal behavior of your domain.
-          </p>
-          <p>
-            Event Sourcing frameworks give you event stores, projections, and aggregate
-            persistence. But none of them let you simulate event flows from a specification
-            and validate them visually before building the system.
-          </p>
-          <p>
-            Moment bridges this gap. The <code>.moment</code> DSL captures temporal behavior
-            (flows, crossings, branches, triggered-by chains) that no other specification
-            format can express. And the <code>moment simulate</code> command turns that
-            specification into executable scenarios that Facet can render.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ COMPARISON TABLE ============ -->
-  <section class="why-section">
-    <div class="why-section__inner">
-      <h2 class="why-section__title">How Moment compares</h2>
-      <p class="why-section__subtitle">
-        Moment isn't a code generator. It's a specification-driven toolchain
-        that produces artifacts you'd write by hand &mdash; but can't keep in sync manually.
-      </p>
-      <div class="why-table-wrap">
-        <table class="why-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Manual DDD</th>
-              <th>OpenAPI / Swagger</th>
-              <th>GraphQL Schema-First</th>
-              <th class="why-table__highlight">Moment</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="why-table__label">Source of truth</td>
-              <td>Wiki + code + tests</td>
-              <td>API spec (YAML)</td>
-              <td>Schema (SDL)</td>
-              <td class="why-table__highlight">.moment specification</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Domain modeling</td>
-              <td>Whiteboard / Event Storming</td>
-              <td>Endpoints only</td>
-              <td>Types only</td>
-              <td class="why-table__highlight">Contexts, aggregates, flows, sagas, policies</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Generates types</td>
-              <td>Manual</td>
-              <td>Yes</td>
-              <td>Yes</td>
-              <td class="why-table__highlight">Yes (discriminated unions, readonly)</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Generates tests</td>
-              <td>Manual</td>
-              <td>No</td>
-              <td>No</td>
-              <td class="why-table__highlight">Yes (scaffolds + Gherkin features)</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Generates docs</td>
-              <td>Manual</td>
-              <td>Swagger UI</td>
-              <td>Schema introspection</td>
-              <td class="why-table__highlight">Spec docs with Mermaid diagrams</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Simulate before coding</td>
-              <td>Not possible</td>
-              <td>Not possible</td>
-              <td>Not possible</td>
-              <td class="why-table__highlight">Yes (moment simulate → Facet visualization)</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Temporal flows</td>
-              <td>Not modeled</td>
-              <td>Not modeled</td>
-              <td>Not modeled</td>
-              <td class="why-table__highlight">First-class (lanes, crossings, branches)</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Drift detection</td>
-              <td>None</td>
-              <td>None</td>
-              <td>None</td>
-              <td class="why-table__highlight">AST-level diffing</td>
-            </tr>
-            <tr>
-              <td class="why-table__label">Schema governance</td>
-              <td>Manual versioning</td>
-              <td>Version in URL</td>
-              <td>Deprecation directives</td>
-              <td class="why-table__highlight">4-phase lifecycle (Active → Deprecated → EOL → Removed)</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ WHO IS THIS FOR ============ -->
-  <section class="why-section why-section--alt">
-    <div class="why-section__inner">
-      <h2 class="why-section__title">Who Moment is for</h2>
-      <div class="why-personas">
-        <div class="why-persona">
-          <h3 class="why-persona__role">Architects</h3>
-          <ul class="why-persona__list">
-            <li>Enforce bounded context boundaries with crossing contracts</li>
-            <li>Govern schema evolution across teams with lifecycle policies</li>
-            <li>Detect specification drift before it reaches production</li>
-            <li>Visualize context maps and flow timelines from the spec</li>
-          </ul>
-        </div>
-        <div class="why-persona">
-          <h3 class="why-persona__role">IC Engineers</h3>
-          <ul class="why-persona__list">
-            <li>Stop writing boilerplate types, tests, and docs by hand</li>
-            <li>Get pre-populated test scaffolds with crossing assertions</li>
-            <li>Trust that generated code matches the domain model</li>
-            <li>Use watch mode for instant feedback during development</li>
-          </ul>
-        </div>
-        <div class="why-persona">
-          <h3 class="why-persona__role">Team Leads</h3>
-          <ul class="why-persona__list">
-            <li>Onboard new engineers with a readable domain specification</li>
-            <li>Ensure consistency across bounded contexts and teams</li>
-            <li>Living documentation that never drifts from implementation</li>
-            <li>Adopt incrementally, one context at a time</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ CTA ============ -->
-  <section class="why-cta">
-    <div class="why-cta__inner">
-      <h2 class="why-cta__title">Ready to try it?</h2>
-      <p class="why-cta__desc">
-        Start with one bounded context. Write a <code>.moment</code> file.
-        See what Moment generates.
-      </p>
-      <div class="why-cta__buttons">
-        <a href="/get-started" class="btn btn--primary">Get Started</a>
-        <a href="/examples" class="btn btn--secondary">See Examples</a>
-      </div>
-    </div>
-  </section>
-
-  <Footer slot="footer" />
+    <Footer />
+  </div>
 </Base>
-
-<style>
-  .why-hero {
-    padding: var(--space-20) var(--space-6) var(--space-10);
-    text-align: center;
-  }
-
-  .why-hero__inner { max-width: var(--content-width); margin: 0 auto; }
-  .why-hero__title { font-size: var(--text-4xl); font-weight: var(--weight-bold); margin-bottom: var(--space-4); }
-  .why-hero__subtitle { color: var(--color-text-secondary); font-size: var(--text-lg); max-width: 40rem; margin: 0 auto; line-height: var(--leading-relaxed); }
-
-  .why-section { padding: var(--space-16) var(--space-6); }
-  .why-section--alt { background: var(--color-surface); }
-  .why-section__inner { max-width: var(--max-width); margin: 0 auto; }
-  .why-section__title { font-size: var(--text-3xl); font-weight: var(--weight-bold); margin-bottom: var(--space-3); }
-  .why-section__subtitle { color: var(--color-text-secondary); font-size: var(--text-lg); margin-bottom: var(--space-8); max-width: 40rem; }
-
-  /* Narrative */
-  .why-narrative { display: flex; flex-direction: column; gap: var(--space-10); }
-  .why-narrative__heading { font-size: var(--text-xl); font-weight: var(--weight-semibold); margin-bottom: var(--space-3); }
-  .why-narrative__block p { color: var(--color-text-secondary); line-height: var(--leading-relaxed); margin-bottom: var(--space-3); max-width: 42rem; }
-
-  /* Solution steps */
-  .why-solution { display: flex; flex-direction: column; gap: var(--space-8); }
-  .why-solution__item { display: flex; gap: var(--space-5); }
-  .why-solution__number {
-    display: flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; flex-shrink: 0;
-    background: var(--color-accent-muted); color: var(--color-accent);
-    font-weight: var(--weight-bold); font-size: var(--text-lg);
-    border-radius: 50%; border: 2px solid var(--color-accent);
-  }
-  .why-solution__heading { font-size: var(--text-lg); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
-  .why-solution__body p { color: var(--color-text-secondary); line-height: var(--leading-relaxed); max-width: 42rem; }
-  .why-solution__body code { color: var(--color-accent); background: var(--color-accent-muted); padding: 0.1em 0.4em; border-radius: var(--radius-sm); font-size: 0.9em; }
-
-  /* Comparison table */
-  .why-table-wrap { overflow-x: auto; margin-top: var(--space-6); }
-  .why-table {
-    width: 100%; border-collapse: collapse; font-size: var(--text-sm);
-    min-width: 700px;
-  }
-  .why-table th {
-    text-align: left; padding: var(--space-3) var(--space-4);
-    color: var(--color-text-tertiary); font-weight: var(--weight-semibold);
-    border-bottom: 2px solid var(--color-border);
-    font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-  .why-table td {
-    padding: var(--space-3) var(--space-4);
-    border-bottom: 1px solid var(--color-border-subtle);
-    color: var(--color-text-secondary); vertical-align: top;
-  }
-  .why-table__label { color: var(--color-text-primary) !important; font-weight: var(--weight-medium); white-space: nowrap; }
-  .why-table__highlight { background: var(--color-accent-muted) !important; color: var(--color-text-primary) !important; }
-  th.why-table__highlight { color: var(--color-accent) !important; }
-
-  /* Personas */
-  .why-personas { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
-  .why-persona {
-    padding: var(--space-6); background: var(--color-bg);
-    border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg);
-  }
-  .why-persona__role { font-size: var(--text-lg); font-weight: var(--weight-bold); margin-bottom: var(--space-4); color: var(--color-accent); }
-  .why-persona__list { list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
-  .why-persona__list li {
-    padding-left: var(--space-5); position: relative;
-    color: var(--color-text-secondary); font-size: var(--text-sm); line-height: var(--leading-relaxed);
-  }
-  .why-persona__list li::before {
-    content: ''; position: absolute; left: 0; top: 0.55em;
-    width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent);
-  }
-
-  /* CTA */
-  .why-cta { padding: var(--space-16) var(--space-6); text-align: center; border-top: 1px solid var(--color-border-subtle); }
-  .why-cta__inner { max-width: var(--content-width); margin: 0 auto; }
-  .why-cta__title { font-size: var(--text-3xl); font-weight: var(--weight-bold); margin-bottom: var(--space-3); }
-  .why-cta__desc { color: var(--color-text-secondary); font-size: var(--text-lg); margin-bottom: var(--space-8); }
-  .why-cta__desc code { color: var(--color-accent); background: var(--color-accent-muted); padding: 0.1em 0.4em; border-radius: var(--radius-sm); }
-  .why-cta__buttons { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-6); font-size: var(--text-base); font-weight: var(--weight-medium); border-radius: var(--radius-md); text-decoration: none; transition: all var(--duration-fast) var(--ease-out); }
-  .btn--primary { background: var(--color-accent); color: #fff; }
-  .btn--primary:hover { background: var(--color-accent-hover); color: #fff; }
-  .btn--secondary { background: var(--color-surface-raised); color: var(--color-text-primary); border: 1px solid var(--color-border); }
-  .btn--secondary:hover { background: var(--color-border); color: var(--color-text-primary); }
-
-  @media (max-width: 768px) {
-    .why-personas { grid-template-columns: 1fr; }
-    .why-solution__item { flex-direction: column; }
-  }
-</style>

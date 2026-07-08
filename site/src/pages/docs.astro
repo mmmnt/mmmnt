@@ -1,0 +1,363 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { GITHUB_URL, GITHUB_WIKI_URL } from '../consts';
+
+const title = 'Docs';
+const description =
+  'Everything you need to run Moment locally — install, quickstart, CLI reference, packages, and MCP server configuration.';
+
+const cliRows = [
+  { cmd: 'moment parse', desc: 'Parse a .moment file into the typed IR.' },
+  { cmd: 'moment derive', desc: 'Derive scenarios, topologies, and facet.json.' },
+  { cmd: 'moment generate', desc: 'Emit types, tests, docs, and contracts.' },
+  { cmd: 'moment simulate', desc: 'Run the local simulation and write facet.json.' },
+  { cmd: 'moment viz --bridge', desc: 'Open the live Facet bridge in the browser.' },
+  { cmd: 'moment status', desc: 'Report spec↔code gaps by severity.' },
+  { cmd: 'moment reconcile', desc: 'Close a gap — update spec or code.' },
+  { cmd: 'moment watch', desc: 'Regenerate on every spec change.' },
+];
+
+const packages = [
+  { name: '@mmmnt/core', desc: 'grammar + IR' },
+  { name: '@mmmnt/derive', desc: 'scenarios' },
+  { name: '@mmmnt/generate', desc: 'docs · tests' },
+  { name: '@mmmnt/emit-ts', desc: 'TypeScript' },
+  { name: '@mmmnt/translate', desc: 'temporal mapping' },
+  { name: '@mmmnt/sync', desc: 'drift · reconcile' },
+  { name: '@mmmnt/schema', desc: 'governance' },
+  { name: '@mmmnt/viz', desc: 'Facet bridge' },
+  { name: '@mmmnt/harness', desc: 'test runner' },
+  { name: '@mmmnt/mcp', desc: 'MCP server' },
+  { name: '@mmmnt/cli', desc: 'the moment CLI' },
+];
+
+const sidebarItems = [
+  { id: 'install', label: 'Install' },
+  { id: 'quickstart', label: 'Quickstart' },
+  { id: 'cli', label: 'CLI reference' },
+  { id: 'packages', label: 'Packages' },
+  { id: 'mcp', label: 'MCP server' },
+  { id: 'deeper', label: 'Going deeper' },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: 'Moment · Documentation',
+  description,
+  author: { '@type': 'Organization', name: 'Complai' },
+  publisher: { '@type': 'Organization', name: 'Complai' },
+};
+---
+
+<Base title={title} description={description} jsonLd={jsonLd}>
+  <div style="position:relative;">
+    <Nav active="docs" />
+
+    <div
+      class="site-container"
+      style="max-width:1200px; margin:0 auto; display:grid; grid-template-columns:220px 1fr; gap:48px; padding:0 40px;"
+    >
+      {/* SIDEBAR */}
+      <aside
+        style="position:sticky; top:74px; align-self:start; padding:48px 0; height:max-content;"
+      >
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#5b7077; margin-bottom:14px;"
+        >
+          On this page
+        </div>
+        <div
+          style="display:flex; flex-direction:column; gap:11px; font-size:14px; border-left:1px solid rgba(255,255,255,0.09);"
+        >
+          {
+            sidebarItems.map((item, i) => (
+              <a
+                href={`#${item.id}`}
+                class="link-muted"
+                style={`color:${i === 0 ? '#C9CDD6' : '#90A2AA'}; padding-left:16px;`}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </div>
+        <div style="margin-top:22px; padding-top:18px; border-top:1px solid rgba(255,255,255,0.08);">
+          <a
+            href={GITHUB_WIKI_URL}
+            target="_blank"
+            rel="noopener"
+            style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE;"
+            >Full reference on the wiki →</a
+          >
+        </div>
+      </aside>
+
+      {/* CONTENT */}
+      <div style="padding:48px 0 60px; min-width:0;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          Documentation
+        </div>
+        <h1
+          style="font-weight:600; font-size:44px; line-height:1.06; letter-spacing:-.02em; margin:0 0 16px; color:#F2FBFC;"
+        >
+          Everything to run Moment locally.
+        </h1>
+        <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0 0 20px;">
+          The essentials live here; the exhaustive reference — full grammar, every flag, adapters —
+          lives in the <a
+            href={GITHUB_WIKI_URL}
+            target="_blank"
+            rel="noopener"
+            style="color:#C9E8ED; border-bottom:1px solid rgba(201,232,237,0.3);">repo wiki</a
+          >.
+        </p>
+
+        {/* INSTALL */}
+        <div id="install" style="scroll-margin-top:80px; padding-top:44px;">
+          <h2
+            style="font-weight:600; font-size:26px; letter-spacing:-.01em; margin:0 0 8px; color:#F2FBFC;"
+          >
+            Install
+          </h2>
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
+            Requires Node 18+ and pnpm. Clone the monorepo and build the workspace.
+          </p>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
+          >
+            <div
+              style="padding:11px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#7C8C92;"
+            >
+              terminal
+            </div>
+            <div
+              style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
+            >
+              <div><span style="color:#5b7077;">$</span> git clone https://github.com/mmmnt/moment.git</div>
+              <div><span style="color:#5b7077;">$</span> cd moment && pnpm install</div>
+              <div><span style="color:#5b7077;">$</span> pnpm turbo build</div>
+              <div>
+                <span style="color:#5b7077;">$</span> moment --version <span style="color:#7fbf9a;"
+                  ># 1.0.0</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* QUICKSTART */}
+        <div id="quickstart" style="scroll-margin-top:80px; padding-top:44px;">
+          <h2
+            style="font-weight:600; font-size:26px; letter-spacing:-.01em; margin:0 0 8px; color:#F2FBFC;"
+          >
+            Quickstart
+          </h2>
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
+            Write a spec, generate everything, and simulate before writing code. The full five-step
+            walkthrough lives on the <a
+              href="/get-started"
+              style="color:#C9E8ED; border-bottom:1px solid rgba(201,232,237,0.3);">Get started</a
+            > page.
+          </p>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
+          >
+            <div
+              style="padding:11px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#7C8C92;"
+            >
+              terminal
+            </div>
+            <div
+              style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
+            >
+              <div>
+                <span style="color:#5b7077;">$</span> moment parse <span style="color:#9DE6C6;"
+                  >order.moment</span
+                >
+              </div>
+              <div>
+                <span style="color:#5b7077;">$</span> moment generate <span style="color:#22D3EE;"
+                  >--all</span
+                >
+              </div>
+              <div>
+                <span style="color:#5b7077;">$</span> moment simulate <span style="color:#22D3EE;"
+                  >--out</span
+                > facet.json
+              </div>
+              <div>
+                <span style="color:#5b7077;">$</span> moment viz <span style="color:#22D3EE;"
+                  >--bridge</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CLI */}
+        <div id="cli" style="scroll-margin-top:80px; padding-top:44px;">
+          <h2
+            style="font-weight:600; font-size:26px; letter-spacing:-.01em; margin:0 0 8px; color:#F2FBFC;"
+          >
+            CLI reference
+          </h2>
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 20px;">
+            The commands you'll use most. Run <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+              >moment &lt;cmd&gt; --help</span
+            > for flags.
+          </p>
+          <div style="border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;">
+            <div
+              style="display:grid; grid-template-columns:200px 1fr; padding:12px 22px; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#5b7077;"
+            >
+              <span>Command</span><span>Does</span>
+            </div>
+            {
+              cliRows.map((row, i) => (
+                <div
+                  style={`display:grid; grid-template-columns:200px 1fr; padding:14px 22px; ${i === cliRows.length - 1 ? '' : 'border-bottom:1px solid rgba(255,255,255,0.05);'} align-items:center; font-size:13.5px;`}
+                >
+                  <span style="font-family:'JetBrains Mono',monospace; color:#22D3EE;">
+                    {row.cmd}
+                  </span>
+                  <span style="color:#90A2AA;">{row.desc}</span>
+                </div>
+              ))
+            }
+          </div>
+          <p style="font-size:13.5px; color:#5b7077; margin:14px 0 0;">
+            20+ commands in total — see the <a
+              href={GITHUB_WIKI_URL}
+              target="_blank"
+              rel="noopener"
+              style="color:#22D3EE;">wiki</a
+            > for the complete list.
+          </p>
+        </div>
+
+        {/* PACKAGES */}
+        <div id="packages" style="scroll-margin-top:80px; padding-top:44px;">
+          <h2
+            style="font-weight:600; font-size:26px; letter-spacing:-.01em; margin:0 0 8px; color:#F2FBFC;"
+          >
+            Packages
+          </h2>
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 20px;">
+            Eleven <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+              >@mmmnt</span
+            > packages, each doing one job in the pipeline.
+          </p>
+          <div
+            style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; font-family:'JetBrains Mono',monospace; font-size:12.5px;"
+          >
+            {
+              packages.map((p) => (
+                <div style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 16px;">
+                  <span style="color:#C9E8ED;">{p.name}</span>
+                  <div style="color:#7C8C92; margin-top:4px;">{p.desc}</div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+
+        {/* MCP */}
+        <div id="mcp" style="scroll-margin-top:80px; padding-top:44px;">
+          <h2
+            style="font-weight:600; font-size:26px; letter-spacing:-.01em; margin:0 0 8px; color:#F2FBFC;"
+          >
+            MCP server
+          </h2>
+          <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
+            A Model Context Protocol server exposes 7 tools to Claude, Copilot, and Cursor — fully
+            offline. Point your agent at it and let it read and reconcile the model.
+          </p>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
+          >
+            <div
+              style="padding:11px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#7C8C92;"
+            >
+              ~/.config/mcp/servers.json
+            </div>
+            <pre
+              style="margin:0; padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;">{'{\n  '}<span
+                style="color:#9DE6C6;">"moment"</span
+              >{': {\n    '}<span style="color:#9DE6C6;">"command"</span>{': '}<span
+                style="color:#C9E8ED;">"moment"</span
+              >{',\n    '}<span style="color:#9DE6C6;">"args"</span>{': ['}<span
+                style="color:#C9E8ED;">"mcp"</span
+              >{']\n  }\n}'}</pre>
+          </div>
+        </div>
+
+        {/* DEEPER */}
+        <div id="deeper" style="scroll-margin-top:80px; padding-top:44px;">
+          <h2
+            style="font-weight:600; font-size:26px; letter-spacing:-.01em; margin:0 0 16px; color:#F2FBFC;"
+          >
+            Going deeper
+          </h2>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:14px;">
+            <a
+              href={GITHUB_WIKI_URL}
+              target="_blank"
+              rel="noopener"
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px 22px; display:block;"
+            >
+              <div style="font-weight:600; font-size:15px; color:#E6F0F2; margin-bottom:5px;">
+                Full grammar reference →
+              </div>
+              <p style="margin:0; font-size:13px; color:#90A2AA; line-height:1.5;">
+                Every construct, every rule, on the wiki.
+              </p>
+            </a>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener"
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px 22px; display:block;"
+            >
+              <div style="font-weight:600; font-size:15px; color:#E6F0F2; margin-bottom:5px;">
+                Source on GitHub →
+              </div>
+              <p style="margin:0; font-size:13px; color:#90A2AA; line-height:1.5;">
+                Read the code, open an issue, contribute.
+              </p>
+            </a>
+            <a
+              href="/dsl"
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px 22px; display:block;"
+            >
+              <div style="font-weight:600; font-size:15px; color:#E6F0F2; margin-bottom:5px;">
+                The DSL, explained →
+              </div>
+              <p style="margin:0; font-size:13px; color:#90A2AA; line-height:1.5;">
+                Interactive keyword-by-keyword tour.
+              </p>
+            </a>
+            <a
+              href="/examples"
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px 22px; display:block;"
+            >
+              <div style="font-weight:600; font-size:15px; color:#E6F0F2; margin-bottom:5px;">
+                Worked examples →
+              </div>
+              <p style="margin:0; font-size:13px; color:#90A2AA; line-height:1.5;">
+                Real specs and the flows they render.
+              </p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <Footer />
+  </div>
+</Base>

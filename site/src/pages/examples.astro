@@ -2,208 +2,487 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import ExampleSelector from '../components/ExampleSelector.tsx';
-import examples from '../data/examples.json';
+
+const title = 'Examples';
+const description =
+  'Real .moment specs and the Facet flows they render — commerce, payments sagas, multi-context onboarding. The diagram is a build artifact of the spec.';
 ---
 
-<Base
-  title="Examples"
-  description="Explore real .moment specifications and see the TypeScript, Gherkin, and documentation artifacts Moment generates from them."
->
-  <Nav slot="nav" />
+<Base title={title} description={description}>
+  <div style="position:relative; overflow:hidden;">
+    <Nav />
 
-  <section class="examples-hero">
-    <div class="examples-hero__inner">
-      <h1 class="examples-hero__title">Examples</h1>
-      <p class="examples-hero__subtitle">
-        Real domain specifications and all seven artifact types Moment generates from them.
-        Every output is deterministic &mdash; the same input always produces the same result.
+    <div
+      style="position:absolute; inset:0; top:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px); background-size:48px 48px; pointer-events:none;"
+    >
+    </div>
+    <div
+      style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:1000px; height:520px; background:radial-gradient(ellipse at center, rgba(34,211,238,0.09), transparent 70%); pointer-events:none;"
+    >
+    </div>
+
+    <section
+      class="site-container"
+      style="position:relative; max-width:1000px; margin:0 auto; padding:88px 40px 20px;"
+    >
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:22px;"
+      >
+        Examples
+      </div>
+      <h1
+        style="font-weight:600; font-size:54px; line-height:1.05; letter-spacing:-.025em; margin:0 0 24px; max-width:760px; color:#F2FBFC;"
+      >
+        Real specs, and the flows they render.
+      </h1>
+      <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
+        Each example is a complete <span
+          style="font-family:'JetBrains Mono',monospace;font-size:15.5px;color:#C9E8ED;">.moment</span
+        > file beside the Facet flow it compiles into. The diagram is a build artifact of the spec —
+        never drawn by hand.
       </p>
-      <div class="examples-hero__artifacts">
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--moment"></span>.moment</span>
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--ts"></span>TypeScript</span>
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--scaffold"></span>Test Scaffold</span>
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--gherkin"></span>Gherkin</span>
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--spec"></span>Spec Doc</span>
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--async"></span>AsyncAPI</span>
-        <span class="examples-hero__artifact"><span class="examples-hero__dot examples-hero__dot--facet"></span>facet.json</span>
+    </section>
+
+    {/* EXAMPLE 1 */}
+    <section id="ex-ordering" class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:56px 40px 20px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <span
+          style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE;"
+          >01 · Commerce</span
+        >
+        <span style="width:1px; height:14px; background:rgba(255,255,255,0.14);"></span>
+        <h2 style="font-weight:600; font-size:24px; letter-spacing:-.01em; margin:0; color:#F2FBFC;">
+          Order → Fulfillment crossing
+        </h2>
       </div>
-    </div>
-  </section>
-
-  <section class="examples-content">
-    <div class="examples-content__inner">
-      <ExampleSelector examples={examples.examples} client:visible />
-    </div>
-  </section>
-
-  <section class="examples-annotations">
-    <div class="examples-annotations__inner">
-      <h2 class="examples-annotations__title">Understanding the outputs</h2>
-      <div class="examples-annotations__grid">
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: var(--color-accent)"></span>
-          <strong>.moment</strong>
-          <p>The domain specification you write — contexts, aggregates, flows, crossings, sagas, policies, and branches.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;">
+        <div
+          style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:14px; overflow:hidden;"
+        >
+          <div
+            style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92;"
+          >
+            order.moment
+          </div>
+          <pre
+            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span
+              style="color:#22D3EE;">context</span
+            > <span style="color:#9DE6C6;">"Ordering"</span> <span style="color:#5b7077;">[Core]</span
+            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">OrderPlaced</span
+            >{'\n    orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    items: '}<span
+              style="color:#8FD3FF;">LineItem[]</span
+            >{'\n\n'}<span style="color:#22D3EE;">context</span> <span style="color:#9DE6C6;">"Fulfillment"</span
+            > <span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">command</span
+            > <span style="color:#E7C9A0;">InitiateFulfillment</span>{'\n\n'}<span
+              style="color:#22D3EE;">flow</span
+            > <span style="color:#9DE6C6;">"order-placed"</span>{'\n  '}<span style="color:#22D3EE;">moment</span
+            > <span style="color:#9DE6C6;">"Submission"</span>{'\n    ordering: '}<span
+              style="color:#E7C9A0;">OrderPlaced</span
+            >{'\n      '}<span style="color:#C58CFF;">crosses-to</span>{' fulfillment\n        '}<span
+              style="color:#5b7077;">via</span
+            >{' CustomerSupplier\n        '}<span style="color:#5b7077;">contract</span
+            >{' { orderId, items }\n      '}<span style="color:#C58CFF;">triggers</span> <span
+              style="color:#E7C9A0;">InitiateFulfillment</span
+            ></pre>
         </div>
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: var(--color-emit)"></span>
-          <strong>TypeScript</strong>
-          <p>Generated interfaces with discriminated unions, readonly fields, aggregate contracts, and barrel exports.</p>
-        </div>
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: #fbbf24"></span>
-          <strong>Test Scaffold</strong>
-          <p>Pre-populated Vitest files with crossing assertions, branch coverage stubs, and saga/policy test cases.</p>
-        </div>
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: var(--color-generate)"></span>
-          <strong>Gherkin</strong>
-          <p>BDD scenarios with crossing contracts, branch paths, saga lifecycle, policy chains, and invariant violations.</p>
-        </div>
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: #f472b6"></span>
-          <strong>Spec Doc</strong>
-          <p>Markdown with Mermaid context maps, sequence diagrams, domain model reference, and crossing boundary tables.</p>
-        </div>
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: #22d3ee"></span>
-          <strong>AsyncAPI</strong>
-          <p>Event-driven API contracts for crossing events in AsyncAPI 3.0 format with typed payload schemas.</p>
-        </div>
-        <div class="annotation-card">
-          <span class="annotation-card__dot" style="background: var(--color-facet)"></span>
-          <strong>facet.json</strong>
-          <p>Facet-compatible simulation scenarios with synthetic events, causation chains, correlation tracking, and branch path resolution.</p>
+        <div
+          style="background:#080C11; border:1px solid rgba(34,211,238,0.22); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;"
+        >
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07);"
+          >
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9E8ED;"
+              >facet · order-placed</span
+            >
+            <span
+              style="display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7fbf9a;"
+              ><span
+                style="width:6px;height:6px;border-radius:50%;background:#7fbf9a;animation:exPulse 1.8s ease infinite;"
+              ></span>3/3 contracts</span
+            >
+          </div>
+          <div style="padding:18px; flex:1; display:flex; align-items:center;">
+            <svg viewBox="0 0 500 240" width="100%" style="display:block;">
+              <defs
+                ><marker id="ex1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"
+                  ><path d="M0,0 L9,4.5 L0,9 Z" fill="#22D3EE"></path></marker
+                ></defs
+              >
+              <rect
+                x="0"
+                y="14"
+                width="500"
+                height="94"
+                rx="10"
+                fill="rgba(34,211,238,0.05)"
+                stroke="rgba(34,211,238,0.2)"></rect>
+              <text x="14" y="34" font-family="JetBrains Mono, monospace" font-size="11" fill="#22D3EE"
+                >Ordering</text
+              >
+              <rect
+                x="0"
+                y="132"
+                width="500"
+                height="94"
+                rx="10"
+                fill="rgba(255,255,255,0.025)"
+                stroke="rgba(255,255,255,0.09)"></rect>
+              <text x="14" y="152" font-family="JetBrains Mono, monospace" font-size="11" fill="#9aacb3"
+                >Fulfillment</text
+              >
+              <rect
+                x="150"
+                y="52"
+                width="150"
+                height="34"
+                rx="8"
+                fill="#0d141a"
+                stroke="rgba(34,211,238,0.55)"></rect><text
+                x="225"
+                y="74"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="12"
+                fill="#9DE6C6">OrderPlaced</text
+              >
+              <path
+                d="M300,80 C400,110 360,128 400,168"
+                fill="none"
+                stroke="#22D3EE"
+                stroke-width="1.7"
+                stroke-dasharray="6 6"
+                marker-end="url(#ex1)"
+                style="animation:exDash 1s linear infinite;"></path>
+              <text
+                x="316"
+                y="112"
+                font-family="JetBrains Mono, monospace"
+                font-size="9"
+                fill="#22D3EE">crosses-to · CustomerSupplier</text
+              >
+              <text
+                x="316"
+                y="125"
+                font-family="JetBrains Mono, monospace"
+                font-size="8.5"
+                fill="#5b7077">{'{ orderId, items }'}</text
+              >
+              <rect
+                x="316"
+                y="180"
+                width="168"
+                height="34"
+                rx="8"
+                fill="#0e1318"
+                stroke="rgba(255,255,255,0.16)"></rect><text
+                x="400"
+                y="202"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="12"
+                fill="#cdd2da">InitiateFulfillment</text
+              >
+            </svg>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <Footer slot="footer" />
+    {/* EXAMPLE 2 */}
+    <section id="ex-payments" class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:36px 40px 20px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <span
+          style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE;"
+          >02 · Payments</span
+        >
+        <span style="width:1px; height:14px; background:rgba(255,255,255,0.14);"></span>
+        <h2 style="font-weight:600; font-size:24px; letter-spacing:-.01em; margin:0; color:#F2FBFC;">
+          A saga with compensation
+        </h2>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;">
+        <div
+          style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:14px; overflow:hidden;"
+        >
+          <div
+            style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92;"
+          >
+            payment.moment
+          </div>
+          <pre
+            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span
+              style="color:#22D3EE;">context</span
+            > <span style="color:#9DE6C6;">"Payments"</span> <span style="color:#5b7077;">[Core]</span
+            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">PaymentAuthorized</span
+            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">PaymentCaptured</span
+            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">PaymentRefunded</span
+            >{'\n\n'}<span style="color:#22D3EE;">flow</span> <span style="color:#9DE6C6;">"settlement"</span
+            >{'\n  '}<span style="color:#22D3EE;">saga</span> <span style="color:#9DE6C6;">"capture-or-refund"</span
+            >{'\n    '}<span style="color:#22D3EE;">moment</span> <span style="color:#9DE6C6;">"Authorize"</span
+            >{'\n      payments: '}<span style="color:#E7C9A0;">PaymentAuthorized</span>{'\n        '}<span
+              style="color:#C58CFF;">triggers</span
+            > <span style="color:#E7C9A0;">CapturePayment</span>{'\n    '}<span style="color:#5b7077;">until</span
+            >{' PaymentCaptured\n        '}<span style="color:#5b7077;">|</span>{' PaymentRefunded'}</pre>
+        </div>
+        <div
+          style="background:#080C11; border:1px solid rgba(34,211,238,0.22); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;"
+        >
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07);"
+          >
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9E8ED;"
+              >facet · settlement</span
+            >
+            <span
+              style="display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7fbf9a;"
+              ><span
+                style="width:6px;height:6px;border-radius:50%;background:#7fbf9a;animation:exPulse 1.8s ease infinite;"
+              ></span>terminal reached</span
+            >
+          </div>
+          <div style="padding:18px; flex:1; display:flex; align-items:center;">
+            <svg viewBox="0 0 500 240" width="100%" style="display:block;">
+              <defs>
+                <marker id="ex2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"
+                  ><path d="M0,0 L9,4.5 L0,9 Z" fill="#22D3EE"></path></marker
+                >
+                <marker id="ex2b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"
+                  ><path d="M0,0 L9,4.5 L0,9 Z" fill="#e0b25a"></path></marker
+                >
+              </defs>
+              <circle cx="70" cy="120" r="7" fill="#E7C9A0"></circle>
+              <text x="70" y="150" text-anchor="middle" font-family="Geist" font-size="11" fill="#cfd2da"
+                >Authorized</text
+              >
+              <line
+                x1="80"
+                y1="120"
+                x2="150"
+                y2="120"
+                stroke="#22D3EE"
+                stroke-width="1.6"
+                marker-end="url(#ex2)"></line>
+              <rect
+                x="152"
+                y="102"
+                width="120"
+                height="36"
+                rx="8"
+                fill="#0d141a"
+                stroke="rgba(34,211,238,0.5)"></rect><text
+                x="212"
+                y="124"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="11.5"
+                fill="#cfe9ee">CapturePayment</text
+              >
+              <path
+                d="M272,112 L360,70"
+                stroke="#22D3EE"
+                stroke-width="1.6"
+                marker-end="url(#ex2)"></path>
+              <path
+                d="M272,130 L360,178"
+                stroke="#e0b25a"
+                stroke-width="1.6"
+                stroke-dasharray="5 5"
+                marker-end="url(#ex2b)"></path>
+              <circle cx="372" cy="64" r="7" fill="#7fbf9a"></circle>
+              <text x="386" y="68" font-family="Geist" font-size="11" fill="#7fbf9a"
+                >PaymentCaptured</text
+              >
+              <circle cx="372" cy="184" r="7" fill="#e0b25a"></circle>
+              <text x="386" y="188" font-family="Geist" font-size="11" fill="#e0b25a"
+                >PaymentRefunded</text
+              >
+              <text
+                x="360"
+                y="120"
+                font-family="JetBrains Mono, monospace"
+                font-size="9"
+                fill="#5b7077">until — either terminal</text
+              >
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* EXAMPLE 3 */}
+    <section id="ex-onboarding" class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:36px 40px 20px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <span
+          style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE;"
+          >03 · Onboarding</span
+        >
+        <span style="width:1px; height:14px; background:rgba(255,255,255,0.14);"></span>
+        <h2 style="font-weight:600; font-size:24px; letter-spacing:-.01em; margin:0; color:#F2FBFC;">
+          A crossing across three contexts
+        </h2>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;">
+        <div
+          style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:14px; overflow:hidden;"
+        >
+          <div
+            style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92;"
+          >
+            onboarding.moment
+          </div>
+          <pre
+            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span
+              style="color:#22D3EE;">flow</span
+            > <span style="color:#9DE6C6;">"customer-onboarding"</span>{'\n  '}<span
+              style="color:#22D3EE;">moment</span
+            > <span style="color:#9DE6C6;">"SignUp"</span>{'\n    identity: '}<span
+              style="color:#E7C9A0;">AccountCreated</span
+            >{'\n      '}<span style="color:#C58CFF;">crosses-to</span>{' billing\n        '}<span
+              style="color:#5b7077;">contract</span
+            >{' { accountId, plan }\n  '}<span style="color:#22D3EE;">moment</span> <span
+              style="color:#9DE6C6;">"Provision"</span
+            >{'\n    billing: '}<span style="color:#E7C9A0;">SubscriptionStarted</span>{'\n      '}<span
+              style="color:#C58CFF;">crosses-to</span
+            >{' workspace\n        '}<span style="color:#5b7077;">contract</span
+            >{' { accountId, seats }\n      '}<span style="color:#C58CFF;">triggers</span> <span
+              style="color:#E7C9A0;">ProvisionWorkspace</span
+            ></pre>
+        </div>
+        <div
+          style="background:#080C11; border:1px solid rgba(34,211,238,0.22); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;"
+        >
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07);"
+          >
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9E8ED;"
+              >facet · customer-onboarding</span
+            >
+            <span
+              style="display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7fbf9a;"
+              ><span
+                style="width:6px;height:6px;border-radius:50%;background:#7fbf9a;animation:exPulse 1.8s ease infinite;"
+              ></span>2 crossings ok</span
+            >
+          </div>
+          <div style="padding:18px; flex:1; display:flex; align-items:center;">
+            <svg viewBox="0 0 500 240" width="100%" style="display:block;">
+              <defs
+                ><marker id="ex3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"
+                  ><path d="M0,0 L9,4.5 L0,9 Z" fill="#22D3EE"></path></marker
+                ></defs
+              >
+              <rect
+                x="0"
+                y="14"
+                width="158"
+                height="212"
+                rx="10"
+                fill="rgba(34,211,238,0.05)"
+                stroke="rgba(34,211,238,0.18)"></rect>
+              <rect
+                x="171"
+                y="14"
+                width="158"
+                height="212"
+                rx="10"
+                fill="rgba(255,255,255,0.025)"
+                stroke="rgba(255,255,255,0.08)"></rect>
+              <rect
+                x="342"
+                y="14"
+                width="158"
+                height="212"
+                rx="10"
+                fill="rgba(255,255,255,0.025)"
+                stroke="rgba(255,255,255,0.08)"></rect>
+              <text x="14" y="32" font-family="JetBrains Mono, monospace" font-size="10" fill="#22D3EE"
+                >Identity</text
+              >
+              <text x="185" y="32" font-family="JetBrains Mono, monospace" font-size="10" fill="#9aacb3"
+                >Billing</text
+              >
+              <text x="356" y="32" font-family="JetBrains Mono, monospace" font-size="10" fill="#9aacb3"
+                >Workspace</text
+              >
+              <circle cx="40" cy="90" r="6" fill="#E7C9A0"></circle>
+              <text x="52" y="94" font-family="Geist" font-size="10.5" fill="#cfd2da">AccountCreated</text>
+              <path
+                d="M60,96 C130,120 130,120 200,140"
+                fill="none"
+                stroke="#22D3EE"
+                stroke-width="1.5"
+                stroke-dasharray="5 5"
+                marker-end="url(#ex3)"
+                style="animation:exDash 1s linear infinite;"></path>
+              <circle cx="205" cy="146" r="6" fill="#E7C9A0"></circle>
+              <text
+                x="196"
+                y="140"
+                text-anchor="end"
+                font-family="Geist"
+                font-size="10.5"
+                fill="#cfd2da">SubStarted</text
+              >
+              <path
+                d="M228,150 C300,168 300,168 372,176"
+                fill="none"
+                stroke="#22D3EE"
+                stroke-width="1.5"
+                stroke-dasharray="5 5"
+                marker-end="url(#ex3)"
+                style="animation:exDash 1s linear infinite;"></path>
+              <rect
+                x="360"
+                y="176"
+                width="128"
+                height="32"
+                rx="8"
+                fill="#0d141a"
+                stroke="rgba(34,211,238,0.5)"></rect><text
+                x="424"
+                y="196"
+                text-anchor="middle"
+                font-family="Geist"
+                font-size="10.5"
+                fill="#cfe9ee">ProvisionWS</text
+              >
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      style="position:relative; border-top:1px solid rgba(255,255,255,0.06); margin-top:40px;"
+    >
+      <div class="site-container" style="max-width:1000px; margin:0 auto; padding:80px 40px; text-align:center;">
+        <h2
+          style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 16px; color:#F2FBFC;"
+        >
+          Write your own.
+        </h2>
+        <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:540px; margin:0 auto 32px;">
+          Every one of these is a plain <span
+            style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;">.moment</span
+          > file. Clone the repo and render your first flow in minutes.
+        </p>
+        <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <a
+            href="/get-started"
+            class="btn-primary"
+            style="font-size:15px; font-weight:600; padding:13px 26px; border-radius:8px;"
+            >Get started</a
+          >
+          <a
+            href="/dsl"
+            class="btn-secondary"
+            style="font-size:15px; font-weight:500; padding:13px 24px; border-radius:8px;"
+            >Learn the DSL →</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <Footer />
+  </div>
 </Base>
-
-<style>
-  .examples-hero {
-    padding: var(--space-20) var(--space-6) var(--space-8);
-    text-align: center;
-  }
-
-  .examples-hero__inner { max-width: var(--content-width); margin: 0 auto; }
-
-  .examples-hero__title {
-    font-size: var(--text-4xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-4);
-  }
-
-  .examples-hero__subtitle {
-    color: var(--color-text-secondary);
-    font-size: var(--text-lg);
-    max-width: 40rem;
-    margin: 0 auto var(--space-6);
-    line-height: var(--leading-relaxed);
-  }
-
-  .examples-hero__artifacts {
-    display: flex;
-    justify-content: center;
-    gap: var(--space-4);
-    flex-wrap: wrap;
-  }
-
-  .examples-hero__artifact {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-text-tertiary);
-  }
-
-  .examples-hero__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .examples-hero__dot--moment { background: var(--color-accent); }
-  .examples-hero__dot--ts { background: var(--color-emit); }
-  .examples-hero__dot--scaffold { background: #fbbf24; }
-  .examples-hero__dot--gherkin { background: var(--color-generate); }
-  .examples-hero__dot--spec { background: #f472b6; }
-  .examples-hero__dot--async { background: #22d3ee; }
-  .examples-hero__dot--facet { background: var(--color-facet); }
-
-  .examples-content {
-    padding: 0 var(--space-6) var(--space-16);
-  }
-
-  .examples-content__inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-  }
-
-  /* Annotations grid */
-  .examples-annotations {
-    padding: var(--space-16) var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
-  }
-
-  .examples-annotations__inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-  }
-
-  .examples-annotations__title {
-    font-size: var(--text-2xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-8);
-  }
-
-  .examples-annotations__grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-4);
-  }
-
-  .annotation-card {
-    padding: var(--space-5);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg);
-  }
-
-  .annotation-card__dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: var(--space-2);
-    vertical-align: middle;
-  }
-
-  .annotation-card strong {
-    font-size: var(--text-sm);
-    vertical-align: middle;
-  }
-
-  .annotation-card p {
-    color: var(--color-text-secondary);
-    font-size: var(--text-xs);
-    line-height: var(--leading-relaxed);
-    margin-top: var(--space-2);
-  }
-
-  @media (max-width: 768px) {
-    .examples-annotations__grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .examples-annotations__grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-</style>

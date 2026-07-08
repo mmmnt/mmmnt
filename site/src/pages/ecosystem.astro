@@ -2,534 +2,299 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import EcosystemDiagram from '../components/EcosystemDiagram.tsx';
-import ecosystem from '../data/ecosystem.json';
+import Wordmark from '../components/Wordmark.astro';
+
+const title = 'Ecosystem';
+const description =
+  'Moment is the open-source keystone of the Complai ecosystem. Everything else is optional. No @mmmnt package may depend on any Complai service.';
+
+const upstreamCards = [
+  { name: 'Sift', tag: 'UPSTREAM', desc: 'Automates Event Storming and hands Moment a converged spec. An optional input — hand-authoring the .moment file is always the primary path.' },
+  { name: 'Codex', tag: 'UPSTREAM', desc: 'Versioned regulatory rule packs, consumed through an anti-corruption layer. When no pack is active, Moment behaves exactly as it does open-source.' },
+];
+const downstreamCards = [
+  { name: 'Facet', tag: 'DOWNSTREAM', desc: 'The visual test surface. Renders the sequence from facet.json and asserts every crossing contract before code exists.' },
+  { name: 'Forge', tag: 'DOWNSTREAM', desc: "Turns Moment's building-block inventory and flow definitions into work items and execution plans for delivery." },
+  { name: 'Proof', tag: 'DOWNSTREAM', desc: 'Evaluates Moment artifacts against governing protocols and audits co-evolution debt for regulated delivery.' },
+  { name: 'Glean', tag: 'DOWNSTREAM', desc: 'Learns from every Moment stream — a pure consumer that never sits in the request path.' },
+];
 ---
 
-<Base
-  title="Ecosystem"
-  description="Discover how Moment fits in the Complai ecosystem alongside Sift and Forge — from domain discovery to production deployment."
->
-  <Nav slot="nav" />
+<Base title={title} description={description}>
+  <div style="position:relative; overflow:hidden;">
+    <Nav active="ecosystem" />
 
-  <section class="eco-hero">
-    <div class="eco-hero__inner">
-      <h1 class="eco-hero__title">The Complai Ecosystem</h1>
-      <p class="eco-hero__subtitle">
-        Three tools, one event-driven workflow. From domain discovery through temporal modeling
-        to project bootstrapping &mdash; connected by the <code>ComplaiEventEnvelope</code> format.
+    <div
+      style="position:absolute; inset:0; top:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px); background-size:48px 48px; pointer-events:none;"
+    >
+    </div>
+    <div
+      style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:1000px; height:520px; background:radial-gradient(ellipse at center, rgba(34,211,238,0.09), transparent 70%); pointer-events:none;"
+    >
+    </div>
+
+    <section
+      class="site-container"
+      style="position:relative; max-width:1000px; margin:0 auto; padding:88px 40px 20px;"
+    >
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:22px;"
+      >
+        The Complai ecosystem
+      </div>
+      <h1
+        style="font-weight:600; font-size:54px; line-height:1.05; letter-spacing:-.025em; margin:0 0 24px; max-width:800px; color:#F2FBFC;"
+      >
+        Moment is the open-source keystone. Everything else is optional.
+      </h1>
+      <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
+        Complai is an eight-product platform for delivering software in regulated markets through
+        generative AI. Moment sits at the center — and the entire pipeline runs without any of the
+        others.
       </p>
-    </div>
-  </section>
+    </section>
 
-  <section class="eco-flow">
-    <div class="eco-flow__inner">
-      <EcosystemDiagram
-        tools={ecosystem.tools}
-        dataFlow={ecosystem.dataFlow}
-        envelope={ecosystem.envelope}
-        client:visible
-      />
-    </div>
-  </section>
-
-  <section class="eco-details">
-    <div class="eco-details__inner">
-      {
-        ecosystem.tools.map((tool) => (
-          <article class="eco-detail" id={tool.id}>
-            <div class="eco-detail__header">
-              <span class="eco-detail__position">{tool.position}</span>
-              <h2 class="eco-detail__name" style={`color: var(--color-${tool.id})`}>
-                {tool.name}
-              </h2>
-              <p class="eco-detail__tagline">{tool.tagline}</p>
-            </div>
-            <p class="eco-detail__desc">{tool.description}</p>
-
-            {tool.events.length > 0 && (
-              <div class="eco-detail__events">
-                <h3 class="eco-detail__events-title">Published Events</h3>
-                <div class="eco-detail__events-grid">
-                  {tool.events.map((event) => (
-                    <code class="eco-detail__event">{event}</code>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div class="eco-detail__output">
-              <span class="eco-detail__output-label">Output:</span>
-              <code>{tool.output}</code>
-            </div>
-
-            {tool.articles && tool.articles.length > 0 && (
-              <div class="eco-detail__articles">
-                <h3 class="eco-detail__articles-title">From the blog</h3>
-                <div class="eco-detail__articles-list">
-                  {tool.articles.map((article) => (
-                    <a
-                      href={article.url}
-                      class="eco-detail__article"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
-                      </svg>
-                      {article.title}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {tool.links && tool.links.length > 0 && (
-              <div class="eco-detail__links">
-                {tool.links.map((link) => (
-                  <a
-                    href={link.url}
-                    class={`eco-detail__link eco-detail__link--${link.type}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {link.type === 'github' && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-                      </svg>
-                    )}
-                    {link.type === 'site' && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
-                      </svg>
-                    )}
-                    {link.type === 'blog' && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                      </svg>
-                    )}
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            )}
-          </article>
-        ))
-      }
-    </div>
-  </section>
-
-  <section class="eco-envelope">
-    <div class="eco-envelope__inner">
-      <h2 class="eco-envelope__title">The ComplaiEventEnvelope</h2>
-      <p class="eco-envelope__desc">
-        Every event flowing between Sift, Moment, and Forge is wrapped in a canonical envelope.
-        This shared format enables tools to consume each other's event streams without coupling
-        to internal implementation details.
-      </p>
-      <div class="eco-envelope__schema">
-        <div class="eco-envelope__header">
-          <span class="eco-envelope__dot eco-envelope__dot--red"></span>
-          <span class="eco-envelope__dot eco-envelope__dot--yellow"></span>
-          <span class="eco-envelope__dot eco-envelope__dot--green"></span>
-          <span class="eco-envelope__header-text">ComplaiEventEnvelope</span>
+    <section class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:56px 40px;">
+      <div
+        style="background:linear-gradient(180deg, rgba(34,211,238,0.08), rgba(34,211,238,0.02)); border:1px solid rgba(34,211,238,0.28); border-radius:16px; padding:36px 40px; display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:center;"
+      >
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#22D3EE; line-height:1.9; white-space:nowrap;"
+        >
+          <div style="color:#5b7077;"># the constraint</div>
+          <div>import {'{ '}<span style="color:#9DE6C6;">*</span>{' }'}</div>
+          <div>&nbsp;&nbsp;from <span style="color:#e07a7a;">"@complai/*"</span></div>
+          <div style="color:#e07a7a;">✗ forbidden</div>
         </div>
-        <div class="eco-envelope__body">
-          <pre><code>{`interface ComplaiEventEnvelope {
-  eventId: UUID;              // Unique event identifier
-  eventType: string;          // Discriminator for payload type
-  version: string;            // Schema version (semver)
-  productSource: string;      // Originating tool
-  sessionId: UUID;            // Modeling session identifier
-  causationEventIds: UUID[];  // Events that caused this event
-  correlationId: UUID;        // Correlation chain identifier
-  timestamp: ISO-8601;        // Event creation timestamp
-  payload: object;            // Event-specific data
-}`}</code></pre>
+        <div>
+          <div
+            style="font-weight:600; font-size:22px; color:#F2FBFC; margin-bottom:10px; letter-spacing:-.01em;"
+          >
+            No <span style="font-family:'JetBrains Mono',monospace; font-size:18px; color:#C9E8ED;"
+              >@mmmnt</span
+            > package may depend on any Complai service.
+          </div>
+          <p style="margin:0; font-size:15.5px; line-height:1.6; color:#90A2AA; max-width:640px;">
+            Not at runtime, not at build time. The open-source community uses the full toolchain —
+            parse, derive, generate, emit, simulate — without ever knowing Complai exists. Every
+            commercial product plugs in <span style="color:#C9E8ED;">around</span> Moment, never inside
+            it.
+          </p>
         </div>
       </div>
+    </section>
 
-      <div class="eco-envelope__flow-desc">
-        <h3 class="eco-envelope__flow-title">How events flow</h3>
-        <div class="eco-envelope__flows">
+    <section class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:40px 40px 20px;">
+      <div
+        style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:0; align-items:center;"
+      >
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#5b7077; margin-bottom:2px;"
+          >
+            Upstream · optional
+          </div>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:14px 16px;"
+          >
+            <div style="font-weight:600; font-size:15px;">Sift</div>
+            <div style="font-size:12px; color:#7C8C92; margin-top:2px;">converged spec in</div>
+          </div>
+          <div
+            style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:14px 16px;"
+          >
+            <div style="font-weight:600; font-size:15px;">Codex</div>
+            <div style="font-size:12px; color:#7C8C92; margin-top:2px;">regulatory rule packs</div>
+          </div>
+        </div>
+        <div
+          style="padding:0 18px; font-family:'JetBrains Mono',monospace; color:#22D3EE; font-size:20px;"
+        >
+          →
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE;"
+          >
+            Open-source core
+          </div>
+          <div
+            style="width:100%; background:linear-gradient(180deg, rgba(34,211,238,0.14), rgba(34,211,238,0.03)); border:1px solid rgba(34,211,238,0.4); border-radius:14px; padding:26px 22px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.5);"
+          >
+            <div style="display:flex; justify-content:center;">
+              <Wordmark size={26} />
+            </div>
+            <div style="font-size:12.5px; color:#C9E8ED; margin-top:10px; line-height:1.5;">
+              spec · derive · generate<br />emit · simulate
+            </div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#5b7077;">
+            zero Complai dependency
+          </div>
+        </div>
+        <div
+          style="padding:0 18px; font-family:'JetBrains Mono',monospace; color:#22D3EE; font-size:20px;"
+        >
+          →
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#5b7077; margin-bottom:2px;"
+          >
+            Downstream · optional
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px;"
+            >
+              <div style="font-weight:600; font-size:14px;">Facet</div>
+            </div>
+            <div
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px;"
+            >
+              <div style="font-weight:600; font-size:14px;">Forge</div>
+            </div>
+            <div
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px;"
+            >
+              <div style="font-weight:600; font-size:14px;">Proof</div>
+            </div>
+            <div
+              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px;"
+            >
+              <div style="font-weight:600; font-size:14px;">Glean</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        style="text-align:center; margin-top:22px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92;"
+      >
+        <span style="color:#C58CFF;">Trace</span> spans the whole platform, bidirectionally — Moment owns
+        its own cascade response.
+      </div>
+    </section>
+
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06); margin-top:40px;">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:72px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          The eight products
+        </div>
+        <h2
+          style="font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:0 0 40px; color:#F2FBFC;"
+        >
+          Each one plugs in around the core.
+        </h2>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px;">
           {
-            ecosystem.dataFlow.map((flow) => (
-              <div class="eco-envelope__flow-item">
-                <div class="eco-envelope__flow-path">
-                  <code style={`color: var(--color-${flow.from})`}>{flow.from}</code>
-                  <span class="eco-envelope__flow-arrow" aria-hidden="true">&rarr;</span>
-                  <code style={`color: var(--color-${flow.to})`}>{flow.to}</code>
+            upstreamCards.map((p) => (
+              <div style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:24px 24px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                  <span style="font-weight:600;font-size:16px;">{p.name}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#5b7077;letter-spacing:.06em;">
+                    {p.tag}
+                  </span>
                 </div>
-                <p class="eco-envelope__flow-channel">
-                  via <code>{flow.channel}</code>
-                </p>
-                <p class="eco-envelope__flow-explain">{flow.description}</p>
+                <p set:html={p.desc.replace('.moment', '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#C9E8ED;">.moment</span>')} style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;" />
               </div>
             ))
           }
+          <div
+            style="background:linear-gradient(180deg, rgba(34,211,238,0.1), rgba(34,211,238,0.02)); border:1px solid rgba(34,211,238,0.3); border-radius:12px; padding:24px 24px;"
+          >
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"
+            >
+              <span style="font-weight:600;font-size:16px;color:#fff;">Moment</span>
+              <span
+                style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#22D3EE;letter-spacing:.06em;"
+                >CORE · OSS</span
+              >
+            </div>
+            <p style="margin:0;font-size:13.5px;line-height:1.55;color:#C9E8ED;">
+              Gives DDD its missing temporal dimension — one spec to typed code, tests, docs, and
+              simulation. The only part you actually need.
+            </p>
+          </div>
+          {
+            downstreamCards.map((p) => (
+              <div style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:24px 24px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                  <span style="font-weight:600;font-size:16px;">{p.name}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#5b7077;letter-spacing:.06em;">
+                    {p.tag}
+                  </span>
+                </div>
+                <p
+                  set:html={p.desc.replace('facet.json', '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#C9E8ED;">facet.json</span>')}
+                  style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;"
+                />
+              </div>
+            ))
+          }
+          <div
+            style="background:#0A0F14; border:1px solid rgba(197,140,255,0.22); border-radius:12px; padding:24px 24px;"
+          >
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"
+            >
+              <span style="font-weight:600;font-size:16px;">Trace</span>
+              <span
+                style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#C58CFF;letter-spacing:.06em;"
+                >BIDIRECTIONAL</span
+              >
+            </div>
+            <p style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;">
+              Signals cascades across the platform. Moment listens, but owns its own cascade response —
+              it is never externally controlled.
+            </p>
+          </div>
+          <div
+            style="border:1px dashed rgba(255,255,255,0.14); border-radius:12px; padding:24px 24px; display:flex; flex-direction:column; justify-content:center;"
+          >
+            <div style="font-weight:600; font-size:16px; color:#7C8C92; margin-bottom:6px;">
+              Start with Moment
+            </div>
+            <p style="margin:0;font-size:13.5px;line-height:1.55;color:#5b7077;">
+              Adopt the open-source core alone. Add the commercial layer only when a regulated program
+              needs it.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <Footer slot="footer" />
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1000px; margin:0 auto; padding:80px 40px; text-align:center;">
+        <h2
+          style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 16px; color:#F2FBFC;"
+        >
+          You only ever need the core.
+        </h2>
+        <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:560px; margin:0 auto 32px;">
+          Clone the repo, write a <span
+            style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;">.moment</span
+          > file, and run the full pipeline today — no account, no platform, no lock-in.
+        </p>
+        <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <a
+            href="/get-started"
+            class="btn-primary"
+            style="font-size:15px; font-weight:600; padding:13px 26px; border-radius:8px;"
+            >Get started</a
+          >
+          <a
+            href="/why"
+            class="btn-secondary"
+            style="font-size:15px; font-weight:500; padding:13px 24px; border-radius:8px;"
+            >Why Moment →</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <Footer />
+  </div>
 </Base>
-
-<style>
-  .eco-hero {
-    padding: var(--space-20) var(--space-6) var(--space-10);
-    text-align: center;
-  }
-
-  .eco-hero__inner {
-    max-width: var(--content-width);
-    margin: 0 auto;
-  }
-
-  .eco-hero__title {
-    font-size: var(--text-4xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-4);
-  }
-
-  .eco-hero__subtitle {
-    color: var(--color-text-secondary);
-    font-size: var(--text-lg);
-    max-width: 40rem;
-    margin: 0 auto;
-    line-height: var(--leading-relaxed);
-  }
-
-  .eco-hero__subtitle code {
-    color: var(--color-accent);
-    background: var(--color-accent-muted);
-    padding: 0.1em 0.4em;
-    border-radius: var(--radius-sm);
-  }
-
-  .eco-flow {
-    padding: var(--space-6) 0;
-  }
-
-  .eco-flow__inner {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 0 var(--space-6);
-  }
-
-  /* Tool details */
-  .eco-details {
-    padding: var(--space-16) var(--space-6);
-  }
-
-  .eco-details__inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-    display: grid;
-    gap: var(--space-10);
-  }
-
-  .eco-detail {
-    padding: var(--space-8);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg);
-  }
-
-  .eco-detail__header {
-    margin-bottom: var(--space-4);
-  }
-
-  .eco-detail__position {
-    display: inline-block;
-    padding: var(--space-1) var(--space-3);
-    margin-bottom: var(--space-2);
-    background: var(--color-surface-raised);
-    color: var(--color-text-tertiary);
-    font-size: var(--text-xs);
-    font-weight: var(--weight-medium);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-radius: 100px;
-  }
-
-  .eco-detail__name {
-    font-size: var(--text-2xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-1);
-  }
-
-  .eco-detail__tagline {
-    color: var(--color-text-tertiary);
-    font-weight: var(--weight-medium);
-  }
-
-  .eco-detail__desc {
-    color: var(--color-text-secondary);
-    line-height: var(--leading-relaxed);
-    margin-bottom: var(--space-6);
-  }
-
-  .eco-detail__events {
-    margin-bottom: var(--space-4);
-  }
-
-  .eco-detail__events-title {
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    margin-bottom: var(--space-3);
-    color: var(--color-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .eco-detail__events-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .eco-detail__event {
-    display: inline-block;
-    padding: var(--space-1) var(--space-3);
-    background: var(--color-surface-raised);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
-  }
-
-  .eco-detail__output {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--text-sm);
-    color: var(--color-text-tertiary);
-  }
-
-  .eco-detail__output code {
-    color: var(--color-text-secondary);
-  }
-
-  .eco-detail__articles {
-    margin-top: var(--space-6);
-    padding-top: var(--space-5);
-    border-top: 1px solid var(--color-border-subtle);
-  }
-
-  .eco-detail__articles-title {
-    font-size: var(--text-xs);
-    font-weight: var(--weight-semibold);
-    color: var(--color-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: var(--space-3);
-  }
-
-  .eco-detail__articles-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .eco-detail__article {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-sm);
-    color: var(--color-text-secondary);
-    text-decoration: none;
-    border-radius: var(--radius-sm);
-    transition: color var(--duration-fast) var(--ease-out),
-                background var(--duration-fast) var(--ease-out);
-  }
-
-  .eco-detail__article:hover {
-    color: var(--color-accent);
-    background: var(--color-accent-muted);
-  }
-
-  .eco-detail__article svg {
-    flex-shrink: 0;
-    opacity: 0.5;
-  }
-
-  .eco-detail__article:hover svg {
-    opacity: 1;
-  }
-
-  .eco-detail__links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    margin-top: var(--space-6);
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
-  }
-
-  .eco-detail__link {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    transition: all var(--duration-fast) var(--ease-out);
-  }
-
-  .eco-detail__link--site {
-    background: var(--color-accent);
-    color: #fff;
-  }
-
-  .eco-detail__link--site:hover {
-    background: var(--color-accent-hover);
-    color: #fff;
-  }
-
-  .eco-detail__link--github {
-    background: var(--color-surface-raised);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-  }
-
-  .eco-detail__link--github:hover {
-    background: var(--color-border);
-    color: var(--color-text-primary);
-  }
-
-  .eco-detail__link--blog {
-    background: transparent;
-    color: var(--color-text-secondary);
-    border: 1px solid var(--color-border);
-  }
-
-  .eco-detail__link--blog:hover {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-  }
-
-  /* Envelope */
-  .eco-envelope {
-    padding: var(--space-16) var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
-  }
-
-  .eco-envelope__inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-  }
-
-  .eco-envelope__title {
-    font-size: var(--text-2xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-3);
-  }
-
-  .eco-envelope__desc {
-    color: var(--color-text-secondary);
-    line-height: var(--leading-relaxed);
-    max-width: 42rem;
-    margin-bottom: var(--space-8);
-  }
-
-  .eco-envelope__schema {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-bottom: var(--space-10);
-    max-width: 40rem;
-  }
-
-  .eco-envelope__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-surface-raised);
-    border-bottom: 1px solid var(--color-border-subtle);
-  }
-
-  .eco-envelope__dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-
-  .eco-envelope__dot--red { background: #ef4444; }
-  .eco-envelope__dot--yellow { background: #eab308; }
-  .eco-envelope__dot--green { background: #22c55e; }
-
-  .eco-envelope__header-text {
-    margin-left: var(--space-2);
-    color: var(--color-text-tertiary);
-    font-size: var(--text-xs);
-    font-family: var(--font-mono);
-  }
-
-  .eco-envelope__body {
-    padding: var(--space-6);
-    font-family: var(--font-mono);
-    font-size: var(--text-sm);
-    line-height: 1.7;
-    overflow-x: auto;
-  }
-
-  .eco-envelope__body pre {
-    margin: 0;
-  }
-
-  .eco-envelope__flow-title {
-    font-size: var(--text-xl);
-    font-weight: var(--weight-semibold);
-    margin-bottom: var(--space-6);
-  }
-
-  .eco-envelope__flows {
-    display: grid;
-    gap: var(--space-6);
-  }
-
-  .eco-envelope__flow-item {
-    padding: var(--space-6);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-subtle);
-    border-radius: var(--radius-lg);
-  }
-
-  .eco-envelope__flow-path {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-2);
-    font-size: var(--text-lg);
-    font-weight: var(--weight-semibold);
-  }
-
-  .eco-envelope__flow-path code {
-    text-transform: capitalize;
-  }
-
-  .eco-envelope__flow-arrow {
-    color: var(--color-text-tertiary);
-  }
-
-  .eco-envelope__flow-channel {
-    font-size: var(--text-sm);
-    color: var(--color-text-tertiary);
-    margin-bottom: var(--space-2);
-  }
-
-  .eco-envelope__flow-channel code {
-    color: var(--color-text-secondary);
-  }
-
-  .eco-envelope__flow-explain {
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
-  }
-</style>

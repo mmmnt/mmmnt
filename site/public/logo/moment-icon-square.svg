@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
 
-<rect width="512" height="512" rx="114" fill="#22D3EE"></rect>
+<rect width="512" height="512" rx="0" fill="#22D3EE"></rect>
 <text x="112.51" y="326.00" font-family="GX, sans-serif" font-weight="500" font-size="256" fill="#06262B" xml:space="preserve">m</text>
 <text x="339.07" y="326.00" font-family="GX, sans-serif" font-weight="700" font-size="256" fill="#FFFFFF" xml:space="preserve">.</text>
 </svg>

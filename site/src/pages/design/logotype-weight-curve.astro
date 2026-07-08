@@ -1,0 +1,134 @@
+---
+import DesignStudy from '../../layouts/DesignStudy.astro';
+
+const rec: Array<{ ch: string; wt: number; accent?: boolean }> = [
+  { ch: 'm', wt: 500 },
+  { ch: 'o', wt: 700, accent: true },
+  { ch: 'm', wt: 500 },
+  { ch: 'e', wt: 400 },
+  { ch: 'n', wt: 300 },
+  { ch: 't', wt: 200 },
+];
+
+const variants: Array<{ label: string; note: string; weights: number[]; ptWt: number; highlight?: boolean }> = [
+  { label: 'B · Gentle drop', note: '500·700·500·400·400·300', weights: [500, 700, 500, 400, 400, 300], ptWt: 700 },
+  { label: 'C · Aggressive (= A)', note: '500·700·500·400·300·200', weights: [500, 700, 500, 400, 300, 200], ptWt: 700, highlight: true },
+  { label: 'D · Steepest', note: '600·800·600·400·300·100', weights: [600, 800, 600, 400, 300, 100], ptWt: 800 },
+];
+
+const chars = ['m', 'o', 'm', 'e', 'n', 't'];
+---
+
+<DesignStudy title="Logotype · Weight curve">
+  <div style="padding:60px 56px 100px;">
+    <div style="max-width:1180px; margin:0 auto 56px;">
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:18px;"
+      >
+        Moment · logotype · weight curve v2
+      </div>
+      <h1
+        style="font-weight:500; font-size:42px; line-height:1.08; letter-spacing:-.025em; margin:0 0 16px; color:#F2FBFC; max-width:780px;"
+      >
+        Heavier into the <span style="font-weight:700;">o</span>, then an aggressive drop through <span
+          style="font-weight:300;">ent.</span
+        >
+      </h1>
+      <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0;">
+        The first <span style="color:#C9E8ED;">m</span> sits close to the <span
+          style="color:#C9E8ED;">o</span
+        > so the rise is gentle; the second <span style="color:#C9E8ED;">m</span> matches the first,
+        then <span style="color:#C9E8ED;">ent</span> sheds weight fast. The trailing point keeps the <span
+          style="color:#C9E8ED;">o</span
+        >'s weight and is dropped so its base lands on the <span style="color:#C9E8ED;">t</span>'s baseline.
+      </p>
+    </div>
+
+    <div
+      style="max-width:1180px; margin:0 auto 18px; display:flex; align-items:baseline; gap:14px;"
+    >
+      <span
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; letter-spacing:.08em;"
+        >A</span
+      >
+      <span
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#7C8C92;"
+        >Balanced curve v2 — recommended</span
+      >
+    </div>
+    <div
+      style="max-width:1180px; margin:0 auto 22px; background:#0A0F14; border:1px solid rgba(34,211,238,0.22); border-radius:14px; padding:54px 44px; display:flex; align-items:center; justify-content:center;"
+    >
+      <div class="wm" style="font-size:108px;">
+        {rec.map((c) => <span style={`font-weight:${c.wt};`}>{c.ch}</span>)}
+        <span class="pt" style="font-weight:700;">.</span>
+      </div>
+    </div>
+    <div
+      style="max-width:1180px; margin:0 auto 64px; display:flex; gap:10px; flex-wrap:wrap; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#5b7077;"
+    >
+      {
+        rec.map((c) => (
+          <span
+            style={`border:1px solid ${c.accent ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.1)'}; border-radius:6px; padding:4px 10px; ${c.accent ? 'color:#22D3EE;' : ''}`}
+          >
+            {c.ch} {c.wt}
+          </span>
+        ))
+      }
+      <span
+        style="border:1px solid rgba(34,211,238,0.3); border-radius:6px; padding:4px 10px; color:#22D3EE;"
+        >. 700 ↓</span
+      >
+    </div>
+
+    <div
+      style="max-width:1180px; margin:0 auto 18px; display:flex; align-items:baseline; gap:14px;"
+    >
+      <span
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; letter-spacing:.08em;"
+        >B–D</span
+      >
+      <span
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#7C8C92;"
+        >Drop-rate variations</span
+      >
+    </div>
+    <div
+      style="max-width:1180px; margin:0 auto 64px; display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;"
+    >
+      {
+        variants.map((v) => (
+          <div style="background:#0A0F14; padding:38px 44px; display:flex; align-items:center; justify-content:space-between; gap:30px;">
+            <div class="wm" style="font-size:76px;">
+              {chars.map((ch, i) => (
+                <span style={`font-weight:${v.weights[i]};`}>{ch}</span>
+              ))}
+              <span class="pt" style={`font-weight:${v.ptWt};`}>
+                .
+              </span>
+            </div>
+            <div style="text-align:right;">
+              <div
+                style={`font-family:'JetBrains Mono',monospace; font-size:12px; color:${v.highlight ? '#22D3EE' : '#E6F0F2'}; margin-bottom:6px;`}
+              >
+                {v.label}
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#5b7077;">
+                {v.note}
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <div style="max-width:1180px; margin:0 auto;">
+      <p style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#5b7077; line-height:1.6; margin:0;">
+        <span style="color:#22D3EE;">Note →</span> Point is nudged down 0.035em so its base sits on the
+        baseline of the t at every size. The curve holds to ~18px; below that, collapse to a single 500
+        weight.
+      </p>
+    </div>
+  </div>
+</DesignStudy>

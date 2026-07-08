@@ -1,0 +1,543 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { GITHUB_WIKI_URL } from '../consts';
+
+const title = 'The DSL';
+const description =
+  'The .moment DSL — a Langium grammar for temporal domains. Reads like a domain description, compiles to a typed intermediate representation, and drives every downstream artifact.';
+
+const specLines: Array<{ key: string; indent: number; html: string }> = [
+  { key: 'context', indent: 0, html: '<span style="color:#22D3EE;">context</span> <span style="color:#9DE6C6;">"Ordering"</span> <span style="color:#5b7077;">[Core]</span>' },
+  { key: 'aggregate', indent: 1, html: '<span style="color:#22D3EE;">aggregate</span> <span style="color:#9DE6C6;">"Order"</span>' },
+  { key: 'command', indent: 2, html: '<span style="color:#22D3EE;">command</span> <span style="color:#E7C9A0;">PlaceOrder</span>' },
+  { key: 'emits', indent: 3, html: '<span style="color:#5b7077;">emits</span> <span style="color:#E7C9A0;">OrderPlaced</span>' },
+  { key: 'event', indent: 2, html: '<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">OrderPlaced</span>' },
+  { key: 'field', indent: 3, html: 'orderId: <span style="color:#8FD3FF;">UUID</span>' },
+  { key: 'field', indent: 3, html: 'items: <span style="color:#8FD3FF;">LineItem[]</span>' },
+  { key: 'field', indent: 3, html: 'placedAt: <span style="color:#8FD3FF;">DateTime</span>' },
+  { key: '__gap__', indent: 0, html: '' },
+  { key: 'context', indent: 0, html: '<span style="color:#22D3EE;">context</span> <span style="color:#9DE6C6;">"Fulfillment"</span> <span style="color:#5b7077;">[Supporting]</span>' },
+  { key: 'aggregate', indent: 1, html: '<span style="color:#22D3EE;">aggregate</span> <span style="color:#9DE6C6;">"Shipment"</span>' },
+  { key: 'command', indent: 2, html: '<span style="color:#22D3EE;">command</span> <span style="color:#E7C9A0;">InitiateFulfillment</span>' },
+  { key: '__gap__', indent: 0, html: '' },
+  { key: 'flow', indent: 0, html: '<span style="color:#22D3EE;">flow</span> <span style="color:#9DE6C6;">"order-placed"</span>' },
+  { key: 'moment', indent: 1, html: '<span style="color:#22D3EE;">moment</span> <span style="color:#9DE6C6;">"Submission"</span>' },
+  { key: 'participation', indent: 2, html: 'ordering: <span style="color:#E7C9A0;">OrderPlaced</span>' },
+  { key: 'crosses-to', indent: 3, html: '<span style="color:#C58CFF;">crosses-to</span> fulfillment' },
+  { key: 'via', indent: 4, html: '<span style="color:#5b7077;">via</span> CustomerSupplier' },
+  { key: 'contract', indent: 4, html: '<span style="color:#5b7077;">contract</span> { orderId, items }' },
+  { key: 'triggers', indent: 3, html: '<span style="color:#C58CFF;">triggers</span> <span style="color:#E7C9A0;">InitiateFulfillment</span>' },
+  { key: 'saga', indent: 1, html: '<span style="color:#22D3EE;">saga</span> <span style="color:#9DE6C6;">"fulfillment-lifecycle"</span>' },
+  { key: 'until', indent: 2, html: '<span style="color:#5b7077;">until</span> ShipmentDelivered | OrderCancelled' },
+];
+
+const gramLines: Array<{ indent: number; html: string }> = [
+  { indent: 0, html: '<span style="color:#22D3EE;">context</span> <span style="color:#9a8fd6;">&lt;"Subdomain"&gt;</span> <span style="color:#5b7077;">[</span><span style="color:#9a8fd6;">&lt;Core|Supporting|Generic&gt;</span><span style="color:#5b7077;">]</span>' },
+  { indent: 1, html: '<span style="color:#22D3EE;">aggregate</span> <span style="color:#9a8fd6;">&lt;"Consistency-Boundary"&gt;</span>' },
+  { indent: 2, html: '<span style="color:#22D3EE;">command</span> <span style="color:#9a8fd6;">&lt;Actor-Intent&gt;</span>' },
+  { indent: 3, html: '<span style="color:#5b7077;">emits</span> <span style="color:#9a8fd6;">&lt;Resulting-Event&gt;</span>' },
+  { indent: 2, html: '<span style="color:#22D3EE;">event</span> <span style="color:#9a8fd6;">&lt;Past-Tense-Fact&gt;</span>' },
+  { indent: 3, html: '<span style="color:#9a8fd6;">&lt;attribute&gt;</span>: <span style="color:#9a8fd6;">&lt;Type&gt;</span>' },
+  { indent: 3, html: '<span style="color:#9a8fd6;">&lt;attribute&gt;</span>: <span style="color:#9a8fd6;">&lt;Type[]&gt;</span>' },
+  { indent: 3, html: '<span style="color:#9a8fd6;">&lt;attribute&gt;</span>: <span style="color:#9a8fd6;">&lt;Type&gt;</span>' },
+  { indent: 0, html: '' },
+  { indent: 0, html: '<span style="color:#22D3EE;">context</span> <span style="color:#9a8fd6;">&lt;"Subdomain"&gt;</span> <span style="color:#5b7077;">[</span><span style="color:#9a8fd6;">&lt;Core|Supporting|Generic&gt;</span><span style="color:#5b7077;">]</span>' },
+  { indent: 1, html: '<span style="color:#22D3EE;">aggregate</span> <span style="color:#9a8fd6;">&lt;"Consistency-Boundary"&gt;</span>' },
+  { indent: 2, html: '<span style="color:#22D3EE;">command</span> <span style="color:#9a8fd6;">&lt;Actor-Intent&gt;</span>' },
+  { indent: 0, html: '' },
+  { indent: 0, html: '<span style="color:#22D3EE;">flow</span> <span style="color:#9a8fd6;">&lt;"business-process"&gt;</span>' },
+  { indent: 1, html: '<span style="color:#22D3EE;">moment</span> <span style="color:#9a8fd6;">&lt;"pivotal-point"&gt;</span>' },
+  { indent: 2, html: '<span style="color:#9a8fd6;">&lt;origin-context&gt;</span>: <span style="color:#9a8fd6;">&lt;Event&gt;</span>' },
+  { indent: 3, html: '<span style="color:#C58CFF;">crosses-to</span> <span style="color:#9a8fd6;">&lt;downstream-context&gt;</span>' },
+  { indent: 4, html: '<span style="color:#5b7077;">via</span> <span style="color:#9a8fd6;">&lt;Context-Mapping&gt;</span>' },
+  { indent: 4, html: '<span style="color:#5b7077;">contract</span> { <span style="color:#9a8fd6;">&lt;published-language&gt;</span> }' },
+  { indent: 3, html: '<span style="color:#C58CFF;">triggers</span> <span style="color:#9a8fd6;">&lt;Reactive-Command&gt;</span>' },
+  { indent: 1, html: '<span style="color:#22D3EE;">saga</span> <span style="color:#9a8fd6;">&lt;"long-running-process"&gt;</span>' },
+  { indent: 2, html: '<span style="color:#5b7077;">until</span> <span style="color:#9a8fd6;">&lt;Terminal-State&gt;</span> | <span style="color:#9a8fd6;">&lt;Terminal-State&gt;</span>' },
+];
+
+const chips: Array<{ key: string; label: string; special?: boolean }> = [
+  { key: 'context', label: 'context' },
+  { key: 'role', label: '[role]' },
+  { key: 'aggregate', label: 'aggregate' },
+  { key: 'command', label: 'command' },
+  { key: 'emits', label: 'emits' },
+  { key: 'event', label: 'event' },
+  { key: 'field', label: 'field: type' },
+  { key: 'flow', label: 'flow' },
+  { key: 'moment', label: 'moment' },
+  { key: 'participation', label: 'context: Event' },
+  { key: 'crosses-to', label: 'crosses-to', special: true },
+  { key: 'via', label: 'via' },
+  { key: 'contract', label: 'contract' },
+  { key: 'triggers', label: 'triggers' },
+  { key: 'saga', label: 'saga' },
+  { key: 'until', label: 'until' },
+];
+
+const referenceRows: Array<{ syntax: string; meaning: string; layer: string; color: string; layerColor: string }> = [
+  { syntax: 'context [Role]', meaning: 'Bounded context with a Core / Supporting / Generic tag.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'aggregate', meaning: 'Consistency boundary owning commands and events.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'command · emits', meaning: 'An intent that mutates state and emits one or more events.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'event', meaning: 'A typed, past-tense fact. Carries the fields listed under it.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'flow · moment', meaning: 'A named temporal sequence, made of behavioral assertions.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
+  { syntax: 'crosses-to · via · contract', meaning: 'A boundary crossing, its relationship, and the schema it carries.', layer: 'temporal', color: '#C58CFF', layerColor: '#22D3EE' },
+  { syntax: 'triggers', meaning: 'Causation — an event causes a downstream command.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
+  { syntax: 'saga · until', meaning: 'Long-running orchestration with declared terminal states.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
+];
+---
+
+<Base title={title} description={description}>
+  <div style="position:relative; overflow:hidden;">
+    <Nav active="dsl" />
+
+    <div
+      style="position:absolute; inset:0; top:0; background-image:linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px); background-size:48px 48px; pointer-events:none;"
+    >
+    </div>
+    <div
+      style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:1000px; height:520px; background:radial-gradient(ellipse at center, rgba(34,211,238,0.09), transparent 70%); pointer-events:none;"
+    >
+    </div>
+
+    {/* HERO */}
+    <section
+      class="site-container"
+      style="position:relative; max-width:1000px; margin:0 auto; padding:88px 40px 20px;"
+    >
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:22px;"
+      >
+        The .moment DSL
+      </div>
+      <h1
+        style="font-weight:600; font-size:54px; line-height:1.05; letter-spacing:-.025em; margin:0 0 24px; max-width:760px; color:#F2FBFC;"
+      >
+        A domain-specific language for temporal domains.
+      </h1>
+      <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
+        A Langium grammar. Reads like a domain description, compiles to a typed intermediate
+        representation, and drives every downstream artifact. Learn the whole language below — drag
+        the seam, or tap any keyword.
+      </p>
+    </section>
+
+    {/* INTERACTIVE TEACH */}
+    <section id="dslTeach" class="site-container" style="position:relative; max-width:1200px; margin:0 auto; padding:52px 40px;">
+      <div
+        style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px;"
+      >
+        <div>
+          <div
+            style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:12px;"
+          >
+            Read it two ways
+          </div>
+          <h2
+            style="font-weight:600; font-size:30px; line-height:1.12; letter-spacing:-.02em; margin:0; color:#F2FBFC;"
+          >
+            The same file, as grammar and as a real spec.
+          </h2>
+        </div>
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92; display:flex; align-items:center; gap:8px;"
+        >
+          <span style="animation:dslNudge 1.8s ease-in-out infinite; display:inline-block;">↔</span> drag the seam · or tap a keyword
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1.15fr 0.85fr; gap:24px; align-items:start;">
+        {/* CODE CARD */}
+        <div
+          style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:14px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.5);"
+        >
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border-bottom:1px solid rgba(255,255,255,0.07);"
+          >
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#7C8C92;"
+              >order.moment</span
+            >
+            <div
+              style="display:flex; align-items:center; gap:12px; font-family:'JetBrains Mono',monospace; font-size:11px;"
+            >
+              <span id="modeGrammar" style="color:#9a8fd6; cursor:pointer;">grammar</span>
+              <span style="color:#3a4750;">|</span>
+              <span id="modeSpec" style="color:#9DE6C6; cursor:pointer;">spec</span>
+              <button
+                id="gramReset"
+                type="button"
+                style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#8FA0A8; background:transparent; border:1px solid rgba(255,255,255,0.14); border-radius:6px; padding:4px 9px; cursor:pointer;"
+                >reset</button
+              >
+            </div>
+          </div>
+          <div
+            id="codeBody"
+            style="position:relative; height:490px; overflow:hidden; user-select:none;"
+          >
+            {/* SPEC LAYER */}
+            <div
+              id="specLayer"
+              style="position:absolute; inset:0; padding:22px 16px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:20px; color:#C2C6D2; opacity:1;"
+            >
+              {
+                specLines.map((line) =>
+                  line.key === '__gap__' ? (
+                    <div style="height:20px;" />
+                  ) : (
+                    <div
+                      data-key={line.key}
+                      style={`padding:0 8px 0 ${line.indent * 22 + 8}px; border-radius:4px; cursor:pointer; white-space:pre;`}
+                      set:html={line.html}
+                    />
+                  )
+                )
+              }
+            </div>
+            {/* GRAMMAR LAYER */}
+            <div
+              id="gramLayer"
+              style="position:absolute; inset:0; padding:22px 16px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:20px; color:#C2C6D2; background:#0A0F14; opacity:0; pointer-events:none;"
+            >
+              {
+                gramLines.map((line) =>
+                  line.html === '' ? (
+                    <div style="height:20px;" />
+                  ) : (
+                    <div
+                      style={`padding:0 8px 0 ${line.indent * 22 + 8}px; white-space:pre;`}
+                      set:html={line.html}
+                    />
+                  )
+                )
+              }
+            </div>
+            <div
+              id="modeLabel"
+              style="position:absolute; top:8px; right:14px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7fbf9a; pointer-events:none;"
+            >
+              your spec
+            </div>
+            {/* HANDLE */}
+            <div
+              id="gramHandle"
+              style="position:absolute; top:0; bottom:0; left:98%; width:2px; background:#22D3EE; box-shadow:0 0 12px rgba(34,211,238,0.6); cursor:ew-resize; z-index:5; touch-action:none;"
+            >
+              <div
+                style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:30px; height:30px; border-radius:50%; background:#0A0F14; border:1.5px solid #22D3EE; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.5);"
+              >
+                <span
+                  style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; line-height:1;"
+                  >⇄</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* COACH SIDE */}
+        <div style="position:sticky; top:90px;">
+          <div style="display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px;">
+            {
+              chips.map((c) => (
+                <button
+                  type="button"
+                  data-chip
+                  data-key={c.key}
+                  style={
+                    c.special
+                      ? "font-family:'JetBrains Mono',monospace; font-size:12px; color:#C58CFF; background:rgba(197,140,255,0.06); border:1px solid rgba(197,140,255,0.28); border-radius:7px; padding:6px 11px; cursor:pointer;"
+                      : "font-family:'JetBrains Mono',monospace; font-size:12px; color:#8FA0A8; background:transparent; border:1px solid rgba(255,255,255,0.12); border-radius:7px; padding:6px 11px; cursor:pointer;"
+                  }
+                >
+                  {c.label}
+                </button>
+              ))
+            }
+          </div>
+          <div
+            id="coachCard"
+            style="background:#0A0F14; border:1px solid rgba(34,211,238,0.18); border-radius:12px; padding:24px 24px; min-height:260px;"
+          >
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE; margin-bottom:12px;"
+            >
+              Structure meets time
+            </div>
+            <div
+              style="font-weight:600; font-size:19px; color:#F2FBFC; margin-bottom:14px; letter-spacing:-.01em;"
+            >
+              The spatial map, threaded with time.
+            </div>
+            <p style="margin:0 0 14px; font-size:15px; line-height:1.6; color:#C9CDD6;">
+              DDD maps your domain in space — bounded contexts and aggregates, the <span
+                style="color:#C9E8ED;">where</span
+              >. Event Storming lays domain events along a timeline, the <span style="color:#C9E8ED;"
+                >when</span
+              >. A <span style="color:#9DE6C6;">.moment</span> file is where the two meet — drag the seam
+              to morph the grammar into the real spec.
+            </p>
+            <div
+              style="display:flex; gap:8px; align-items:flex-start; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);"
+            >
+              <span
+                style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#22D3EE; letter-spacing:.08em; padding-top:2px;"
+                >TIP</span
+              >
+              <span style="font-size:13.5px; line-height:1.55; color:#90A2AA;"
+                >Tap any keyword above — or any line in the code — for its DDD and Event Storming
+                meaning.</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* KEYWORD REFERENCE */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:72px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          Quick reference
+        </div>
+        <h2
+          style="font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:0 0 40px; color:#F2FBFC;"
+        >
+          The whole vocabulary, at a glance.
+        </h2>
+        <div style="border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;">
+          <div
+            style="display:grid; grid-template-columns:190px 1fr 130px; padding:14px 28px; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#5b7077;"
+          >
+            <span>Keyword</span><span>Meaning</span><span>Layer</span>
+          </div>
+          {
+            referenceRows.map((row) => (
+              <div style="display:grid; grid-template-columns:190px 1fr 130px; padding:16px 28px; border-bottom:1px solid rgba(255,255,255,0.05); align-items:center; font-size:14px;">
+                <span style={`font-family:'JetBrains Mono',monospace; color:${row.color};`}>
+                  {row.syntax}
+                </span>
+                <span style="color:#90A2AA;">{row.meaning}</span>
+                <span
+                  style={`font-family:'JetBrains Mono',monospace; font-size:11.5px; color:${row.layerColor};`}
+                >
+                  {row.layer}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    {/* FROM ONE SPEC */}
+    <section
+      style="position:relative; border-top:1px solid rgba(255,255,255,0.06); background:#0A0F14;"
+    >
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:72px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          One grammar, every artifact
+        </div>
+        <h2
+          style="font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:0 0 40px; color:#F2FBFC;"
+        >
+          The IR the parser produces drives all of this.
+        </h2>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+          {
+            [
+              { name: 'TypeScript types', desc: 'Event and command interfaces, aggregate contracts, discriminated unions.' },
+              { name: 'Test scaffolds', desc: 'Topologies, negative cases, and saga state-machine checks.' },
+              { name: 'Gherkin features', desc: 'Human-readable .feature files per flow.' },
+              { name: 'facet.json', desc: 'Simulation scenarios that load straight into the Facet harness.' },
+              { name: 'AsyncAPI 3.0', desc: 'Channel and message contracts for every boundary crossing.' },
+              { name: 'Specification docs', desc: 'Markdown that never drifts, because it is generated, not written.' },
+            ].map((a) => (
+              <div style="background:#07090D; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:22px 22px;">
+                <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:#E6F0F2;">
+                  {a.name}
+                </div>
+                <p style="margin:0; font-size:13.5px; line-height:1.55; color:#90A2AA;">{a.desc}</p>
+              </div>
+            ))
+          }
+        </div>
+        <div style="display:flex; gap:14px; margin-top:36px; flex-wrap:wrap;">
+          <a
+            href="/examples"
+            class="btn-primary"
+            style="font-size:15px; font-weight:600; padding:13px 24px; border-radius:8px;"
+            >See real examples →</a
+          >
+          <a
+            href={GITHUB_WIKI_URL}
+            target="_blank"
+            rel="noopener"
+            class="btn-secondary"
+            style="font-size:15px; font-weight:500; padding:13px 22px; border-radius:8px;"
+            >Full grammar on the wiki →</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <Footer />
+  </div>
+
+  <script>
+    interface CoachData {
+      tag: string;
+      syntax: string;
+      meaning: string;
+      rule: string;
+    }
+
+    const DATA: Record<string, CoachData> = {
+      context: { tag: 'bounded context · the WHERE', syntax: 'context &lt;"Subdomain"&gt; [&lt;Core|Supporting|Generic&gt;]', meaning: 'A bounded context — a linguistic and organizational boundary where each term means exactly one thing. In DDD it is a region on the spatial map; in Event Storming it is the stretch of timeline a pivotal event opens.', rule: 'The role tag classifies the subdomain: Core differentiates you, Supporting is necessary, Generic is buy-or-borrow.' },
+      role: { tag: 'strategic classification', syntax: '[Core] · [Supporting] · [Generic]', meaning: 'Core-domain analysis: how much this subdomain differentiates the business. It decides where your strongest people go — not just what gets built.', rule: 'Core earns real investment; Generic should be bought or adopted, not hand-built.' },
+      aggregate: { tag: 'consistency boundary · a mini-domain', syntax: 'aggregate &lt;"Consistency-Boundary"&gt;', meaning: 'Not just a name. A lifecycle root that clusters the entities, values, and the commands that change them behind one invariant — the noun the events operate on. It usually becomes a microservice boundary.', rule: 'Every command and event lives in exactly one aggregate; it is the transaction boundary.' },
+      command: { tag: 'actor intent', syntax: 'command &lt;Actor-Intent&gt;', meaning: 'A decision an actor makes against an aggregate. It can be rejected, and on success it produces events — the blue sticky that precedes an orange one in Event Storming.', rule: 'Imperative, present-tense: PlaceOrder, not OrderPlaced.' },
+      emits: { tag: 'command → event', syntax: 'emits &lt;Resulting-Event&gt;', meaning: 'The causal link from intent to fact: which event(s) a command produces when it succeeds.', rule: 'The emitted event must be defined in the same aggregate.' },
+      event: { tag: 'domain event · the WHEN', syntax: 'event &lt;Past-Tense-Fact&gt;', meaning: 'An immutable fact that has happened — the orange sticky, the atom of Event Storming’s timeline. Everything temporal in Moment hangs off events.', rule: 'Past-tense and irreversible: OrderPlaced, not PlaceOrder.' },
+      field: { tag: 'typed payload', syntax: '&lt;attribute&gt;: &lt;Type&gt;', meaning: 'The data the event carries. Primitives, arrays with [], and other defined types. This payload is exactly what a boundary contract can reference.', rule: 'Field types become the generated TypeScript interface verbatim.' },
+      flow: { tag: 'timeline · the temporal model', syntax: 'flow &lt;"business-process"&gt;', meaning: 'A named run along Event Storming’s timeline — the WHEN that DDD’s spatial map leaves out. It threads moments across bounded contexts in order.', rule: 'This is the dimension Moment adds to a 2D domain design.' },
+      moment: { tag: 'pivotal point in the flow', syntax: 'moment &lt;"pivotal-point"&gt;', meaning: 'A single behavioral assertion at one point on the timeline — often an Event Storming pivotal event, the hinge where the process turns and a boundary is about to be crossed.', rule: 'The moment is the unit of value the whole language is named for.' },
+      participation: { tag: 'context ↔ event binding', syntax: '&lt;origin-context&gt;: &lt;Event&gt;', meaning: 'Anchors a moment to a concrete event inside a specific bounded context — "in ordering, OrderPlaced happens here." It ties the temporal timeline back to the spatial map.', rule: 'The context must actually own that event.' },
+      'crosses-to': { tag: 'pivotal event · the boundary', syntax: 'crosses-to &lt;downstream-context&gt;', meaning: 'The heart of Moment. A pivotal event that leaves one bounded context and enters another — in Event Storming, the sticky that separates one phase of the system from the next. This is where incidents are born.', rule: 'A crossing with no contract is an ERROR — never an implicit default.' },
+      via: { tag: 'context mapping', syntax: 'via &lt;Context-Mapping&gt;', meaning: 'The DDD context-mapping pattern that governs the crossing — CustomerSupplier, Conformist, AntiCorruptionLayer, Partnership, and so on.', rule: 'Names the real political and technical relationship between the two teams.' },
+      contract: { tag: 'published language · the promise', syntax: 'contract { &lt;published-language&gt; }', meaning: 'The exact schema carried across the boundary — the published language the two contexts agree on. Facet asserts every field of it at simulation time.', rule: 'Mandatory on every crossing. It is the promise the upstream context makes to the downstream one.' },
+      triggers: { tag: 'causation', syntax: 'triggers &lt;Reactive-Command&gt;', meaning: 'Causation — this event causes a downstream command to run. The reactive edge Facet animates and checks ordering on.', rule: 'Distinguishes cause from mere sequence on the timeline.' },
+      saga: { tag: 'long-running process', syntax: 'saga &lt;"long-running-process"&gt;', meaning: 'A process manager spanning many moments and contexts, coordinating a long-running outcome and compensating on failure.', rule: 'Moment structurally checks that every saga can reach a terminal state.' },
+      until: { tag: 'terminal states', syntax: 'until &lt;Terminal-State&gt; | &lt;Terminal-State&gt;', meaning: 'The states that end a saga — successful completion or compensation.', rule: 'A saga with no reachable terminal state is a structural error.' },
+    };
+
+    const root = document.getElementById('dslTeach');
+    if (root) {
+      const gram = root.querySelector<HTMLElement>('#gramLayer');
+      const spec = root.querySelector<HTMLElement>('#specLayer');
+      const body = root.querySelector<HTMLElement>('#codeBody');
+      const handle = root.querySelector<HTMLElement>('#gramHandle');
+      const coach = root.querySelector<HTMLElement>('#coachCard');
+      const modeLabel = root.querySelector<HTMLElement>('#modeLabel');
+      const modeGrammar = root.querySelector<HTMLElement>('#modeGrammar');
+      const modeSpec = root.querySelector<HTMLElement>('#modeSpec');
+      const gramReset = root.querySelector<HTMLElement>('#gramReset');
+
+      const defaultCoach = coach?.innerHTML ?? '';
+      let reveal = 1;
+      let dragging = false;
+
+      const setReveal = (r: number) => {
+        r = Math.max(0, Math.min(1, r));
+        reveal = r;
+        if (spec) {
+          spec.style.opacity = String(r);
+          spec.style.pointerEvents = r >= 0.5 ? 'auto' : 'none';
+        }
+        if (gram) {
+          gram.style.opacity = String(1 - r);
+          gram.style.pointerEvents = r < 0.5 ? 'auto' : 'none';
+        }
+        if (handle) handle.style.left = 2 + r * 96 + '%';
+        if (modeLabel) {
+          modeLabel.textContent = r >= 0.5 ? 'your spec' : 'grammar';
+          modeLabel.style.color = r >= 0.5 ? '#7fbf9a' : '#9a8fd6';
+        }
+      };
+
+      setReveal(1);
+
+      modeGrammar?.addEventListener('click', () => setReveal(0));
+      modeSpec?.addEventListener('click', () => setReveal(1));
+
+      const onMove = (e: PointerEvent) => {
+        if (!dragging || !body) return;
+        const rect = body.getBoundingClientRect();
+        setReveal((e.clientX - rect.left) / rect.width);
+        e.preventDefault();
+      };
+      const onUp = () => {
+        if (!dragging) return;
+        dragging = false;
+        document.body.style.userSelect = '';
+        setReveal(reveal < 0.5 ? 0 : 1);
+      };
+      handle?.addEventListener('pointerdown', (e: PointerEvent) => {
+        dragging = true;
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+
+      const chipOff = (c: HTMLElement) => {
+        const special = c.dataset.key === 'crosses-to';
+        c.style.background = special ? 'rgba(197,140,255,0.06)' : 'transparent';
+        c.style.color = special ? '#C58CFF' : '#8FA0A8';
+        c.style.borderColor = special ? 'rgba(197,140,255,0.28)' : 'rgba(255,255,255,0.12)';
+      };
+
+      const inspect = (key: string) => {
+        const d = DATA[key];
+        if (!d || !coach) return;
+        setReveal(1);
+        const hlKey = key === 'role' ? 'context' : key;
+        root.querySelectorAll<HTMLElement>('#specLayer [data-key]').forEach((l) => {
+          if (l.dataset.key === hlKey) {
+            l.style.background = 'rgba(34,211,238,0.13)';
+            l.style.boxShadow = 'inset 2px 0 0 #22D3EE';
+          } else {
+            l.style.background = '';
+            l.style.boxShadow = '';
+          }
+        });
+        root.querySelectorAll<HTMLElement>('[data-chip]').forEach((c) => {
+          if (c.dataset.key === key) {
+            c.style.background = 'rgba(34,211,238,0.16)';
+            c.style.color = '#E6F0F2';
+            c.style.borderColor = 'rgba(34,211,238,0.5)';
+          } else {
+            chipOff(c);
+          }
+        });
+        coach.innerHTML =
+          '<div style="font-family:JetBrains Mono,monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE; margin-bottom:12px;">' +
+          d.tag +
+          '</div>' +
+          '<div style="font-family:JetBrains Mono,monospace; font-size:16px; color:#F2FBFC; margin-bottom:14px; line-height:1.4;">' +
+          d.syntax +
+          '</div>' +
+          '<p style="margin:0 0 14px; font-size:15px; line-height:1.6; color:#C9CDD6;">' +
+          d.meaning +
+          '</p>' +
+          '<div style="display:flex; gap:8px; align-items:flex-start; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);"><span style="font-family:JetBrains Mono,monospace; font-size:10.5px; color:#22D3EE; letter-spacing:.08em; padding-top:2px;">RULE</span><span style="font-size:13.5px; line-height:1.55; color:#90A2AA;">' +
+          d.rule +
+          '</span></div>';
+      };
+
+      root.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('#gramHandle') || target.closest('#gramReset')) return;
+        const el = target.closest<HTMLElement>('[data-key]');
+        if (!el || !el.dataset.key) return;
+        inspect(el.dataset.key);
+      });
+
+      gramReset?.addEventListener('click', () => {
+        setReveal(1);
+        root.querySelectorAll<HTMLElement>('#specLayer [data-key]').forEach((l) => {
+          l.style.background = '';
+          l.style.boxShadow = '';
+        });
+        root.querySelectorAll<HTMLElement>('[data-chip]').forEach((c) => chipOff(c));
+        if (coach) coach.innerHTML = defaultCoach;
+      });
+    }
+  </script>
+</Base>

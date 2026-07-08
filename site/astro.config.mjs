@@ -1,8 +1,20 @@
 import { defineConfig } from 'astro/config';
-import preact from '@astrojs/preact';
 import sitemap from '@astrojs/sitemap';
 
+export const SITE_URL = 'https://moment.dev';
+
 export default defineConfig({
-  site: 'https://moment.mmmnt.dev',
-  integrations: [preact(), sitemap()],
+  site: SITE_URL,
+  output: 'static',
+  trailingSlash: 'never',
+  build: {
+    format: 'file',
+    inlineStylesheets: 'auto',
+  },
+  compressHTML: true,
+  integrations: [
+    sitemap({
+      filter: (page) => !/\/design(\/|$)/.test(page) && !page.includes('/404'),
+    }),
+  ],
 });

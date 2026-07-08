@@ -1,0 +1,176 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #07090d;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+  color: #fff;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* Wordmark shared class */
+.wm {
+  font-family: 'Geist', sans-serif;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  color: #f2fbfc;
+}
+.wm span {
+  display: inline-block;
+}
+.wm .pt {
+  position: relative;
+  top: 0.005em;
+  color: #22d3ee;
+}
+
+/* Hover states — reproduces the design's style-hover attribute pattern */
+.link-muted {
+  color: #8fa0a8;
+  transition: color 0.15s ease;
+}
+.link-muted:hover {
+  color: #f2fbfc;
+}
+
+.link-active {
+  color: #f2fbfc;
+}
+
+.link-footer {
+  color: #90a2aa;
+  transition: color 0.15s ease;
+}
+.link-footer:hover {
+  color: #fff;
+}
+
+.btn-primary {
+  color: #06262b;
+  background: #22d3ee;
+  transition: background 0.15s ease;
+}
+.btn-primary:hover {
+  background: #7fe9f5;
+}
+
+.btn-secondary {
+  color: #e6f0f2;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: border-color 0.15s ease;
+}
+.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.btn-replay {
+  color: #e6f0f2;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+.btn-replay:hover {
+  background: rgba(34, 211, 238, 0.16);
+}
+
+/* Shared animations used across pages */
+@keyframes momPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes momDash {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+@keyframes momConvey {
+  0% {
+    transform: translateX(-6px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+}
+@keyframes dslNudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-5px);
+  }
+}
+@keyframes exPulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes exDash {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+/* Mobile — collapse the multi-column layouts to a single column. */
+@media (max-width: 820px) {
+  div[style*='display: grid'],
+  div[style*='display:grid'] {
+    grid-template-columns: 1fr !important;
+  }
+  .nav-links {
+    display: none !important;
+  }
+  h1 {
+    font-size: 34px !important;
+    line-height: 1.08 !important;
+  }
+  h2 {
+    font-size: 26px !important;
+  }
+  .site-container {
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
