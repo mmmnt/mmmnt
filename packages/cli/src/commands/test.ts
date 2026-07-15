@@ -55,7 +55,7 @@ export async function runTest(argv: string[]): Promise<TestCommandResult> {
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content);
+  const parseResult = await parser.parseContent(content, resolvedPath);
 
   if (!parseResult.success) {
     return {

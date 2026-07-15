@@ -65,7 +65,7 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
 
   // Step 1: Parse
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content);
+  const parseResult = await parser.parseContent(content, resolvedPath);
 
   if (!parseResult.success) {
     return {

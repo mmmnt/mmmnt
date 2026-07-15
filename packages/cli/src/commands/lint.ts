@@ -59,7 +59,7 @@ export async function runLint(argv: string[]): Promise<LintResult> {
     return fail(`Error: Failed to read ${resolvedPath}: ${msg}`);
   }
 
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
   const issues: LintIssue[] = [];
 
   // Source 1: Parse diagnostics
@@ -133,7 +133,10 @@ function findGitRoot(startDir: string): string {
 
 function collectDeprecatedFieldWarning(
   ownerName: string,
-  field: { readonly name: string; readonly deprecated?: { readonly reason: string; readonly replacement: string } },
+  field: {
+    readonly name: string;
+    readonly deprecated?: { readonly reason: string; readonly replacement: string };
+  },
   issues: LintIssue[],
 ): void {
   if (!field.deprecated) return;
@@ -171,7 +174,11 @@ function buildResult(issues: LintIssue[], hasParseErrors: boolean, asJson: boole
   const warnings = issues.filter((i) => i.severity === 'warning');
 
   if (asJson) {
-    const json = JSON.stringify({ issues, errors: errors.length, warnings: warnings.length }, null, 2);
+    const json = JSON.stringify(
+      { issues, errors: errors.length, warnings: warnings.length },
+      null,
+      2,
+    );
     return { success: !hasParseErrors, message: json, issues, json };
   }
 

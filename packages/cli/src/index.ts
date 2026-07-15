@@ -21,7 +21,59 @@ import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
 import { runAuthLogout } from './commands/auth-logout.js';
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
 const [command, ...args] = process.argv.slice(2);
+
+const USAGE = `Usage: moment <command> [options]
+
+Commands:
+  init                     Initialize a Moment project with a manifest
+  parse <file>             Parse and validate a .moment specification
+  watch                    Watch .moment files and re-run the pipeline on change
+  derive <file>            Derive test topology from a specification
+  generate <file>          Generate Gherkin, TypeScript scaffolds, and docs
+  emit-ts <file>           Emit TypeScript types and scaffolds
+  test <file>              Run structural validation test suites
+  simulate <file>          Generate simulation scenarios (--all, --json)
+  viz <file>               Emit the visualization data envelope
+  serve <file>             Serve topology/scenarios over WebSocket (Facet bridge)
+  cucumber-json <file>     Emit Cucumber JSON for Xray import
+  lint <file>              Drift + schema lint
+  sync <status|propose|accept> <file>
+                           Implementation drift detection and proposals
+  schema <status> <file>   Schema governance report
+  import --from-sift <dir> Import a Sift JSONL export
+  reconcile <file>         Reconcile upstream drift (--local | --event <path>)
+  status <file>            Unified project status
+  auth <login|status|logout|quorum>
+                           Manage GitHub and quorum credentials
+  quorum <watch> <stream>  Subscribe to a quorum stream into .domain/
+
+Flags:
+  -v, --version            Print the CLI version
+  -h, --help               Show this help`;
+
+function cliVersion(): string {
+  try {
+    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string };
+    return pkg.version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+if (command === '--version' || command === '-v' || command === 'version') {
+  console.log(cliVersion());
+  process.exit(0);
+}
+if (command === '--help' || command === '-h' || command === 'help' || command === undefined) {
+  console.log(USAGE);
+  process.exit(command === undefined ? 1 : 0);
+}
 
 switch (command) {
   case 'init': {
@@ -405,13 +457,7 @@ switch (command) {
     break;
   }
   default:
-    if (command) {
-      console.error(`Error: Unknown command '${command}'`);
-    } else {
-      console.error('Usage: moment <command> [options]');
-      console.error(
-        'Commands: init, parse, watch, serve, derive, generate, emit-ts, test, viz, simulate, sync, schema, lint, import, reconcile, status, cucumber-json, auth',
-      );
-    }
+    console.error(`Error: Unknown command '${command}'`);
+    console.error("Run 'moment --help' for usage.");
     process.exitCode = 1;
 }

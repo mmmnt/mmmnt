@@ -75,7 +75,7 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
   const content = readFile(resolvedPath);
   if (typeof content !== 'string') return content;
 
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
 
   if (!parseResult.success) {
     return {

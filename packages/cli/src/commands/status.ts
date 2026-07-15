@@ -56,12 +56,14 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
   try {
     content = readFileSync(resolvedPath, 'utf-8');
   } catch (err: unknown) {
-    return fail(`Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`);
+    return fail(
+      `Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   const sections: StatusSection[] = [];
 
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
   sections.push(buildParseSection(parseResult));
 
   if (parseResult.success && parseResult.ir) {
@@ -77,7 +79,10 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
   return formatOutput(sections, hasDrift, values);
 }
 
-function buildParseSection(parseResult: { success: boolean; diagnostics: readonly Diagnostic[] }): StatusSection {
+function buildParseSection(parseResult: {
+  success: boolean;
+  diagnostics: readonly Diagnostic[];
+}): StatusSection {
   if (parseResult.success) {
     return { label: 'Specification', state: 'ok', summary: 'Valid — no parse errors' };
   }
@@ -90,10 +95,17 @@ function buildParseSection(parseResult: { success: boolean; diagnostics: readonl
   };
 }
 
-async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: string): Promise<StatusSection> {
+async function buildDriftSection(
+  ir: IntermediateRepresentation,
+  resolvedPath: string,
+): Promise<StatusSection> {
   const gitRoot = findGitRoot(dirname(resolvedPath));
   if (!gitRoot) {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (no git repository)' };
+    return {
+      label: 'Implementation Sync',
+      state: 'ok',
+      summary: 'Not available (no git repository)',
+    };
   }
 
   try {
@@ -102,12 +114,20 @@ async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: s
     const actual = new Map<string, string>();
 
     for (const path of tsOutput.files.keys()) {
-      try { actual.set(path, await store.readArtifact(path)); } catch { /* not found */ }
+      try {
+        actual.set(path, await store.readArtifact(path));
+      } catch {
+        /* not found */
+      }
     }
 
     const report = new ASTDiffEngine().detectDrift({ expected: tsOutput.files, actual });
     if (report.totalDrifted === 0) {
-      return { label: 'Implementation Sync', state: 'ok', summary: `${report.totalAligned} file(s) aligned` };
+      return {
+        label: 'Implementation Sync',
+        state: 'ok',
+        summary: `${report.totalAligned} file(s) aligned`,
+      };
     }
     return {
       label: 'Implementation Sync',
@@ -115,7 +135,11 @@ async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: s
       summary: `${report.totalDrifted} file(s) drifted, ${report.totalAligned} aligned`,
     };
   } catch {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (drift detection failed)' };
+    return {
+      label: 'Implementation Sync',
+      state: 'ok',
+      summary: 'Not available (drift detection failed)',
+    };
   }
 }
 
@@ -155,7 +179,11 @@ function buildUpstreamSection(resolvedPath: string): StatusSection {
   }
 
   if (!existsSync(fpPath)) {
-    return { label: 'Upstream Source', state: 'drift', summary: '.domain/ exists but no fingerprint — run moment import --from-sift' };
+    return {
+      label: 'Upstream Source',
+      state: 'drift',
+      summary: '.domain/ exists but no fingerprint — run moment import --from-sift',
+    };
   }
 
   try {

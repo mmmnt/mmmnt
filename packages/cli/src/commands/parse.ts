@@ -73,7 +73,7 @@ export async function runParse(argv: string[]): Promise<ParseCommandResult> {
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const result = await parser.parseContent(content);
+  const result = await parser.parseContent(content, resolvedPath);
 
   if (result.success && result.ir) {
     updateManifestFromIr(resolvedPath, result.ir);
