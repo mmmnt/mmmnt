@@ -8,7 +8,8 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, join } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
@@ -99,18 +100,13 @@ async function buildDriftSection(
   ir: IntermediateRepresentation,
   resolvedPath: string,
 ): Promise<StatusSection> {
-  const gitRoot = findGitRoot(dirname(resolvedPath));
-  if (!gitRoot) {
-    return {
-      label: 'Implementation Sync',
-      state: 'ok',
-      summary: 'Not available (no git repository)',
-    };
-  }
+  // Project root: nearest .manifest.yaml, else git root, else spec dir.
+  // The working-tree-first artifact store works in non-git directories too.
+  const repoRoot = resolveRepoRoot(resolvedPath);
 
   try {
     const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-    const store = new LocalGitArtifactStore(gitRoot);
+    const store = new LocalGitArtifactStore(repoRoot);
     const actual = new Map<string, string>();
 
     for (const path of tsOutput.files.keys()) {
@@ -170,7 +166,7 @@ function buildSchemaSection(ir: IntermediateRepresentation): StatusSection {
 }
 
 function buildUpstreamSection(resolvedPath: string): StatusSection {
-  const projectDir = dirname(resolvedPath);
+  const projectDir = resolveRepoRoot(resolvedPath);
   const domainDir = join(projectDir, '.domain');
   const fpPath = join(projectDir, '.moment', '.upstream-fingerprint.json');
 
@@ -197,15 +193,6 @@ function buildUpstreamSection(resolvedPath: string): StatusSection {
   } catch {
     return { label: 'Upstream Source', state: 'warning', summary: 'Fingerprint unreadable' };
   }
-}
-
-function findGitRoot(startDir: string): string | undefined {
-  let dir = resolve(startDir);
-  while (dir !== dirname(dir)) {
-    if (existsSync(join(dir, '.git'))) return dir;
-    dir = dirname(dir);
-  }
-  return undefined;
 }
 
 function formatOutput(

@@ -1,14 +1,16 @@
 /**
  * LocalGitArtifactStore — CLI-context implementation of GitArtifactStore (ADR-024)
  *
- * Reads artifacts from the git object store via isomorphic-git.
- * All reads go through git (resolveRef → readBlob), not raw filesystem.
- * Index is read from .moment/index.json in the committed tree.
+ * Reads artifacts working-tree-first: the developer's on-disk state is the
+ * source of truth for drift comparison. Falls back to the git object store
+ * (resolveRef → readBlob at HEAD) only when the file is absent from the
+ * working tree — e.g. deleted-but-committed artifacts. This also makes the
+ * store fully functional in non-git directories.
  */
 
 import * as git from 'isomorphic-git';
 import * as fs from 'node:fs';
-import { resolve, isAbsolute } from 'node:path';
+import { resolve, isAbsolute, join } from 'node:path';
 import type { GitArtifactStore } from './git-artifact-store.js';
 import type { MomentArtifactIndex, ArtifactIndexEntry } from './artifact-index.js';
 
@@ -85,7 +87,7 @@ export class LocalGitArtifactStore implements GitArtifactStore {
   }
 
   async listArtifacts(pattern: string): Promise<readonly string[]> {
-    const allFiles = await git.listFiles({ fs, dir: this.dir, ref: this.ref });
+    const allFiles = await this.listAllFiles();
     const momentFiles = allFiles.filter((f) => f.startsWith('.moment/') && f !== INDEX_PATH);
 
     if (pattern === '*') return momentFiles;
@@ -116,6 +118,17 @@ export class LocalGitArtifactStore implements GitArtifactStore {
   }
 
   private async readBlobAsString(filepath: string): Promise<string> {
+    // Working tree first (HEAD only): on-disk state is what drift comparison
+    // should see. Explicit refs are historical reads and stay git-first.
+    if (this.ref === 'HEAD') {
+      const onDisk = join(this.dir, filepath);
+      try {
+        return fs.readFileSync(onDisk, 'utf-8');
+      } catch {
+        // Fall through to the git object store.
+      }
+    }
+
     try {
       const commitOid = await git.resolveRef({ fs, dir: this.dir, ref: this.ref });
       const { blob } = await git.readBlob({
@@ -127,10 +140,40 @@ export class LocalGitArtifactStore implements GitArtifactStore {
       return Buffer.from(blob).toString('utf-8');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      if (message.includes('Could not find') || message.includes('NotFoundError')) {
+      if (
+        message.includes('Could not find') ||
+        message.includes('NotFoundError') ||
+        message.includes('ENOENT')
+      ) {
         throw new Error(`Artifact not found: ${filepath}`);
       }
       throw err;
+    }
+  }
+
+  /** Working-tree listing (HEAD only) with git-tree fallback. */
+  private async listAllFiles(): Promise<readonly string[]> {
+    if (this.ref !== 'HEAD') {
+      return git.listFiles({ fs, dir: this.dir, ref: this.ref });
+    }
+
+    const collected: string[] = [];
+    const walk = (rel: string): void => {
+      const abs = join(this.dir, rel);
+      for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+        if (entry.name === '.git' || entry.name === 'node_modules') continue;
+        const childRel = rel === '' ? entry.name : `${rel}/${entry.name}`;
+        if (entry.isDirectory()) walk(childRel);
+        else collected.push(childRel);
+      }
+    };
+
+    try {
+      walk('');
+      return collected;
+    } catch {
+      // Working tree unreadable — fall back to the committed tree.
+      return git.listFiles({ fs, dir: this.dir, ref: this.ref });
     }
   }
 }

@@ -7,7 +7,8 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
@@ -94,8 +95,8 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
   // Generate expected TypeScript from spec
   const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
 
-  // Read actual implementation files
-  const repoRoot = dirname(resolvedPath);
+  // Read actual implementation files (project root: manifest > git > spec dir)
+  const repoRoot = resolveRepoRoot(resolvedPath);
   const store = new LocalGitArtifactStore(repoRoot);
   const actual = await readActualFiles(store, [...tsOutput.files.keys()]);
 
@@ -211,9 +212,12 @@ function formatProposalSummary(
   lines.push('');
 
   for (const p of proposals) {
-    const payloadKeys = Object.keys(p.proposedPayload);
-    const detail = payloadKeys.length > 0 ? ` (${payloadKeys.join(', ')})` : '';
-    lines.push(`  ${p.proposedEventType}${detail}`);
+    // Render payload values (what changed), not the payload's field names.
+    const detail = Object.entries(p.proposedPayload)
+      .filter(([, v]) => typeof v === 'string' || typeof v === 'number')
+      .map(([k, v]) => `${k}: ${String(v)}`)
+      .join(', ');
+    lines.push(`  ${p.proposedEventType}${detail ? ` — ${detail}` : ''}`);
     lines.push(`    File: ${p.sourceFile}`);
   }
 

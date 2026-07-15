@@ -11,7 +11,8 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
@@ -97,7 +98,7 @@ async function collectDriftWarnings(
 ): Promise<void> {
   try {
     const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-    const repoRoot = findGitRoot(dirname(resolvedPath));
+    const repoRoot = resolveRepoRoot(resolvedPath);
     const store = new LocalGitArtifactStore(repoRoot);
     const actual = new Map<string, string>();
 
@@ -120,15 +121,6 @@ async function collectDriftWarnings(
   } catch {
     // Drift detection unavailable (e.g., not a git repo) — skip silently (EXIT-B5)
   }
-}
-
-function findGitRoot(startDir: string): string {
-  let dir = resolve(startDir);
-  while (dir !== dirname(dir)) {
-    if (existsSync(resolve(dir, '.git'))) return dir;
-    dir = dirname(dir);
-  }
-  return startDir; // fallback to startDir if no .git found
 }
 
 function collectDeprecatedFieldWarning(

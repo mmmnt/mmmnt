@@ -7,7 +7,8 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
@@ -74,9 +75,9 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   const emitter = new TypeScriptEmitter();
   const tsOutput = emitter.emit(ir, { scope: { level: 'system' } });
 
-  // Read actual implementation files via GitArtifactStore (ADR-024)
-  // Repo root defaults to the directory containing the .moment file
-  const repoRoot = dirname(resolvedPath);
+  // Read actual implementation files via GitArtifactStore (ADR-024).
+  // Project root: nearest .manifest.yaml, else git root, else spec dir.
+  const repoRoot = resolveRepoRoot(resolvedPath);
   const store = new LocalGitArtifactStore(repoRoot);
   const expectedPaths = [...tsOutput.files.keys()];
   const actual = new Map<string, string>();
