@@ -8,7 +8,7 @@
     },
     {
       "name": "keyword.control.moment",
-      "match": "\\b(AnticorruptionLayer|Conformist|Core|CustomerSupplier|Date|DateTime|Generic|Money|OpenHostService|Partnership|PublishedLanguage|SeparateWays|Supporting|Terminal|UUID|action|aggregate|boolean|branch-lane|chains-to|classification|command|compensation|consumes|context|contract|crosses-to|deprecated|description|emits|encryption|event|flow|identity|input|invariant|lane|moment|number|optional|policy|precondition|produces|relationship|retention|returns-to|saga|scope|service|states|string|terminal|timeout|trigger|triggered-by|triggers|type|value-object|via|when)\\b|\\B(\"file-watcher\"|\"none\"|\\[branch\\]|\\[required\\])\\B"
+      "match": "\\b(AnticorruptionLayer|Conformist|Core|CustomerSupplier|Date|DateTime|Generic|Money|OpenHostService|Partnership|PublishedLanguage|SeparateWays|Supporting|Terminal|UUID|action|aggregate|boolean|branch-lane|chains-to|command|compensation|consumes|context|contract|crosses-to|deprecated|description|emits|event|flow|identity|input|invariant|lane|moment|number|optional|policy|precondition|produces|relationship|returns-to|saga|scope|service|states|string|terminal|timeout|trigger|triggered-by|triggers|type|value-object|via|when)\\b|\\B(\"file-watcher\"|\"none\"|\\[branch\\]|\\[required\\])\\B"
     },
     {
       "name": "string.quoted.double.moment",

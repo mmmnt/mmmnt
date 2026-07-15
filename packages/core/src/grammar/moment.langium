@@ -23,11 +23,10 @@ ContextMember:
 // --- Classification Annotations (PRD §5.1.4, Sift ADR-053 D4) ---
 // An annotation classifies the NEXT declaration in the member list.
 // Values are rendered as-is; enum membership is not validated (SIM-01).
+// The name is an ID (not keywords) so 'classification' etc. remain usable
+// as field names; the V18 validator restricts the accepted annotation names.
 AnnotationDeclaration:
-    '@' name=AnnotationName '(' value=AnnotationValue ')';
-
-AnnotationName returns string:
-    'classification' | 'retention' | 'encryption';
+    '@' name=ID '(' value=AnnotationValue ')';
 
 AnnotationValue returns string:
     ID | STRING;

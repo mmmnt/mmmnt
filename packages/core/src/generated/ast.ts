@@ -51,7 +51,6 @@ export type MomentKeywordNames =
   | 'boolean'
   | 'branch-lane'
   | 'chains-to'
-  | 'classification'
   | 'command'
   | 'compensation'
   | 'consumes'
@@ -61,7 +60,6 @@ export type MomentKeywordNames =
   | 'deprecated'
   | 'description'
   | 'emits'
-  | 'encryption'
   | 'event'
   | 'flow'
   | 'identity'
@@ -75,7 +73,6 @@ export type MomentKeywordNames =
   | 'precondition'
   | 'produces'
   | 'relationship'
-  | 'retention'
   | 'returns-to'
   | 'saga'
   | 'scope'
@@ -132,7 +129,7 @@ export function isAggregateMember(item: unknown): item is AggregateMember {
 export interface AnnotationDeclaration extends langium.AstNode {
   readonly $container: AggregateDeclaration | ContextDeclaration;
   readonly $type: 'AnnotationDeclaration';
-  name: AnnotationName;
+  name: string;
   value: AnnotationValue;
 }
 
@@ -144,12 +141,6 @@ export const AnnotationDeclaration = {
 
 export function isAnnotationDeclaration(item: unknown): item is AnnotationDeclaration {
   return reflection.isInstance(item, AnnotationDeclaration.$type);
-}
-
-export type AnnotationName = 'classification' | 'encryption' | 'retention';
-
-export function isAnnotationName(item: unknown): item is AnnotationName {
-  return item === 'classification' || item === 'retention' || item === 'encryption';
 }
 
 export type AnnotationValue = string;

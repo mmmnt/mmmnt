@@ -9,6 +9,7 @@ import type { ValidationAcceptor, ValidationChecks } from 'langium';
 import type { LangiumCoreServices } from 'langium';
 import type {
   MomentAstType,
+  AnnotationDeclaration,
   ContextCrossing,
   FieldDeclaration,
   FlowDeclaration,
@@ -58,6 +59,7 @@ export function registerMomentValidationChecks(
   const checks: ValidationChecks<MomentAstType> = {
     MomentDeclaration: validator.checkMoment,
     FieldDeclaration: validator.checkDeprecatedReplacement,
+    AnnotationDeclaration: validator.checkAnnotationName,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
@@ -231,6 +233,20 @@ export class MomentValidator {
         node: moment,
         property: 'label',
       });
+    }
+  }
+
+  // =========================================================================
+  // V18: annotation name must be classification, retention, or encryption
+  // =========================================================================
+  checkAnnotationName(ann: AnnotationDeclaration, accept: ValidationAcceptor): void {
+    const allowed = new Set(['classification', 'retention', 'encryption']);
+    if (!allowed.has(ann.name)) {
+      accept(
+        'error',
+        `V18: Unknown annotation '@${ann.name}'. Allowed: @classification, @retention, @encryption.`,
+        { node: ann, property: 'name' },
+      );
     }
   }
 
