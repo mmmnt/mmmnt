@@ -1,0 +1,30 @@
+// Fixture: classification annotations (§5.1.4) + when-lane routing (V16)
+context "Records" [Core]
+
+  @classification(PHI)
+  @retention(HIPAA)
+  aggregate "PatientRecord"
+    identity recordId: UUID
+
+    command CreateRecord
+      input ownerName: string
+      emits RecordCreated
+
+    @classification(PHI)
+    event RecordCreated
+      recordId: UUID
+      ownerName: string
+
+    @encryption("at-rest")
+    value-object Chart
+      entries: string[]
+
+flow "record-lifecycle"
+  lane records "Records" [Core]
+  branch-lane rejected "Rejected" [Terminal]
+
+  moment "Creation outcome" [branch]
+    when accepted
+      records: RecordCreated
+    when invalid [rejected]
+      rejected: RecordCreated [terminal]

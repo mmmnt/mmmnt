@@ -17,5 +17,7 @@ export interface MomentEntry {
 
 export interface BranchDefinition {
   condition: string;
+  /** Branch-lane routing target (when <condition> [<lane>]). */
+  lane?: string;
   entries: MomentEntry[];
 }

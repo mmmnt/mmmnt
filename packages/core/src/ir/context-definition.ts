@@ -1,3 +1,12 @@
+/**
+ * Classification annotation (@classification/@retention/@encryption).
+ * Values are rendered as-is; enum membership is not validated (SIM-01).
+ */
+export interface AnnotationDefinition {
+  name: 'classification' | 'retention' | 'encryption';
+  value: string;
+}
+
 export interface ContextDefinition {
   id: string;
   name: string;
@@ -16,6 +25,7 @@ export interface ContextDefinition {
 export interface AggregateDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   identityField: FieldDefinition;
   commands: CommandDefinition[];
   events: EventDefinition[];
@@ -26,6 +36,7 @@ export interface AggregateDefinition {
 export interface CommandDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   inputs: FieldDefinition[];
   preconditions: PreconditionDefinition[];
   emitsEvent: string;
@@ -39,12 +50,14 @@ export interface PreconditionDefinition {
 export interface EventDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   fields: FieldDefinition[];
 }
 
 export interface ValueObjectDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   fields: FieldDefinition[];
 }
 

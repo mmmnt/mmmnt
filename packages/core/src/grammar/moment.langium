@@ -18,7 +18,19 @@ ContextDeclaration:
 
 ContextMember:
     AggregateDeclaration | DomainServiceDeclaration | PolicyDeclaration |
-    SagaDeclaration | ContextRelationshipDeclaration;
+    SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration;
+
+// --- Classification Annotations (PRD §5.1.4, Sift ADR-053 D4) ---
+// An annotation classifies the NEXT declaration in the member list.
+// Values are rendered as-is; enum membership is not validated (SIM-01).
+AnnotationDeclaration:
+    '@' name=AnnotationName '(' value=AnnotationValue ')';
+
+AnnotationName returns string:
+    'classification' | 'retention' | 'encryption';
+
+AnnotationValue returns string:
+    ID | STRING;
 
 // --- Aggregate ---
 AggregateDeclaration:
@@ -27,7 +39,8 @@ AggregateDeclaration:
         members+=AggregateMember*;
 
 AggregateMember:
-    CommandDeclaration | DomainEventDeclaration | ValueObjectDeclaration | InvariantDeclaration;
+    CommandDeclaration | DomainEventDeclaration | ValueObjectDeclaration | InvariantDeclaration |
+    AnnotationDeclaration;
 
 CommandDeclaration:
     'command' name=ID
@@ -105,7 +118,7 @@ MomentDeclaration:
         (nodes+=NodePlacement | whenBlocks+=WhenBlock)*;
 
 WhenBlock:
-    'when' condition=ID
+    'when' condition=ID ('[' lane=ID ']')?
         nodes+=NodePlacement*;
 
 NodePlacement:

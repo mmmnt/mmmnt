@@ -25,6 +25,7 @@ export type MomentKeywordNames =
   | ','
   | '->'
   | ':'
+  | '@'
   | 'AnticorruptionLayer'
   | 'Conformist'
   | 'Core'
@@ -50,6 +51,7 @@ export type MomentKeywordNames =
   | 'boolean'
   | 'branch-lane'
   | 'chains-to'
+  | 'classification'
   | 'command'
   | 'compensation'
   | 'consumes'
@@ -59,6 +61,7 @@ export type MomentKeywordNames =
   | 'deprecated'
   | 'description'
   | 'emits'
+  | 'encryption'
   | 'event'
   | 'flow'
   | 'identity'
@@ -72,6 +75,7 @@ export type MomentKeywordNames =
   | 'precondition'
   | 'produces'
   | 'relationship'
+  | 'retention'
   | 'returns-to'
   | 'saga'
   | 'scope'
@@ -111,6 +115,7 @@ export function isAggregateDeclaration(item: unknown): item is AggregateDeclarat
 }
 
 export type AggregateMember =
+  | AnnotationDeclaration
   | CommandDeclaration
   | DomainEventDeclaration
   | InvariantDeclaration
@@ -122,6 +127,35 @@ export const AggregateMember = {
 
 export function isAggregateMember(item: unknown): item is AggregateMember {
   return reflection.isInstance(item, AggregateMember.$type);
+}
+
+export interface AnnotationDeclaration extends langium.AstNode {
+  readonly $container: AggregateDeclaration | ContextDeclaration;
+  readonly $type: 'AnnotationDeclaration';
+  name: AnnotationName;
+  value: AnnotationValue;
+}
+
+export const AnnotationDeclaration = {
+  $type: 'AnnotationDeclaration',
+  name: 'name',
+  value: 'value',
+} as const;
+
+export function isAnnotationDeclaration(item: unknown): item is AnnotationDeclaration {
+  return reflection.isInstance(item, AnnotationDeclaration.$type);
+}
+
+export type AnnotationName = 'classification' | 'encryption' | 'retention';
+
+export function isAnnotationName(item: unknown): item is AnnotationName {
+  return item === 'classification' || item === 'retention' || item === 'encryption';
+}
+
+export type AnnotationValue = string;
+
+export function isAnnotationValue(item: unknown): item is AnnotationValue {
+  return typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item) || /"[^"]*"/.test(item));
 }
 
 export interface Classification extends langium.AstNode {
@@ -218,6 +252,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
 
 export type ContextMember =
   | AggregateDeclaration
+  | AnnotationDeclaration
   | ContextRelationshipDeclaration
   | DomainServiceDeclaration
   | PolicyDeclaration
@@ -751,12 +786,14 @@ export interface WhenBlock extends langium.AstNode {
   readonly $container: MomentDeclaration;
   readonly $type: 'WhenBlock';
   condition: string;
+  lane?: string;
   nodes: Array<NodePlacement>;
 }
 
 export const WhenBlock = {
   $type: 'WhenBlock',
   condition: 'condition',
+  lane: 'lane',
   nodes: 'nodes',
 } as const;
 
@@ -767,6 +804,7 @@ export function isWhenBlock(item: unknown): item is WhenBlock {
 export type MomentAstType = {
   AggregateDeclaration: AggregateDeclaration;
   AggregateMember: AggregateMember;
+  AnnotationDeclaration: AnnotationDeclaration;
   Classification: Classification;
   CommandDeclaration: CommandDeclaration;
   Connection: Connection;
@@ -823,6 +861,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
       name: AggregateMember.$type,
       properties: {},
       superTypes: [],
+    },
+    AnnotationDeclaration: {
+      name: AnnotationDeclaration.$type,
+      properties: {
+        name: {
+          name: AnnotationDeclaration.name,
+        },
+        value: {
+          name: AnnotationDeclaration.value,
+        },
+      },
+      superTypes: [AggregateMember.$type, ContextMember.$type],
     },
     Classification: {
       name: Classification.$type,
@@ -1274,6 +1324,9 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
       properties: {
         condition: {
           name: WhenBlock.condition,
+        },
+        lane: {
+          name: WhenBlock.lane,
         },
         nodes: {
           name: WhenBlock.nodes,

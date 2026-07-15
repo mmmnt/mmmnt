@@ -501,6 +501,8 @@ export class MomentValidator {
         ids.add(node.laneId);
       }
       for (const wb of moment.whenBlocks) {
+        // when <condition> [<lane>] routes the branch into a lane.
+        if (wb.lane) ids.add(wb.lane);
         for (const node of wb.nodes) {
           ids.add(node.laneId);
         }

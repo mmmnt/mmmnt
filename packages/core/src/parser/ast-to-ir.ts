@@ -17,6 +17,7 @@ import type {
   SagaDeclaration,
   ValueObjectDeclaration,
   WhenBlock,
+  AnnotationDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
@@ -28,6 +29,7 @@ import {
   isDomainEventDeclaration,
   isValueObjectDeclaration,
   isInvariantDeclaration,
+  isAnnotationDeclaration,
   isReturnsTo,
   isTriggeredBy,
   isTriggers,
@@ -45,6 +47,7 @@ import type {
   DomainServiceDefinition,
   PolicyDefinition,
   SagaDefinition,
+  AnnotationDefinition,
   FlowDefinition,
   LaneDefinition,
   MomentDefinition,
@@ -98,9 +101,19 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
   const allValueObjects: ValueObjectDefinition[] = [];
   const allInvariants: InvariantDefinition[] = [];
 
+  // Annotations classify the NEXT declaration in the member list (§5.1.4).
+  let pendingAnnotations: AnnotationDefinition[] = [];
+
   for (const member of ctx.members) {
+    if (isAnnotationDeclaration(member)) {
+      pendingAnnotations.push(transformAnnotation(member));
+      continue;
+    }
+    const annotations = pendingAnnotations.length > 0 ? pendingAnnotations : undefined;
+    pendingAnnotations = [];
+
     if (isAggregateDeclaration(member)) {
-      const aggDef = transformAggregate(member);
+      const aggDef = transformAggregate(member, annotations);
       aggregates.push(aggDef);
       allCommands.push(...aggDef.commands);
       allEvents.push(...aggDef.events);
@@ -137,20 +150,41 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
   };
 }
 
-function transformAggregate(agg: AggregateDeclaration): AggregateDefinition {
+function transformAnnotation(ann: AnnotationDeclaration): AnnotationDefinition {
+  const raw = ann.value;
+  return {
+    name: ann.name as AnnotationDefinition['name'],
+    value: raw.startsWith('"') ? unquote(raw) : raw,
+  };
+}
+
+function transformAggregate(
+  agg: AggregateDeclaration,
+  annotations?: AnnotationDefinition[],
+): AggregateDefinition {
   const name = unquote(agg.name);
   const commands: CommandDefinition[] = [];
   const events: EventDefinition[] = [];
   const valueObjects: ValueObjectDefinition[] = [];
   const invariants: InvariantDefinition[] = [];
 
+  // Annotations classify the NEXT declaration in the member list (§5.1.4).
+  let pendingAnnotations: AnnotationDefinition[] = [];
+
   for (const member of agg.members) {
+    if (isAnnotationDeclaration(member)) {
+      pendingAnnotations.push(transformAnnotation(member));
+      continue;
+    }
+    const memberAnnotations = pendingAnnotations.length > 0 ? pendingAnnotations : undefined;
+    pendingAnnotations = [];
+
     if (isCommandDeclaration(member)) {
-      commands.push(transformCommand(member));
+      commands.push(transformCommand(member, memberAnnotations));
     } else if (isDomainEventDeclaration(member)) {
-      events.push(transformEvent(member));
+      events.push(transformEvent(member, memberAnnotations));
     } else if (isValueObjectDeclaration(member)) {
-      valueObjects.push(transformValueObject(member));
+      valueObjects.push(transformValueObject(member, memberAnnotations));
     } else if (isInvariantDeclaration(member)) {
       invariants.push(transformInvariant(member));
     }
@@ -159,6 +193,7 @@ function transformAggregate(agg: AggregateDeclaration): AggregateDefinition {
   return {
     id: `agg-${name}`,
     name,
+    ...(annotations ? { annotations } : {}),
     identityField: transformFieldDeclaration(agg.identityField),
     commands,
     events,
@@ -167,10 +202,14 @@ function transformAggregate(agg: AggregateDeclaration): AggregateDefinition {
   };
 }
 
-function transformCommand(cmd: CommandDeclaration): CommandDefinition {
+function transformCommand(
+  cmd: CommandDeclaration,
+  annotations?: AnnotationDefinition[],
+): CommandDefinition {
   return {
     id: `cmd-${cmd.name}`,
     name: cmd.name,
+    ...(annotations ? { annotations } : {}),
     inputs: cmd.inputs.map(transformFieldDeclaration),
     preconditions: cmd.preconditions.map(transformPrecondition),
     emitsEvent: cmd.emits,
@@ -184,18 +223,26 @@ function transformPrecondition(pre: { name: string; description: string }): Prec
   };
 }
 
-function transformEvent(evt: DomainEventDeclaration): EventDefinition {
+function transformEvent(
+  evt: DomainEventDeclaration,
+  annotations?: AnnotationDefinition[],
+): EventDefinition {
   return {
     id: `evt-${evt.name}`,
     name: evt.name,
+    ...(annotations ? { annotations } : {}),
     fields: evt.fields.map(transformFieldDeclaration),
   };
 }
 
-function transformValueObject(vo: ValueObjectDeclaration): ValueObjectDefinition {
+function transformValueObject(
+  vo: ValueObjectDeclaration,
+  annotations?: AnnotationDefinition[],
+): ValueObjectDefinition {
   return {
     id: `vo-${vo.name}`,
     name: vo.name,
+    ...(annotations ? { annotations } : {}),
     fields: vo.fields.map(transformFieldDeclaration),
   };
 }
@@ -317,6 +364,7 @@ function transformWhenBlock(
 ): BranchDefinition {
   return {
     condition: when.condition,
+    ...(when.lane ? { lane: when.lane } : {}),
     entries: when.nodes.map((n) => transformNodeToEntry(n, laneContextMap)),
   };
 }

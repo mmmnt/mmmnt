@@ -17,6 +17,7 @@ export type {
   DomainServiceDefinition,
   PolicyDefinition,
   SagaDefinition,
+  AnnotationDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';
