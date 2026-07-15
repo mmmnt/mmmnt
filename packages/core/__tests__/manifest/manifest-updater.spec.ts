@@ -126,6 +126,27 @@ describe('ManifestUpdater', () => {
       expect(result.updated).toBe(false);
     });
 
+    it('skips non-.moment files and recurses into nested directories', () => {
+      createManifest(tmpDir);
+      mkdirSync(join(tmpDir, '.moment', 'contexts', 'nested'), { recursive: true });
+      writeFileSync(join(tmpDir, '.moment', 'contexts', 'notes.txt'), 'not a spec');
+      writeFileSync(
+        join(tmpDir, '.moment', 'contexts', 'nested', 'billing.moment'),
+        'context "Billing"',
+      );
+
+      const updater = new ManifestUpdater();
+      const result = updater.updateFromDirectory(tmpDir);
+
+      expect(result.updated).toBe(true);
+      expect(result.contextsAdded).toBe(1);
+
+      const manifest = readManifest(tmpDir);
+      const contexts = manifest.contexts as { name: string; path: string }[];
+      expect(contexts[0].name).toBe('billing');
+      expect(contexts[0].path).toBe(join('.moment', 'contexts', 'nested', 'billing.moment'));
+    });
+
     it('discovers unified files in .moment/ root', () => {
       createManifest(tmpDir);
       mkdirSync(join(tmpDir, '.moment'), { recursive: true });

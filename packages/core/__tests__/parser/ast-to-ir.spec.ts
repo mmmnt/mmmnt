@@ -639,4 +639,111 @@ describe('AstToIr', () => {
     expect(ir.contexts[0].aggregates[0].commands).toHaveLength(1);
     expect(ir.contexts[0].aggregates[0].events).toHaveLength(1);
   });
+
+  it('attaches annotations to aggregate, command, event, and value object (§5.1.4)', async () => {
+    const ir = await toIr(`
+      context "Records" [Core]
+        @classification(PHI)
+        @retention(HIPAA)
+        aggregate "PatientRecord"
+          identity recordId: UUID
+
+          @classification(PHI)
+          command CreateRecord
+            input ownerName: string
+            emits RecordCreated
+
+          @classification(PHI)
+          event RecordCreated
+            recordId: UUID
+
+          @encryption("at-rest")
+          value-object Chart
+            entries: string[]
+    `);
+
+    const agg = ir.contexts[0].aggregates[0];
+    expect(agg.annotations).toEqual([
+      { name: 'classification', value: 'PHI' },
+      { name: 'retention', value: 'HIPAA' },
+    ]);
+    // Quoted annotation values are unquoted; bare IDs pass through.
+    expect(agg.commands[0].annotations).toEqual([{ name: 'classification', value: 'PHI' }]);
+    expect(agg.events[0].annotations).toEqual([{ name: 'classification', value: 'PHI' }]);
+    expect(agg.valueObjects[0].annotations).toEqual([{ name: 'encryption', value: 'at-rest' }]);
+  });
+
+  it('omits annotations key on unannotated declarations', async () => {
+    const ir = await toIr(`
+      context "Plain" [Core]
+        aggregate "Order"
+          identity orderId: UUID
+          command PlaceOrder
+            input customerId: UUID
+            emits OrderPlaced
+          event OrderPlaced
+            orderId: UUID
+          value-object Address
+            street: string
+    `);
+
+    const agg = ir.contexts[0].aggregates[0];
+    expect(agg.annotations).toBeUndefined();
+    expect(agg.commands[0].annotations).toBeUndefined();
+    expect(agg.events[0].annotations).toBeUndefined();
+    expect(agg.valueObjects[0].annotations).toBeUndefined();
+  });
+
+  it('carries when-block lane routing onto BranchDefinition (V16)', async () => {
+    const ir = await toIr(`
+      flow "record-lifecycle"
+        lane records "Records" [Core]
+        branch-lane rejected "Rejected" [Terminal]
+        moment "Creation outcome" [branch]
+          when accepted
+            records: RecordCreated
+          when invalid [rejected]
+            rejected: RecordCreated [terminal]
+    `);
+
+    const branches = ir.flows[0].moments[0].branches!;
+    expect(branches[0].condition).toBe('accepted');
+    expect(branches[0].lane).toBeUndefined();
+    expect(branches[1].condition).toBe('invalid');
+    expect(branches[1].lane).toBe('rejected');
+  });
+
+  it('falls back to the raw lane id when a node references an undeclared lane', async () => {
+    // astToIr is validation-free; V16 flags this separately.
+    const ir = await toIr(`
+      flow "test"
+        lane a "A" [Core]
+        moment "Step"
+          ghost: EventA
+          a: EventB crosses-to ghost via Partnership
+            contract
+              orderId: UUID [required]
+    `);
+
+    const entry = ir.flows[0].moments[0].contextEntries[0];
+    expect(entry.contextId).toBe('ghost');
+
+    const conn = ir.flows[0].connections.find((c) => c.connectionType === 'crosses-to');
+    expect(conn!.targetContextId).toBe('ghost');
+  });
+
+  it('transforms saga with timeout "none"', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+        saga NoTimeoutSaga
+          trigger OrderPlaced
+          states Pending -> Done
+          compensation "Undo"
+          timeout "none"
+    `);
+
+    expect(ir.contexts[0].sagas[0].timeout).toBe('none');
+  });
 });
