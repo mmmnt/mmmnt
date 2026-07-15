@@ -20,6 +20,7 @@ import { runSimulate } from './commands/simulate.js';
 import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
 import { runAuthLogout } from './commands/auth-logout.js';
+import { runAuthQuorum } from './commands/auth-quorum.js';
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -392,7 +393,7 @@ switch (command) {
     break;
   }
   case 'auth': {
-    const [subcommand] = args;
+    const [subcommand, ...authArgs] = args;
     const authHandler =
       subcommand === 'login'
         ? runAuthLogin()
@@ -400,10 +401,12 @@ switch (command) {
           ? runAuthStatus()
           : subcommand === 'logout'
             ? runAuthLogout()
-            : undefined;
+            : subcommand === 'quorum'
+              ? runAuthQuorum(authArgs)
+              : undefined;
 
     if (!authHandler) {
-      console.error('Usage: moment auth <login|status|logout>');
+      console.error('Usage: moment auth <login|status|logout|quorum>');
       process.exitCode = 1;
     } else {
       authHandler
