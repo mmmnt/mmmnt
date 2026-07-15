@@ -27,6 +27,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^20.5.0
         version: 20.5.0
+      '@dotenvx/dotenvx':
+        specifier: ^2.9.0
+        version: 2.9.0
       '@eslint-community/eslint-plugin-eslint-comments':
         specifier: ^4.7.1
         version: 4.7.1(eslint@10.2.0(jiti@2.6.1))
@@ -684,6 +687,25 @@ packages:
     resolution:
       {
         integrity: sha512-oYp1dgL2TByYWL51Z+rNm+/mFtJhiPU9WS03goes9EALb8d9GFcXRbG1JluFLFaChF1YDqIzLac0kkC3tv1DjQ==,
+      }
+
+  '@dotenvx/dotenvx@2.9.0':
+    resolution:
+      {
+        integrity: sha512-MWUcO/Kj8gVK7O1qNotzDEbCAQBn4G06Iwp5lzz1eeMgvAzfcWytHd1DNKyAtaPdtfeCK12fp7wksl32vR+aFQ==,
+      }
+    hasBin: true
+
+  '@dotenvx/primitives@1.8.1':
+    resolution:
+      {
+        integrity: sha512-xcEkhZDDA9E/ElU27Ft6ZaBBZN4EkXDmD0H4kZB7CcEMfQr43P6RMb7AMU6xYvqLyg2zT8rb0lEuaE8gUlUEiw==,
+      }
+
+  '@dotenvx/tooling@1.0.2':
+    resolution:
+      {
+        integrity: sha512-yf4VwIZUzSqlLy2pe0kH2xk6dME73oYW5XqcHE7M1zA1H0RX/dSUThsSRmpCjp622iW9f6VGQl5Aa6szt5Xc0w==,
       }
 
   '@emmetio/abbreviation@2.3.3':
@@ -7268,6 +7290,13 @@ packages:
       }
     engines: { node: '>=18.19' }
 
+  yocto-spinner@1.2.1:
+    resolution:
+      {
+        integrity: sha512-9cbFWLhbiZp+820O4pkHGNncI7+MrUGzBOjw8NMG+ewsY+aG0DdEXnr19Smxao32YOjLZRMdn1UtaxcrXOYOIg==,
+      }
+    engines: { node: '>=18.19' }
+
   yoctocolors@2.1.2:
     resolution:
       {
@@ -7752,6 +7781,16 @@ snapshots:
     dependencies:
       class-transformer: 0.5.1
       reflect-metadata: 0.2.2
+
+  '@dotenvx/dotenvx@2.9.0':
+    dependencies:
+      '@dotenvx/primitives': 1.8.1
+      '@dotenvx/tooling': 1.0.2
+      yocto-spinner: 1.2.1
+
+  '@dotenvx/primitives@1.8.1': {}
+
+  '@dotenvx/tooling@1.0.2': {}
 
   '@emmetio/abbreviation@2.3.3':
     dependencies:
@@ -11725,6 +11764,10 @@ snapshots:
   yocto-queue@1.2.2: {}
 
   yocto-spinner@0.2.3:
+    dependencies:
+      yoctocolors: 2.1.2
+
+  yocto-spinner@1.2.1:
     dependencies:
       yoctocolors: 2.1.2
 

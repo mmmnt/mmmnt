@@ -7,6 +7,7 @@
   },
   "packageManager": "pnpm@10.29.3",
   "scripts": {
+    "claude:session": "npx @dotenvx/dotenvx run -f .env.local -- npx -y @anthropic-ai/claude-code",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -35,6 +36,7 @@
     "@changesets/cli": "^2.30.0",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@dotenvx/dotenvx": "^2.9.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.1",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
