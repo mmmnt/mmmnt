@@ -15,6 +15,45 @@ Legend: ✅ works · 🔶 partial / works with caveats · ❌ missing or broken
 
 ---
 
+## 0. Post-fix status (2026-07-14, commits `fbd2755`…`83bc9aa`)
+
+A fix batch landed the same day. Resolved since the audit below was taken:
+
+- ✅ **MCP server startup crash** — createRequire banner + `external: ['typescript']`
+  (same treatment the CLI bundle already had); all 7 tools respond. A Tier 3 smoke test
+  guards the regression.
+- ✅ **`--version` / `--help`** — implemented with full usage text.
+- ✅ **Parse diagnostics** — now carry `file:line:col` from Chevrotain/LSP positions.
+- ✅ **sync semantics** — working-tree-first reads (HEAD fallback; explicit refs stay
+  git-first), project root via `.manifest.yaml` > `.git` > spec dir. Non-git dirs and
+  uncommitted changes now behave correctly; status/propose agree; proposals print values.
+- ✅ **`watch` regenerates** — runs generate + emit-ts on change with the ADR-033 log
+  line; manifest-driven paths/debounce; `--no-generate` restores parse-only.
+- ✅ **Grammar: `when <cond> [<lane>]`** — parses; lane carried on `BranchDefinition`;
+  V16 counts it as a lane reference.
+- ✅ **Grammar: `@classification` / `@retention` / `@encryption`** — parse as
+  member-level annotations attached to the next declaration in the IR (names are IDs
+  restricted by a new V18 validator, so `classification` remains valid as a field name).
+- ✅ **`auth quorum`** — quorum substrate identity (JWT bearer) stored alongside GitHub
+  credentials; `QUORUM_TOKEN`/`QUORUM_SERVER_URL` env override; `auth status` reports both.
+- ✅ **`quorum watch <streamId>`** (spike) — polls the quorum core REST API into
+  `.domain/` as ComplaiEventEnvelope JSONL with a cursor checkpoint; `--source sift`
+  feeds `moment import --from-sift` end-to-end.
+
+**Audit correction:** §3's "cli: 0 tests" was wrong — the CLI has ~2,250 LOC of
+colocated `*.test.ts` files the audit's `__tests__/`-only search missed (now 183 tests
+incl. new Tier 3 bundle smoke tests). The "bugs cluster where tests are missing" thesis
+still holds for the *specific* broken paths (bundle startup, watch regeneration, sync
+store semantics — none had coverage).
+
+Still open (build backlog, in priority order): quorum integration ADR (convergence
+gating, `@mmmnt/quorum` package, broker PKCE login), project-mode CLI wiring
+(MMNT-5432/5433) + manifest-driven generators + exit codes, ADR-033 output ledger,
+`sync accept` persistence, `schema deprecate`, LSP/VS Code extension, Confluence
+hygiene (ADR-035/036 restoration, ADR Index, ADR-032).
+
+---
+
 ## 1. CLI Commands — Documented vs Built vs Working
 
 | Command | Documented in | Status | Audit result |
