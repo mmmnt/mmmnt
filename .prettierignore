@@ -1,5 +1,6 @@
 dist/
 **/src/generated/
+packages/core/syntaxes/
 node_modules/
 coverage/
 test-results/

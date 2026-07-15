@@ -19,6 +19,8 @@ import {
   mkdtempSync,
   rmSync,
   statSync,
+  copyFileSync,
+  readdirSync,
 } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -227,25 +229,71 @@ test('viz: vet-clinic produces VizDataEnvelope', (assert) => {
 
 console.log('\n=== Sync Status ===');
 
-test('sync status: vet-clinic detects drift', (assert) => {
-  const r = run('sync', ['status', VET_CLINIC]);
-  assert(r.exitCode === 0, 'exit code 0');
-  assert(r.stdout.includes('drifted'), 'reports drift');
+// Sync reads the working tree (ADR-024, working-tree-first semantics): a clean
+// emit aligns, a mutated artifact drifts. Self-contained in a temp dir so the
+// result does not depend on what earlier harness tests wrote into the repo root.
+function setupSyncFixture() {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'moment-e2e-sync-'));
+  const spec = join(tmpDir, 'vet-clinic.moment');
+  copyFileSync(VET_CLINIC, spec);
+  run('emit-ts', [spec], { cwd: tmpDir });
+  return { tmpDir, spec };
+}
+
+// Drift detection is type-level (IS-02): appended extras are tolerated, so
+// remove an expected artifact — a missing file is unambiguous drift.
+function removeOneEmittedFile(tmpDir) {
+  const srcDir = join(tmpDir, 'src');
+  const stack = [srcDir];
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) stack.push(path);
+      else if (entry.name.endsWith('.ts')) {
+        rmSync(path);
+        return path;
+      }
+    }
+  }
+  throw new Error(`no emitted .ts file found under ${srcDir}`);
+}
+
+test('sync status: clean emit aligns, removed artifact drifts', (assert) => {
+  const { tmpDir, spec } = setupSyncFixture();
+  try {
+    const clean = run('sync', ['status', spec], { cwd: tmpDir });
+    assert(clean.exitCode === 0, 'exit code 0 when aligned');
+    assert(clean.stdout.includes('No drift detected'), 'clean emit is aligned');
+
+    removeOneEmittedFile(tmpDir);
+    const drifted = run('sync', ['status', spec], { cwd: tmpDir });
+    assert(drifted.exitCode === 0, 'exit code 0 when drifted');
+    assert(drifted.stdout.includes('drifted'), 'reports drift after artifact removal');
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test('sync status: --json outputs DriftReport', (assert) => {
-  const r = run('sync', ['status', '--json', VET_CLINIC]);
-  assert(r.exitCode === 0, 'exit code 0');
-  let parsed;
+  const { tmpDir, spec } = setupSyncFixture();
   try {
-    parsed = JSON.parse(r.stdout);
-  } catch {
-    parsed = null;
+    removeOneEmittedFile(tmpDir);
+    const r = run('sync', ['status', '--json', spec], { cwd: tmpDir });
+    assert(r.exitCode === 0, 'exit code 0');
+    let parsed;
+    try {
+      parsed = JSON.parse(r.stdout);
+    } catch {
+      parsed = null;
+    }
+    assert(parsed !== null, 'valid JSON');
+    assert(parsed?.totalDrifted > 0, 'totalDrifted > 0');
+    assert(parsed?.driftPoints?.length > 0, 'has drift points');
+    // sync-status.json not saved — drift report is a workflow tool, not a showcase artifact
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
   }
-  assert(parsed !== null, 'valid JSON');
-  assert(parsed?.totalDrifted > 0, 'totalDrifted > 0');
-  assert(parsed?.driftPoints?.length > 0, 'has drift points');
-  // sync-status.json not saved — drift report is a workflow tool, not a showcase artifact
 });
 
 console.log('\n=== Test ===');
@@ -296,13 +344,11 @@ test('init: rejects duplicate', (assert) => {
 
 console.log('\n=== Auth ===');
 
-test('auth status: reports not authenticated', (assert) => {
+test('auth status: reports both identities (ADR-026 + quorum)', (assert) => {
   const r = run('auth', ['status']);
   assert(r.exitCode === 0, 'exit code 0');
-  assert(
-    r.stdout.includes('Not authenticated') || r.stdout.includes('Authenticated'),
-    'reports auth state',
-  );
+  assert(/GitHub:.*(authenticated|not authenticated)/i.test(r.stdout), 'reports GitHub state');
+  assert(/Quorum:.*(authenticated|not authenticated)/i.test(r.stdout), 'reports quorum state');
 });
 
 test('auth logout: reports result', (assert) => {
