@@ -1,5 +1,5 @@
 dist/
-src/generated/
+**/src/generated/
 node_modules/
 coverage/
 test-results/

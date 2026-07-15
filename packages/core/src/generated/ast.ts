@@ -7,1326 +7,1282 @@
 import * as langium from 'langium';
 
 export const MomentTerminals = {
-  ID: /[a-zA-Z_][a-zA-Z0-9_-]*/,
-  STRING: /"[^"]*"/,
-  INT: /[0-9]+/,
-  WS: /\s+/,
-  SL_COMMENT: /\/\/[^\n\r]*/,
-  ML_COMMENT: /\/\*[\s\S]*?\*\//,
+    ID: /[a-zA-Z_][a-zA-Z0-9_-]*/,
+    STRING: /"[^"]*"/,
+    INT: /[0-9]+/,
+    WS: /\s+/,
+    SL_COMMENT: /\/\/[^\n\r]*/,
+    ML_COMMENT: /\/\*[\s\S]*?\*\//,
 };
 
 export type MomentTerminalNames = keyof typeof MomentTerminals;
 
 export type MomentKeywordNames =
-  | '"file-watcher"'
-  | '"none"'
-  | '('
-  | ')'
-  | ','
-  | '->'
-  | ':'
-  | '@'
-  | 'AnticorruptionLayer'
-  | 'Conformist'
-  | 'Core'
-  | 'CustomerSupplier'
-  | 'Date'
-  | 'DateTime'
-  | 'Generic'
-  | 'Money'
-  | 'OpenHostService'
-  | 'Partnership'
-  | 'PublishedLanguage'
-  | 'SeparateWays'
-  | 'Supporting'
-  | 'Terminal'
-  | 'UUID'
-  | '['
-  | '[]'
-  | '[branch]'
-  | '[required]'
-  | ']'
-  | 'action'
-  | 'aggregate'
-  | 'boolean'
-  | 'branch-lane'
-  | 'chains-to'
-  | 'command'
-  | 'compensation'
-  | 'consumes'
-  | 'context'
-  | 'contract'
-  | 'crosses-to'
-  | 'deprecated'
-  | 'description'
-  | 'emits'
-  | 'event'
-  | 'flow'
-  | 'identity'
-  | 'input'
-  | 'invariant'
-  | 'lane'
-  | 'moment'
-  | 'number'
-  | 'optional'
-  | 'policy'
-  | 'precondition'
-  | 'produces'
-  | 'relationship'
-  | 'returns-to'
-  | 'saga'
-  | 'scope'
-  | 'service'
-  | 'states'
-  | 'string'
-  | 'terminal'
-  | 'timeout'
-  | 'trigger'
-  | 'triggered-by'
-  | 'triggers'
-  | 'type'
-  | 'value-object'
-  | 'via'
-  | 'when'
-  | '×';
+    | "\"file-watcher\""
+    | "\"none\""
+    | "("
+    | ")"
+    | ","
+    | "->"
+    | ":"
+    | "@"
+    | "AnticorruptionLayer"
+    | "Conformist"
+    | "Core"
+    | "CustomerSupplier"
+    | "Date"
+    | "DateTime"
+    | "Generic"
+    | "Money"
+    | "OpenHostService"
+    | "Partnership"
+    | "PublishedLanguage"
+    | "SeparateWays"
+    | "Supporting"
+    | "Terminal"
+    | "UUID"
+    | "["
+    | "[]"
+    | "[branch]"
+    | "[required]"
+    | "]"
+    | "action"
+    | "aggregate"
+    | "boolean"
+    | "branch-lane"
+    | "chains-to"
+    | "command"
+    | "compensation"
+    | "consumes"
+    | "context"
+    | "contract"
+    | "crosses-to"
+    | "deprecated"
+    | "description"
+    | "emits"
+    | "event"
+    | "flow"
+    | "identity"
+    | "input"
+    | "invariant"
+    | "lane"
+    | "moment"
+    | "number"
+    | "optional"
+    | "policy"
+    | "precondition"
+    | "produces"
+    | "relationship"
+    | "returns-to"
+    | "saga"
+    | "scope"
+    | "service"
+    | "states"
+    | "string"
+    | "terminal"
+    | "timeout"
+    | "trigger"
+    | "triggered-by"
+    | "triggers"
+    | "type"
+    | "value-object"
+    | "via"
+    | "when"
+    | "×";
 
 export type MomentTokenNames = MomentTerminalNames | MomentKeywordNames;
 
 export interface AggregateDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'AggregateDeclaration';
-  identityField: FieldDeclaration;
-  members: Array<AggregateMember>;
-  name: string;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'AggregateDeclaration';
+    identityField: FieldDeclaration;
+    members: Array<AggregateMember>;
+    name: string;
 }
 
 export const AggregateDeclaration = {
-  $type: 'AggregateDeclaration',
-  identityField: 'identityField',
-  members: 'members',
-  name: 'name',
+    $type: 'AggregateDeclaration',
+    identityField: 'identityField',
+    members: 'members',
+    name: 'name'
 } as const;
 
 export function isAggregateDeclaration(item: unknown): item is AggregateDeclaration {
-  return reflection.isInstance(item, AggregateDeclaration.$type);
+    return reflection.isInstance(item, AggregateDeclaration.$type);
 }
 
-export type AggregateMember =
-  | AnnotationDeclaration
-  | CommandDeclaration
-  | DomainEventDeclaration
-  | InvariantDeclaration
-  | ValueObjectDeclaration;
+export type AggregateMember = AnnotationDeclaration | CommandDeclaration | DomainEventDeclaration | InvariantDeclaration | ValueObjectDeclaration;
 
 export const AggregateMember = {
-  $type: 'AggregateMember',
+    $type: 'AggregateMember'
 } as const;
 
 export function isAggregateMember(item: unknown): item is AggregateMember {
-  return reflection.isInstance(item, AggregateMember.$type);
+    return reflection.isInstance(item, AggregateMember.$type);
 }
 
 export interface AnnotationDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration | ContextDeclaration;
-  readonly $type: 'AnnotationDeclaration';
-  name: string;
-  value: AnnotationValue;
+    readonly $container: AggregateDeclaration | ContextDeclaration;
+    readonly $type: 'AnnotationDeclaration';
+    name: string;
+    value: AnnotationValue;
 }
 
 export const AnnotationDeclaration = {
-  $type: 'AnnotationDeclaration',
-  name: 'name',
-  value: 'value',
+    $type: 'AnnotationDeclaration',
+    name: 'name',
+    value: 'value'
 } as const;
 
 export function isAnnotationDeclaration(item: unknown): item is AnnotationDeclaration {
-  return reflection.isInstance(item, AnnotationDeclaration.$type);
+    return reflection.isInstance(item, AnnotationDeclaration.$type);
 }
 
 export type AnnotationValue = string;
 
 export function isAnnotationValue(item: unknown): item is AnnotationValue {
-  return typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item) || /"[^"]*"/.test(item));
+    return (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item) || /"[^"]*"/.test(item)));
 }
 
 export interface Classification extends langium.AstNode {
-  readonly $container: ContextDeclaration | LaneDeclaration;
-  readonly $type: 'Classification';
-  value: ClassificationValue;
+    readonly $container: ContextDeclaration | LaneDeclaration;
+    readonly $type: 'Classification';
+    value: ClassificationValue;
 }
 
 export const Classification = {
-  $type: 'Classification',
-  value: 'value',
+    $type: 'Classification',
+    value: 'value'
 } as const;
 
 export function isClassification(item: unknown): item is Classification {
-  return reflection.isInstance(item, Classification.$type);
+    return reflection.isInstance(item, Classification.$type);
 }
 
 export type ClassificationValue = 'Core' | 'Generic' | 'Supporting' | 'Terminal';
 
 export function isClassificationValue(item: unknown): item is ClassificationValue {
-  return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal';
+    return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal';
 }
 
 export interface CommandDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'CommandDeclaration';
-  emits: string;
-  inputs: Array<InputField>;
-  name: string;
-  preconditions: Array<Precondition>;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'CommandDeclaration';
+    emits: string;
+    inputs: Array<InputField>;
+    name: string;
+    preconditions: Array<Precondition>;
 }
 
 export const CommandDeclaration = {
-  $type: 'CommandDeclaration',
-  emits: 'emits',
-  inputs: 'inputs',
-  name: 'name',
-  preconditions: 'preconditions',
+    $type: 'CommandDeclaration',
+    emits: 'emits',
+    inputs: 'inputs',
+    name: 'name',
+    preconditions: 'preconditions'
 } as const;
 
 export function isCommandDeclaration(item: unknown): item is CommandDeclaration {
-  return reflection.isInstance(item, CommandDeclaration.$type);
+    return reflection.isInstance(item, CommandDeclaration.$type);
 }
 
 export type Connection = ReturnsTo | TriggeredBy | Triggers;
 
 export const Connection = {
-  $type: 'Connection',
+    $type: 'Connection'
 } as const;
 
 export function isConnection(item: unknown): item is Connection {
-  return reflection.isInstance(item, Connection.$type);
+    return reflection.isInstance(item, Connection.$type);
 }
 
 export interface ContextCrossing extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'ContextCrossing';
-  fields: Array<ContractField>;
-  relationshipType: RelationshipType;
-  targetLaneId: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'ContextCrossing';
+    fields: Array<ContractField>;
+    relationshipType: RelationshipType;
+    targetLaneId: string;
 }
 
 export const ContextCrossing = {
-  $type: 'ContextCrossing',
-  fields: 'fields',
-  relationshipType: 'relationshipType',
-  targetLaneId: 'targetLaneId',
+    $type: 'ContextCrossing',
+    fields: 'fields',
+    relationshipType: 'relationshipType',
+    targetLaneId: 'targetLaneId'
 } as const;
 
 export function isContextCrossing(item: unknown): item is ContextCrossing {
-  return reflection.isInstance(item, ContextCrossing.$type);
+    return reflection.isInstance(item, ContextCrossing.$type);
 }
 
 export interface ContextDeclaration extends langium.AstNode {
-  readonly $container: MomentFile;
-  readonly $type: 'ContextDeclaration';
-  classification?: Classification;
-  description?: string;
-  members: Array<ContextMember>;
-  name: string;
+    readonly $container: MomentFile;
+    readonly $type: 'ContextDeclaration';
+    classification?: Classification;
+    description?: string;
+    members: Array<ContextMember>;
+    name: string;
 }
 
 export const ContextDeclaration = {
-  $type: 'ContextDeclaration',
-  classification: 'classification',
-  description: 'description',
-  members: 'members',
-  name: 'name',
+    $type: 'ContextDeclaration',
+    classification: 'classification',
+    description: 'description',
+    members: 'members',
+    name: 'name'
 } as const;
 
 export function isContextDeclaration(item: unknown): item is ContextDeclaration {
-  return reflection.isInstance(item, ContextDeclaration.$type);
+    return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember =
-  | AggregateDeclaration
-  | AnnotationDeclaration
-  | ContextRelationshipDeclaration
-  | DomainServiceDeclaration
-  | PolicyDeclaration
-  | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | SagaDeclaration;
 
 export const ContextMember = {
-  $type: 'ContextMember',
+    $type: 'ContextMember'
 } as const;
 
 export function isContextMember(item: unknown): item is ContextMember {
-  return reflection.isInstance(item, ContextMember.$type);
+    return reflection.isInstance(item, ContextMember.$type);
 }
 
 export interface ContextRelationshipDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'ContextRelationshipDeclaration';
-  contract: string;
-  source: string;
-  target: string;
-  type: RelationshipType;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'ContextRelationshipDeclaration';
+    contract: string;
+    source: string;
+    target: string;
+    type: RelationshipType;
 }
 
 export const ContextRelationshipDeclaration = {
-  $type: 'ContextRelationshipDeclaration',
-  contract: 'contract',
-  source: 'source',
-  target: 'target',
-  type: 'type',
+    $type: 'ContextRelationshipDeclaration',
+    contract: 'contract',
+    source: 'source',
+    target: 'target',
+    type: 'type'
 } as const;
 
-export function isContextRelationshipDeclaration(
-  item: unknown,
-): item is ContextRelationshipDeclaration {
-  return reflection.isInstance(item, ContextRelationshipDeclaration.$type);
+export function isContextRelationshipDeclaration(item: unknown): item is ContextRelationshipDeclaration {
+    return reflection.isInstance(item, ContextRelationshipDeclaration.$type);
 }
 
 export interface ContractField extends langium.AstNode {
-  readonly $container: ContextCrossing;
-  readonly $type: 'ContractField';
-  name: string;
-  required: boolean;
-  type: TypeReference;
+    readonly $container: ContextCrossing;
+    readonly $type: 'ContractField';
+    name: string;
+    required: boolean;
+    type: TypeReference;
 }
 
 export const ContractField = {
-  $type: 'ContractField',
-  name: 'name',
-  required: 'required',
-  type: 'type',
+    $type: 'ContractField',
+    name: 'name',
+    required: 'required',
+    type: 'type'
 } as const;
 
 export function isContractField(item: unknown): item is ContractField {
-  return reflection.isInstance(item, ContractField.$type);
+    return reflection.isInstance(item, ContractField.$type);
 }
 
 export interface DomainEventDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'DomainEventDeclaration';
-  fields: Array<FieldDeclaration>;
-  name: string;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'DomainEventDeclaration';
+    fields: Array<FieldDeclaration>;
+    name: string;
 }
 
 export const DomainEventDeclaration = {
-  $type: 'DomainEventDeclaration',
-  fields: 'fields',
-  name: 'name',
+    $type: 'DomainEventDeclaration',
+    fields: 'fields',
+    name: 'name'
 } as const;
 
 export function isDomainEventDeclaration(item: unknown): item is DomainEventDeclaration {
-  return reflection.isInstance(item, DomainEventDeclaration.$type);
+    return reflection.isInstance(item, DomainEventDeclaration.$type);
 }
 
 export interface DomainServiceDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'DomainServiceDeclaration';
-  consumes: string;
-  description: string;
-  name: string;
-  produces: string;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'DomainServiceDeclaration';
+    consumes: string;
+    description: string;
+    name: string;
+    produces: string;
 }
 
 export const DomainServiceDeclaration = {
-  $type: 'DomainServiceDeclaration',
-  consumes: 'consumes',
-  description: 'description',
-  name: 'name',
-  produces: 'produces',
+    $type: 'DomainServiceDeclaration',
+    consumes: 'consumes',
+    description: 'description',
+    name: 'name',
+    produces: 'produces'
 } as const;
 
 export function isDomainServiceDeclaration(item: unknown): item is DomainServiceDeclaration {
-  return reflection.isInstance(item, DomainServiceDeclaration.$type);
+    return reflection.isInstance(item, DomainServiceDeclaration.$type);
 }
 
 export interface FieldDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
-  readonly $type: 'FieldDeclaration';
-  deprecation?: FieldDeprecation;
-  name: string;
-  type: TypeReference;
+    readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
+    readonly $type: 'FieldDeclaration';
+    deprecation?: FieldDeprecation;
+    name: string;
+    type: TypeReference;
 }
 
 export const FieldDeclaration = {
-  $type: 'FieldDeclaration',
-  deprecation: 'deprecation',
-  name: 'name',
-  type: 'type',
+    $type: 'FieldDeclaration',
+    deprecation: 'deprecation',
+    name: 'name',
+    type: 'type'
 } as const;
 
 export function isFieldDeclaration(item: unknown): item is FieldDeclaration {
-  return reflection.isInstance(item, FieldDeclaration.$type);
+    return reflection.isInstance(item, FieldDeclaration.$type);
 }
 
 export interface FieldDeprecation extends langium.AstNode {
-  readonly $container: FieldDeclaration | InputField;
-  readonly $type: 'FieldDeprecation';
-  reason: string;
-  replacement: string;
+    readonly $container: FieldDeclaration | InputField;
+    readonly $type: 'FieldDeprecation';
+    reason: string;
+    replacement: string;
 }
 
 export const FieldDeprecation = {
-  $type: 'FieldDeprecation',
-  reason: 'reason',
-  replacement: 'replacement',
+    $type: 'FieldDeprecation',
+    reason: 'reason',
+    replacement: 'replacement'
 } as const;
 
 export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
-  return reflection.isInstance(item, FieldDeprecation.$type);
+    return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
 export interface FlowDeclaration extends langium.AstNode {
-  readonly $container: MomentFile;
-  readonly $type: 'FlowDeclaration';
-  description?: string;
-  lanes: Array<LaneDeclaration>;
-  moments: Array<MomentDeclaration>;
-  name: string;
+    readonly $container: MomentFile;
+    readonly $type: 'FlowDeclaration';
+    description?: string;
+    lanes: Array<LaneDeclaration>;
+    moments: Array<MomentDeclaration>;
+    name: string;
 }
 
 export const FlowDeclaration = {
-  $type: 'FlowDeclaration',
-  description: 'description',
-  lanes: 'lanes',
-  moments: 'moments',
-  name: 'name',
+    $type: 'FlowDeclaration',
+    description: 'description',
+    lanes: 'lanes',
+    moments: 'moments',
+    name: 'name'
 } as const;
 
 export function isFlowDeclaration(item: unknown): item is FlowDeclaration {
-  return reflection.isInstance(item, FlowDeclaration.$type);
+    return reflection.isInstance(item, FlowDeclaration.$type);
 }
 
 export interface InputField extends langium.AstNode {
-  readonly $container: CommandDeclaration;
-  readonly $type: 'InputField';
-  deprecation?: FieldDeprecation;
-  name: string;
-  type: TypeReference;
+    readonly $container: CommandDeclaration;
+    readonly $type: 'InputField';
+    deprecation?: FieldDeprecation;
+    name: string;
+    type: TypeReference;
 }
 
 export const InputField = {
-  $type: 'InputField',
-  deprecation: 'deprecation',
-  name: 'name',
-  type: 'type',
+    $type: 'InputField',
+    deprecation: 'deprecation',
+    name: 'name',
+    type: 'type'
 } as const;
 
 export function isInputField(item: unknown): item is InputField {
-  return reflection.isInstance(item, InputField.$type);
+    return reflection.isInstance(item, InputField.$type);
 }
 
 export interface InvariantDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'InvariantDeclaration';
-  description: string;
-  id: string;
-  scope: string;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'InvariantDeclaration';
+    description: string;
+    id: string;
+    scope: string;
 }
 
 export const InvariantDeclaration = {
-  $type: 'InvariantDeclaration',
-  description: 'description',
-  id: 'id',
-  scope: 'scope',
+    $type: 'InvariantDeclaration',
+    description: 'description',
+    id: 'id',
+    scope: 'scope'
 } as const;
 
 export function isInvariantDeclaration(item: unknown): item is InvariantDeclaration {
-  return reflection.isInstance(item, InvariantDeclaration.$type);
+    return reflection.isInstance(item, InvariantDeclaration.$type);
 }
 
 export interface LaneDeclaration extends langium.AstNode {
-  readonly $container: FlowDeclaration;
-  readonly $type: 'LaneDeclaration';
-  classification?: Classification;
-  id: string;
-  isBranch: boolean;
-  label: string;
+    readonly $container: FlowDeclaration;
+    readonly $type: 'LaneDeclaration';
+    classification?: Classification;
+    id: string;
+    isBranch: boolean;
+    label: string;
 }
 
 export const LaneDeclaration = {
-  $type: 'LaneDeclaration',
-  classification: 'classification',
-  id: 'id',
-  isBranch: 'isBranch',
-  label: 'label',
+    $type: 'LaneDeclaration',
+    classification: 'classification',
+    id: 'id',
+    isBranch: 'isBranch',
+    label: 'label'
 } as const;
 
 export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
-  return reflection.isInstance(item, LaneDeclaration.$type);
+    return reflection.isInstance(item, LaneDeclaration.$type);
 }
 
 export type ModifierType = 'optional' | 'terminal';
 
 export function isModifierType(item: unknown): item is ModifierType {
-  return item === 'optional' || item === 'terminal';
+    return item === 'optional' || item === 'terminal';
 }
 
 export interface MomentDeclaration extends langium.AstNode {
-  readonly $container: FlowDeclaration;
-  readonly $type: 'MomentDeclaration';
-  isBranch: boolean;
-  label: string;
-  nodes: Array<NodePlacement>;
-  whenBlocks: Array<WhenBlock>;
+    readonly $container: FlowDeclaration;
+    readonly $type: 'MomentDeclaration';
+    isBranch: boolean;
+    label: string;
+    nodes: Array<NodePlacement>;
+    whenBlocks: Array<WhenBlock>;
 }
 
 export const MomentDeclaration = {
-  $type: 'MomentDeclaration',
-  isBranch: 'isBranch',
-  label: 'label',
-  nodes: 'nodes',
-  whenBlocks: 'whenBlocks',
+    $type: 'MomentDeclaration',
+    isBranch: 'isBranch',
+    label: 'label',
+    nodes: 'nodes',
+    whenBlocks: 'whenBlocks'
 } as const;
 
 export function isMomentDeclaration(item: unknown): item is MomentDeclaration {
-  return reflection.isInstance(item, MomentDeclaration.$type);
+    return reflection.isInstance(item, MomentDeclaration.$type);
 }
 
 export interface MomentFile extends langium.AstNode {
-  readonly $type: 'MomentFile';
-  contexts: Array<ContextDeclaration>;
-  flows: Array<FlowDeclaration>;
+    readonly $type: 'MomentFile';
+    contexts: Array<ContextDeclaration>;
+    flows: Array<FlowDeclaration>;
 }
 
 export const MomentFile = {
-  $type: 'MomentFile',
-  contexts: 'contexts',
-  flows: 'flows',
+    $type: 'MomentFile',
+    contexts: 'contexts',
+    flows: 'flows'
 } as const;
 
 export function isMomentFile(item: unknown): item is MomentFile {
-  return reflection.isInstance(item, MomentFile.$type);
+    return reflection.isInstance(item, MomentFile.$type);
 }
 
 export interface Multiplicity extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'Multiplicity';
-  count?: number;
-  countVar?: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'Multiplicity';
+    count?: number;
+    countVar?: string;
 }
 
 export const Multiplicity = {
-  $type: 'Multiplicity',
-  count: 'count',
-  countVar: 'countVar',
+    $type: 'Multiplicity',
+    count: 'count',
+    countVar: 'countVar'
 } as const;
 
 export function isMultiplicity(item: unknown): item is Multiplicity {
-  return reflection.isInstance(item, Multiplicity.$type);
+    return reflection.isInstance(item, Multiplicity.$type);
 }
 
 export interface NodeModifier extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'NodeModifier';
-  type: ModifierType;
+    readonly $container: NodePlacement;
+    readonly $type: 'NodeModifier';
+    type: ModifierType;
 }
 
 export const NodeModifier = {
-  $type: 'NodeModifier',
-  type: 'type',
+    $type: 'NodeModifier',
+    type: 'type'
 } as const;
 
 export function isNodeModifier(item: unknown): item is NodeModifier {
-  return reflection.isInstance(item, NodeModifier.$type);
+    return reflection.isInstance(item, NodeModifier.$type);
 }
 
 export interface NodePlacement extends langium.AstNode {
-  readonly $container: MomentDeclaration | WhenBlock;
-  readonly $type: 'NodePlacement';
-  connections: Array<Connection>;
-  crossing?: ContextCrossing;
-  laneId: string;
-  modifier?: NodeModifier;
-  multiplicity?: Multiplicity;
-  nodeName: string;
+    readonly $container: MomentDeclaration | WhenBlock;
+    readonly $type: 'NodePlacement';
+    connections: Array<Connection>;
+    crossing?: ContextCrossing;
+    laneId: string;
+    modifier?: NodeModifier;
+    multiplicity?: Multiplicity;
+    nodeName: string;
 }
 
 export const NodePlacement = {
-  $type: 'NodePlacement',
-  connections: 'connections',
-  crossing: 'crossing',
-  laneId: 'laneId',
-  modifier: 'modifier',
-  multiplicity: 'multiplicity',
-  nodeName: 'nodeName',
+    $type: 'NodePlacement',
+    connections: 'connections',
+    crossing: 'crossing',
+    laneId: 'laneId',
+    modifier: 'modifier',
+    multiplicity: 'multiplicity',
+    nodeName: 'nodeName'
 } as const;
 
 export function isNodePlacement(item: unknown): item is NodePlacement {
-  return reflection.isInstance(item, NodePlacement.$type);
+    return reflection.isInstance(item, NodePlacement.$type);
 }
 
 export interface PolicyDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'PolicyDeclaration';
-  action: string;
-  chainsTo?: string;
-  name: string;
-  trigger: PolicyTrigger;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'PolicyDeclaration';
+    action: string;
+    chainsTo?: string;
+    name: string;
+    trigger: PolicyTrigger;
 }
 
 export const PolicyDeclaration = {
-  $type: 'PolicyDeclaration',
-  action: 'action',
-  chainsTo: 'chainsTo',
-  name: 'name',
-  trigger: 'trigger',
+    $type: 'PolicyDeclaration',
+    action: 'action',
+    chainsTo: 'chainsTo',
+    name: 'name',
+    trigger: 'trigger'
 } as const;
 
 export function isPolicyDeclaration(item: unknown): item is PolicyDeclaration {
-  return reflection.isInstance(item, PolicyDeclaration.$type);
+    return reflection.isInstance(item, PolicyDeclaration.$type);
 }
 
 export interface PolicyTrigger extends langium.AstNode {
-  readonly $container: PolicyDeclaration;
-  readonly $type: 'PolicyTrigger';
-  eventName?: string;
-  fileWatcher?: '"file-watcher"';
+    readonly $container: PolicyDeclaration;
+    readonly $type: 'PolicyTrigger';
+    eventName?: string;
+    fileWatcher?: '"file-watcher"';
 }
 
 export const PolicyTrigger = {
-  $type: 'PolicyTrigger',
-  eventName: 'eventName',
-  fileWatcher: 'fileWatcher',
+    $type: 'PolicyTrigger',
+    eventName: 'eventName',
+    fileWatcher: 'fileWatcher'
 } as const;
 
 export function isPolicyTrigger(item: unknown): item is PolicyTrigger {
-  return reflection.isInstance(item, PolicyTrigger.$type);
+    return reflection.isInstance(item, PolicyTrigger.$type);
 }
 
 export interface Precondition extends langium.AstNode {
-  readonly $container: CommandDeclaration;
-  readonly $type: 'Precondition';
-  description: string;
-  name: string;
+    readonly $container: CommandDeclaration;
+    readonly $type: 'Precondition';
+    description: string;
+    name: string;
 }
 
 export const Precondition = {
-  $type: 'Precondition',
-  description: 'description',
-  name: 'name',
+    $type: 'Precondition',
+    description: 'description',
+    name: 'name'
 } as const;
 
 export function isPrecondition(item: unknown): item is Precondition {
-  return reflection.isInstance(item, Precondition.$type);
+    return reflection.isInstance(item, Precondition.$type);
 }
 
-export type RelationshipType =
-  | 'AnticorruptionLayer'
-  | 'Conformist'
-  | 'CustomerSupplier'
-  | 'OpenHostService'
-  | 'Partnership'
-  | 'PublishedLanguage'
-  | 'SeparateWays'
-  | string;
+export type RelationshipType = 'AnticorruptionLayer' | 'Conformist' | 'CustomerSupplier' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' | 'SeparateWays' | string;
 
 export function isRelationshipType(item: unknown): item is RelationshipType {
-  return (
-    item === 'CustomerSupplier' ||
-    item === 'Partnership' ||
-    item === 'Conformist' ||
-    item === 'AnticorruptionLayer' ||
-    item === 'OpenHostService' ||
-    item === 'PublishedLanguage' ||
-    item === 'SeparateWays' ||
-    (typeof item === 'string' && /[a-zA-Z_][a-zA-Z0-9_-]*/.test(item))
-  );
+    return item === 'CustomerSupplier' || item === 'Partnership' || item === 'Conformist' || item === 'AnticorruptionLayer' || item === 'OpenHostService' || item === 'PublishedLanguage' || item === 'SeparateWays' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface ReturnsTo extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'ReturnsTo';
-  frameLabel: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'ReturnsTo';
+    frameLabel: string;
 }
 
 export const ReturnsTo = {
-  $type: 'ReturnsTo',
-  frameLabel: 'frameLabel',
+    $type: 'ReturnsTo',
+    frameLabel: 'frameLabel'
 } as const;
 
 export function isReturnsTo(item: unknown): item is ReturnsTo {
-  return reflection.isInstance(item, ReturnsTo.$type);
+    return reflection.isInstance(item, ReturnsTo.$type);
 }
 
 export interface SagaDeclaration extends langium.AstNode {
-  readonly $container: ContextDeclaration;
-  readonly $type: 'SagaDeclaration';
-  compensation: string;
-  name: string;
-  states: Array<string>;
-  timeout: SagaTimeout;
-  trigger: string;
+    readonly $container: ContextDeclaration;
+    readonly $type: 'SagaDeclaration';
+    compensation: string;
+    name: string;
+    states: Array<string>;
+    timeout: SagaTimeout;
+    trigger: string;
 }
 
 export const SagaDeclaration = {
-  $type: 'SagaDeclaration',
-  compensation: 'compensation',
-  name: 'name',
-  states: 'states',
-  timeout: 'timeout',
-  trigger: 'trigger',
+    $type: 'SagaDeclaration',
+    compensation: 'compensation',
+    name: 'name',
+    states: 'states',
+    timeout: 'timeout',
+    trigger: 'trigger'
 } as const;
 
 export function isSagaDeclaration(item: unknown): item is SagaDeclaration {
-  return reflection.isInstance(item, SagaDeclaration.$type);
+    return reflection.isInstance(item, SagaDeclaration.$type);
 }
 
 export interface SagaTimeout extends langium.AstNode {
-  readonly $container: SagaDeclaration;
-  readonly $type: 'SagaTimeout';
-  duration?: string;
-  none?: '"none"';
+    readonly $container: SagaDeclaration;
+    readonly $type: 'SagaTimeout';
+    duration?: string;
+    none?: '"none"';
 }
 
 export const SagaTimeout = {
-  $type: 'SagaTimeout',
-  duration: 'duration',
-  none: 'none',
+    $type: 'SagaTimeout',
+    duration: 'duration',
+    none: 'none'
 } as const;
 
 export function isSagaTimeout(item: unknown): item is SagaTimeout {
-  return reflection.isInstance(item, SagaTimeout.$type);
+    return reflection.isInstance(item, SagaTimeout.$type);
 }
 
 export interface TriggeredBy extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'TriggeredBy';
-  nodeName: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'TriggeredBy';
+    nodeName: string;
 }
 
 export const TriggeredBy = {
-  $type: 'TriggeredBy',
-  nodeName: 'nodeName',
+    $type: 'TriggeredBy',
+    nodeName: 'nodeName'
 } as const;
 
 export function isTriggeredBy(item: unknown): item is TriggeredBy {
-  return reflection.isInstance(item, TriggeredBy.$type);
+    return reflection.isInstance(item, TriggeredBy.$type);
 }
 
 export interface Triggers extends langium.AstNode {
-  readonly $container: NodePlacement;
-  readonly $type: 'Triggers';
-  nodeName: string;
+    readonly $container: NodePlacement;
+    readonly $type: 'Triggers';
+    nodeName: string;
 }
 
 export const Triggers = {
-  $type: 'Triggers',
-  nodeName: 'nodeName',
+    $type: 'Triggers',
+    nodeName: 'nodeName'
 } as const;
 
 export function isTriggers(item: unknown): item is Triggers {
-  return reflection.isInstance(item, Triggers.$type);
+    return reflection.isInstance(item, Triggers.$type);
 }
 
-export type TypeName =
-  | 'Date'
-  | 'DateTime'
-  | 'Money'
-  | 'UUID'
-  | 'boolean'
-  | 'number'
-  | 'string'
-  | string;
+export type TypeName = 'Date' | 'DateTime' | 'Money' | 'UUID' | 'boolean' | 'number' | 'string' | string;
 
 export function isTypeName(item: unknown): item is TypeName {
-  return (
-    item === 'string' ||
-    item === 'number' ||
-    item === 'boolean' ||
-    item === 'UUID' ||
-    item === 'DateTime' ||
-    item === 'Date' ||
-    item === 'Money' ||
-    (typeof item === 'string' && /[a-zA-Z_][a-zA-Z0-9_-]*/.test(item))
-  );
+    return item === 'string' || item === 'number' || item === 'boolean' || item === 'UUID' || item === 'DateTime' || item === 'Date' || item === 'Money' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface TypeReference extends langium.AstNode {
-  readonly $container: ContractField | FieldDeclaration | InputField;
-  readonly $type: 'TypeReference';
-  isArray: boolean;
-  typeName: TypeName;
+    readonly $container: ContractField | FieldDeclaration | InputField;
+    readonly $type: 'TypeReference';
+    isArray: boolean;
+    typeName: TypeName;
 }
 
 export const TypeReference = {
-  $type: 'TypeReference',
-  isArray: 'isArray',
-  typeName: 'typeName',
+    $type: 'TypeReference',
+    isArray: 'isArray',
+    typeName: 'typeName'
 } as const;
 
 export function isTypeReference(item: unknown): item is TypeReference {
-  return reflection.isInstance(item, TypeReference.$type);
+    return reflection.isInstance(item, TypeReference.$type);
 }
 
 export interface ValueObjectDeclaration extends langium.AstNode {
-  readonly $container: AggregateDeclaration;
-  readonly $type: 'ValueObjectDeclaration';
-  fields: Array<FieldDeclaration>;
-  name: string;
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'ValueObjectDeclaration';
+    fields: Array<FieldDeclaration>;
+    name: string;
 }
 
 export const ValueObjectDeclaration = {
-  $type: 'ValueObjectDeclaration',
-  fields: 'fields',
-  name: 'name',
+    $type: 'ValueObjectDeclaration',
+    fields: 'fields',
+    name: 'name'
 } as const;
 
 export function isValueObjectDeclaration(item: unknown): item is ValueObjectDeclaration {
-  return reflection.isInstance(item, ValueObjectDeclaration.$type);
+    return reflection.isInstance(item, ValueObjectDeclaration.$type);
 }
 
 export interface WhenBlock extends langium.AstNode {
-  readonly $container: MomentDeclaration;
-  readonly $type: 'WhenBlock';
-  condition: string;
-  lane?: string;
-  nodes: Array<NodePlacement>;
+    readonly $container: MomentDeclaration;
+    readonly $type: 'WhenBlock';
+    condition: string;
+    lane?: string;
+    nodes: Array<NodePlacement>;
 }
 
 export const WhenBlock = {
-  $type: 'WhenBlock',
-  condition: 'condition',
-  lane: 'lane',
-  nodes: 'nodes',
+    $type: 'WhenBlock',
+    condition: 'condition',
+    lane: 'lane',
+    nodes: 'nodes'
 } as const;
 
 export function isWhenBlock(item: unknown): item is WhenBlock {
-  return reflection.isInstance(item, WhenBlock.$type);
+    return reflection.isInstance(item, WhenBlock.$type);
 }
 
 export type MomentAstType = {
-  AggregateDeclaration: AggregateDeclaration;
-  AggregateMember: AggregateMember;
-  AnnotationDeclaration: AnnotationDeclaration;
-  Classification: Classification;
-  CommandDeclaration: CommandDeclaration;
-  Connection: Connection;
-  ContextCrossing: ContextCrossing;
-  ContextDeclaration: ContextDeclaration;
-  ContextMember: ContextMember;
-  ContextRelationshipDeclaration: ContextRelationshipDeclaration;
-  ContractField: ContractField;
-  DomainEventDeclaration: DomainEventDeclaration;
-  DomainServiceDeclaration: DomainServiceDeclaration;
-  FieldDeclaration: FieldDeclaration;
-  FieldDeprecation: FieldDeprecation;
-  FlowDeclaration: FlowDeclaration;
-  InputField: InputField;
-  InvariantDeclaration: InvariantDeclaration;
-  LaneDeclaration: LaneDeclaration;
-  MomentDeclaration: MomentDeclaration;
-  MomentFile: MomentFile;
-  Multiplicity: Multiplicity;
-  NodeModifier: NodeModifier;
-  NodePlacement: NodePlacement;
-  PolicyDeclaration: PolicyDeclaration;
-  PolicyTrigger: PolicyTrigger;
-  Precondition: Precondition;
-  ReturnsTo: ReturnsTo;
-  SagaDeclaration: SagaDeclaration;
-  SagaTimeout: SagaTimeout;
-  TriggeredBy: TriggeredBy;
-  Triggers: Triggers;
-  TypeReference: TypeReference;
-  ValueObjectDeclaration: ValueObjectDeclaration;
-  WhenBlock: WhenBlock;
-};
+    AggregateDeclaration: AggregateDeclaration
+    AggregateMember: AggregateMember
+    AnnotationDeclaration: AnnotationDeclaration
+    Classification: Classification
+    CommandDeclaration: CommandDeclaration
+    Connection: Connection
+    ContextCrossing: ContextCrossing
+    ContextDeclaration: ContextDeclaration
+    ContextMember: ContextMember
+    ContextRelationshipDeclaration: ContextRelationshipDeclaration
+    ContractField: ContractField
+    DomainEventDeclaration: DomainEventDeclaration
+    DomainServiceDeclaration: DomainServiceDeclaration
+    FieldDeclaration: FieldDeclaration
+    FieldDeprecation: FieldDeprecation
+    FlowDeclaration: FlowDeclaration
+    InputField: InputField
+    InvariantDeclaration: InvariantDeclaration
+    LaneDeclaration: LaneDeclaration
+    MomentDeclaration: MomentDeclaration
+    MomentFile: MomentFile
+    Multiplicity: Multiplicity
+    NodeModifier: NodeModifier
+    NodePlacement: NodePlacement
+    PolicyDeclaration: PolicyDeclaration
+    PolicyTrigger: PolicyTrigger
+    Precondition: Precondition
+    ReturnsTo: ReturnsTo
+    SagaDeclaration: SagaDeclaration
+    SagaTimeout: SagaTimeout
+    TriggeredBy: TriggeredBy
+    Triggers: Triggers
+    TypeReference: TypeReference
+    ValueObjectDeclaration: ValueObjectDeclaration
+    WhenBlock: WhenBlock
+}
 
 export class MomentAstReflection extends langium.AbstractAstReflection {
-  override readonly types = {
-    AggregateDeclaration: {
-      name: AggregateDeclaration.$type,
-      properties: {
-        identityField: {
-          name: AggregateDeclaration.identityField,
-        },
-        members: {
-          name: AggregateDeclaration.members,
-          defaultValue: [],
-        },
-        name: {
-          name: AggregateDeclaration.name,
-        },
-      },
-      superTypes: [ContextMember.$type],
-    },
-    AggregateMember: {
-      name: AggregateMember.$type,
-      properties: {},
-      superTypes: [],
-    },
-    AnnotationDeclaration: {
-      name: AnnotationDeclaration.$type,
-      properties: {
-        name: {
-          name: AnnotationDeclaration.name,
-        },
-        value: {
-          name: AnnotationDeclaration.value,
-        },
-      },
-      superTypes: [AggregateMember.$type, ContextMember.$type],
-    },
-    Classification: {
-      name: Classification.$type,
-      properties: {
-        value: {
-          name: Classification.value,
-        },
-      },
-      superTypes: [],
-    },
-    CommandDeclaration: {
-      name: CommandDeclaration.$type,
-      properties: {
-        emits: {
-          name: CommandDeclaration.emits,
-        },
-        inputs: {
-          name: CommandDeclaration.inputs,
-          defaultValue: [],
-        },
-        name: {
-          name: CommandDeclaration.name,
-        },
-        preconditions: {
-          name: CommandDeclaration.preconditions,
-          defaultValue: [],
-        },
-      },
-      superTypes: [AggregateMember.$type],
-    },
-    Connection: {
-      name: Connection.$type,
-      properties: {},
-      superTypes: [],
-    },
-    ContextCrossing: {
-      name: ContextCrossing.$type,
-      properties: {
-        fields: {
-          name: ContextCrossing.fields,
-          defaultValue: [],
-        },
-        relationshipType: {
-          name: ContextCrossing.relationshipType,
-        },
-        targetLaneId: {
-          name: ContextCrossing.targetLaneId,
-        },
-      },
-      superTypes: [],
-    },
-    ContextDeclaration: {
-      name: ContextDeclaration.$type,
-      properties: {
-        classification: {
-          name: ContextDeclaration.classification,
-        },
-        description: {
-          name: ContextDeclaration.description,
-        },
-        members: {
-          name: ContextDeclaration.members,
-          defaultValue: [],
-        },
-        name: {
-          name: ContextDeclaration.name,
-        },
-      },
-      superTypes: [],
-    },
-    ContextMember: {
-      name: ContextMember.$type,
-      properties: {},
-      superTypes: [],
-    },
-    ContextRelationshipDeclaration: {
-      name: ContextRelationshipDeclaration.$type,
-      properties: {
-        contract: {
-          name: ContextRelationshipDeclaration.contract,
-        },
-        source: {
-          name: ContextRelationshipDeclaration.source,
-        },
-        target: {
-          name: ContextRelationshipDeclaration.target,
-        },
-        type: {
-          name: ContextRelationshipDeclaration.type,
-        },
-      },
-      superTypes: [ContextMember.$type],
-    },
-    ContractField: {
-      name: ContractField.$type,
-      properties: {
-        name: {
-          name: ContractField.name,
-        },
-        required: {
-          name: ContractField.required,
-          defaultValue: false,
-        },
-        type: {
-          name: ContractField.type,
-        },
-      },
-      superTypes: [],
-    },
-    DomainEventDeclaration: {
-      name: DomainEventDeclaration.$type,
-      properties: {
-        fields: {
-          name: DomainEventDeclaration.fields,
-          defaultValue: [],
-        },
-        name: {
-          name: DomainEventDeclaration.name,
-        },
-      },
-      superTypes: [AggregateMember.$type],
-    },
-    DomainServiceDeclaration: {
-      name: DomainServiceDeclaration.$type,
-      properties: {
-        consumes: {
-          name: DomainServiceDeclaration.consumes,
-        },
-        description: {
-          name: DomainServiceDeclaration.description,
-        },
-        name: {
-          name: DomainServiceDeclaration.name,
-        },
-        produces: {
-          name: DomainServiceDeclaration.produces,
-        },
-      },
-      superTypes: [ContextMember.$type],
-    },
-    FieldDeclaration: {
-      name: FieldDeclaration.$type,
-      properties: {
-        deprecation: {
-          name: FieldDeclaration.deprecation,
-        },
-        name: {
-          name: FieldDeclaration.name,
-        },
-        type: {
-          name: FieldDeclaration.type,
-        },
-      },
-      superTypes: [],
-    },
-    FieldDeprecation: {
-      name: FieldDeprecation.$type,
-      properties: {
-        reason: {
-          name: FieldDeprecation.reason,
-        },
-        replacement: {
-          name: FieldDeprecation.replacement,
-        },
-      },
-      superTypes: [],
-    },
-    FlowDeclaration: {
-      name: FlowDeclaration.$type,
-      properties: {
-        description: {
-          name: FlowDeclaration.description,
-        },
-        lanes: {
-          name: FlowDeclaration.lanes,
-          defaultValue: [],
-        },
-        moments: {
-          name: FlowDeclaration.moments,
-          defaultValue: [],
-        },
-        name: {
-          name: FlowDeclaration.name,
-        },
-      },
-      superTypes: [],
-    },
-    InputField: {
-      name: InputField.$type,
-      properties: {
-        deprecation: {
-          name: InputField.deprecation,
-        },
-        name: {
-          name: InputField.name,
-        },
-        type: {
-          name: InputField.type,
-        },
-      },
-      superTypes: [],
-    },
-    InvariantDeclaration: {
-      name: InvariantDeclaration.$type,
-      properties: {
-        description: {
-          name: InvariantDeclaration.description,
-        },
-        id: {
-          name: InvariantDeclaration.id,
-        },
-        scope: {
-          name: InvariantDeclaration.scope,
-        },
-      },
-      superTypes: [AggregateMember.$type],
-    },
-    LaneDeclaration: {
-      name: LaneDeclaration.$type,
-      properties: {
-        classification: {
-          name: LaneDeclaration.classification,
-        },
-        id: {
-          name: LaneDeclaration.id,
-        },
-        isBranch: {
-          name: LaneDeclaration.isBranch,
-          defaultValue: false,
-        },
-        label: {
-          name: LaneDeclaration.label,
-        },
-      },
-      superTypes: [],
-    },
-    MomentDeclaration: {
-      name: MomentDeclaration.$type,
-      properties: {
-        isBranch: {
-          name: MomentDeclaration.isBranch,
-          defaultValue: false,
-        },
-        label: {
-          name: MomentDeclaration.label,
-        },
-        nodes: {
-          name: MomentDeclaration.nodes,
-          defaultValue: [],
-        },
-        whenBlocks: {
-          name: MomentDeclaration.whenBlocks,
-          defaultValue: [],
-        },
-      },
-      superTypes: [],
-    },
-    MomentFile: {
-      name: MomentFile.$type,
-      properties: {
-        contexts: {
-          name: MomentFile.contexts,
-          defaultValue: [],
-        },
-        flows: {
-          name: MomentFile.flows,
-          defaultValue: [],
-        },
-      },
-      superTypes: [],
-    },
-    Multiplicity: {
-      name: Multiplicity.$type,
-      properties: {
-        count: {
-          name: Multiplicity.count,
-        },
-        countVar: {
-          name: Multiplicity.countVar,
-        },
-      },
-      superTypes: [],
-    },
-    NodeModifier: {
-      name: NodeModifier.$type,
-      properties: {
-        type: {
-          name: NodeModifier.type,
-        },
-      },
-      superTypes: [],
-    },
-    NodePlacement: {
-      name: NodePlacement.$type,
-      properties: {
-        connections: {
-          name: NodePlacement.connections,
-          defaultValue: [],
-        },
-        crossing: {
-          name: NodePlacement.crossing,
-        },
-        laneId: {
-          name: NodePlacement.laneId,
-        },
-        modifier: {
-          name: NodePlacement.modifier,
-        },
-        multiplicity: {
-          name: NodePlacement.multiplicity,
-        },
-        nodeName: {
-          name: NodePlacement.nodeName,
-        },
-      },
-      superTypes: [],
-    },
-    PolicyDeclaration: {
-      name: PolicyDeclaration.$type,
-      properties: {
-        action: {
-          name: PolicyDeclaration.action,
-        },
-        chainsTo: {
-          name: PolicyDeclaration.chainsTo,
-        },
-        name: {
-          name: PolicyDeclaration.name,
-        },
-        trigger: {
-          name: PolicyDeclaration.trigger,
-        },
-      },
-      superTypes: [ContextMember.$type],
-    },
-    PolicyTrigger: {
-      name: PolicyTrigger.$type,
-      properties: {
-        eventName: {
-          name: PolicyTrigger.eventName,
-        },
-        fileWatcher: {
-          name: PolicyTrigger.fileWatcher,
-        },
-      },
-      superTypes: [],
-    },
-    Precondition: {
-      name: Precondition.$type,
-      properties: {
-        description: {
-          name: Precondition.description,
-        },
-        name: {
-          name: Precondition.name,
-        },
-      },
-      superTypes: [],
-    },
-    ReturnsTo: {
-      name: ReturnsTo.$type,
-      properties: {
-        frameLabel: {
-          name: ReturnsTo.frameLabel,
-        },
-      },
-      superTypes: [Connection.$type],
-    },
-    SagaDeclaration: {
-      name: SagaDeclaration.$type,
-      properties: {
-        compensation: {
-          name: SagaDeclaration.compensation,
-        },
-        name: {
-          name: SagaDeclaration.name,
-        },
-        states: {
-          name: SagaDeclaration.states,
-          defaultValue: [],
-        },
-        timeout: {
-          name: SagaDeclaration.timeout,
-        },
-        trigger: {
-          name: SagaDeclaration.trigger,
-        },
-      },
-      superTypes: [ContextMember.$type],
-    },
-    SagaTimeout: {
-      name: SagaTimeout.$type,
-      properties: {
-        duration: {
-          name: SagaTimeout.duration,
-        },
-        none: {
-          name: SagaTimeout.none,
-        },
-      },
-      superTypes: [],
-    },
-    TriggeredBy: {
-      name: TriggeredBy.$type,
-      properties: {
-        nodeName: {
-          name: TriggeredBy.nodeName,
-        },
-      },
-      superTypes: [Connection.$type],
-    },
-    Triggers: {
-      name: Triggers.$type,
-      properties: {
-        nodeName: {
-          name: Triggers.nodeName,
-        },
-      },
-      superTypes: [Connection.$type],
-    },
-    TypeReference: {
-      name: TypeReference.$type,
-      properties: {
-        isArray: {
-          name: TypeReference.isArray,
-          defaultValue: false,
-        },
-        typeName: {
-          name: TypeReference.typeName,
-        },
-      },
-      superTypes: [],
-    },
-    ValueObjectDeclaration: {
-      name: ValueObjectDeclaration.$type,
-      properties: {
-        fields: {
-          name: ValueObjectDeclaration.fields,
-          defaultValue: [],
-        },
-        name: {
-          name: ValueObjectDeclaration.name,
-        },
-      },
-      superTypes: [AggregateMember.$type],
-    },
-    WhenBlock: {
-      name: WhenBlock.$type,
-      properties: {
-        condition: {
-          name: WhenBlock.condition,
-        },
-        lane: {
-          name: WhenBlock.lane,
-        },
-        nodes: {
-          name: WhenBlock.nodes,
-          defaultValue: [],
-        },
-      },
-      superTypes: [],
-    },
-  } as const satisfies langium.AstMetaData;
+    override readonly types = {
+        AggregateDeclaration: {
+            name: AggregateDeclaration.$type,
+            properties: {
+                identityField: {
+                    name: AggregateDeclaration.identityField
+                },
+                members: {
+                    name: AggregateDeclaration.members,
+                    defaultValue: []
+                },
+                name: {
+                    name: AggregateDeclaration.name
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        AggregateMember: {
+            name: AggregateMember.$type,
+            properties: {
+            },
+            superTypes: []
+        },
+        AnnotationDeclaration: {
+            name: AnnotationDeclaration.$type,
+            properties: {
+                name: {
+                    name: AnnotationDeclaration.name
+                },
+                value: {
+                    name: AnnotationDeclaration.value
+                }
+            },
+            superTypes: [AggregateMember.$type, ContextMember.$type]
+        },
+        Classification: {
+            name: Classification.$type,
+            properties: {
+                value: {
+                    name: Classification.value
+                }
+            },
+            superTypes: []
+        },
+        CommandDeclaration: {
+            name: CommandDeclaration.$type,
+            properties: {
+                emits: {
+                    name: CommandDeclaration.emits
+                },
+                inputs: {
+                    name: CommandDeclaration.inputs,
+                    defaultValue: []
+                },
+                name: {
+                    name: CommandDeclaration.name
+                },
+                preconditions: {
+                    name: CommandDeclaration.preconditions,
+                    defaultValue: []
+                }
+            },
+            superTypes: [AggregateMember.$type]
+        },
+        Connection: {
+            name: Connection.$type,
+            properties: {
+            },
+            superTypes: []
+        },
+        ContextCrossing: {
+            name: ContextCrossing.$type,
+            properties: {
+                fields: {
+                    name: ContextCrossing.fields,
+                    defaultValue: []
+                },
+                relationshipType: {
+                    name: ContextCrossing.relationshipType
+                },
+                targetLaneId: {
+                    name: ContextCrossing.targetLaneId
+                }
+            },
+            superTypes: []
+        },
+        ContextDeclaration: {
+            name: ContextDeclaration.$type,
+            properties: {
+                classification: {
+                    name: ContextDeclaration.classification
+                },
+                description: {
+                    name: ContextDeclaration.description
+                },
+                members: {
+                    name: ContextDeclaration.members,
+                    defaultValue: []
+                },
+                name: {
+                    name: ContextDeclaration.name
+                }
+            },
+            superTypes: []
+        },
+        ContextMember: {
+            name: ContextMember.$type,
+            properties: {
+            },
+            superTypes: []
+        },
+        ContextRelationshipDeclaration: {
+            name: ContextRelationshipDeclaration.$type,
+            properties: {
+                contract: {
+                    name: ContextRelationshipDeclaration.contract
+                },
+                source: {
+                    name: ContextRelationshipDeclaration.source
+                },
+                target: {
+                    name: ContextRelationshipDeclaration.target
+                },
+                type: {
+                    name: ContextRelationshipDeclaration.type
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        ContractField: {
+            name: ContractField.$type,
+            properties: {
+                name: {
+                    name: ContractField.name
+                },
+                required: {
+                    name: ContractField.required,
+                    defaultValue: false
+                },
+                type: {
+                    name: ContractField.type
+                }
+            },
+            superTypes: []
+        },
+        DomainEventDeclaration: {
+            name: DomainEventDeclaration.$type,
+            properties: {
+                fields: {
+                    name: DomainEventDeclaration.fields,
+                    defaultValue: []
+                },
+                name: {
+                    name: DomainEventDeclaration.name
+                }
+            },
+            superTypes: [AggregateMember.$type]
+        },
+        DomainServiceDeclaration: {
+            name: DomainServiceDeclaration.$type,
+            properties: {
+                consumes: {
+                    name: DomainServiceDeclaration.consumes
+                },
+                description: {
+                    name: DomainServiceDeclaration.description
+                },
+                name: {
+                    name: DomainServiceDeclaration.name
+                },
+                produces: {
+                    name: DomainServiceDeclaration.produces
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        FieldDeclaration: {
+            name: FieldDeclaration.$type,
+            properties: {
+                deprecation: {
+                    name: FieldDeclaration.deprecation
+                },
+                name: {
+                    name: FieldDeclaration.name
+                },
+                type: {
+                    name: FieldDeclaration.type
+                }
+            },
+            superTypes: []
+        },
+        FieldDeprecation: {
+            name: FieldDeprecation.$type,
+            properties: {
+                reason: {
+                    name: FieldDeprecation.reason
+                },
+                replacement: {
+                    name: FieldDeprecation.replacement
+                }
+            },
+            superTypes: []
+        },
+        FlowDeclaration: {
+            name: FlowDeclaration.$type,
+            properties: {
+                description: {
+                    name: FlowDeclaration.description
+                },
+                lanes: {
+                    name: FlowDeclaration.lanes,
+                    defaultValue: []
+                },
+                moments: {
+                    name: FlowDeclaration.moments,
+                    defaultValue: []
+                },
+                name: {
+                    name: FlowDeclaration.name
+                }
+            },
+            superTypes: []
+        },
+        InputField: {
+            name: InputField.$type,
+            properties: {
+                deprecation: {
+                    name: InputField.deprecation
+                },
+                name: {
+                    name: InputField.name
+                },
+                type: {
+                    name: InputField.type
+                }
+            },
+            superTypes: []
+        },
+        InvariantDeclaration: {
+            name: InvariantDeclaration.$type,
+            properties: {
+                description: {
+                    name: InvariantDeclaration.description
+                },
+                id: {
+                    name: InvariantDeclaration.id
+                },
+                scope: {
+                    name: InvariantDeclaration.scope
+                }
+            },
+            superTypes: [AggregateMember.$type]
+        },
+        LaneDeclaration: {
+            name: LaneDeclaration.$type,
+            properties: {
+                classification: {
+                    name: LaneDeclaration.classification
+                },
+                id: {
+                    name: LaneDeclaration.id
+                },
+                isBranch: {
+                    name: LaneDeclaration.isBranch,
+                    defaultValue: false
+                },
+                label: {
+                    name: LaneDeclaration.label
+                }
+            },
+            superTypes: []
+        },
+        MomentDeclaration: {
+            name: MomentDeclaration.$type,
+            properties: {
+                isBranch: {
+                    name: MomentDeclaration.isBranch,
+                    defaultValue: false
+                },
+                label: {
+                    name: MomentDeclaration.label
+                },
+                nodes: {
+                    name: MomentDeclaration.nodes,
+                    defaultValue: []
+                },
+                whenBlocks: {
+                    name: MomentDeclaration.whenBlocks,
+                    defaultValue: []
+                }
+            },
+            superTypes: []
+        },
+        MomentFile: {
+            name: MomentFile.$type,
+            properties: {
+                contexts: {
+                    name: MomentFile.contexts,
+                    defaultValue: []
+                },
+                flows: {
+                    name: MomentFile.flows,
+                    defaultValue: []
+                }
+            },
+            superTypes: []
+        },
+        Multiplicity: {
+            name: Multiplicity.$type,
+            properties: {
+                count: {
+                    name: Multiplicity.count
+                },
+                countVar: {
+                    name: Multiplicity.countVar
+                }
+            },
+            superTypes: []
+        },
+        NodeModifier: {
+            name: NodeModifier.$type,
+            properties: {
+                type: {
+                    name: NodeModifier.type
+                }
+            },
+            superTypes: []
+        },
+        NodePlacement: {
+            name: NodePlacement.$type,
+            properties: {
+                connections: {
+                    name: NodePlacement.connections,
+                    defaultValue: []
+                },
+                crossing: {
+                    name: NodePlacement.crossing
+                },
+                laneId: {
+                    name: NodePlacement.laneId
+                },
+                modifier: {
+                    name: NodePlacement.modifier
+                },
+                multiplicity: {
+                    name: NodePlacement.multiplicity
+                },
+                nodeName: {
+                    name: NodePlacement.nodeName
+                }
+            },
+            superTypes: []
+        },
+        PolicyDeclaration: {
+            name: PolicyDeclaration.$type,
+            properties: {
+                action: {
+                    name: PolicyDeclaration.action
+                },
+                chainsTo: {
+                    name: PolicyDeclaration.chainsTo
+                },
+                name: {
+                    name: PolicyDeclaration.name
+                },
+                trigger: {
+                    name: PolicyDeclaration.trigger
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        PolicyTrigger: {
+            name: PolicyTrigger.$type,
+            properties: {
+                eventName: {
+                    name: PolicyTrigger.eventName
+                },
+                fileWatcher: {
+                    name: PolicyTrigger.fileWatcher
+                }
+            },
+            superTypes: []
+        },
+        Precondition: {
+            name: Precondition.$type,
+            properties: {
+                description: {
+                    name: Precondition.description
+                },
+                name: {
+                    name: Precondition.name
+                }
+            },
+            superTypes: []
+        },
+        ReturnsTo: {
+            name: ReturnsTo.$type,
+            properties: {
+                frameLabel: {
+                    name: ReturnsTo.frameLabel
+                }
+            },
+            superTypes: [Connection.$type]
+        },
+        SagaDeclaration: {
+            name: SagaDeclaration.$type,
+            properties: {
+                compensation: {
+                    name: SagaDeclaration.compensation
+                },
+                name: {
+                    name: SagaDeclaration.name
+                },
+                states: {
+                    name: SagaDeclaration.states,
+                    defaultValue: []
+                },
+                timeout: {
+                    name: SagaDeclaration.timeout
+                },
+                trigger: {
+                    name: SagaDeclaration.trigger
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        SagaTimeout: {
+            name: SagaTimeout.$type,
+            properties: {
+                duration: {
+                    name: SagaTimeout.duration
+                },
+                none: {
+                    name: SagaTimeout.none
+                }
+            },
+            superTypes: []
+        },
+        TriggeredBy: {
+            name: TriggeredBy.$type,
+            properties: {
+                nodeName: {
+                    name: TriggeredBy.nodeName
+                }
+            },
+            superTypes: [Connection.$type]
+        },
+        Triggers: {
+            name: Triggers.$type,
+            properties: {
+                nodeName: {
+                    name: Triggers.nodeName
+                }
+            },
+            superTypes: [Connection.$type]
+        },
+        TypeReference: {
+            name: TypeReference.$type,
+            properties: {
+                isArray: {
+                    name: TypeReference.isArray,
+                    defaultValue: false
+                },
+                typeName: {
+                    name: TypeReference.typeName
+                }
+            },
+            superTypes: []
+        },
+        ValueObjectDeclaration: {
+            name: ValueObjectDeclaration.$type,
+            properties: {
+                fields: {
+                    name: ValueObjectDeclaration.fields,
+                    defaultValue: []
+                },
+                name: {
+                    name: ValueObjectDeclaration.name
+                }
+            },
+            superTypes: [AggregateMember.$type]
+        },
+        WhenBlock: {
+            name: WhenBlock.$type,
+            properties: {
+                condition: {
+                    name: WhenBlock.condition
+                },
+                lane: {
+                    name: WhenBlock.lane
+                },
+                nodes: {
+                    name: WhenBlock.nodes,
+                    defaultValue: []
+                }
+            },
+            superTypes: []
+        }
+    } as const satisfies langium.AstMetaData
 }
 
 export const reflection = new MomentAstReflection();
