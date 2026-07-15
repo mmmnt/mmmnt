@@ -1,5 +1,64 @@
 # @mmmnt/core
 
+## 0.4.0
+
+### Minor Changes
+
+- [#153](https://github.com/mmmnt/mmmnt/pull/153) [`560b5dd`](https://github.com/mmmnt/mmmnt/commit/560b5ddbce4a9bcbdbb96bef5458ac90df60bc52) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - **feat(core): GeneratorRegistry with DAG planner and descriptor interfaces**
+
+  New open generator registry in `@mmmnt/core` replacing the hardcoded
+  `ALLOWED_FORMATS` set (MMNT-5430 / ADR-032 R1 / ADR-034 G2+G3).
+  - `GeneratorDescriptor` interface: `format`, `scope`, `dependsOn`,
+    `defaultOutputDir`, `run(ctx) → Promise<GeneratorRunResult>`
+  - `GeneratorRunContext`: provides `ir`, `manifestDir`, `outputDir`,
+    `options`, and `upstreamOutputs` (results from declared dependencies)
+  - `GeneratorRunResult`: returns `files: Map<string, string>` (in-memory)
+    - `diagnostics` — framework handles disk writes with path safety
+  - `GeneratorRegistry` class: `register()`, `resolve()`, `has()`,
+    `getAll()`, `getFormats()`, `planExecutionOrder()`
+  - Topological sort via Kahn's algorithm with cycle detection
+  - Deterministic ordering: independent generators sort alphabetically
+
+  Each generator package will export a `registerGenerators(registry)`
+  function (next story). The CLI's project-mode bootstrap calls them all.
+  No circular dependencies — `@mmmnt/core` exports only the interface +
+  registry class.
+
+- [#151](https://github.com/mmmnt/mmmnt/pull/151) [`a3581a8`](https://github.com/mmmnt/mmmnt/commit/a3581a884974e546497750d95db745abf37f181e) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - **feat(core): ProjectLoader for multi-file IR merge + cross-file validation**
+
+  New `ProjectLoader` class in `@mmmnt/core` that loads multiple `.moment`
+  files and produces a single merged `IntermediateRepresentation`. This is
+  the Phase 1 foundation for project-level execution (MMNT-5418 / ADR-032 R2).
+
+  Three new modules in `packages/core/src/project/`:
+  - **`ProjectLoader`**: reads N files, parses each via `MomentParser`,
+    merges IRs, runs cross-file validation, returns a `ProjectLoadResult`
+    with the merged IR + aggregated diagnostics.
+  - **`mergeIrs`**: pure function that concatenates `contexts[]`, `flows[]`,
+    `glossary[]`, `relationships[]` from N IRs with deterministic ordering
+    (sorted by file path). Detects duplicate context names across files.
+  - **`validateCrossFileReferences`**: post-merge validator that checks lane
+    contextIds, crossing targetContextIds, moment entry contextIds, and
+    relationship endpoints all resolve to contexts in the merged IR. Skips
+    branch-lanes and terminal-classified lanes (synthetic flow-control
+    constructs, not real bounded contexts).
+
+  ```typescript
+  import { ProjectLoader } from '@mmmnt/core';
+
+  const loader = new ProjectLoader();
+  const result = await loader.loadProject([
+    'contexts/ordering.moment',
+    'contexts/fulfillment.moment',
+    'flows/order-placed.moment',
+  ]);
+
+  if (result.success) {
+    console.log(result.ir.contexts.length); // 2
+    console.log(result.ir.flows.length); // 1
+  }
+  ```
+
 ## 0.3.1
 
 ### Patch Changes
