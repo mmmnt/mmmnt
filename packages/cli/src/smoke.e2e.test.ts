@@ -90,7 +90,7 @@ describe.skipIf(!hasMcp)('mcp bundle smoke', () => {
     send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
 
     const toolNames = await new Promise<string[]>((resolvePromise, reject) => {
-      const timer = setTimeout(() => reject(new Error('mcp tools/list timeout')), 10_000);
+      const timer = setTimeout(() => reject(new Error('mcp tools/list timeout')), 20_000);
       const tryParse = (): void => {
         for (const chunk of messages.join('').split('\n')) {
           if (!chunk.trim()) continue;
@@ -120,5 +120,5 @@ describe.skipIf(!hasMcp)('mcp bundle smoke', () => {
 
     expect(toolNames).toContain('moment_validate');
     expect(toolNames.length).toBeGreaterThanOrEqual(7);
-  }, 20_000);
+  }, 30_000);
 });

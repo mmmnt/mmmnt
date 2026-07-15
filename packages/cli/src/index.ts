@@ -21,6 +21,7 @@ import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
 import { runAuthLogout } from './commands/auth-logout.js';
 import { runAuthQuorum } from './commands/auth-quorum.js';
+import { runQuorumWatch } from './commands/quorum-watch.js';
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -450,6 +451,30 @@ switch (command) {
           for (const d of result.diagnostics) {
             console.error(formatDiagnostic(d, result.filePath));
           }
+          process.exitCode = 1;
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
+  case 'quorum': {
+    const [subcommand, ...quorumArgs] = args;
+    if (subcommand !== 'watch') {
+      console.error(
+        'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--once]',
+      );
+      process.exitCode = 1;
+      break;
+    }
+    runQuorumWatch(quorumArgs)
+      .then((result) => {
+        if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
           process.exitCode = 1;
         }
       })
