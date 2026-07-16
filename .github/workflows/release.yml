@@ -171,7 +171,12 @@ jobs:
         uses: changesets/action@v1
         with:
           version: pnpm changeset:version
-          publish: pnpm -r publish --access public --no-git-checks
+          # `changeset publish` (not `pnpm -r publish`) so the action can
+          # detect published packages and create git tags + GitHub releases.
+          # v0.4.0 shipped untagged because raw pnpm publish output is not
+          # parsed by changesets/action.
+          publish: pnpm changeset publish
+          createGithubReleases: true
           title: 'chore: version packages'
           commit: 'chore: version packages'
         env:
