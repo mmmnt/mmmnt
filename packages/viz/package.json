@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/viz",
   "description": "Context map and flow timeline visualization from Moment domain specifications",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/viz#readme",

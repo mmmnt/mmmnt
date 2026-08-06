@@ -1,5 +1,26 @@
 # @mmmnt/core
 
+## 0.5.0
+
+### Minor Changes
+
+- Truthfulness overhaul + saga transition event mapping.
+
+  Grammar: `states A -> B on Event` maps saga transitions to domain events
+  (`on` is now a reserved keyword); `MomentDefinition.sequence` preserves
+  textual child order.
+
+  Generators: `returns-to` loop-unroll, exact causation, branch-pruned
+  enumeration, walk-derived labels/kinds/activeBranches, SimSaga progression
+  through mapped transitions, saga timeout scenario synthesis, payloads
+  unioned with crossing contract fields, `policy-definitions.json` artifact,
+  frame→frame return edges with eventType on every connection, flow-only
+  catalog/impact/asyncapi fallbacks, pending-status cucumber, `it.todo`
+  scaffolds, truthful Gherkin branch tags and crossing contracts.
+
+  Validators: single-file wiring of the dormant cross-file/SP checks plus new
+  V19/V20/V21; V8 CST-offset terminal check; V12 crash fix.
+
 ## 0.4.0
 
 ### Minor Changes
