@@ -42,7 +42,9 @@ export class SpecificationDocumentGenerator {
     this.renderDataGlossary(lines, ir);
     this.renderFooter(lines, ir);
 
-    return [{ documentType: 'specification', filePath: 'specification.md', content: lines.join('\n') }];
+    return [
+      { documentType: 'specification', filePath: 'specification.md', content: lines.join('\n') },
+    ];
   }
 
   // ===========================================================================
@@ -152,7 +154,11 @@ export class SpecificationDocumentGenerator {
     }
   }
 
-  private renderFlowNarrative(lines: string[], flow: FlowDefinition, ir: IntermediateRepresentation): void {
+  private renderFlowNarrative(
+    lines: string[],
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
     if (ir.flows.length > 1) {
       lines.push(`### ${flow.name}`);
       lines.push('');
@@ -178,8 +184,9 @@ export class SpecificationDocumentGenerator {
   ): void {
     this.renderMomentHeader(lines, moment, step, flow, ir);
 
+    const usedConnections = new Set<string>();
     for (const entry of moment.contextEntries) {
-      this.renderEntryNarrative(lines, entry, flow, ir);
+      this.renderEntryNarrative(lines, entry, moment, undefined, flow, ir, '  ', usedConnections);
     }
 
     this.renderMomentBranches(lines, moment, flow, ir);
@@ -203,9 +210,8 @@ export class SpecificationDocumentGenerator {
   }
 
   private buildContextLabel(moment: MomentDefinition, ir: IntermediateRepresentation): string {
-    const primaryCtxId = moment.contextEntries[0]?.contextId
-      ?? moment.branches?.[0]?.entries?.[0]?.contextId
-      ?? '';
+    const primaryCtxId =
+      moment.contextEntries[0]?.contextId ?? moment.branches?.[0]?.entries?.[0]?.contextId ?? '';
     const ctxName = primaryCtxId ? this.resolveCtxName(primaryCtxId, ir) : '';
     return ctxName ? ` *(${ctxName})*` : '';
   }
@@ -220,13 +226,65 @@ export class SpecificationDocumentGenerator {
     for (const branch of moment.branches) {
       const isTerminal = branch.entries.some((e) => e.terminal);
       if (isTerminal) {
-        lines.push(`  - ❌ **If ${branch.condition}** → flow terminates`);
+        this.renderTerminalBranch(lines, moment, branch, flow, ir);
       } else {
-        lines.push(`  - ✅ **If ${branch.condition}:**`);
-        for (const entry of branch.entries) {
-          this.renderEntryNarrative(lines, entry, flow, ir, '    ');
-        }
+        this.renderNonTerminalBranch(lines, moment, branch, flow, ir);
       }
+    }
+  }
+
+  private renderTerminalBranch(
+    lines: string[],
+    moment: MomentDefinition,
+    branch: NonNullable<MomentDefinition['branches']>[number],
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const usedConnections = new Set<string>();
+    const terminalNode = branch.entries.find((e) => e.terminal)?.nodeName;
+    lines.push(
+      `  - ❌ **If ${branch.condition}:** flow terminates${terminalNode ? ` at **${terminalNode}**` : ''}`,
+    );
+    for (const entry of branch.entries) {
+      if (entry.terminal) continue;
+      this.renderEntryNarrative(
+        lines,
+        entry,
+        moment,
+        branch.condition,
+        flow,
+        ir,
+        '    ',
+        usedConnections,
+      );
+    }
+  }
+
+  private renderNonTerminalBranch(
+    lines: string[],
+    moment: MomentDefinition,
+    branch: NonNullable<MomentDefinition['branches']>[number],
+    flow: FlowDefinition,
+    ir: IntermediateRepresentation,
+  ): void {
+    const usedConnections = new Set<string>();
+    lines.push(`  - ✅ **If ${branch.condition}:**`);
+    for (const entry of branch.entries) {
+      this.renderEntryNarrative(
+        lines,
+        entry,
+        moment,
+        branch.condition,
+        flow,
+        ir,
+        '    ',
+        usedConnections,
+      );
+    }
+    const returnsTo = this.findReturnsTo(moment, branch.condition, flow);
+    if (returnsTo) {
+      const label = this.resolveReturnsToLabel(returnsTo, flow);
+      if (label) lines.push(`    - ↩ *returns to "${label}"*`);
     }
   }
 
@@ -246,17 +304,24 @@ export class SpecificationDocumentGenerator {
   private renderEntryNarrative(
     lines: string[],
     entry: MomentEntry,
+    moment: MomentDefinition,
+    branchCondition: string | undefined,
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
     indent = '  ',
+    usedConnections: Set<string> = new Set(),
   ): void {
     const ctx = ir.contexts.find((c) => c.id === entry.contextId);
     const ctxName = entry.contextId.replace(/^ctx-/, '');
-    const crossing = this.findCrossing(entry.nodeName, flow);
 
-    if (this.isCommand(entry.nodeName, ctx)) {
+    if (entry.nodeKind === 'command') {
       this.renderCommandNarrative(lines, entry, ctx, ctxName, indent);
-    } else if (crossing) {
+      return;
+    }
+
+    const crossing = this.findCrossing(entry, moment, branchCondition, flow, usedConnections);
+    if (crossing) {
+      usedConnections.add(crossing.id);
       const target = this.resolveCtxName(crossing.targetContextId, ir);
       lines.push(`${indent}- **${entry.nodeName}** → crosses to **${target}**`);
     } else {
@@ -376,7 +441,9 @@ export class SpecificationDocumentGenerator {
       lines.push('| Command | Purpose | Produces |');
       lines.push('|---------|---------|----------|');
       for (const cmd of agg.commands) {
-        const purpose = cmd.preconditions[0]?.description ?? `Accepts ${cmd.inputs.map((i) => i.name).join(', ')}`;
+        const purpose =
+          cmd.preconditions[0]?.description ??
+          `Accepts ${cmd.inputs.map((i) => i.name).join(', ')}`;
         lines.push(`| **${cmd.name}** | ${purpose} | ${cmd.emitsEvent} |`);
       }
       lines.push('');
@@ -413,7 +480,9 @@ export class SpecificationDocumentGenerator {
     }
   }
 
-  private collectAllValueObjects(ir: IntermediateRepresentation): Map<string, ValueObjectDefinition> {
+  private collectAllValueObjects(
+    ir: IntermediateRepresentation,
+  ): Map<string, ValueObjectDefinition> {
     const allVOs = new Map<string, ValueObjectDefinition>();
     for (const ctx of ir.contexts) {
       for (const agg of ctx.aggregates) {
@@ -435,9 +504,7 @@ export class SpecificationDocumentGenerator {
     lines.push('|-------|------|');
     for (const f of vo.fields) {
       const arr = f.isArray ? '[]' : '';
-      const fieldLabel = f.deprecated
-        ? `~~\`${f.name}\`~~ (deprecated)`
-        : `\`${f.name}\``;
+      const fieldLabel = f.deprecated ? `~~\`${f.name}\`~~ (deprecated)` : `\`${f.name}\``;
       lines.push(`| ${fieldLabel} | ${f.type}${arr} |`);
     }
     lines.push('');
@@ -498,7 +565,9 @@ export class SpecificationDocumentGenerator {
       for (const conn of flow.connections) {
         if (conn.connectionType !== 'crosses-to') continue;
         const moment = flow.moments.find((m) => m.id === conn.sourceMomentId);
-        const sourceCtxId = this.resolveSourceContextId(moment);
+        const sourceCtxId = moment
+          ? this.findEntryForConnection(conn, moment)?.contextId
+          : undefined;
         if (!sourceCtxId) continue;
 
         const sourceNode = this.mermaidNodeId(this.resolveCtxName(sourceCtxId, ir));
@@ -583,7 +652,7 @@ export class SpecificationDocumentGenerator {
     const ctxName = this.resolveMomentCtxName(moment, ir);
 
     // Render main context entries
-    this.renderSequenceEntries(lines, moment.contextEntries, ctxName, flow, ir);
+    this.renderSequenceEntries(lines, moment.contextEntries, moment, undefined, flow, ir);
 
     // Branches as alt blocks — only if non-terminal entries exist
     if (moment.branches && moment.branches.length > 0) {
@@ -607,8 +676,7 @@ export class SpecificationDocumentGenerator {
       const branch = nonTerminal[i];
       const keyword = i === 0 ? 'alt' : 'else';
       lines.push(`  ${keyword} ${branch.condition}`);
-      const branchCtx = this.resolveBranchCtx(branch, ctxName, ir);
-      this.renderSequenceEntries(lines, branch.entries, branchCtx, flow, ir);
+      this.renderSequenceEntries(lines, branch.entries, moment, branch.condition, flow, ir);
     }
     if (terminal.length > 0) {
       const keyword = nonTerminal.length === 0 ? 'alt' : 'else';
@@ -619,43 +687,50 @@ export class SpecificationDocumentGenerator {
     lines.push('  end');
   }
 
-  private resolveBranchCtx(
-    branch: { entries: MomentEntry[] },
-    fallback: string,
-    ir: IntermediateRepresentation,
-  ): string {
-    const entry = branch.entries.find((e) => !e.terminal);
-    return entry ? this.resolveCtxName(entry.contextId, ir) : fallback;
-  }
-
   private renderSequenceEntries(
     lines: string[],
     entries: MomentEntry[],
-    ctxName: string,
+    moment: MomentDefinition,
+    branchCondition: string | undefined,
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
   ): void {
+    const usedConnections = new Set<string>();
     for (const entry of entries) {
       if (entry.terminal) continue;
-      this.renderSingleSequenceEntry(lines, entry, ctxName, flow, ir);
+      this.renderSingleSequenceEntry(
+        lines,
+        entry,
+        moment,
+        branchCondition,
+        flow,
+        ir,
+        usedConnections,
+      );
     }
   }
 
   private renderSingleSequenceEntry(
     lines: string[],
     entry: MomentEntry,
-    ctxName: string,
+    moment: MomentDefinition,
+    branchCondition: string | undefined,
     flow: FlowDefinition,
     ir: IntermediateRepresentation,
+    usedConnections: Set<string>,
   ): void {
     const entryCtx = this.resolveCtxName(entry.contextId, ir);
-    const crossing = this.findCrossing(entry.nodeName, flow);
+    const crossing = this.findCrossing(entry, moment, branchCondition, flow, usedConnections);
 
     if (crossing) {
+      usedConnections.add(crossing.id);
       const target = this.resolveCtxName(crossing.targetContextId, ir);
       lines.push(`  ${entryCtx}->>${target}: ${entry.nodeName} (crosses)`);
-    } else if (this.isCommand(entry.nodeName, ir.contexts.find((c) => c.id === entry.contextId))) {
-      const cmd = this.findCommand(ir.contexts.find((c) => c.id === entry.contextId), entry.nodeName);
+    } else if (entry.nodeKind === 'command') {
+      const cmd = this.findCommand(
+        ir.contexts.find((c) => c.id === entry.contextId),
+        entry.nodeName,
+      );
       const emits = cmd?.emitsEvent ? ` → ${cmd.emitsEvent}` : '';
       lines.push(`  ${entryCtx}->>${entryCtx}: ${entry.nodeName}${emits}`);
     } else {
@@ -670,12 +745,6 @@ export class SpecificationDocumentGenerator {
 
   private mermaidNodeId(name: string): string {
     return name.replace(/[^a-zA-Z0-9]/g, '');
-  }
-
-  private resolveSourceContextId(moment: MomentDefinition | undefined): string | undefined {
-    if (!moment) return undefined;
-    const entry = moment.contextEntries[0] ?? moment.branches?.[0]?.entries?.[0];
-    return entry?.contextId;
   }
 
   // ===========================================================================
@@ -758,11 +827,6 @@ export class SpecificationDocumentGenerator {
     return ir.contexts.find((c) => c.id === id)?.name ?? id.replace(/^ctx-/, '');
   }
 
-  private isCommand(name: string, ctx: ContextDefinition | undefined): boolean {
-    if (!ctx) return false;
-    return ctx.commands.some((c) => c.name === name);
-  }
-
   private findCommand(ctx: ContextDefinition | undefined, name: string) {
     if (!ctx) return undefined;
     for (const agg of ctx.aggregates) {
@@ -772,10 +836,52 @@ export class SpecificationDocumentGenerator {
     return undefined;
   }
 
-  private findCrossing(nodeName: string, flow: FlowDefinition): ConnectionDefinition | undefined {
+  /**
+   * Finds the crossing declared by this entry in this moment (and branch).
+   * Scoped to (sourceMomentId, node) so an event crossing to several targets
+   * from different moments resolves to the right connection and contract.
+   */
+  private findCrossing(
+    entry: MomentEntry,
+    moment: MomentDefinition,
+    branchCondition: string | undefined,
+    flow: FlowDefinition,
+    usedConnections: Set<string> = new Set(),
+  ): ConnectionDefinition | undefined {
     return flow.connections.find(
-      (c) => c.connectionType === 'crosses-to' && c.eventId === `evt-${nodeName}`,
+      (c) =>
+        c.connectionType === 'crosses-to' &&
+        c.sourceMomentId === moment.id &&
+        (c.sourceNodeName
+          ? c.sourceNodeName === entry.nodeName
+          : c.eventId === `evt-${entry.nodeName}`) &&
+        (c.branchCondition === undefined || c.branchCondition === branchCondition) &&
+        !usedConnections.has(c.id),
     );
+  }
+
+  private findReturnsTo(
+    moment: MomentDefinition,
+    branchCondition: string,
+    flow: FlowDefinition,
+  ): ConnectionDefinition | undefined {
+    return flow.connections.find(
+      (c) =>
+        c.connectionType === 'returns-to' &&
+        c.sourceMomentId === moment.id &&
+        (c.branchCondition === undefined || c.branchCondition === branchCondition),
+    );
+  }
+
+  private resolveReturnsToLabel(
+    conn: ConnectionDefinition,
+    flow: FlowDefinition,
+  ): string | undefined {
+    if (conn.targetMomentId) {
+      const target = flow.moments.find((m) => m.id === conn.targetMomentId);
+      if (target) return target.name;
+    }
+    return 'targetMomentLabel' in conn ? conn.targetMomentLabel : undefined;
   }
 
   private findSourceCtx(
@@ -784,13 +890,32 @@ export class SpecificationDocumentGenerator {
     ir: IntermediateRepresentation,
   ): string {
     if (!moment) return '—';
-    const entry = moment.contextEntries[0] ?? moment.branches?.[0]?.entries?.[0];
+    const entry = this.findEntryForConnection(conn, moment);
     return entry ? this.resolveCtxName(entry.contextId, ir) : '—';
+  }
+
+  /**
+   * Resolves the entry that declared a connection, preferring the connection's
+   * own sourceNodeName over positional guessing.
+   */
+  private findEntryForConnection(
+    conn: ConnectionDefinition,
+    moment: MomentDefinition,
+  ): MomentEntry | undefined {
+    const allEntries = [
+      ...moment.contextEntries,
+      ...(moment.branches ?? []).flatMap((b) => b.entries),
+    ];
+    if (conn.sourceNodeName) {
+      const declared = allEntries.find((e) => e.nodeName === conn.sourceNodeName);
+      if (declared) return declared;
+    }
+    return allEntries[0];
   }
 
   private findPoliciesTriggeredBy(moment: MomentDefinition, ir: IntermediateRepresentation) {
     const eventNames = moment.contextEntries
-      .filter((e) => !this.isCommand(e.nodeName, ir.contexts.find((c) => c.id === e.contextId)))
+      .filter((e) => e.nodeKind !== 'command')
       .map((e) => e.nodeName);
 
     const policies: { name: string; action: string }[] = [];

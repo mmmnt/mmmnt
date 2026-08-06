@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { parse as parseYaml } from 'yaml';
 import type {
   IntermediateRepresentation,
   ContextDefinition,
@@ -345,7 +346,16 @@ describe('generateAsyncApiSpec', () => {
     });
 
     const output = generateAsyncApiSpec(ir);
-    expect(output).toContain("title: 'Untitled'");
+    expect(output).toContain("title: 'Moment Specification'");
+    expect(output).toContain("version: '1.0.0'");
+  });
+
+  it('treats the 0.0.0 placeholder version as missing', () => {
+    const ir = makeIR({
+      metadata: { name: 'Spec', version: '0.0.0' },
+    });
+
+    const output = generateAsyncApiSpec(ir);
     expect(output).toContain("version: '1.0.0'");
   });
 
@@ -592,5 +602,185 @@ describe('generateAsyncApiSpec', () => {
     expect(output).toMatch(/legacyId:\n\s+type:.*\n\s+deprecated:\s*true/);
     // orderId property should NOT have deprecated line immediately after it
     expect(output).not.toMatch(/orderId:\n\s+type:.*\n\s+deprecated:/);
+  });
+
+  // -------------------------------------------------------------------------
+  // Audit fix #4: unique channel keys, consumers merged
+  // -------------------------------------------------------------------------
+  it('emits one channel per event with consumers merged — output parses as YAML with unique keys', () => {
+    const evt = makeEvent('OrderPlaced', [{ name: 'orderId', type: 'uuid' }]);
+    const crossingTo = (id: string, momentId: string, target: string) => ({
+      id,
+      sourceMomentId: momentId,
+      targetContextId: target,
+      eventId: 'evt-OrderPlaced',
+      connectionType: 'crosses-to' as const,
+      schemaContract: {
+        eventType: 'OrderPlaced',
+        fields: [{ name: 'orderId', type: 'uuid', required: true }],
+        relationshipType: 'CustomerSupplier',
+      },
+    });
+    const ir = makeIR({
+      contexts: [
+        makeContext('Ordering', { aggregates: [makeAggregate('Order', [evt])] }),
+        makeContext('Shipping'),
+        makeContext('Billing'),
+      ],
+      flows: [
+        {
+          id: 'flow-1',
+          name: 'multi-consumer-flow',
+          lanes: [],
+          moments: [
+            {
+              id: 'm0',
+              name: 'Place',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [
+            crossingTo('c1', 'm0', 'ctx-Shipping'),
+            crossingTo('c2', 'm0', 'ctx-Billing'),
+          ],
+        },
+      ],
+    });
+
+    const output = generateAsyncApiSpec(ir);
+
+    // yaml v2 throws on duplicate mapping keys by default (uniqueKeys: true)
+    const doc = parseYaml(output) as {
+      channels: Record<string, { description: string }>;
+      components: { messages: Record<string, unknown> };
+    };
+    expect(Object.keys(doc.channels)).toEqual(['order-placed']);
+    expect(doc.channels['order-placed'].description).toContain('Shipping');
+    expect(doc.channels['order-placed'].description).toContain('Billing');
+    expect(Object.keys(doc.components.messages)).toEqual(['OrderPlaced']);
+  });
+
+  // -------------------------------------------------------------------------
+  // Audit fix #8: [required] markers surface as AsyncAPI required arrays
+  // -------------------------------------------------------------------------
+  it('surfaces crossing [required] markers as a payload required array', () => {
+    const evt = makeEvent('OrderPlaced', [
+      { name: 'orderId', type: 'uuid' },
+      { name: 'notes', type: 'string' },
+    ]);
+    const ir = makeIR({
+      contexts: [
+        makeContext('Ordering', { aggregates: [makeAggregate('Order', [evt])] }),
+        makeContext('Shipping'),
+      ],
+      flows: [
+        {
+          id: 'flow-1',
+          name: 'required-flow',
+          lanes: [],
+          moments: [
+            {
+              id: 'm0',
+              name: 'Place',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [
+            {
+              id: 'c1',
+              sourceMomentId: 'm0',
+              targetContextId: 'ctx-Shipping',
+              eventId: 'evt-OrderPlaced',
+              connectionType: 'crosses-to' as const,
+              schemaContract: {
+                eventType: 'OrderPlaced',
+                fields: [
+                  { name: 'orderId', type: 'uuid', required: true },
+                  { name: 'notes', type: 'string', required: false },
+                ],
+                relationshipType: 'CustomerSupplier',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const output = generateAsyncApiSpec(ir);
+    const doc = parseYaml(output) as {
+      components: {
+        messages: Record<string, { payload: { required?: string[] } }>;
+      };
+    };
+    expect(doc.components.messages.OrderPlaced.payload.required).toEqual(['orderId']);
+  });
+
+  // -------------------------------------------------------------------------
+  // Audit fix #3: flow-only specs still produce channels from schema contracts
+  // -------------------------------------------------------------------------
+  it('flow-only spec (no contexts) produces channels from crossing schema contracts', () => {
+    const ir = makeIR({
+      contexts: [],
+      flows: [
+        {
+          id: 'flow-1',
+          name: 'flow-only',
+          lanes: [],
+          moments: [
+            {
+              id: 'm0',
+              name: 'M2',
+              contextEntries: [
+                {
+                  contextId: 'ctx-Messaging',
+                  nodeName: 'InboundMessageAccepted',
+                  nodeKind: 'event' as const,
+                },
+              ],
+            },
+          ],
+          connections: [
+            {
+              id: 'c1',
+              sourceMomentId: 'm0',
+              targetContextId: 'ctx-Scheduling',
+              eventId: 'evt-InboundMessageAccepted',
+              sourceNodeName: 'InboundMessageAccepted',
+              connectionType: 'crosses-to' as const,
+              schemaContract: {
+                eventType: 'InboundMessageAccepted',
+                fields: [
+                  { name: 'conversationId', type: 'UUID', required: true },
+                  { name: 'body', type: 'string', required: false },
+                ],
+                relationshipType: 'CustomerSupplier',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const output = generateAsyncApiSpec(ir);
+    const doc = parseYaml(output) as {
+      channels: Record<string, { description: string }>;
+      components: {
+        messages: Record<
+          string,
+          { payload: { properties: Record<string, unknown>; required?: string[] } }
+        >;
+      };
+    };
+    expect(Object.keys(doc.channels)).toEqual(['inbound-message-accepted']);
+    expect(doc.channels['inbound-message-accepted'].description).toBe(
+      'Published by Messaging, consumed by Scheduling',
+    );
+    const message = doc.components.messages.InboundMessageAccepted;
+    expect(Object.keys(message.payload.properties)).toEqual(['conversationId', 'body']);
+    expect(message.payload.required).toEqual(['conversationId']);
   });
 });

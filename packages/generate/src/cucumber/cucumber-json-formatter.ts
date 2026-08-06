@@ -41,7 +41,7 @@ export interface CucumberStep {
 }
 
 export interface CucumberStepResult {
-  readonly status: 'passed' | 'failed' | 'skipped' | 'undefined';
+  readonly status: 'passed' | 'failed' | 'pending' | 'skipped' | 'undefined';
   readonly duration: number;
 }
 
@@ -53,9 +53,10 @@ export interface CucumberTag {
  * Generates Cucumber JSON from Moment's Gherkin features and test topology.
  *
  * Each generated .feature file becomes a CucumberFeature entry. Scenarios are
- * extracted by parsing the feature content. Step results are derived from the
- * test topology — if the corresponding test case passed structural validation,
- * all steps in that scenario are marked as passed.
+ * extracted by parsing the feature content. Nothing is executed at generation
+ * time, so no step may claim a green run: steps backed by a derived test case
+ * are 'pending' (they exist but have not been run), everything else is
+ * 'skipped'.
  */
 export function generateCucumberJson(
   manifest: GenerationManifest,
@@ -158,7 +159,8 @@ function isStepLine(line: string): boolean {
 function parseStepLine(line: string, lineNumber: number): CucumberStep {
   const keyword = line.split(' ')[0] + ' ';
   const name = line.slice(keyword.length);
-  return { keyword, name, line: lineNumber, result: { status: 'passed', duration: 0 } };
+  // No execution happens at generation time — a freshly parsed step is pending.
+  return { keyword, name, line: lineNumber, result: { status: 'pending', duration: 0 } };
 }
 
 function buildScenario(
@@ -189,23 +191,18 @@ function buildScenario(
   };
 }
 
+/**
+ * Resolves a scenario's status from the derived topology. Generation never
+ * executes anything, so the best a scenario can be is 'pending' (a derived
+ * test case exists for it); scenarios with no backing test case are 'skipped'.
+ */
 function resolveScenarioStatus(
   scenarioName: string,
   tags: CucumberTag[],
   flow: FlowDefinition,
   suite: TestSuiteTopology['suites'][number] | undefined,
-): 'passed' | 'failed' | 'skipped' {
+): 'pending' | 'skipped' {
   if (!suite) return 'skipped';
-
-  const isSaga = tags.some((t) => t.name.startsWith('@saga:'));
-  const isCompensation = tags.some((t) => t.name === '@compensation');
-
-  if (isSaga) {
-    const sagaPrefix = isCompensation ? 'saga-' : 'saga-';
-    const matchingCases = suite.testCases.filter((tc) => tc.momentId.startsWith(sagaPrefix));
-    if (matchingCases.length === 0) return 'skipped';
-    return 'passed';
-  }
 
   // Match moment-based test cases by scenario name → moment name
   const bracketIdx = scenarioName.indexOf(' [');
@@ -214,13 +211,23 @@ function resolveScenarioStatus(
     bracketIdx !== -1 ? scenarioName.slice(bracketIdx + 2, scenarioName.length - 1) : undefined;
 
   const moment = flow.moments.find((m) => m.name === momentName);
-  if (!moment) return 'skipped';
+  if (moment) {
+    const matchingCase = suite.testCases.find(
+      (tc) => tc.momentId === moment.id && (variant === undefined || tc.variant === variant),
+    );
+    return matchingCase ? 'pending' : 'skipped';
+  }
 
-  const matchingCase = suite.testCases.find(
-    (tc) => tc.momentId === moment.id && (variant === undefined || tc.variant === variant),
-  );
+  // Synthetic saga scenarios (state transitions / compensation) do not map to
+  // a moment — they are backed by the suite's saga test cases, if any.
+  const isSaga = tags.some((t) => t.name.startsWith('@saga:'));
+  if (isSaga) {
+    const matchingCases = suite.testCases.filter((tc) => tc.momentId.startsWith('saga-'));
+    if (matchingCases.length === 0) return 'skipped';
+    return 'pending';
+  }
 
-  return matchingCase ? 'passed' : 'skipped';
+  return 'skipped';
 }
 
 function extractFeatureTags(content: string): CucumberTag[] {

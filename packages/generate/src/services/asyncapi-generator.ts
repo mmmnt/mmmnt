@@ -2,11 +2,20 @@ import type {
   IntermediateRepresentation,
   EventDefinition,
   ContextDefinition,
+  ConnectionDefinition,
 } from '@mmmnt/core';
+
+type CrossingConnection = Extract<ConnectionDefinition, { connectionType: 'crosses-to' }>;
 
 interface CrossingInfo {
   readonly eventName: string;
-  readonly eventFields: readonly { readonly name: string; readonly type: string; readonly deprecated?: boolean }[];
+  readonly eventFields: readonly {
+    readonly name: string;
+    readonly type: string;
+    readonly deprecated?: boolean;
+  }[];
+  /** Fields the crossing contract marks [required] — surfaced as AsyncAPI required arrays. */
+  readonly requiredFields: readonly string[];
   readonly producerContext: string;
   readonly consumerContext: string;
 }
@@ -16,8 +25,11 @@ export function generateAsyncApiSpec(ir: IntermediateRepresentation): string {
   const channels = buildChannelYaml(crossings);
   const messages = buildMessageYaml(crossings);
 
-  const title = escapeYaml(ir.metadata.name || 'Untitled');
-  const version = escapeYaml(ir.metadata.version || '1.0.0');
+  // Audit fix #8: honest fallbacks — 'Moment Specification' when the spec has
+  // no name, '1.0.0' when the version is missing or the '0.0.0' placeholder.
+  const title = escapeYaml(ir.metadata.name || 'Moment Specification');
+  const rawVersion = ir.metadata.version;
+  const version = escapeYaml(!rawVersion || rawVersion === '0.0.0' ? '1.0.0' : rawVersion);
   const description = escapeYaml(ir.metadata.description || '');
 
   const parts: string[] = [];
@@ -51,27 +63,100 @@ function collectCrossings(ir: IntermediateRepresentation): CrossingInfo[] {
     for (const conn of flow.connections) {
       if (conn.connectionType !== 'crosses-to') continue;
 
-      const event = findEventById(conn.eventId, ir);
-      if (!event) continue;
+      const info = crossingFromConnection(conn, flow, ir);
+      if (!info) continue;
 
-      const producerCtx = findProducerContext(conn.eventId, ir);
-      const consumerCtx = ir.contexts.find((c) => c.id === conn.targetContextId);
-      if (!producerCtx || !consumerCtx) continue;
-
-      const key = `${event.name}|${producerCtx.name}|${consumerCtx.name}`;
+      const key = `${info.eventName}|${info.producerContext}|${info.consumerContext}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
-      crossings.push({
-        eventName: event.name,
-        eventFields: event.fields.map((f) => ({ name: f.name, type: f.type, deprecated: f.deprecated ? true : undefined })),
-        producerContext: producerCtx.name,
-        consumerContext: consumerCtx.name,
-      });
+      crossings.push(info);
     }
   }
 
   return crossings;
+}
+
+/** Resolve one crosses-to connection into a CrossingInfo; undefined — no
+ *  fabrication — when the event name or producer context cannot be resolved. */
+function crossingFromConnection(
+  conn: CrossingConnection,
+  flow: IntermediateRepresentation['flows'][number],
+  ir: IntermediateRepresentation,
+): CrossingInfo | undefined {
+  // Audit fix #3: flow-only specs declare no context events — the crossing
+  // SchemaContract is then the payload schema source.
+  const event = findEventById(conn.eventId, ir);
+  const eventName = event?.name ?? conn.schemaContract.eventType;
+  if (!eventName) return undefined;
+
+  const producerCtx = findProducerContext(conn.eventId, ir);
+  const producerName =
+    producerCtx?.name ?? findProducingEntryContext(eventName, conn.sourceMomentId, flow, ir);
+  if (!producerName) return undefined;
+
+  const consumerCtx = ir.contexts.find((c) => c.id === conn.targetContextId);
+  const consumerName = consumerCtx?.name ?? conn.targetContextId.replace(/^ctx-/, '');
+
+  const { eventFields, requiredFields } = crossingSchema(event, conn);
+
+  return {
+    eventName,
+    eventFields,
+    requiredFields,
+    producerContext: producerName,
+    consumerContext: consumerName,
+  };
+}
+
+/** Payload fields and required markers for one crossing: context event fields
+ *  when declared, else the crossing SchemaContract (flow-only fallback). */
+function crossingSchema(
+  event: EventDefinition | undefined,
+  conn: CrossingConnection,
+): { eventFields: CrossingInfo['eventFields']; requiredFields: CrossingInfo['requiredFields'] } {
+  const eventFields = event
+    ? event.fields.map((f) => ({
+        name: f.name,
+        type: f.type,
+        deprecated: f.deprecated ? true : undefined,
+      }))
+    : conn.schemaContract.fields.map((f) => ({
+        name: f.name,
+        type: f.type,
+        deprecated: undefined,
+      }));
+
+  // Audit fix #8: [required] markers from the crossing contract surface as
+  // AsyncAPI required arrays; fall back to event field flags when the
+  // contract declares no fields.
+  const contractRequired = conn.schemaContract.fields.filter((f) => f.required).map((f) => f.name);
+  const requiredFields =
+    contractRequired.length > 0
+      ? contractRequired
+      : (event?.fields.filter((f) => f.required).map((f) => f.name) ?? []);
+
+  return { eventFields, requiredFields };
+}
+
+/**
+ * Resolve the context of the flow entry that produces `eventName` in the
+ * crossing's source moment (flow-only fallback). Returns undefined — no
+ * fabrication — when no entry matches.
+ */
+function findProducingEntryContext(
+  eventName: string,
+  sourceMomentId: string,
+  flow: IntermediateRepresentation['flows'][number],
+  ir: IntermediateRepresentation,
+): string | undefined {
+  const moment = flow.moments.find((m) => m.id === sourceMomentId);
+  if (!moment) return undefined;
+  const entries = [...moment.contextEntries, ...(moment.branches ?? []).flatMap((b) => b.entries)];
+  const producing = entries.find((e) => e.nodeName === eventName);
+  if (!producing) return undefined;
+  const ctx = ir.contexts.find((c) => c.id === producing.contextId);
+  return ctx?.name ?? producing.contextId.replace(/^ctx-/, '');
 }
 
 function findEventById(
@@ -104,16 +189,36 @@ function findProducerContext(
   return undefined;
 }
 
+// Audit fix #4: one channel per event — duplicate YAML mapping keys are
+// invalid. Multiple consumers (and producers) merge into a single channel
+// description.
 function buildChannelYaml(crossings: readonly CrossingInfo[]): string {
-  const lines: string[] = [];
+  const byEvent = new Map<string, { producers: string[]; consumers: string[] }>();
   for (const crossing of crossings) {
-    const channelName = toKebabCase(crossing.eventName);
+    let group = byEvent.get(crossing.eventName);
+    if (!group) {
+      group = { producers: [], consumers: [] };
+      byEvent.set(crossing.eventName, group);
+    }
+    if (!group.producers.includes(crossing.producerContext)) {
+      group.producers.push(crossing.producerContext);
+    }
+    if (!group.consumers.includes(crossing.consumerContext)) {
+      group.consumers.push(crossing.consumerContext);
+    }
+  }
+
+  const lines: string[] = [];
+  for (const [eventName, group] of byEvent) {
+    const channelName = toKebabCase(eventName);
+    const producers = group.producers.map(escapeYaml).join(', ');
+    const consumers = group.consumers.map(escapeYaml).join(', ');
     lines.push(`  ${channelName}:`);
     lines.push(`    address: '${channelName}'`);
     lines.push(`    messages:`);
-    lines.push(`      ${crossing.eventName}:`);
-    lines.push(`        $ref: '#/components/messages/${crossing.eventName}'`);
-    lines.push(`    description: 'Published by ${escapeYaml(crossing.producerContext)}, consumed by ${escapeYaml(crossing.consumerContext)}'`);
+    lines.push(`      ${eventName}:`);
+    lines.push(`        $ref: '#/components/messages/${eventName}'`);
+    lines.push(`    description: 'Published by ${producers}, consumed by ${consumers}'`);
   }
   return lines.join('\n');
 }
@@ -137,6 +242,14 @@ function buildMessageYaml(crossings: readonly CrossingInfo[]): string {
       lines.push(`            type: '${mapAsyncApiType(field.type)}'`);
       if (field.deprecated) {
         lines.push(`            deprecated: true`);
+      }
+    }
+
+    // Audit fix #8: [required] markers surface as an AsyncAPI required array.
+    if (crossing.requiredFields.length > 0) {
+      lines.push(`        required:`);
+      for (const name of crossing.requiredFields) {
+        lines.push(`          - ${name}`);
       }
     }
   }

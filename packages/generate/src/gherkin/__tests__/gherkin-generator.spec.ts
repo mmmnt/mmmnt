@@ -538,13 +538,16 @@ describe('renderFeatureFromIr', () => {
     expect(output).toContain('@terminal @failure-path');
     expect(output).toContain('Scenario: Authentication [invalid credentials]');
     expect(output).toContain('Given the authentication is evaluated');
-    // Should find the precondition from the non-terminal sibling
+    // The precondition belongs to the command evaluated in this moment itself
     expect(output).toContain('When accountActive is not satisfied');
+    // The terminal branch renders its actual entries
+    expect(output).toContain('Then Auth emits Rejected (terminal)');
     expect(output).toContain('Then the flow terminates because Account is active');
 
-    // The success branch should have @happy-path
+    // Branches are tagged by their nature, never guessed as happy
     expect(output).toContain('Scenario: Authentication [success]');
-    expect(output).toContain('@happy-path');
+    expect(output).not.toContain('@happy-path');
+    expect(output).toContain('@alt-path');
   });
 
   it('renders terminal branch without failed precondition when none found', () => {
@@ -1131,11 +1134,184 @@ describe('renderFeatureFromIr', () => {
     expect(output).toContain('Rule: CoreCtx [Core]');
   });
 
-  it('renders "And trigger has occurred" for triggered-by connections', () => {
+  it('renders trigger step for triggered-by connections, promoted to Given when leading', () => {
     const ir = makeBasicIR();
     const output = renderFeatureFromIr(ir.flows[0], ir);
-    // conn-1 is a triggered-by from moment-1-Fulfillment, eventId: evt-OrderPlaced
-    expect(output).toContain('And OrderPlaced has occurred');
+    // conn-1 is a triggered-by from moment-1-Fulfillment, eventId: evt-OrderPlaced.
+    // It is the scenario's first step, so the leading And is promoted to Given.
+    expect(output).toContain('Given OrderPlaced has occurred');
+  });
+
+  it('never emits a scenario whose first step is And', () => {
+    const ir = makeBasicIR();
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    const scenarios = output.split(/Scenario: [^\n]*\n/).slice(1);
+    for (const scenario of scenarios) {
+      const firstStep = scenario
+        .split('\n')
+        .map((l) => l.trim())
+        .find((l) => /^(Given|When|Then|And) /.test(l));
+      if (firstStep) {
+        expect(firstStep.startsWith('And ')).toBe(false);
+      }
+    }
+  });
+
+  it('attributes triggered-by to the node carrying the annotation, not moment membership', () => {
+    const ir = makeBasicIR();
+    // Give the connection explicit endpoints: the annotation is carried by
+    // InitiateFulfillment. OrderPlaced lives in moment-0 but must not pick it up.
+    ir.flows[0].connections = [
+      {
+        id: 'conn-1',
+        sourceMomentId: 'moment-1-Fulfillment',
+        targetContextId: 'ctx-Fulfillment',
+        eventId: 'evt-OrderPlaced',
+        sourceNodeName: 'OrderPlaced',
+        targetNodeName: 'InitiateFulfillment',
+        connectionType: 'triggered-by' as const,
+      },
+    ];
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    const fulfillment = output.slice(output.indexOf('Scenario: Fulfillment initiation'));
+    expect(fulfillment).toContain('OrderPlaced has occurred');
+    // The trigger must not leak into the Order submission scenario
+    const orderSubmission = output.slice(
+      output.indexOf('Scenario: Order submission'),
+      output.indexOf('Rule: Fulfillment'),
+    );
+    expect(orderSubmission).not.toContain('has occurred');
+  });
+
+  it('renders each crossing of a multi-target event with its own contract', () => {
+    const ir = makeBasicIR();
+    const flow = ir.flows[0];
+    // OrderPlaced crosses to Fulfillment from moment-0 and (hypothetically)
+    // to Ordering itself from moment-1 with a different contract.
+    flow.moments[1].contextEntries.push({
+      contextId: 'ctx-Ordering',
+      nodeName: 'OrderPlaced',
+      nodeKind: 'event',
+    });
+    flow.connections = [
+      {
+        id: 'conn-0',
+        sourceMomentId: 'moment-0-Order-submission',
+        targetContextId: 'ctx-Fulfillment',
+        eventId: 'evt-OrderPlaced',
+        sourceNodeName: 'OrderPlaced',
+        connectionType: 'crosses-to' as const,
+        schemaContract: {
+          eventType: 'OrderPlaced',
+          fields: [
+            { name: 'orderId', type: 'UUID', required: true },
+            { name: 'items', type: 'OrderItem[]', required: true },
+          ],
+          relationshipType: 'CustomerSupplier',
+        },
+      },
+      {
+        id: 'conn-2',
+        sourceMomentId: 'moment-1-Fulfillment',
+        targetContextId: 'ctx-Ordering',
+        eventId: 'evt-OrderPlaced',
+        sourceNodeName: 'OrderPlaced',
+        connectionType: 'crosses-to' as const,
+        schemaContract: {
+          eventType: 'OrderPlaced',
+          fields: [{ name: 'confirmationId', type: 'UUID', required: true }],
+          relationshipType: 'Partnership',
+        },
+      },
+    ];
+
+    const output = renderFeatureFromIr(flow, ir);
+    // Each mention resolves to the crossing declared in its own moment
+    expect(output).toContain('Then OrderPlaced crosses to Fulfillment via CustomerSupplier');
+    expect(output).toContain('Then OrderPlaced crosses to Ordering via Partnership');
+    expect(output).toContain('| orderId | items |');
+    expect(output).toContain('| confirmationId |');
+    // The first contract must not be repeated for the second mention
+    const fulfillmentScenario = output.slice(output.indexOf('Scenario: Fulfillment initiation'));
+    expect(fulfillmentScenario).not.toContain('crosses to Fulfillment');
+  });
+
+  it('tags returns-to branches @retry-path and renders the loop step', () => {
+    const ir = makeIR({
+      contexts: [],
+      flows: [
+        {
+          id: 'flow-loop',
+          name: 'loop-flow',
+          lanes: [],
+          moments: [
+            {
+              id: 'moment-0-Start',
+              name: 'M1 · A request arrives',
+              contextEntries: [
+                { contextId: 'messaging', nodeName: 'InboundRecorded', nodeKind: 'event' as const },
+              ],
+            },
+            {
+              id: 'moment-1-Throttle',
+              name: 'Cold sender throttled',
+              contextEntries: [],
+              branches: [
+                {
+                  condition: 'SenderWarmOrActive',
+                  entries: [
+                    {
+                      contextId: 'messaging',
+                      nodeName: 'ThrottleExempt',
+                      nodeKind: 'event' as const,
+                    },
+                  ],
+                },
+                {
+                  condition: 'ColdSenderThrottled',
+                  entries: [
+                    {
+                      contextId: 'refusals',
+                      nodeName: 'RejectInboundMessage',
+                      nodeKind: 'event' as const,
+                    },
+                    {
+                      contextId: 'refusals',
+                      nodeName: 'ThrottleNoticeSent',
+                      nodeKind: 'event' as const,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          connections: [
+            {
+              id: 'conn-r',
+              sourceMomentId: 'moment-1-Throttle',
+              targetContextId: 'refusals',
+              eventId: 'evt-ThrottleNoticeSent',
+              sourceNodeName: 'ThrottleNoticeSent',
+              connectionType: 'returns-to' as const,
+              targetMomentLabel: 'M1 · A request arrives',
+              targetMomentId: 'moment-0-Start',
+              branchCondition: 'ColdSenderThrottled',
+            },
+          ],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    const retryScenario = output.slice(
+      output.indexOf('Scenario: Cold sender throttled [ColdSenderThrottled]') - 200,
+    );
+    expect(output).toContain('@retry-path');
+    expect(output).toContain('Then the flow returns to "M1 · A request arrives"');
+    expect(retryScenario).toContain('ThrottleNoticeSent');
+    // The non-looping branch is an alternative, not a fabricated happy path
+    expect(output).toContain('@alt-path');
+    expect(output).not.toContain('@happy-path');
   });
 
   it('renders event carrying fields', () => {
@@ -1143,5 +1319,122 @@ describe('renderFeatureFromIr', () => {
     const output = renderFeatureFromIr(ir.flows[0], ir);
     // FulfillmentInitiated has field reqId
     expect(output).toContain('carrying reqId');
+  });
+});
+
+describe('saga single-owner rendering', () => {
+  // Two flows share the saga-declaring context. Only the flow containing the
+  // saga's trigger node may render the synthetic saga scenarios (mirrors the
+  // test-suite single-owner rule); with no owning flow, the first flow does.
+  function makeTwoFlowIR(triggerInFlow: 'first' | 'second' | 'none'): IntermediateRepresentation {
+    const trigger = 'PaymentInitiated';
+    const flowNode = (name: string) => ({
+      contextId: 'ctx-Payments',
+      nodeName: name,
+      nodeKind: 'event' as const,
+    });
+
+    const flowA: FlowDefinition = {
+      id: 'flow-a',
+      name: 'flow-a',
+      lanes: [],
+      moments: [
+        {
+          id: 'fa-0',
+          name: 'Step A',
+          contextEntries: [flowNode(triggerInFlow === 'first' ? trigger : 'OtherEventA')],
+        },
+      ],
+      connections: [],
+    };
+    const flowB: FlowDefinition = {
+      id: 'flow-b',
+      name: 'flow-b',
+      lanes: [],
+      moments: [
+        {
+          id: 'fb-0',
+          name: 'Step B',
+          contextEntries: [flowNode(triggerInFlow === 'second' ? trigger : 'OtherEventB')],
+        },
+      ],
+      connections: [],
+    };
+
+    return makeIR({
+      contexts: [
+        {
+          id: 'ctx-Payments',
+          name: 'Payments',
+          aggregates: [],
+          domainServices: [],
+          commands: [],
+          events: [{ id: 'evt-PaymentInitiated', name: trigger, fields: [] }],
+          policies: [],
+          sagas: [
+            {
+              id: 'saga-PaymentProcess',
+              name: 'PaymentProcess',
+              trigger,
+              states: ['Pending', 'Completed'],
+              compensation: 'RefundPayment',
+              timeout: '30 minutes',
+            },
+          ],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [flowA, flowB],
+    });
+  }
+
+  it('renders saga scenarios only in the flow containing the trigger', () => {
+    const ir = makeTwoFlowIR('second');
+
+    const featureA = renderFeatureFromIr(ir.flows[0], ir);
+    const featureB = renderFeatureFromIr(ir.flows[1], ir);
+
+    expect(featureA).not.toContain('Scenario: PaymentProcess state transitions');
+    expect(featureA).not.toContain('Scenario: PaymentProcess compensation');
+    expect(featureB).toContain('Scenario: PaymentProcess state transitions');
+    expect(featureB).toContain('Scenario: PaymentProcess compensation');
+  });
+
+  it('falls back to the first flow when no flow contains the trigger', () => {
+    const ir = makeTwoFlowIR('none');
+
+    const featureA = renderFeatureFromIr(ir.flows[0], ir);
+    const featureB = renderFeatureFromIr(ir.flows[1], ir);
+
+    expect(featureA).toContain('Scenario: PaymentProcess state transitions');
+    expect(featureB).not.toContain('Scenario: PaymentProcess state transitions');
+  });
+
+  it('renders fallback-owned sagas under their own Rule when the owning flow never touches the context', () => {
+    const ir = makeTwoFlowIR('none');
+    // Rewire the first flow to a different context entirely.
+    const foreignFlow: FlowDefinition = {
+      ...ir.flows[0],
+      moments: [
+        {
+          id: 'fa-0',
+          name: 'Foreign step',
+          contextEntries: [
+            { contextId: 'ctx-Other', nodeName: 'SomethingHappened', nodeKind: 'event' as const },
+          ],
+        },
+      ],
+    };
+    const rewired = makeIR({ contexts: ir.contexts, flows: [foreignFlow, ir.flows[1]] });
+
+    const featureA = renderFeatureFromIr(rewired.flows[0], rewired);
+    const featureB = renderFeatureFromIr(rewired.flows[1], rewired);
+
+    // Owner (first flow) renders the saga under an added Payments Rule.
+    expect(featureA).toContain('Rule: Payments');
+    expect(featureA).toContain('Scenario: PaymentProcess state transitions');
+    // The non-owning flow that DOES touch Payments renders no saga scenarios.
+    expect(featureB).not.toContain('Scenario: PaymentProcess state transitions');
   });
 });
