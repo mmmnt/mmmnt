@@ -48,32 +48,47 @@ function generateSetupComment(step: SetupStep): string {
   return `      // Setup: ${sanitizeComment(step.contextName)}.${sanitizeComment(step.aggregateName)} — ${sanitizeComment(step.precondition)}`;
 }
 
-function generateAssertionIt(assertion: AssertionPoint): string {
+/**
+ * Names the scaffolded test for what it actually verifies. Crossing-shaped
+ * names are reserved for payload assertions; saga and policy cases describe
+ * the transition or chain they check instead of a fabricated crossing.
+ */
+function assertionTestName(assertion: AssertionPoint, testCase: TestCaseDefinition): string {
+  if (assertion.assertionType === 'saga' || assertion.assertionType === 'policy-chain') {
+    return `should verify ${escapeStringLiteral(testCase.momentName)}`;
+  }
   const eventType = assertion.schemaContract.eventType;
   const source = assertion.sourceContext;
   const target = assertion.targetContext;
+  return `should verify ${escapeStringLiteral(eventType)} crosses from ${escapeStringLiteral(source)} to ${escapeStringLiteral(target)}`;
+}
+
+function generateAssertionIt(assertion: AssertionPoint, testCase: TestCaseDefinition): string {
   const lines: string[] = [];
-  lines.push(
-    `    it('should verify ${escapeStringLiteral(eventType)} crosses from ${escapeStringLiteral(source)} to ${escapeStringLiteral(target)}', () => {`,
-  );
-  lines.push(`      // Crossing: ${assertion.crossingId}`);
-  lines.push(`      // Assertion type: ${assertion.assertionType}`);
+  lines.push(`    // Crossing: ${assertion.crossingId}`);
+  lines.push(`    // Assertion type: ${assertion.assertionType}`);
   if (assertion.schemaContract.expectedFields.length > 0) {
-    lines.push(`      // Expected fields:`);
+    lines.push(`    // Expected fields:`);
     for (const field of assertion.schemaContract.expectedFields) {
       lines.push(
-        `      //   ${field.fieldName}: ${field.expectedType} (${field.required ? 'required' : 'optional'})`,
+        `    //   ${field.fieldName}: ${field.expectedType} (${field.required ? 'required' : 'optional'})`,
       );
     }
   }
-  lines.push(`      // TODO: implement assertion`);
-  lines.push(`    });`);
+  // it.todo keeps the scaffold honest: an unimplemented assertion is reported
+  // as todo instead of silently passing CI with an empty body.
+  lines.push(`    it.todo('${assertionTestName(assertion, testCase)}');`);
   return lines.join('\n');
+}
+
+function describeName(testCase: TestCaseDefinition): string {
+  const base = escapeStringLiteral(testCase.momentName);
+  return testCase.variant ? `${base} [${escapeStringLiteral(testCase.variant)}]` : base;
 }
 
 function generateTestCase(testCase: TestCaseDefinition): string {
   const lines: string[] = [];
-  lines.push(`  describe('${escapeStringLiteral(testCase.momentName)}', () => {`);
+  lines.push(`  describe('${describeName(testCase)}', () => {`);
 
   if (testCase.setupSteps.length > 0) {
     lines.push(`    beforeEach(() => {`);
@@ -85,7 +100,7 @@ function generateTestCase(testCase: TestCaseDefinition): string {
   }
 
   for (const assertion of testCase.assertions) {
-    lines.push(generateAssertionIt(assertion));
+    lines.push(generateAssertionIt(assertion, testCase));
     lines.push('');
   }
 
@@ -98,13 +113,17 @@ function generateTestCase(testCase: TestCaseDefinition): string {
   return lines.join('\n');
 }
 
-function hasAnySetupSteps(suite: TestSuiteDefinition): boolean {
-  return suite.testCases.some((tc) => tc.setupSteps.length > 0);
+/**
+ * Test cases with no assertions would render as empty describe blocks that
+ * assert nothing — skip them so the scaffold only contains real obligations.
+ */
+function renderableTestCases(suite: TestSuiteDefinition): TestCaseDefinition[] {
+  return suite.testCases.filter((tc) => tc.assertions.length > 0);
 }
 
-function generateFlowSpecFile(suite: TestSuiteDefinition): string {
+function generateFlowSpecFile(suite: TestSuiteDefinition, testCases: TestCaseDefinition[]): string {
   const lines: string[] = [];
-  const needsBeforeEach = hasAnySetupSteps(suite);
+  const needsBeforeEach = testCases.some((tc) => tc.setupSteps.length > 0);
   if (needsBeforeEach) {
     lines.push("import { describe, it, beforeEach, expect } from 'vitest';");
   } else {
@@ -113,9 +132,9 @@ function generateFlowSpecFile(suite: TestSuiteDefinition): string {
   lines.push('');
   lines.push(`describe('${escapeStringLiteral(suite.flowName)}', () => {`);
 
-  for (let i = 0; i < suite.testCases.length; i++) {
-    lines.push(generateTestCase(suite.testCases[i]));
-    if (i < suite.testCases.length - 1) {
+  for (let i = 0; i < testCases.length; i++) {
+    lines.push(generateTestCase(testCases[i]));
+    if (i < testCases.length - 1) {
       lines.push('');
     }
   }
@@ -132,18 +151,15 @@ function generateAggregateSpecFile(aggregate: AggregateDefinition): string {
   lines.push(`describe('${escapeStringLiteral(aggregate.name)}', () => {`);
 
   for (const command of aggregate.commands) {
-    lines.push(`  it('should handle ${escapeStringLiteral(command.name)}', () => {`);
-    lines.push(`    // TODO: implement`);
-    lines.push(`  });`);
+    lines.push(`  it.todo('should handle ${escapeStringLiteral(command.name)}');`);
     lines.push('');
   }
 
   for (const invariant of aggregate.invariants) {
+    lines.push(`  // TODO: implement invariant violation test`);
     lines.push(
-      `  it('should enforce invariant: ${escapeStringLiteral(invariant.description)}', () => {`,
+      `  it.todo('should enforce invariant: ${escapeStringLiteral(invariant.description)}');`,
     );
-    lines.push(`    // TODO: implement invariant violation test`);
-    lines.push(`  });`);
     lines.push('');
   }
 
@@ -179,10 +195,13 @@ export class TestScaffoldEmitter {
     const files = new Map<string, string>();
     const specFilesWritten: string[] = [];
 
-    // Generate per-flow spec files (TG-03)
+    // Generate per-flow spec files (TG-03). Suites whose test cases carry no
+    // assertions are skipped entirely — an all-empty spec file asserts nothing.
     for (const suite of topology.suites) {
+      const testCases = renderableTestCases(suite);
+      if (testCases.length === 0) continue;
       const fileName = `__tests__/flows/${safePathSegment(suite.flowName)}.spec.ts`;
-      const content = generateFlowSpecFile(suite);
+      const content = generateFlowSpecFile(suite, testCases);
       files.set(fileName, content);
       specFilesWritten.push(fileName);
     }
@@ -192,6 +211,8 @@ export class TestScaffoldEmitter {
     for (const context of ir.contexts) {
       for (const aggregate of context.aggregates) {
         allAggregates.push(aggregate);
+        // Skip aggregates with nothing to test — no empty describe blocks.
+        if (aggregate.commands.length === 0 && aggregate.invariants.length === 0) continue;
         const contextDir = safePathSegment(context.name);
         const fileName = `__tests__/${contextDir}/${safePathSegment(aggregate.name)}.spec.ts`;
         const content = generateAggregateSpecFile(aggregate);
