@@ -1107,7 +1107,7 @@ flow "general-admission-purchase"
   moment "Ticket delivery notification"
     notifications: SendTicketDelivery
       triggered-by TicketsIssued
-    notifications: TicketDeliverySent
+    notifications: TicketDeliverySent [terminal]
 // TicketWave — Presale Access Flow
 // Verified fan presale: code validation → early-window purchase → delivery
 
@@ -1205,7 +1205,7 @@ flow "presale-access"
   moment "Presale ticket delivery"
     notifications: SendTicketDelivery
       triggered-by TicketsIssued
-    notifications: TicketDeliverySent
+    notifications: TicketDeliverySent [terminal]
 // TicketWave — Ticket Transfer Flow
 // Peer-to-peer transfer: initiate → notify recipient → accept/decline → re-issue
 
@@ -1257,7 +1257,7 @@ flow "ticket-transfer"
   moment "Transfer completion notification"
     notifications: SendTicketDelivery
       triggered-by TicketsIssued
-    notifications: TicketDeliverySent
+    notifications: TicketDeliverySent [terminal]
 // TicketWave — Event Cancellation Flow
 // Cancel event → revoke all tickets → refund all payments → notify all holders
 
@@ -1321,4 +1321,4 @@ flow "event-cancellation"
   moment "Cancellation notifications"
     notifications: SendEventCancellationNotice
       triggered-by EventCancelled
-    notifications: EventCancellationNoticeSent (×N)
+    notifications: EventCancellationNoticeSent (×N) [terminal]

@@ -225,6 +225,7 @@
           "label": "TicketDeliverySent",
           "type": "event",
           "aggregate": "NotificationDispatch",
+          "terminal": true,
           "eventTypes": [
             "TicketDeliverySent"
           ]

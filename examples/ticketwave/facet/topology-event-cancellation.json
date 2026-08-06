@@ -254,6 +254,7 @@
           "label": "EventCancellationNoticeSent",
           "type": "event",
           "aggregate": "NotificationDispatch",
+          "terminal": true,
           "multiplicity": "N",
           "eventTypes": [
             "EventCancellationNoticeSent"
