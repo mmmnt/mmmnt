@@ -198,6 +198,141 @@ describe('SchemaValidator', () => {
       const sp02Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-02');
       expect(sp02Diagnostics).toHaveLength(0);
     });
+
+    it('accepts crossing event declared by the source context only (emitter convention)', () => {
+      const ir = makeMinimalIR({
+        contexts: [
+          makeMinimalContext({
+            id: 'ctx-source',
+            events: [{ id: 'evt-crossed', name: 'CrossedEvent', fields: [] }],
+          }),
+          makeMinimalContext({ id: 'ctx-target', events: [] }),
+        ],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            lanes: [],
+            moments: [
+              makeMoment({
+                id: 'moment-0',
+                name: 'Frame 0',
+                contextEntries: [
+                  { contextId: 'ctx-source', nodeName: 'CrossedEvent', nodeKind: 'event' },
+                ],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceMomentId: 'moment-0',
+                targetContextId: 'ctx-target',
+                eventId: 'evt-crossed',
+                sourceNodeName: 'CrossedEvent',
+                connectionType: 'crosses-to',
+                schemaContract: {
+                  eventType: 'CrossedEvent',
+                  fields: [{ name: 'id', type: 'string', required: true }],
+                  relationshipType: 'CustomerSupplier',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp02Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-02');
+      expect(sp02Diagnostics).toHaveLength(0);
+    });
+
+    it('skips SP-02 when neither boundary context is declared (SP-01 territory)', () => {
+      const ir = makeMinimalIR({
+        contexts: [makeMinimalContext({ id: 'ctx-declared' })],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            lanes: [],
+            moments: [],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceMomentId: 'moment-missing',
+                targetContextId: 'ctx-unknown',
+                eventId: 'evt-anything',
+                sourceNodeName: 'Anything',
+                connectionType: 'crosses-to',
+                schemaContract: {
+                  eventType: 'Anything',
+                  fields: [{ name: 'id', type: 'string', required: true }],
+                  relationshipType: 'CustomerSupplier',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp02Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-02');
+      expect(sp02Diagnostics).toHaveLength(0);
+      // The unknown target context is still reported — by SP-01.
+      expect(result.diagnostics.some((d) => d.ruleId === 'SP-01')).toBe(true);
+    });
+
+    it('resolves the source context through branch entries', () => {
+      const ir = makeMinimalIR({
+        contexts: [
+          makeMinimalContext({
+            id: 'ctx-source',
+            events: [{ id: 'evt-branch', name: 'BranchEvent', fields: [] }],
+          }),
+          makeMinimalContext({ id: 'ctx-target', events: [] }),
+        ],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            lanes: [],
+            moments: [
+              makeMoment({
+                id: 'moment-0',
+                name: 'Frame 0',
+                contextEntries: [],
+                branches: [
+                  {
+                    condition: 'bad',
+                    entries: [
+                      { contextId: 'ctx-source', nodeName: 'BranchEvent', nodeKind: 'event' },
+                    ],
+                  },
+                ],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceMomentId: 'moment-0',
+                targetContextId: 'ctx-target',
+                eventId: 'evt-branch',
+                sourceNodeName: 'BranchEvent',
+                connectionType: 'crosses-to',
+                schemaContract: {
+                  eventType: 'BranchEvent',
+                  fields: [{ name: 'id', type: 'string', required: true }],
+                  relationshipType: 'CustomerSupplier',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp02Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-02');
+      expect(sp02Diagnostics).toHaveLength(0);
+    });
   });
 
   describe('SP-03', () => {
@@ -302,9 +437,11 @@ describe('SchemaValidator', () => {
               {
                 id: 'conn-1',
                 sourceMomentId: 'moment-0',
-                targetContextId: 'ctx-b',
+                targetContextId: 'ctx-a',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
+                targetMomentId: 'moment-1',
+                targetMomentLabel: 'Frame 1',
               } as ConnectionDefinition,
             ],
           },
@@ -341,9 +478,11 @@ describe('SchemaValidator', () => {
               {
                 id: 'conn-1',
                 sourceMomentId: 'moment-1',
-                targetContextId: 'ctx-a',
+                targetContextId: 'ctx-b',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
+                targetMomentId: 'moment-0',
+                targetMomentLabel: 'Frame 0',
               } as ConnectionDefinition,
             ],
           },
@@ -389,7 +528,7 @@ describe('SchemaValidator', () => {
       expect(sp04Diagnostics[0].message).toContain('unresolvable source moment');
     });
 
-    it('rejects returns-to with target context not in any frame', () => {
+    it('rejects returns-to whose target moment cannot be resolved', () => {
       const ir = makeMinimalIR({
         contexts: [makeMinimalContext({ id: 'ctx-a' }), makeMinimalContext({ id: 'ctx-b' })],
         flows: [
@@ -408,7 +547,82 @@ describe('SchemaValidator', () => {
               {
                 id: 'conn-1',
                 sourceMomentId: 'moment-0',
-                targetContextId: 'ctx-missing',
+                targetContextId: 'ctx-a',
+                eventId: 'evt-1',
+                connectionType: 'returns-to',
+                targetMomentLabel: 'No Such Frame',
+              } as ConnectionDefinition,
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
+      expect(sp04Diagnostics).toHaveLength(1);
+      expect(sp04Diagnostics[0].message).toContain('cannot be resolved');
+      expect(sp04Diagnostics[0].message).toContain('No Such Frame');
+    });
+
+    it('resolves target by moment label when targetMomentId is absent', () => {
+      const ir = makeMinimalIR({
+        contexts: [makeMinimalContext({ id: 'ctx-a' })],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            lanes: [],
+            moments: [
+              makeMoment({
+                id: 'moment-0',
+                name: 'Frame 0',
+                contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
+              }),
+              makeMoment({
+                id: 'moment-1',
+                name: 'Frame 1',
+                contextEntries: [{ contextId: 'ctx-a', nodeName: 'Evt', nodeKind: 'event' }],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceMomentId: 'moment-1',
+                targetContextId: 'ctx-a',
+                eventId: 'evt-1',
+                connectionType: 'returns-to',
+                targetMomentLabel: 'Frame 0',
+              } as ConnectionDefinition,
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
+      expect(sp04Diagnostics).toHaveLength(0);
+    });
+
+    it('reports an unknown target when neither id nor label is present', () => {
+      const ir = makeMinimalIR({
+        contexts: [makeMinimalContext({ id: 'ctx-a' })],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            lanes: [],
+            moments: [
+              makeMoment({
+                id: 'moment-0',
+                name: 'Frame 0',
+                contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceMomentId: 'moment-0',
+                targetContextId: 'ctx-a',
                 eventId: 'evt-1',
                 connectionType: 'returns-to',
               } as ConnectionDefinition,
@@ -420,7 +634,42 @@ describe('SchemaValidator', () => {
       const result = validator.validate(ir);
       const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
       expect(sp04Diagnostics).toHaveLength(1);
-      expect(sp04Diagnostics[0].message).toContain('does not appear in any moment');
+      expect(sp04Diagnostics[0].message).toContain("'unknown'");
+    });
+
+    it('names the dangling targetMomentId when it does not exist in the flow', () => {
+      const ir = makeMinimalIR({
+        contexts: [makeMinimalContext({ id: 'ctx-a' })],
+        flows: [
+          {
+            id: 'flow-1',
+            name: 'Test Flow',
+            lanes: [],
+            moments: [
+              makeMoment({
+                id: 'moment-0',
+                name: 'Frame 0',
+                contextEntries: [{ contextId: 'ctx-a', nodeName: 'Cmd', nodeKind: 'command' }],
+              }),
+            ],
+            connections: [
+              {
+                id: 'conn-1',
+                sourceMomentId: 'moment-0',
+                targetContextId: 'ctx-a',
+                eventId: 'evt-1',
+                connectionType: 'returns-to',
+                targetMomentId: 'moment-ghost',
+              } as ConnectionDefinition,
+            ],
+          },
+        ],
+      });
+
+      const result = validator.validate(ir);
+      const sp04Diagnostics = result.diagnostics.filter((d) => d.ruleId === 'SP-04');
+      expect(sp04Diagnostics).toHaveLength(1);
+      expect(sp04Diagnostics[0].message).toContain('moment-ghost');
     });
   });
 

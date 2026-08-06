@@ -36,6 +36,7 @@ import {
 } from '../generated/ast.js';
 import type {
   IntermediateRepresentation,
+  SpecificationMetadata,
   ContextDefinition,
   AggregateDefinition,
   CommandDefinition,
@@ -47,6 +48,7 @@ import type {
   DomainServiceDefinition,
   PolicyDefinition,
   SagaDefinition,
+  SagaTransitionDefinition,
   AnnotationDefinition,
   FlowDefinition,
   LaneDefinition,
@@ -58,6 +60,7 @@ import type {
   SchemaFieldDefinition,
   ContextRelationship,
 } from '../ir/index.js';
+import { buildMomentSequence } from './moment-sequence.js';
 
 /**
  * Strip surrounding double-quotes from a Langium STRING token value.
@@ -72,10 +75,18 @@ function unquote(s: string): string {
 /**
  * Pure transformation: Langium AST -> IntermediateRepresentation.
  * No I/O, no side effects.
+ *
+ * `metadata` lets callers that know the spec's identity (parser/CLI: file
+ * basename, manifest version) stamp it onto the IR instead of the historical
+ * hardcoded placeholder (M-P12). Omitted fields keep the old defaults.
  */
-export function astToIr(file: MomentFile): IntermediateRepresentation {
+export function astToIr(
+  file: MomentFile,
+  metadata?: Partial<SpecificationMetadata>,
+): IntermediateRepresentation {
   const contexts: ContextDefinition[] = file.contexts.map(transformContext);
-  const flows: FlowDefinition[] = file.flows.map(transformFlow);
+  const nodeKindMap = buildNodeKindMap(contexts);
+  const flows: FlowDefinition[] = file.flows.map((flow) => transformFlow(flow, nodeKindMap));
 
   const relationships: ContextRelationship[] = file.contexts.flatMap(extractRelationships);
 
@@ -84,7 +95,11 @@ export function astToIr(file: MomentFile): IntermediateRepresentation {
     flows,
     glossary: [],
     relationships,
-    metadata: { name: '', version: '0.0.0' },
+    metadata: {
+      name: metadata?.name ?? '',
+      version: metadata?.version ?? '0.0.0',
+      ...(metadata?.description !== undefined ? { description: metadata.description } : {}),
+    },
   };
 }
 
@@ -120,11 +135,11 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
       allValueObjects.push(...aggDef.valueObjects);
       allInvariants.push(...aggDef.invariants);
     } else if (isDomainServiceDeclaration(member)) {
-      domainServices.push(transformService(member));
+      domainServices.push(transformService(member, annotations));
     } else if (isPolicyDeclaration(member)) {
-      policies.push(transformPolicy(member));
+      policies.push(transformPolicy(member, annotations));
     } else if (isSagaDeclaration(member)) {
-      sagas.push(transformSaga(member));
+      sagas.push(transformSaga(member, annotations));
     }
     // ContextRelationshipDeclaration handled separately via extractRelationships
   }
@@ -186,7 +201,7 @@ function transformAggregate(
     } else if (isValueObjectDeclaration(member)) {
       valueObjects.push(transformValueObject(member, memberAnnotations));
     } else if (isInvariantDeclaration(member)) {
-      invariants.push(transformInvariant(member));
+      invariants.push(transformInvariant(member, memberAnnotations));
     }
   }
 
@@ -263,42 +278,68 @@ function transformFieldDeclaration(field: FieldDeclaration | InputField): FieldD
   return result;
 }
 
-function transformInvariant(inv: InvariantDeclaration): InvariantDefinition {
+function transformInvariant(
+  inv: InvariantDeclaration,
+  annotations?: AnnotationDefinition[],
+): InvariantDefinition {
   return {
     id: inv.id,
     description: unquote(inv.description),
     scope: inv.scope,
+    ...(annotations ? { annotations } : {}),
   };
 }
 
-function transformService(svc: DomainServiceDeclaration): DomainServiceDefinition {
+function transformService(
+  svc: DomainServiceDeclaration,
+  annotations?: AnnotationDefinition[],
+): DomainServiceDefinition {
   return {
     id: `svc-${svc.name}`,
     name: svc.name,
+    ...(annotations ? { annotations } : {}),
     consumes: svc.consumes,
     produces: svc.produces,
     description: unquote(svc.description),
   };
 }
 
-function transformPolicy(pol: PolicyDeclaration): PolicyDefinition {
+function transformPolicy(
+  pol: PolicyDeclaration,
+  annotations?: AnnotationDefinition[],
+): PolicyDefinition {
   const trigger = pol.trigger.eventName ?? 'file-watcher';
   return {
     id: `pol-${pol.name}`,
     name: pol.name,
+    ...(annotations ? { annotations } : {}),
     trigger,
     action: unquote(pol.action),
     chainsTo: pol.chainsTo ?? undefined,
   };
 }
 
-function transformSaga(saga: SagaDeclaration): SagaDefinition {
+function transformSaga(
+  saga: SagaDeclaration,
+  annotations?: AnnotationDefinition[],
+): SagaDefinition {
   const timeout = saga.timeout.duration ?? 'none';
+  // The grammar's state chain is `initialState (-> target (on event)?)*`.
+  // `states` keeps the historical flat list; `transitions` additionally
+  // carries the per-transition event mapping (M-S6).
+  const states = [saga.initialState, ...saga.transitions.map((t) => t.target)];
+  const transitions: SagaTransitionDefinition[] = saga.transitions.map((t, i) => ({
+    from: states[i],
+    to: t.target,
+    ...(t.event !== undefined ? { onEvent: t.event } : {}),
+  }));
   return {
     id: `saga-${saga.name}`,
     name: saga.name,
+    ...(annotations ? { annotations } : {}),
     trigger: saga.trigger,
-    states: saga.states,
+    states,
+    transitions,
     compensation: unquote(saga.compensation),
     timeout,
   };
@@ -312,7 +353,42 @@ function buildLaneContextMap(flow: FlowDeclaration): Map<string, string> {
   return map;
 }
 
-function transformFlow(flow: FlowDeclaration): FlowDefinition {
+/**
+ * Resolve node kinds from same-file context declarations. Names not declared
+ * in any context (flow-only specs) keep the historical 'event' default.
+ */
+function buildNodeKindMap(contexts: ContextDefinition[]): Map<string, MomentEntry['nodeKind']> {
+  const map = new Map<string, MomentEntry['nodeKind']>();
+  for (const ctx of contexts) {
+    for (const cmd of ctx.commands) map.set(cmd.name, 'command');
+    for (const evt of ctx.events) map.set(evt.name, 'event');
+    for (const policy of ctx.policies) map.set(policy.name, 'policy');
+    for (const saga of ctx.sagas) map.set(saga.name, 'saga');
+  }
+  return map;
+}
+
+/** Map every node name placed in the flow to the lane it is declared in. */
+function buildNodeLaneMap(flow: FlowDeclaration): Map<string, string> {
+  const map = new Map<string, string>();
+  const record = (node: NodePlacement): void => {
+    if (!map.has(node.nodeName)) {
+      map.set(node.nodeName, node.laneId);
+    }
+  };
+  for (const moment of flow.moments) {
+    for (const node of moment.nodes) record(node);
+    for (const when of moment.whenBlocks) {
+      for (const node of when.nodes) record(node);
+    }
+  }
+  return map;
+}
+
+function transformFlow(
+  flow: FlowDeclaration,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
+): FlowDefinition {
   const name = unquote(flow.name);
   const laneContextMap = buildLaneContextMap(flow);
   const lanes: LaneDefinition[] = flow.lanes.map((lane) => ({
@@ -327,7 +403,9 @@ function transformFlow(flow: FlowDeclaration): FlowDefinition {
     name,
     description: flow.description ? unquote(flow.description) : undefined,
     lanes,
-    moments: flow.moments.map((moment, idx) => transformMoment(moment, idx, laneContextMap)),
+    moments: flow.moments.map((moment, idx) =>
+      transformMoment(moment, idx, laneContextMap, nodeKindMap),
+    ),
     connections: extractConnections(flow, laneContextMap),
   };
 }
@@ -336,18 +414,23 @@ function transformMoment(
   moment: MomentDeclaration,
   index: number,
   laneContextMap?: Map<string, string>,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): MomentDefinition {
   const name = unquote(moment.label);
   const contextEntries: MomentEntry[] = moment.nodes.map((n) =>
-    transformNodeToEntry(n, laneContextMap),
+    transformNodeToEntry(n, laneContextMap, nodeKindMap),
   );
 
   const branches: BranchDefinition[] | undefined =
     moment.whenBlocks.length > 0
-      ? moment.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap))
+      ? moment.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap, nodeKindMap))
       : undefined;
 
-  const hasTerminal = contextEntries.some((e) => e.terminal === true);
+  // A moment terminates the flow if any entry is terminal — whether it sits in
+  // the main node list or inside a `when` branch.
+  const hasTerminal =
+    contextEntries.some((e) => e.terminal === true) ||
+    (branches?.some((b) => b.entries.some((e) => e.terminal === true)) ?? false);
 
   return {
     id: `moment-${index}-${name.replace(/\s+/g, '-')}`,
@@ -355,40 +438,53 @@ function transformMoment(
     contextEntries,
     branches,
     terminal: hasTerminal || undefined,
+    isBranch: moment.isBranch || undefined,
+    // Textual order of entries/branches from CST offsets (M-P13); falls back
+    // to entries-then-branches when the AST carries no CST.
+    sequence: buildMomentSequence(moment).sequence,
   };
 }
 
 function transformWhenBlock(
   when: WhenBlock,
   laneContextMap?: Map<string, string>,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): BranchDefinition {
   return {
     condition: when.condition,
     ...(when.lane ? { lane: when.lane } : {}),
-    entries: when.nodes.map((n) => transformNodeToEntry(n, laneContextMap)),
+    entries: when.nodes.map((n) => transformNodeToEntry(n, laneContextMap, nodeKindMap)),
   };
+}
+
+function multiplicityOf(node: NodePlacement): number | string | undefined {
+  if (!node.multiplicity) return undefined;
+  return node.multiplicity.count ?? node.multiplicity.countVar;
 }
 
 function transformNodeToEntry(
   node: NodePlacement,
   laneContextMap?: Map<string, string>,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): MomentEntry {
   const contextId = laneContextMap?.get(node.laneId) ?? node.laneId;
   const entry: MomentEntry = {
     contextId,
     nodeName: node.nodeName,
-    nodeKind: 'event', // Default — kind resolution requires cross-file context (MMNT-27)
+    // Resolved from same-file context declarations; 'event' when the spec is
+    // flow-only and the kind is genuinely unknown (MMNT-27).
+    nodeKind: nodeKindMap?.get(node.nodeName) ?? 'event',
   };
 
-  if (node.multiplicity) {
-    entry.multiplicity = node.multiplicity.count ?? node.multiplicity.countVar;
+  const multiplicity = multiplicityOf(node);
+  if (multiplicity !== undefined) {
+    entry.multiplicity = multiplicity;
   }
 
-  if (node.modifier?.type === 'optional') {
+  const modifierType = node.modifier?.type;
+  if (modifierType === 'optional') {
     entry.optional = true;
-  }
-
-  if (node.modifier?.type === 'terminal') {
+  } else if (modifierType === 'terminal') {
     entry.terminal = true;
   }
 
@@ -403,12 +499,25 @@ function extractConnections(
   let connectionCounter = 0;
 
   const resolveCtx = (laneId: string): string => laneContextMap?.get(laneId) ?? laneId;
+  const nodeLaneMap = buildNodeLaneMap(flow);
+  // Context of a node referenced by name (e.g. the target of `triggers X`),
+  // falling back to the declaring node's own lane when X is not placed anywhere.
+  const resolveNodeCtx = (nodeName: string, fallbackLaneId: string): string => {
+    const laneId = nodeLaneMap.get(nodeName) ?? fallbackLaneId;
+    return resolveCtx(laneId);
+  };
+  const momentLabelToId = new Map<string, string>();
+  for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
+    const label = unquote(flow.moments[momentIdx].label);
+    momentLabelToId.set(label, `moment-${momentIdx}-${label.replace(/\s+/g, '-')}`);
+  }
 
   for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
     const moment = flow.moments[momentIdx];
     const momentId = `moment-${momentIdx}-${unquote(moment.label).replace(/\s+/g, '-')}`;
 
-    const processNode = (node: NodePlacement): void => {
+    const processNode = (node: NodePlacement, branchCondition?: string): void => {
+      const branchFields = branchCondition ? { branchCondition } : {};
       // Context crossing -> crosses-to connection
       if (node.crossing) {
         const contract = transformCrossingToContract(node);
@@ -417,37 +526,54 @@ function extractConnections(
           sourceMomentId: momentId,
           targetContextId: resolveCtx(node.crossing.targetLaneId),
           eventId: `evt-${node.nodeName}`,
+          sourceNodeName: node.nodeName,
           connectionType: 'crosses-to',
           schemaContract: contract,
+          ...branchFields,
         });
       }
 
       // Connection annotations
       for (const conn of node.connections) {
         if (isTriggeredBy(conn)) {
+          // `N triggered-by X`: X is the cause, the declaring node N is the target.
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${conn.nodeName}`,
+            sourceNodeName: conn.nodeName,
+            targetNodeName: node.nodeName,
             connectionType: 'triggered-by',
+            ...branchFields,
           });
         } else if (isTriggers(conn)) {
+          // `N triggers X`: the declaring node N is the cause, X is the target —
+          // resolve the target's context from where X is actually placed.
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
-            targetContextId: resolveCtx(node.laneId),
+            targetContextId: resolveNodeCtx(conn.nodeName, node.laneId),
             eventId: `evt-${conn.nodeName}`,
+            sourceNodeName: node.nodeName,
+            targetNodeName: conn.nodeName,
             connectionType: 'triggers',
+            ...branchFields,
           });
         } else if (isReturnsTo(conn)) {
+          const targetLabel = unquote(conn.frameLabel);
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${node.nodeName}`,
+            sourceNodeName: node.nodeName,
             connectionType: 'returns-to',
-            targetMomentLabel: unquote(conn.frameLabel),
+            targetMomentLabel: targetLabel,
+            ...(momentLabelToId.has(targetLabel)
+              ? { targetMomentId: momentLabelToId.get(targetLabel) }
+              : {}),
+            ...branchFields,
           });
         }
       }
@@ -459,7 +585,7 @@ function extractConnections(
 
     for (const when of moment.whenBlocks) {
       for (const node of when.nodes) {
-        processNode(node);
+        processNode(node, when.condition);
       }
     }
   }
@@ -489,8 +615,9 @@ function extractRelationships(ctx: ContextDeclaration): ContextRelationship[] {
     if (isContextRelationshipDeclaration(member)) {
       const rel = member as ContextRelationshipDeclaration;
       relationships.push({
-        sourceContextId: rel.source,
-        targetContextId: rel.target,
+        // ctx- prefix matches ContextDefinition.id so consumers can join on id.
+        sourceContextId: `ctx-${rel.source}`,
+        targetContextId: `ctx-${rel.target}`,
         relationshipType: rel.type,
         contract: unquote(rel.contract),
       });

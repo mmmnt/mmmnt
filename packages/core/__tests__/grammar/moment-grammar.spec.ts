@@ -211,7 +211,53 @@ describe('Moment Grammar > Spatial Constructs', () => {
     expect(member.$type).toBe('SagaDeclaration');
     if (member.$type === 'SagaDeclaration') {
       expect(member.name).toBe('OrderFulfillment');
-      expect(member.states).toHaveLength(4);
+      expect(member.initialState).toBe('Pending');
+      expect(member.transitions.map((t) => t.target)).toEqual(['Reserved', 'Shipped', 'Complete']);
+      expect(member.transitions.every((t) => t.event === undefined)).toBe(true);
+    }
+  });
+
+  it('parses saga transitions with per-transition `on` event mapping', async () => {
+    const doc = await parse(`
+      context "Test" [Core]
+        saga HoldLifecycle
+          trigger PlaceHold
+          states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertedToReservation
+          compensation "Release the hold"
+          timeout "none"
+    `);
+    expect(doc.parseResult.lexerErrors).toHaveLength(0);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    const member = doc.parseResult.value.contexts[0].members[0];
+    expect(member.$type).toBe('SagaDeclaration');
+    if (member.$type === 'SagaDeclaration') {
+      expect(member.initialState).toBe('Held');
+      expect(member.transitions).toHaveLength(2);
+      expect(member.transitions[0].target).toBe('Converting');
+      expect(member.transitions[0].event).toBe('PaymentConfirmed');
+      expect(member.transitions[1].target).toBe('Converted');
+      expect(member.transitions[1].event).toBe('HoldConvertedToReservation');
+    }
+  });
+
+  it('parses saga with mixed mapped and unmapped transitions', async () => {
+    const doc = await parse(`
+      context "Test" [Core]
+        saga OrderFulfillment
+          trigger PlaceOrder
+          states Pending -> Reserved on InventoryReserved -> Shipped -> Complete on DeliveryConfirmed
+          compensation "Cancel reservation and refund"
+          timeout P30D
+    `);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    const member = doc.parseResult.value.contexts[0].members[0];
+    expect(member.$type).toBe('SagaDeclaration');
+    if (member.$type === 'SagaDeclaration') {
+      expect(member.transitions.map((t) => t.event)).toEqual([
+        'InventoryReserved',
+        undefined,
+        'DeliveryConfirmed',
+      ]);
     }
   });
 

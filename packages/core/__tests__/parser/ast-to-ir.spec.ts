@@ -302,6 +302,71 @@ describe('AstToIr', () => {
     expect(saga.states).toEqual(['Pending', 'Reserved', 'Fulfilled']);
     expect(saga.compensation).toBe('Cancel reservation and refund');
     expect(saga.timeout).toBe('P30D');
+    // Transitions derived from the state chain; no `on` mapping declared.
+    expect(saga.transitions).toEqual([
+      { from: 'Pending', to: 'Reserved' },
+      { from: 'Reserved', to: 'Fulfilled' },
+    ]);
+  });
+
+  it('derives saga transitions with `on` event mappings (M-S6)', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Hold"
+          identity holdId: UUID
+        saga HoldLifecycle
+          trigger PlaceHold
+          states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertedToReservation
+          compensation "Release the hold"
+          timeout "none"
+    `);
+
+    const saga = ir.contexts[0].sagas[0];
+    expect(saga.states).toEqual(['Held', 'Converting', 'Converted']);
+    expect(saga.transitions).toEqual([
+      { from: 'Held', to: 'Converting', onEvent: 'PaymentConfirmed' },
+      { from: 'Converting', to: 'Converted', onEvent: 'HoldConvertedToReservation' },
+    ]);
+  });
+
+  it('derives mixed mapped/unmapped saga transitions without onEvent on unmapped ones', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+        saga OrderFulfillment
+          trigger PlaceOrder
+          states Pending -> Reserved on InventoryReserved -> Shipped -> Complete on DeliveryConfirmed
+          compensation "Cancel reservation and refund"
+          timeout P30D
+    `);
+
+    const saga = ir.contexts[0].sagas[0];
+    expect(saga.states).toEqual(['Pending', 'Reserved', 'Shipped', 'Complete']);
+    expect(saga.transitions).toEqual([
+      { from: 'Pending', to: 'Reserved', onEvent: 'InventoryReserved' },
+      { from: 'Reserved', to: 'Shipped' },
+      { from: 'Shipped', to: 'Complete', onEvent: 'DeliveryConfirmed' },
+    ]);
+    // Unmapped transitions carry no onEvent key at all.
+    expect('onEvent' in saga.transitions![1]).toBe(false);
+  });
+
+  it('derives an empty transitions list for a single-state saga', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+        saga SingleState
+          trigger Start
+          states Done
+          compensation "n/a"
+          timeout "none"
+    `);
+
+    const saga = ir.contexts[0].sagas[0];
+    expect(saga.states).toEqual(['Done']);
+    expect(saga.transitions).toEqual([]);
   });
 
   it('transforms flow declaration to FlowDefinition', async () => {
@@ -419,6 +484,153 @@ describe('AstToIr', () => {
     expect(frame.branches![1].entries[0].terminal).toBe(true);
   });
 
+  describe('MomentDefinition.sequence — textual child order (M-P13)', () => {
+    it('records node/when order from CST offsets on a real parse', async () => {
+      // NOTE: the current grammar's `when` blocks greedily consume following
+      // node placements, so a parsed moment's main entries always textually
+      // precede its when blocks — the sequence reflects exactly that.
+      const ir = await toIr(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Mixed"
+            a: FirstEvent
+            a: SecondEvent
+            when rejected
+              a: RejectionRecorded
+            when expired
+              a: ExpiryRecorded
+      `);
+
+      const frame = ir.flows[0].moments[0];
+      expect(frame.contextEntries.map((e) => e.nodeName)).toEqual(['FirstEvent', 'SecondEvent']);
+      expect(frame.branches!.map((b) => b.condition)).toEqual(['rejected', 'expired']);
+      expect(frame.sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'entry', index: 1 },
+        { kind: 'branch', index: 0 },
+        { kind: 'branch', index: 1 },
+      ]);
+    });
+
+    it('orders interleaved node/when/node children by textual offset', () => {
+      // The grammar cannot currently parse a main entry after a when block,
+      // but the sequence derivation is defined for any child interleaving —
+      // exercised here via explicit CST offsets on a hand-built AST.
+      const fakeFile = {
+        $type: 'MomentFile',
+        contexts: [],
+        flows: [
+          {
+            $type: 'FlowDeclaration',
+            name: '"synthetic"',
+            lanes: [],
+            moments: [
+              {
+                $type: 'MomentDeclaration',
+                label: '"Interleaved"',
+                nodes: [
+                  {
+                    $type: 'NodePlacement',
+                    laneId: 'a',
+                    nodeName: 'FirstEvent',
+                    connections: [],
+                    $cstNode: { offset: 0 },
+                  },
+                  {
+                    $type: 'NodePlacement',
+                    laneId: 'a',
+                    nodeName: 'SecondEvent',
+                    connections: [],
+                    $cstNode: { offset: 200 },
+                  },
+                ],
+                whenBlocks: [
+                  {
+                    $type: 'WhenBlock',
+                    condition: 'rejected',
+                    nodes: [],
+                    $cstNode: { offset: 100 },
+                  },
+                  {
+                    $type: 'WhenBlock',
+                    condition: 'expired',
+                    nodes: [],
+                    $cstNode: { offset: 300 },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      } as unknown as MomentFile;
+
+      const ir = astToIr(fakeFile);
+      expect(ir.flows[0].moments[0].sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'branch', index: 0 },
+        { kind: 'entry', index: 1 },
+        { kind: 'branch', index: 1 },
+      ]);
+    });
+
+    it('is emitted for every moment, including entries-only and branches-only ones', async () => {
+      const ir = await toIr(`
+        flow "test"
+          lane a "A" [Core]
+          moment "EntriesOnly"
+            a: EventA
+            a: EventB
+          moment "BranchesOnly"
+            when yes
+              a: YesEvent
+            when no
+              a: NoEvent
+      `);
+
+      expect(ir.flows[0].moments[0].sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'entry', index: 1 },
+      ]);
+      expect(ir.flows[0].moments[1].sequence).toEqual([
+        { kind: 'branch', index: 0 },
+        { kind: 'branch', index: 1 },
+      ]);
+    });
+
+    it('falls back to entries-then-branches order when the AST carries no CST nodes', () => {
+      // Hand-built AST (no $cstNode anywhere), e.g. synthetic test fixtures.
+      const fakeFile = {
+        $type: 'MomentFile',
+        contexts: [],
+        flows: [
+          {
+            $type: 'FlowDeclaration',
+            name: '"synthetic"',
+            lanes: [],
+            moments: [
+              {
+                $type: 'MomentDeclaration',
+                label: '"Synthetic"',
+                nodes: [
+                  { $type: 'NodePlacement', laneId: 'a', nodeName: 'E1', connections: [] },
+                  { $type: 'NodePlacement', laneId: 'a', nodeName: 'E2', connections: [] },
+                ],
+                whenBlocks: [{ $type: 'WhenBlock', condition: 'c', nodes: [] }],
+              },
+            ],
+          },
+        ],
+      } as unknown as MomentFile;
+
+      const ir = astToIr(fakeFile);
+      expect(ir.flows[0].moments[0].sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'entry', index: 1 },
+        { kind: 'branch', index: 0 },
+      ]);
+    });
+  });
+
   it('transforms node modifiers (optional, terminal, multiplicity)', async () => {
     const ir = await toIr(`
       flow "test"
@@ -534,8 +746,8 @@ describe('AstToIr', () => {
 
     expect(ir.relationships).toHaveLength(1);
     expect(ir.relationships[0]).toEqual({
-      sourceContextId: 'Ordering',
-      targetContextId: 'Fulfillment',
+      sourceContextId: 'ctx-Ordering',
+      targetContextId: 'ctx-Fulfillment',
       relationshipType: 'CustomerSupplier',
       contract: 'OrderPlaced event contract',
     });
@@ -745,5 +957,112 @@ describe('AstToIr', () => {
     `);
 
     expect(ir.contexts[0].sagas[0].timeout).toBe('none');
+  });
+
+  // -------------------------------------------------------------------------
+  // M-P4 — annotations reach policy/saga/service/invariant definitions
+  // -------------------------------------------------------------------------
+  describe('annotations on policy/saga/service/invariant (M-P4)', () => {
+    it('attaches annotations to policy, saga, and service definitions', async () => {
+      // Declarations precede the aggregate: the aggregate-member loop is
+      // greedy, so annotations written after an aggregate attach to it.
+      const ir = await toIr(`
+        context "Test"
+          @classification(PII)
+          policy NotifyOnPlacement
+            trigger OrderPlaced
+            action "Notify the warehouse"
+          @retention(HIPAA)
+          saga OrderLifecycle
+            trigger OrderPlaced
+            states Pending -> Done
+            compensation "Undo"
+            timeout "none"
+          @encryption("at-rest")
+          service PricingService
+            consumes PriceRequest
+            produces PriceQuote
+            description "Computes prices"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+      `);
+
+      const ctx = ir.contexts[0];
+      expect(ctx.policies[0].annotations).toEqual([{ name: 'classification', value: 'PII' }]);
+      expect(ctx.sagas[0].annotations).toEqual([{ name: 'retention', value: 'HIPAA' }]);
+      expect(ctx.domainServices[0].annotations).toEqual([{ name: 'encryption', value: 'at-rest' }]);
+    });
+
+    it('attaches annotations to invariant definitions', async () => {
+      const ir = await toIr(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+            @classification(PII)
+            invariant ORD-01 "Order must contain at least one item"
+              scope Order
+      `);
+
+      expect(ir.contexts[0].invariants[0].annotations).toEqual([
+        { name: 'classification', value: 'PII' },
+      ]);
+    });
+
+    it('omits annotations key on unannotated policy/saga/service/invariant', async () => {
+      const ir = await toIr(`
+        context "Test"
+          policy NotifyOnPlacement
+            trigger OrderPlaced
+            action "Notify the warehouse"
+          saga OrderLifecycle
+            trigger OrderPlaced
+            states Pending -> Done
+            compensation "Undo"
+            timeout "none"
+          service PricingService
+            consumes PriceRequest
+            produces PriceQuote
+            description "Computes prices"
+          aggregate "Order"
+            identity orderId: UUID
+            invariant ORD-01 "Order must contain at least one item"
+              scope Order
+      `);
+
+      const ctx = ir.contexts[0];
+      expect(ctx.policies[0].annotations).toBeUndefined();
+      expect(ctx.sagas[0].annotations).toBeUndefined();
+      expect(ctx.domainServices[0].annotations).toBeUndefined();
+      expect(ctx.invariants[0].annotations).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // M-P12 — metadata parameter
+  // -------------------------------------------------------------------------
+  describe('metadata parameter (M-P12)', () => {
+    it('stamps supplied name and version onto the IR', async () => {
+      const doc = await parse(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+      `);
+      const ir = astToIr(doc.parseResult.value, { name: 'my-spec', version: '1.2.3' });
+      expect(ir.metadata).toEqual({ name: 'my-spec', version: '1.2.3' });
+    });
+
+    it('keeps historical defaults for omitted fields', async () => {
+      const doc = await parse(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+      `);
+      const ir = astToIr(doc.parseResult.value, { name: 'named-only' });
+      expect(ir.metadata).toEqual({ name: 'named-only', version: '0.0.0' });
+    });
   });
 });

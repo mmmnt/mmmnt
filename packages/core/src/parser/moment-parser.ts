@@ -10,8 +10,17 @@ import { MomentModule, registerMomentValidationChecks } from '../moment-module.j
 import type { MomentFile } from '../generated/ast.js';
 import type { ParseResult, Diagnostic } from '../ir/index.js';
 import { astToIr } from './ast-to-ir.js';
+import { buildCrossFileContext } from '../validation/moment-validator.js';
+import { SchemaValidator } from '../services/schema-validator.js';
 import type { MomentAddedServices } from '../validation/moment-validator.js';
 import type { LangiumCoreServices } from 'langium';
+
+/** Spec name = file basename without its extension (M-P12). */
+function specNameFromPath(filePath: string): string {
+  const segments = filePath.split(/[/\\]/);
+  const base = segments[segments.length - 1];
+  return base.replace(/\.[^.]+$/, '');
+}
 
 export class MomentParser {
   private readonly services: LangiumCoreServices & MomentAddedServices;
@@ -36,7 +45,26 @@ export class MomentParser {
       URI.parse('memory:///parse.moment'),
     );
 
-    await this.services.shared.workspace.DocumentBuilder.build([doc], { validation: true });
+    // Single-file cross-file wiring (M-P3): when the file declares BOTH
+    // contexts and flows, its own declarations form the resolution context
+    // for V1/V9/V11 (node placements) and SP-01/SP-02 (lanes/crossings).
+    // Flow-only specs (zero context declarations) leave the context unset so
+    // every cross-file check no-ops — they cannot be validated against
+    // declarations they do not carry.
+    const ast = doc.parseResult.value;
+    const validator = this.services.validation.MomentValidator;
+    const declaresContexts = ast.contexts.length > 0;
+    const useCrossFileContext = declaresContexts && ast.flows.length > 0;
+    if (useCrossFileContext) {
+      validator.setCrossFileContext(buildCrossFileContext(ast));
+    }
+    try {
+      await this.services.shared.workspace.DocumentBuilder.build([doc], { validation: true });
+    } finally {
+      if (useCrossFileContext) {
+        validator.clearCrossFileContext();
+      }
+    }
 
     const file = filePath ?? 'parse.moment';
 
@@ -86,7 +114,25 @@ export class MomentParser {
       return { success: false, diagnostics };
     }
 
-    const ir = astToIr(doc.parseResult.value);
+    const ir = astToIr(ast, filePath ? { name: specNameFromPath(filePath) } : undefined);
+
+    // IR-level structural checks (SP-01…SP-04). Only meaningful when the file
+    // declares contexts (flow-only guard as above); surfaced as warnings —
+    // the spec already parsed and validated at the AST level, so IR-level
+    // findings are consistency advisories, not parse failures.
+    if (declaresContexts) {
+      const schemaResult = new SchemaValidator().validate(ir);
+      diagnostics.push(
+        // No source position: these findings are about IR structure, not a
+        // specific text range — fabricating an offset would be untruthful.
+        ...schemaResult.diagnostics.map((d) => ({
+          severity: 'warning' as const,
+          message: d.message,
+          ruleId: d.ruleId,
+        })),
+      );
+    }
+
     return { success: true, ir, diagnostics };
   }
 }

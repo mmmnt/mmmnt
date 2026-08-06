@@ -68,6 +68,7 @@ export type MomentKeywordNames =
     | "lane"
     | "moment"
     | "number"
+    | "on"
     | "optional"
     | "policy"
     | "precondition"
@@ -620,18 +621,20 @@ export interface SagaDeclaration extends langium.AstNode {
     readonly $container: ContextDeclaration;
     readonly $type: 'SagaDeclaration';
     compensation: string;
+    initialState: string;
     name: string;
-    states: Array<string>;
     timeout: SagaTimeout;
+    transitions: Array<SagaTransition>;
     trigger: string;
 }
 
 export const SagaDeclaration = {
     $type: 'SagaDeclaration',
     compensation: 'compensation',
+    initialState: 'initialState',
     name: 'name',
-    states: 'states',
     timeout: 'timeout',
+    transitions: 'transitions',
     trigger: 'trigger'
 } as const;
 
@@ -654,6 +657,23 @@ export const SagaTimeout = {
 
 export function isSagaTimeout(item: unknown): item is SagaTimeout {
     return reflection.isInstance(item, SagaTimeout.$type);
+}
+
+export interface SagaTransition extends langium.AstNode {
+    readonly $container: SagaDeclaration;
+    readonly $type: 'SagaTransition';
+    event?: string;
+    target: string;
+}
+
+export const SagaTransition = {
+    $type: 'SagaTransition',
+    event: 'event',
+    target: 'target'
+} as const;
+
+export function isSagaTransition(item: unknown): item is SagaTransition {
+    return reflection.isInstance(item, SagaTransition.$type);
 }
 
 export interface TriggeredBy extends langium.AstNode {
@@ -776,6 +796,7 @@ export type MomentAstType = {
     ReturnsTo: ReturnsTo
     SagaDeclaration: SagaDeclaration
     SagaTimeout: SagaTimeout
+    SagaTransition: SagaTransition
     TriggeredBy: TriggeredBy
     Triggers: Triggers
     TypeReference: TypeReference
@@ -1194,15 +1215,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 compensation: {
                     name: SagaDeclaration.compensation
                 },
+                initialState: {
+                    name: SagaDeclaration.initialState
+                },
                 name: {
                     name: SagaDeclaration.name
                 },
-                states: {
-                    name: SagaDeclaration.states,
-                    defaultValue: []
-                },
                 timeout: {
                     name: SagaDeclaration.timeout
+                },
+                transitions: {
+                    name: SagaDeclaration.transitions,
+                    defaultValue: []
                 },
                 trigger: {
                     name: SagaDeclaration.trigger
@@ -1218,6 +1242,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 none: {
                     name: SagaTimeout.none
+                }
+            },
+            superTypes: []
+        },
+        SagaTransition: {
+            name: SagaTransition.$type,
+            properties: {
+                event: {
+                    name: SagaTransition.event
+                },
+                target: {
+                    name: SagaTransition.target
                 }
             },
             superTypes: []

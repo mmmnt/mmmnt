@@ -3,6 +3,8 @@ import type {
   ValidationResult,
   Diagnostic,
   FileRef,
+  FlowDefinition,
+  ConnectionDefinition,
 } from '../ir/index.js';
 
 export class SchemaValidator {
@@ -54,6 +56,13 @@ export class SchemaValidator {
     }
   }
 
+  /**
+   * SP-02: A crossing's event must be declared on the boundary it crosses —
+   * by the source context (the emitter, the convention the shipped examples
+   * follow) or by the target context (consumer-side re-declaration). The
+   * original target-only rule flagged every crossing in the canonical
+   * examples, because events are declared once, in the emitting context.
+   */
   private checkSP02(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
     const contextEventsMap = new Map<string, Set<string>>();
     for (const ctx of ir.contexts) {
@@ -64,17 +73,46 @@ export class SchemaValidator {
     for (const flow of ir.flows) {
       for (const conn of flow.connections) {
         if (conn.connectionType === 'crosses-to') {
-          const targetEvents = contextEventsMap.get(conn.targetContextId);
-          if (targetEvents && !targetEvents.has(conn.eventId)) {
-            diagnostics.push({
-              severity: 'error',
-              message: `SP-02: Connection '${conn.id}' references unknown event '${conn.eventId}' in context '${conn.targetContextId}'.`,
-              ruleId: 'SP-02',
-            });
-          }
+          this.checkCrossingEventDeclared(flow, conn, contextEventsMap, diagnostics);
         }
       }
     }
+  }
+
+  private checkCrossingEventDeclared(
+    flow: FlowDefinition,
+    conn: ConnectionDefinition,
+    contextEventsMap: Map<string, Set<string>>,
+    diagnostics: Diagnostic[],
+  ): void {
+    const targetEvents = contextEventsMap.get(conn.targetContextId);
+    const sourceContextId = this.resolveSourceContextId(flow, conn);
+    const sourceEvents =
+      sourceContextId !== undefined ? contextEventsMap.get(sourceContextId) : undefined;
+    // Unknown contexts on both ends are SP-01's finding, not SP-02's.
+    if (!targetEvents && !sourceEvents) return;
+    if (!targetEvents?.has(conn.eventId) && !sourceEvents?.has(conn.eventId)) {
+      diagnostics.push({
+        severity: 'error',
+        message: `SP-02: Connection '${conn.id}' references event '${conn.eventId}' which is declared neither by its source context nor by target context '${conn.targetContextId}'.`,
+        ruleId: 'SP-02',
+      });
+    }
+  }
+
+  /** Context that owns the connection's declaring node, via its moment entry. */
+  private resolveSourceContextId(
+    flow: FlowDefinition,
+    conn: ConnectionDefinition,
+  ): string | undefined {
+    if (conn.sourceNodeName === undefined) return undefined;
+    const moment = flow.moments.find((m) => m.id === conn.sourceMomentId);
+    if (!moment) return undefined;
+    const entries = [
+      ...moment.contextEntries,
+      ...(moment.branches?.flatMap((b) => b.entries) ?? []),
+    ];
+    return entries.find((e) => e.nodeName === conn.sourceNodeName)?.contextId;
   }
 
   private checkSP03(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
@@ -93,6 +131,15 @@ export class SchemaValidator {
     }
   }
 
+  /**
+   * SP-04: returns-to must land on a prior moment in the same flow.
+   *
+   * Resolution uses the connection's `targetMomentId` (with a
+   * `targetMomentLabel` name-match fallback) — the moment the spec actually
+   * names. The original implementation resolved via `targetContextId`, which
+   * is the SOURCE node's own lane (audit M-P10) and flagged every moment that
+   * merely shared that context — semantically wrong in both directions.
+   */
   private checkSP04(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
     for (const flow of ir.flows) {
       const momentIndexMap = new Map<string, number>();
@@ -102,41 +149,56 @@ export class SchemaValidator {
 
       for (const conn of flow.connections) {
         if (conn.connectionType === 'returns-to') {
-          const sourceIndex = momentIndexMap.get(conn.sourceMomentId);
-          if (sourceIndex === undefined) {
-            diagnostics.push({
-              severity: 'error',
-              message: `SP-04: Connection '${conn.id}' references unresolvable source moment '${conn.sourceMomentId}'.`,
-              ruleId: 'SP-04',
-            });
-            continue;
-          }
-
-          const targetMomentIds = flow.moments
-            .filter((m) => m.contextEntries.some((e) => e.contextId === conn.targetContextId))
-            .map((m) => m.id);
-
-          if (targetMomentIds.length === 0) {
-            diagnostics.push({
-              severity: 'error',
-              message: `SP-04: Connection '${conn.id}' returns-to target context '${conn.targetContextId}' which does not appear in any moment.`,
-              ruleId: 'SP-04',
-            });
-            continue;
-          }
-
-          for (const targetMomentId of targetMomentIds) {
-            const targetIndex = momentIndexMap.get(targetMomentId);
-            if (targetIndex !== undefined && targetIndex >= sourceIndex) {
-              diagnostics.push({
-                severity: 'error',
-                message: `SP-04: Connection '${conn.id}' returns-to a moment that is not prior (source moment index ${sourceIndex}, target moment index ${targetIndex}).`,
-                ruleId: 'SP-04',
-              });
-            }
-          }
+          this.checkReturnsToIsPrior(flow, conn, momentIndexMap, diagnostics);
         }
       }
     }
+  }
+
+  private checkReturnsToIsPrior(
+    flow: FlowDefinition,
+    conn: Extract<
+      ConnectionDefinition,
+      { connectionType: 'returns-to' | 'triggers' | 'triggered-by' }
+    >,
+    momentIndexMap: Map<string, number>,
+    diagnostics: Diagnostic[],
+  ): void {
+    const sourceIndex = momentIndexMap.get(conn.sourceMomentId);
+    if (sourceIndex === undefined) {
+      diagnostics.push({
+        severity: 'error',
+        message: `SP-04: Connection '${conn.id}' references unresolvable source moment '${conn.sourceMomentId}'.`,
+        ruleId: 'SP-04',
+      });
+      return;
+    }
+
+    const targetMomentId =
+      conn.targetMomentId ?? this.resolveMomentIdByLabel(flow, conn.targetMomentLabel);
+    const targetIndex =
+      targetMomentId !== undefined ? momentIndexMap.get(targetMomentId) : undefined;
+
+    if (targetIndex === undefined) {
+      diagnostics.push({
+        severity: 'error',
+        message: `SP-04: Connection '${conn.id}' returns-to target moment '${conn.targetMomentLabel ?? conn.targetMomentId ?? 'unknown'}' which cannot be resolved in this flow.`,
+        ruleId: 'SP-04',
+      });
+      return;
+    }
+
+    if (targetIndex >= sourceIndex) {
+      diagnostics.push({
+        severity: 'error',
+        message: `SP-04: Connection '${conn.id}' returns-to a moment that is not prior (source moment index ${sourceIndex}, target moment index ${targetIndex}).`,
+        ruleId: 'SP-04',
+      });
+    }
+  }
+
+  private resolveMomentIdByLabel(flow: FlowDefinition, label?: string): string | undefined {
+    if (label === undefined) return undefined;
+    return flow.moments.find((m) => m.name === label)?.id;
   }
 }

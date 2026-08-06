@@ -9,20 +9,37 @@ import type { ValidationAcceptor, ValidationChecks } from 'langium';
 import type { LangiumCoreServices } from 'langium';
 import type {
   MomentAstType,
+  AggregateDeclaration,
   AnnotationDeclaration,
   ContextCrossing,
+  ContextDeclaration,
   FieldDeclaration,
   FlowDeclaration,
+  InputField,
   MomentDeclaration,
+  MomentFile,
   LaneDeclaration,
   NodePlacement,
+  SagaDeclaration,
+  TriggeredBy,
+  Triggers,
 } from '../generated/ast.js';
 import {
+  isAggregateDeclaration,
+  isAnnotationDeclaration,
+  isCommandDeclaration,
+  isDomainEventDeclaration,
+  isPolicyDeclaration,
   isReturnsTo,
   isMomentDeclaration,
   isFlowDeclaration,
+  isSagaDeclaration,
   isTriggeredBy,
+  isTriggers,
+  isValueObjectDeclaration,
+  isMomentFile,
 } from '../generated/ast.js';
+import { buildMomentSequence } from '../parser/moment-sequence.js';
 
 // ---------------------------------------------------------------------------
 // Cross-file context interface
@@ -39,6 +56,63 @@ export interface CrossFileContext {
     }[]
   >;
   declaredSagas: string[];
+}
+
+/** Strip surrounding double-quotes from a Langium STRING token value. */
+function unquote(s: string): string {
+  return s.startsWith('"') && s.endsWith('"') ? s.slice(1, -1) : s;
+}
+
+/**
+ * Build a CrossFileContext from a single file's OWN context declarations.
+ *
+ * This makes the cross-file validators (V1/V9/V11, SP-01/SP-02) live for the
+ * shipping single-file mode: a spec that declares both contexts and flows can
+ * be checked against itself without the unshipped project-mode multi-file
+ * parse (M-P3). Flow-only files produce an empty context and must NOT have
+ * these checks applied — callers only set the context when the file actually
+ * declares contexts.
+ */
+export function buildCrossFileContext(file: MomentFile): CrossFileContext {
+  const declaredContextNames: string[] = [];
+  const declaredEvents = new Map<string, string[]>();
+  const declaredBuildingBlocks: CrossFileContext['declaredBuildingBlocks'] = new Map();
+  const declaredSagas: string[] = [];
+
+  for (const ctx of file.contexts) {
+    const contextName = unquote(ctx.name);
+    declaredContextNames.push(contextName);
+    const events: string[] = [];
+    const blocks: {
+      name: string;
+      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'value-object';
+    }[] = [];
+
+    for (const member of ctx.members) {
+      if (isAggregateDeclaration(member)) {
+        for (const aggMember of member.members) {
+          if (isCommandDeclaration(aggMember)) {
+            blocks.push({ name: aggMember.name, kind: 'command' });
+          } else if (isDomainEventDeclaration(aggMember)) {
+            events.push(aggMember.name);
+            blocks.push({ name: aggMember.name, kind: 'event' });
+          } else if (isValueObjectDeclaration(aggMember)) {
+            blocks.push({ name: aggMember.name, kind: 'value-object' });
+          }
+        }
+      } else if (isPolicyDeclaration(member)) {
+        blocks.push({ name: member.name, kind: 'policy' });
+      } else if (isSagaDeclaration(member)) {
+        blocks.push({ name: member.name, kind: 'saga' });
+        declaredSagas.push(member.name);
+      }
+    }
+
+    declaredEvents.set(contextName, events);
+    declaredBuildingBlocks.set(contextName, blocks);
+  }
+
+  return { declaredContextNames, declaredEvents, declaredBuildingBlocks, declaredSagas };
 }
 
 // ---------------------------------------------------------------------------
@@ -59,18 +133,29 @@ export function registerMomentValidationChecks(
   const checks: ValidationChecks<MomentAstType> = {
     MomentDeclaration: validator.checkMoment,
     FieldDeclaration: validator.checkDeprecatedReplacement,
+    InputField: validator.checkDeprecatedReplacement,
     AnnotationDeclaration: validator.checkAnnotationName,
+    ContextDeclaration: validator.checkTrailingAnnotation,
+    AggregateDeclaration: validator.checkTrailingAnnotation,
+    SagaDeclaration: validator.checkSagaTransitionEvents,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
       validator.checkTerminalIsLast,
       validator.checkLaneIdExists,
+      validator.checkTriggerDirection,
     ],
     ContextCrossing: [
       validator.checkCrossingEmptyContract,
       validator.checkCrossingTargetBranchLane,
+      validator.checkCrossingCrossFileRules,
     ],
-    FlowDeclaration: [validator.checkReturnsToDepth, validator.checkBranchLaneReferenced],
+    FlowDeclaration: [
+      validator.checkReturnsToDepth,
+      validator.checkBranchLaneReferenced,
+      validator.checkV14,
+      validator.checkFlowCrossFileRules,
+    ],
   };
   registry.register(checks, validator);
 }
@@ -90,11 +175,36 @@ function getFlowFromNode(node: { $container?: unknown }): FlowDeclaration | unde
   return undefined;
 }
 
-function collectSiblingNames(field: FieldDeclaration): Set<string> {
-  // FieldDeclaration with deprecation only appears on DomainEventDeclaration
-  // and ValueObjectDeclaration, both of which have .fields arrays
-  const container = field.$container as { fields: FieldDeclaration[] };
-  return new Set(container.fields.map((f) => f.name));
+function collectSiblingNames(field: FieldDeclaration | InputField): Set<string> | undefined {
+  // Deprecatable fields live on events/value-objects (.fields), commands
+  // (.inputs), or aggregates (identity field — no sibling list to check).
+  const container = field.$container as {
+    fields?: { name: string }[];
+    inputs?: { name: string }[];
+  };
+  const siblings = container.fields ?? container.inputs;
+  return siblings ? new Set(siblings.map((f) => f.name)) : undefined;
+}
+
+function laneDeclaresEvent(
+  lane: LaneDeclaration | undefined,
+  eventName: string,
+  ctx: CrossFileContext,
+): boolean {
+  if (!lane) return false;
+  const events = ctx.declaredEvents.get(unquote(lane.label)) ?? [];
+  return events.includes(eventName);
+}
+
+function getMomentFileFromNode(node: { $container?: unknown }): MomentFile | undefined {
+  let current: unknown = node;
+  while (current) {
+    if (isMomentFile(current as Record<string, unknown>)) {
+      return current as MomentFile;
+    }
+    current = (current as { $container?: unknown }).$container;
+  }
+  return undefined;
 }
 
 function getMomentFromNode(node: { $container?: unknown }): MomentDeclaration | undefined {
@@ -126,10 +236,14 @@ export class MomentValidator {
   // =========================================================================
   // V12: Deprecated field replacement must exist as sibling field
   // =========================================================================
-  checkDeprecatedReplacement(field: FieldDeclaration, accept: ValidationAcceptor): void {
+  checkDeprecatedReplacement(
+    field: FieldDeclaration | InputField,
+    accept: ValidationAcceptor,
+  ): void {
     if (!field.deprecation) return;
     const replacement = field.deprecation.replacement.replace(/^"|"$/g, '');
     const siblings = collectSiblingNames(field);
+    if (siblings === undefined) return;
     if (!siblings.has(replacement)) {
       accept(
         'warning',
@@ -195,6 +309,13 @@ export class MomentValidator {
 
   // =========================================================================
   // V8: [terminal] must be last node in branch/when block -> error
+  //
+  // M-P13 blind spot: the sibling-array check cannot see `when` blocks that
+  // textually follow a terminal node in the same moment (grammar splits nodes
+  // and whenBlocks into separate arrays). CST offsets recover the textual
+  // order; a main-list terminal followed by a when block gets a warning.
+  // A terminal INSIDE a when block followed by later when blocks is legal —
+  // those are alternative branch arms, not continuations.
   // =========================================================================
   checkTerminalIsLast(node: NodePlacement, accept: ValidationAcceptor): void {
     if (node.modifier?.type !== 'terminal') return;
@@ -206,6 +327,26 @@ export class MomentValidator {
         node: node,
         property: 'modifier',
       });
+    }
+
+    if (isMomentDeclaration(container)) {
+      // Shared with the IR's MomentDefinition.sequence (M-P13): textual order
+      // of the moment's children from CST offsets. Hand-built ASTs without a
+      // CST fall back to declaration order, which says nothing about textual
+      // position — skip the check there.
+      const { sequence, fromCst } = buildMomentSequence(container);
+      if (!fromCst) return;
+      const nodeIndex = container.nodes.indexOf(node);
+      const position = sequence.findIndex((s) => s.kind === 'entry' && s.index === nodeIndex);
+      const followedByWhenBlock =
+        position >= 0 && sequence.slice(position + 1).some((s) => s.kind === 'branch');
+      if (followedByWhenBlock) {
+        accept(
+          'warning',
+          'V8: Terminal node is textually followed by a when block in the same moment; the flow would continue past the terminal.',
+          { node: node, property: 'modifier' },
+        );
+      }
     }
   }
 
@@ -251,6 +392,142 @@ export class MomentValidator {
   }
 
   // =========================================================================
+  // V19: trailing annotation classifies nothing -> warning (M-P4)
+  // An annotation applies to the NEXT declaration in the member list; when
+  // nothing follows it, it silently classifies nothing.
+  // =========================================================================
+  checkTrailingAnnotation(
+    container: ContextDeclaration | AggregateDeclaration,
+    accept: ValidationAcceptor,
+  ): void {
+    const members = container.members;
+    for (let i = members.length - 1; i >= 0; i--) {
+      const member = members[i];
+      if (!isAnnotationDeclaration(member)) break;
+      accept(
+        'warning',
+        `V19: Annotation '@${member.name}' is not followed by a declaration and has no effect.`,
+        { node: member, property: 'name' },
+      );
+    }
+  }
+
+  // =========================================================================
+  // V20: declared trigger direction vs flow order -> warning (M-S10)
+  // `N triggers X` declares N as the cause of X, so X must not be placed
+  // before N's moment; `N triggered-by X` declares X as the cause, so X must
+  // not be placed after N's moment. Dangling references (X not placed in the
+  // flow at all) are V1's job and are skipped here.
+  // =========================================================================
+  checkTriggerDirection(node: NodePlacement, accept: ValidationAcceptor): void {
+    const flow = getFlowFromNode(node);
+    const moment = getMomentFromNode(node);
+    if (!flow || !moment) return;
+    const currentIndex = flow.moments.indexOf(moment);
+    if (currentIndex < 0) return;
+    const placementIndex = this.buildPlacementIndex(flow);
+
+    for (const conn of node.connections) {
+      if (isTriggers(conn)) {
+        this.warnIfPlacedBefore(conn, node, placementIndex, currentIndex, accept);
+      } else if (isTriggeredBy(conn)) {
+        this.warnIfPlacedAfter(conn, node, placementIndex, currentIndex, accept);
+      }
+    }
+  }
+
+  private warnIfPlacedBefore(
+    conn: Triggers,
+    node: NodePlacement,
+    placementIndex: Map<string, number>,
+    currentIndex: number,
+    accept: ValidationAcceptor,
+  ): void {
+    const targetIndex = placementIndex.get(conn.nodeName);
+    if (targetIndex !== undefined && targetIndex < currentIndex) {
+      accept(
+        'warning',
+        `V20: declared trigger direction contradicts flow order: '${conn.nodeName}' occurs before '${node.nodeName}'.`,
+        { node: conn, property: 'nodeName' },
+      );
+    }
+  }
+
+  private warnIfPlacedAfter(
+    conn: TriggeredBy,
+    node: NodePlacement,
+    placementIndex: Map<string, number>,
+    currentIndex: number,
+    accept: ValidationAcceptor,
+  ): void {
+    const sourceIndex = placementIndex.get(conn.nodeName);
+    if (sourceIndex !== undefined && sourceIndex > currentIndex) {
+      accept(
+        'warning',
+        `V20: declared trigger direction contradicts flow order: trigger '${conn.nodeName}' occurs after '${node.nodeName}'.`,
+        { node: conn, property: 'nodeName' },
+      );
+    }
+  }
+
+  // =========================================================================
+  // V21: saga transition event unknown -> warning (M-S6)
+  // A `-> Target on Event` mapping whose event is neither declared by any
+  // context in the file nor placed in any flow is probably a typo. Guarded
+  // like the other cross-file checks: only meaningful when the file declares
+  // contexts (sagas always live inside one); an `on` event that only appears
+  // as a flow node placement is accepted, so mixed/flow-heavy specs that
+  // never re-declare events in contexts do not warn.
+  // =========================================================================
+  checkSagaTransitionEvents(saga: SagaDeclaration, accept: ValidationAcceptor): void {
+    const file = getMomentFileFromNode(saga);
+    if (!file || file.contexts.length === 0) return;
+
+    const knownEvents = this.collectDeclaredEventNames(file);
+    const placedNodeNames = this.collectPlacedNodeNames(file);
+
+    for (const transition of saga.transitions) {
+      const event = transition.event;
+      if (event === undefined) continue;
+      if (!knownEvents.has(event) && !placedNodeNames.has(event)) {
+        accept(
+          'warning',
+          `V21: Saga transition event '${event}' is not declared by any context in this file and is not placed in any flow — possible typo.`,
+          { node: transition, property: 'event' },
+        );
+      }
+    }
+  }
+
+  /** Event names declared by any aggregate in any context of the file. */
+  private collectDeclaredEventNames(file: MomentFile): Set<string> {
+    const names = new Set<string>();
+    for (const ctx of file.contexts) {
+      for (const member of ctx.members) {
+        if (!isAggregateDeclaration(member)) continue;
+        for (const aggMember of member.members) {
+          if (isDomainEventDeclaration(aggMember)) names.add(aggMember.name);
+        }
+      }
+    }
+    return names;
+  }
+
+  /** Node names placed anywhere in the file's flows (main lists and when blocks). */
+  private collectPlacedNodeNames(file: MomentFile): Set<string> {
+    const names = new Set<string>();
+    for (const flow of file.flows) {
+      for (const moment of flow.moments) {
+        for (const node of moment.nodes) names.add(node.nodeName);
+        for (const wb of moment.whenBlocks) {
+          for (const node of wb.nodes) names.add(node.nodeName);
+        }
+      }
+    }
+    return names;
+  }
+
+  // =========================================================================
   // V17: returns-to depth capped at 1 -> warning
   // =========================================================================
   checkReturnsToDepth(flow: FlowDeclaration, accept: ValidationAcceptor): void {
@@ -284,12 +561,30 @@ export class MomentValidator {
   }
 
   // =========================================================================
+  // Registered cross-file entry points: no-ops unless a CrossFileContext has
+  // been set (single-file mode sets it only when the file declares contexts),
+  // so flow-only specs are never spammed with cross-file diagnostics.
+  // =========================================================================
+
+  checkFlowCrossFileRules(flow: FlowDeclaration, accept: ValidationAcceptor): void {
+    if (!this.crossFileContext) return;
+    this.checkSP01(flow, accept, this.crossFileContext);
+  }
+
+  checkCrossingCrossFileRules(crossing: ContextCrossing, accept: ValidationAcceptor): void {
+    if (!this.crossFileContext) return;
+    this.checkSP02(crossing, accept, this.crossFileContext);
+  }
+
+  // =========================================================================
   // Cross-file validators (SP-01, SP-02, V1, V9, V11, V14)
   // =========================================================================
 
-  // SP-01: Flow lane references must match declared context names
+  // SP-01: Flow lane references must match declared context names.
+  // Branch-lanes are outcome routes (e.g. "Refusals"), not contexts — skipped.
   checkSP01(flow: FlowDeclaration, accept: ValidationAcceptor, ctx: CrossFileContext): void {
     for (const lane of flow.lanes) {
+      if (lane.isBranch) continue;
       if (!ctx.declaredContextNames.includes(lane.label.replace(/^"|"$/g, ''))) {
         accept('error', 'SP-01: Lane label does not match any declared context name.', {
           node: lane,
@@ -299,29 +594,38 @@ export class MomentValidator {
     }
   }
 
-  // SP-02: Crossing event names must be declared events in the target context
+  // SP-02: Crossing event names must be declared events on the boundary —
+  // in the source context (the emitter, the convention every shipped example
+  // follows) or in the target context (a consumer-side re-declaration).
+  // The original target-only rule flagged every crossing in the canonical
+  // examples, because events are declared once, in the emitting context.
   checkSP02(crossing: ContextCrossing, accept: ValidationAcceptor, ctx: CrossFileContext): void {
     const flow = getFlowFromNode(crossing);
     if (!flow) return;
     const targetLane = flow.lanes.find((l: LaneDeclaration) => l.id === crossing.targetLaneId);
     if (!targetLane) return;
-    const contextName = targetLane.label.replace(/^"|"$/g, '');
-    const events = ctx.declaredEvents.get(contextName) ?? [];
     const parentNode = crossing.$container;
-    if (!events.includes(parentNode.nodeName)) {
-      accept('error', 'SP-02: Crossing event is not declared in the target context.', {
+    const sourceLane = flow.lanes.find((l: LaneDeclaration) => l.id === parentNode.laneId);
+    if (targetLane.isBranch || sourceLane?.isBranch) return;
+    const declaredOnBoundary = [sourceLane, targetLane].some((lane) =>
+      laneDeclaresEvent(lane, parentNode.nodeName, ctx),
+    );
+    if (!declaredOnBoundary) {
+      accept('error', 'SP-02: Crossing event is not declared in the source or target context.', {
         node: crossing,
         property: 'targetLaneId',
       });
     }
   }
 
-  // V1: Node names must resolve to declared building blocks via lane context
+  // V1: Node names must resolve to declared building blocks via lane context.
+  // Branch-lane placements are skipped: those lanes route outcomes and do not
+  // correspond to a declared context.
   checkV1(node: NodePlacement, accept: ValidationAcceptor, ctx: CrossFileContext): void {
     const flow = getFlowFromNode(node);
     if (!flow) return;
     const lane = flow.lanes.find((l: LaneDeclaration) => l.id === node.laneId);
-    if (!lane) return;
+    if (!lane || lane.isBranch) return;
     const contextName = lane.label.replace(/^"|"$/g, '');
     const blocks = ctx.declaredBuildingBlocks.get(contextName) ?? [];
     const blockNames = blocks.map((b) => b.name);
@@ -357,7 +661,7 @@ export class MomentValidator {
     const flow = getFlowFromNode(node);
     if (!flow) return;
     const lane = flow.lanes.find((l: LaneDeclaration) => l.id === node.laneId);
-    if (!lane) return;
+    if (!lane || lane.isBranch) return;
     const contextName = lane.label.replace(/^"|"$/g, '');
     const blocks = ctx.declaredBuildingBlocks.get(contextName) ?? [];
     const block = blocks.find((b) => b.name === node.nodeName);
@@ -375,7 +679,7 @@ export class MomentValidator {
     const flow = getFlowFromNode(node);
     if (!flow) return;
     const lane = flow.lanes.find((l: LaneDeclaration) => l.id === node.laneId);
-    if (!lane) return;
+    if (!lane || lane.isBranch) return;
     const contextName = lane.label.replace(/^"|"$/g, '');
     const blocks = ctx.declaredBuildingBlocks.get(contextName) ?? [];
     const block = blocks.find((b) => b.name === node.nodeName);
@@ -472,6 +776,19 @@ export class MomentValidator {
       labels.add(moment.label);
     }
     return labels;
+  }
+
+  /** Earliest moment index at which each node name is placed in the flow. */
+  private buildPlacementIndex(flow: FlowDeclaration): Map<string, number> {
+    const index = new Map<string, number>();
+    flow.moments.forEach((moment, momentIndex) => {
+      const record = (n: NodePlacement): void => {
+        if (!index.has(n.nodeName)) index.set(n.nodeName, momentIndex);
+      };
+      moment.nodes.forEach(record);
+      moment.whenBlocks.forEach((wb) => wb.nodes.forEach(record));
+    });
+    return index;
   }
 
   private collectPriorNodeNames(

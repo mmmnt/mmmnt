@@ -73,11 +73,13 @@ export interface InvariantDefinition {
   id: string;
   description: string;
   scope: string;
+  annotations?: AnnotationDefinition[];
 }
 
 export interface DomainServiceDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   consumes: string;
   produces: string;
   description: string;
@@ -86,6 +88,7 @@ export interface DomainServiceDefinition {
 export interface PolicyDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   trigger: string;
   action: string;
   chainsTo?: string;
@@ -94,8 +97,24 @@ export interface PolicyDefinition {
 export interface SagaDefinition {
   id: string;
   name: string;
+  annotations?: AnnotationDefinition[];
   trigger: string;
   states: string[];
+  /**
+   * State transitions in declaration order, derived from the `states` chain
+   * (M-S6). `onEvent` is present when the spec binds the transition to a
+   * domain event via `-> Target on Event`. Optional at the type level so
+   * hand-built IR stays valid; the parser always emits it.
+   */
+  transitions?: SagaTransitionDefinition[];
   compensation: string;
   timeout: string;
+}
+
+/** One saga state transition (see SagaDefinition.transitions). */
+export interface SagaTransitionDefinition {
+  from: string;
+  to: string;
+  /** Domain event that fires this transition (`-> To on Event`). */
+  onEvent?: string;
 }

@@ -1392,4 +1392,632 @@ describe('MomentValidator', () => {
       expect(warnings.some((m) => m.includes('V12'))).toBe(false);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // V19: trailing annotation classifies nothing (M-P4)
+  // -------------------------------------------------------------------------
+  describe('V19 — trailing annotation', () => {
+    it('warns when a context ends with an annotation that precedes nothing', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+          @classification(PII)
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V19') && m.includes('classification'))).toBe(true);
+    });
+
+    it('warns when an aggregate ends with an annotation that precedes nothing', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+            @retention(HIPAA)
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V19') && m.includes('retention'))).toBe(true);
+    });
+
+    it('warns on every annotation in a trailing run', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+          @classification(PII)
+          @retention(HIPAA)
+      `);
+      const warnings = warningMessages(result).filter((m) => m.includes('V19'));
+      expect(warnings).toHaveLength(2);
+    });
+
+    it('does not warn when the annotation precedes a declaration', async () => {
+      const result = await validate(`
+        context "Test"
+          @classification(PII)
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V19'))).toBe(false);
+    });
+
+    it('does not warn when the annotation precedes a policy declaration', async () => {
+      // The policy must precede any aggregate: the aggregate-member loop is
+      // greedy, so an annotation written after an aggregate attaches to the
+      // aggregate (and V19 truthfully warns that it reaches nothing).
+      const result = await validate(`
+        context "Test"
+          @classification(PII)
+          policy NotifyOnPlacement
+            trigger OrderPlaced
+            action "Notify the warehouse"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V19'))).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // V8 (M-P13 blind spot): terminal node textually followed by a when block
+  // -------------------------------------------------------------------------
+  describe('V8 — terminal followed by when block (textual order)', () => {
+    it('warns when a terminal main-list node is textually followed by a when block', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step"
+            a: Done [terminal]
+            when retry
+              a: RetryEvent
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V8') && m.includes('when block'))).toBe(true);
+    });
+
+    it('does not warn when the when block precedes the terminal node', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step"
+            when retry
+              a: RetryEvent
+            a: Done [terminal]
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V8'))).toBe(false);
+    });
+
+    it('does not warn for a terminal inside a when block followed by sibling arms', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Outcome" [branch]
+            when failure
+              a: FailEvent [terminal]
+            when success
+              a: SuccessEvent
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V8'))).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // V20: declared trigger direction vs flow order (M-S10)
+  // -------------------------------------------------------------------------
+  describe('V20 — trigger direction vs flow order', () => {
+    it('warns when triggers references a node placed in an earlier moment', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step 1"
+            a: EarlyEvent
+          moment "Step 2"
+            a: LateEvent
+              triggers EarlyEvent
+      `);
+      const warnings = warningMessages(result);
+      expect(
+        warnings.some((m) => m.includes('V20') && m.includes("'EarlyEvent' occurs before")),
+      ).toBe(true);
+    });
+
+    it('does not warn when triggers references a node in the same moment', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step 1"
+            a: SendRequest
+              triggers RecordRequest
+            a: RecordRequest
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V20'))).toBe(false);
+    });
+
+    it('does not warn when triggers references a node in a later moment', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step 1"
+            a: SendRequest
+              triggers HandleRequest
+          moment "Step 2"
+            a: HandleRequest
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V20'))).toBe(false);
+    });
+
+    it('does not warn when the triggers reference is not placed in the flow (V1 territory)', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step 1"
+            a: SendRequest
+              triggers UnplacedNode
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V20'))).toBe(false);
+    });
+
+    it('warns when triggered-by references a node placed in a later moment', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step 1"
+            a: EagerHandler
+              triggered-by FutureEvent
+          moment "Step 2"
+            a: FutureEvent
+      `);
+      const warnings = warningMessages(result);
+      expect(
+        warnings.some((m) => m.includes('V20') && m.includes("'FutureEvent' occurs after")),
+      ).toBe(true);
+    });
+
+    it('does not warn when triggered-by references a node from a prior moment', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Step 1"
+            a: OrderPlaced
+          moment "Step 2"
+            a: CheckInventory
+              triggered-by OrderPlaced
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V20'))).toBe(false);
+    });
+
+    it('considers when-block placements when locating the referenced node', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Branch" [branch]
+            when success
+              a: BranchEvent
+          moment "Step 2"
+            a: LateEvent
+              triggers BranchEvent
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V20'))).toBe(true);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // V21: saga transition `on` event unknown (M-S6)
+  // -------------------------------------------------------------------------
+  describe('V21 — saga transition event unknown', () => {
+    it('warns when an `on` event is neither declared in a context nor placed in a flow', async () => {
+      const result = await validate(`
+        context "Payments"
+          aggregate "Hold"
+            identity holdId: UUID
+            event PaymentConfirmed
+          saga HoldLifecycle
+            trigger PlaceHold
+            states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertdToReservation
+            compensation "Release the hold"
+            timeout "none"
+      `);
+      const warnings = warningMessages(result);
+      expect(
+        warnings.some((m) => m.includes('V21') && m.includes("'HoldConvertdToReservation'")),
+      ).toBe(true);
+      // The declared event does not warn.
+      expect(warnings.some((m) => m.includes("'PaymentConfirmed'"))).toBe(false);
+    });
+
+    it('does not warn when every `on` event is declared by a context in the file', async () => {
+      const result = await validate(`
+        context "Payments"
+          aggregate "Hold"
+            identity holdId: UUID
+            event PaymentConfirmed
+            event HoldConvertedToReservation
+          saga HoldLifecycle
+            trigger PlaceHold
+            states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertedToReservation
+            compensation "Release the hold"
+            timeout "none"
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V21'))).toBe(false);
+    });
+
+    it('does not warn when the `on` event is only placed in a flow (not re-declared)', async () => {
+      const result = await validate(`
+        context "Payments"
+          aggregate "Hold"
+            identity holdId: UUID
+            event HoldPlaced
+          saga HoldLifecycle
+            trigger PlaceHold
+            states Held -> Converted on PaymentConfirmed
+            compensation "Release the hold"
+            timeout "none"
+        flow "checkout"
+          lane pay "Payments" [Core]
+          moment "Confirmation"
+            pay: PaymentConfirmed
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V21'))).toBe(false);
+    });
+
+    it('considers when-block placements as flow placements', async () => {
+      const result = await validate(`
+        context "Payments"
+          aggregate "Hold"
+            identity holdId: UUID
+            event HoldPlaced
+          saga HoldLifecycle
+            trigger PlaceHold
+            states Held -> Converted on PaymentConfirmed
+            compensation "Release the hold"
+            timeout "none"
+        flow "checkout"
+          lane pay "Payments" [Core]
+          moment "Confirmation" [branch]
+            when paid
+              pay: PaymentConfirmed
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V21'))).toBe(false);
+    });
+
+    it('does not warn for transitions without an `on` mapping', async () => {
+      const result = await validate(`
+        context "Payments"
+          aggregate "Hold"
+            identity holdId: UUID
+            event HoldPlaced
+          saga HoldLifecycle
+            trigger PlaceHold
+            states Held -> Converting -> Converted
+            compensation "Release the hold"
+            timeout "none"
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V21'))).toBe(false);
+    });
+
+    it('returns gracefully for a saga fragment without a MomentFile ancestor', () => {
+      const validator = services.validation.MomentValidator;
+      const fakeSaga = {
+        $type: 'SagaDeclaration',
+        name: 'Orphan',
+        trigger: 'Start',
+        initialState: 'A',
+        transitions: [{ $type: 'SagaTransition', target: 'B', event: 'MysteryEvent' }],
+        compensation: '"none"',
+        $container: { $type: 'Unknown' },
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkSagaTransitionEvents(fakeSaga, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Branch-lane skips: cross-file checks ignore outcome-route lanes
+  // -------------------------------------------------------------------------
+  describe('branch-lane skips for cross-file checks', () => {
+    const branchSkipContext: CrossFileContext = {
+      declaredContextNames: ['Ordering'],
+      declaredEvents: new Map([['Ordering', ['OrderPlaced']]]),
+      declaredBuildingBlocks: new Map([
+        [
+          'Ordering',
+          [
+            { name: 'PlaceOrder', kind: 'command' },
+            { name: 'OrderPlaced', kind: 'event' },
+          ],
+        ],
+      ]),
+      declaredSagas: [],
+    };
+
+    it('SP-01 skips branch lanes whose labels are not contexts', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          branch-lane errs "Not A Context"
+          moment "Step"
+            a: OrderPlaced
+          moment "Outcome" [branch]
+            when bad
+              errs: OrderPlaced [terminal]
+      `);
+      const validator = services.validation.MomentValidator;
+      const flow = result.document.parseResult.value.flows[0];
+      const diagnostics: string[] = [];
+      validator.checkSP01(
+        flow,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        branchSkipContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V9 skips crossings declared on branch-lane placements', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          branch-lane errs "Errors"
+          moment "Step"
+            a: OrderPlaced
+          moment "Outcome" [branch]
+            when bad
+              errs: PlaceOrder crosses-to a via CustomerSupplier
+                contract
+                  id: UUID [required]
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flows[0].moments[1].whenBlocks[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV9(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        branchSkipContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('V11 skips multiplicity on branch-lane placements', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          branch-lane errs "Errors"
+          moment "Step"
+            a: OrderPlaced
+          moment "Outcome" [branch]
+            when bad
+              errs: PlaceOrder (×3)
+      `);
+      const validator = services.validation.MomentValidator;
+      const node = result.document.parseResult.value.flows[0].moments[1].whenBlocks[0].nodes[0];
+      const diagnostics: string[] = [];
+      validator.checkV11(
+        node,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        branchSkipContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('SP-02 skips crossings targeting a branch lane', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          branch-lane errs "Errors"
+          moment "Step"
+            a: UndeclaredEvent crosses-to errs via CustomerSupplier
+              contract
+                id: UUID [required]
+          moment "Outcome" [branch]
+            when bad
+              errs: OrderPlaced [terminal]
+      `);
+      const validator = services.validation.MomentValidator;
+      const crossing = result.document.parseResult.value.flows[0].moments[0].nodes[0].crossing!;
+      const diagnostics: string[] = [];
+      validator.checkSP02(
+        crossing,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        branchSkipContext,
+      );
+      expect(diagnostics).toHaveLength(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Defensive guards on the new checks (fake AST fragments)
+  // -------------------------------------------------------------------------
+  describe('new-check edge cases', () => {
+    it('checkTerminalIsLast returns gracefully when the node has no CST node', () => {
+      const validator = services.validation.MomentValidator;
+      const fakeMoment: Record<string, unknown> = {
+        $type: 'MomentDeclaration',
+        nodes: [],
+        whenBlocks: [{ $type: 'WhenBlock', condition: 'x', nodes: [] }],
+      };
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'a',
+        nodeName: 'Done',
+        modifier: { type: 'terminal' },
+        connections: [],
+        $container: fakeMoment,
+      } as never;
+      (fakeMoment.nodes as unknown[]).push(fakeNode);
+      const diagnostics: string[] = [];
+      validator.checkTerminalIsLast(fakeNode, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('checkTerminalIsLast ignores when blocks without CST nodes', () => {
+      const validator = services.validation.MomentValidator;
+      const fakeMoment: Record<string, unknown> = {
+        $type: 'MomentDeclaration',
+        nodes: [],
+        whenBlocks: [{ $type: 'WhenBlock', condition: 'x', nodes: [] }],
+      };
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'a',
+        nodeName: 'Done',
+        modifier: { type: 'terminal' },
+        connections: [],
+        $cstNode: { offset: 10 },
+        $container: fakeMoment,
+      } as never;
+      (fakeMoment.nodes as unknown[]).push(fakeNode);
+      const diagnostics: string[] = [];
+      validator.checkTerminalIsLast(fakeNode, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('checkTriggerDirection returns gracefully without a flow ancestor', () => {
+      const validator = services.validation.MomentValidator;
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'a',
+        nodeName: 'X',
+        connections: [{ $type: 'Triggers', nodeName: 'Y' }],
+        $container: { $type: 'Unknown' },
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkTriggerDirection(fakeNode, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('checkTriggerDirection returns gracefully when the moment is not in the flow', () => {
+      const validator = services.validation.MomentValidator;
+      const fakeFlow = { $type: 'FlowDeclaration', moments: [], lanes: [] };
+      const fakeMoment = {
+        $type: 'MomentDeclaration',
+        label: '"Orphan"',
+        nodes: [],
+        whenBlocks: [],
+        $container: fakeFlow,
+      };
+      const fakeNode = {
+        $type: 'NodePlacement',
+        laneId: 'a',
+        nodeName: 'X',
+        connections: [{ $type: 'Triggers', nodeName: 'Y' }],
+        $container: fakeMoment,
+      } as never;
+      const diagnostics: string[] = [];
+      validator.checkTriggerDirection(fakeNode, (severity, message) => {
+        diagnostics.push(message as string);
+      });
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('checkSP02 treats an unknown source context as declaring nothing', async () => {
+      const result = await validate(`
+        flow "test"
+          lane a "UnknownSource" [Core]
+          lane b "Fulfillment" [Supporting]
+          moment "Step"
+            a: FulfillmentInitiated crosses-to b via CustomerSupplier
+              contract
+                id: UUID [required]
+      `);
+      const validator = services.validation.MomentValidator;
+      const crossing = result.document.parseResult.value.flows[0].moments[0].nodes[0].crossing!;
+      const targetOnlyContext: CrossFileContext = {
+        declaredContextNames: ['Fulfillment'],
+        declaredEvents: new Map([['Fulfillment', ['FulfillmentInitiated']]]),
+        declaredBuildingBlocks: new Map([
+          ['Fulfillment', [{ name: 'FulfillmentInitiated', kind: 'event' }]],
+        ]),
+        declaredSagas: [],
+      };
+      const diagnostics: string[] = [];
+      validator.checkSP02(
+        crossing,
+        (severity, message) => {
+          diagnostics.push(message as string);
+        },
+        targetOnlyContext,
+      );
+      // Source context unknown, but the target declares the event — accepted.
+      expect(diagnostics).toHaveLength(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // SP-02 boundary semantics: source-declared events are valid crossings
+  // -------------------------------------------------------------------------
+  describe('SP-02 — source-declared crossing event', () => {
+    it('accepts a crossing event declared only by the source context', async () => {
+      const sourceOnlyContext: CrossFileContext = {
+        declaredContextNames: ['Ordering', 'Fulfillment'],
+        declaredEvents: new Map([
+          ['Ordering', ['OrderPlaced']],
+          ['Fulfillment', []],
+        ]),
+        declaredBuildingBlocks: new Map([
+          ['Ordering', [{ name: 'OrderPlaced', kind: 'event' }]],
+          ['Fulfillment', []],
+        ]),
+        declaredSagas: [],
+      };
+      const result = await validate(`
+        flow "test"
+          lane a "Ordering" [Core]
+          lane b "Fulfillment" [Supporting]
+          moment "Step"
+            a: OrderPlaced crosses-to b via CustomerSupplier
+              contract
+                id: UUID [required]
+      `);
+      const validator = services.validation.MomentValidator;
+      const crossing = result.document.parseResult.value.flows[0].moments[0].nodes[0].crossing!;
+      const diagnostics: string[] = [];
+      validator.checkSP02(
+        crossing,
+        (severity, message) => {
+          if (severity === 'error') diagnostics.push(message as string);
+        },
+        sourceOnlyContext,
+      );
+      expect(diagnostics.some((m) => m.includes('SP-02'))).toBe(false);
+    });
+  });
 });

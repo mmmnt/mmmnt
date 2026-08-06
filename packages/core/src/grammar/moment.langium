@@ -83,12 +83,20 @@ PolicyTrigger:
     eventName=ID | fileWatcher='"file-watcher"';
 
 // --- Saga ---
+// The state chain is `Initial (-> Target (on Event)?)*`. Each optional
+// `on <Event>` names the domain event that fires the transition it follows
+// (Held -> Converting on PaymentConfirmed: Held→Converting fires on
+// PaymentConfirmed). NOTE: `on` is a grammar keyword — a bare `on` can no
+// longer be used as an ID anywhere (longer names like `onboarding` are fine).
 SagaDeclaration:
     'saga' name=ID
         'trigger' trigger=ID
-        'states' states+=ID ('->' states+=ID)*
+        'states' initialState=ID transitions+=SagaTransition*
         'compensation' compensation=STRING
         'timeout' timeout=SagaTimeout;
+
+SagaTransition:
+    '->' target=ID ('on' event=ID)?;
 
 SagaTimeout:
     duration=ID | none='"none"';
