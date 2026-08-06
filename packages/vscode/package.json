@@ -1,0 +1,60 @@
+{
+  "name": "moment-language",
+  "displayName": "Moment — DDD flow specifications",
+  "description": "Syntax highlighting for Moment (.moment) files — DDD designs translated to temporal, event-storming flows",
+  "version": "0.1.0",
+  "publisher": "mmmnt",
+  "private": true,
+  "license": "FSL-1.1-Apache-2.0",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1E1B2E",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmmnt/mmmnt.git",
+    "directory": "packages/vscode"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "moment",
+    "ddd",
+    "domain-driven design",
+    "event storming",
+    "event sourcing",
+    "specification",
+    "dsl",
+    "flow"
+  ],
+  "scripts": {
+    "sync-grammar": "cp ../core/syntaxes/moment.tmLanguage.json syntaxes/moment.tmLanguage.json",
+    "package": "vsce package --no-dependencies"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "moment",
+        "aliases": [
+          "Moment"
+        ],
+        "extensions": [
+          ".moment"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "moment",
+        "scopeName": "source.moment",
+        "path": "./syntaxes/moment.tmLanguage.json"
+      }
+    ]
+  }
+}
