@@ -5,7 +5,9 @@
  * expected paths, and branch selections for each flow in the spec.
  *
  * --all: generate all branch combinations + negative (precondition) scenarios
+ *        + saga-timeout scenarios
  * --out-dir <path>: write per-flow topology + per-scenario files + manifest.json
+ *                   (--out is accepted as an alias, symmetric with `generate`)
  * --json: output to stdout as JSON (single file, all scenarios)
  * --flow <name>: filter to a specific flow
  */
@@ -19,15 +21,18 @@ import {
   generateSimulationScenario,
   generateAllScenarios,
   deriveNegativeScenarios,
+  deriveTimeoutScenarios,
   TopologyEmitter,
   generateEventCatalog,
   generateImpactAnalysis,
   generateSagaStateMachines,
+  generatePolicyDefinitions,
 } from '@mmmnt/derive';
-import type { SimulationScenario } from '@mmmnt/derive';
+import type { SimulationScenario, ScenarioKind } from '@mmmnt/derive';
 import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { updateManifestFromIr } from './update-manifest.js';
 import { assertPathWithin } from './project-fs.js';
+import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
 
 export interface SimulateCommandResult {
   readonly success: boolean;
@@ -102,6 +107,7 @@ interface ManifestFlow {
 interface ManifestScenario {
   scenarioId: string;
   scenarioLabel: string;
+  kind: ScenarioKind;
   description: string;
   file: string;
   eventCount: number;
@@ -162,16 +168,19 @@ function writeOutputFiles(
       totalScenarios++;
       totalEvents += scenario.events.length;
 
+      // M-S15: flags derive from the generator's walk-derived `kind`, never
+      // from label-prefix sniffing. Field names kept for consumer compat.
       manifestScenarios.push({
         scenarioId: scenario.scenarioId,
         scenarioLabel: scenario.scenarioLabel,
+        kind: scenario.kind,
         description: scenario.description,
         file: fileName,
         eventCount: scenario.events.length,
         pathLength: scenario.expectedPath.length,
         branchCount: scenario.activeBranches.length,
-        isHappyPath: scenario.scenarioLabel.startsWith('Happy Path:'),
-        isNegative: scenario.scenarioLabel.startsWith('Failure:'),
+        isHappyPath: scenario.kind === 'happy',
+        isNegative: scenario.kind === 'negative',
       });
     }
 
@@ -214,6 +223,12 @@ function writeArtifacts(ir: IntermediateRepresentation, outDir: string): Record<
   files.sagaStateMachines = 'saga-state-machines.json';
   writeSafe(outDir, files.sagaStateMachines, JSON.stringify(sagas, null, 2) + '\n');
 
+  // Coordinated contract with Facet's policy_chain tier. A spec with zero
+  // policies emits `[]` — truthful "zero policies", not a missing file.
+  const policies = generatePolicyDefinitions(ir);
+  files.policyDefinitions = 'policy-definitions.json';
+  writeSafe(outDir, files.policyDefinitions, JSON.stringify(policies, null, 2) + '\n');
+
   const asyncapi = generateAsyncApiSpec(ir);
   files.asyncApi = 'asyncapi.yaml';
   writeSafe(outDir, files.asyncApi, asyncapi);
@@ -243,7 +258,13 @@ function runOutDirWrite(
   const groups: FlowScenarioGroup[] = flows.map((flow) => ({
     flow,
     scenarios: includeAll
-      ? [...generateAllScenarios(ir, flow), ...deriveNegativeScenarios(ir, flow)]
+      ? [
+          ...generateAllScenarios(ir, flow),
+          ...deriveNegativeScenarios(ir, flow),
+          // Saga-timeout scenarios: neither happy nor negative — the manifest
+          // carries kind:'timeout' with both flags false.
+          ...deriveTimeoutScenarios(ir, flow),
+        ]
       : [generateSimulationScenario(ir, flow)],
   }));
 
@@ -260,17 +281,22 @@ function runOutDirWrite(
 // ---------------------------------------------------------------------------
 
 export async function runSimulate(argv: string[]): Promise<SimulateCommandResult> {
-  const { values, positionals } = parseArgs({
+  const options = {
+    json: { type: 'boolean' },
+    flow: { type: 'string' },
+    all: { type: 'boolean' },
+    'out-dir': { type: 'string' },
+    // Alias for --out-dir, symmetric with `moment generate --out`.
+    out: { type: 'string' },
+  } as const;
+  const { values, positionals, tokens } = parseArgs({
     args: argv,
-    options: {
-      json: { type: 'boolean' },
-      flow: { type: 'string' },
-      all: { type: 'boolean' },
-      'out-dir': { type: 'string' },
-    },
+    options,
     allowPositionals: true,
     strict: false,
+    tokens: true,
   });
+  warnUnknownFlags(tokens, Object.keys(options));
 
   const filePath = positionals[0];
   if (!filePath)
@@ -306,7 +332,7 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
     return fail(`Flow '${values.flow}' not found.`);
   }
 
-  const outDir = values['out-dir'];
+  const outDir = resolveStringFlag(values, 'out-dir', 'out');
 
   if (outDir) {
     return runOutDirWrite(targetFlows, ir, outDir, values.all === true);
@@ -316,6 +342,7 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
     ? targetFlows.flatMap((flow) => [
         ...generateAllScenarios(ir, flow),
         ...deriveNegativeScenarios(ir, flow),
+        ...deriveTimeoutScenarios(ir, flow),
       ])
     : targetFlows.map((flow) => generateSimulationScenario(ir, flow));
 
