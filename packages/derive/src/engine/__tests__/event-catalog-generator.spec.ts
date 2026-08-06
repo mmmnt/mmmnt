@@ -178,7 +178,9 @@ describe('EventCatalogGenerator', () => {
 
     expect(catalog.events[0].consumers).toHaveLength(1);
     expect(catalog.events[0].consumers[0].context).toBe('Shipping');
-    expect(catalog.events[0].consumers[0].relationshipType).toBe('crosses-to');
+    // Audit fix #6: relationshipType is the contract's relationship type,
+    // matching the topology, not the literal 'crosses-to'.
+    expect(catalog.events[0].consumers[0].relationshipType).toBe('Partnership');
   });
 
   it('deduplicates consumers', () => {
@@ -337,6 +339,111 @@ describe('EventCatalogGenerator', () => {
       name: 'items',
       type: 'OrderItem',
       isArray: true,
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Audit fix #3: flow-only fallback
+  // -------------------------------------------------------------------------
+  describe('flow-only fallback', () => {
+    function makeFlowOnlyIR(): IntermediateRepresentation {
+      const moment1: MomentDefinition = {
+        id: 'moment-0-M1',
+        name: 'M1 · A request arrives',
+        contextEntries: [
+          { contextId: 'ctx-Messaging', nodeName: 'RecordInboundMessage', nodeKind: 'command' },
+          { contextId: 'ctx-Messaging', nodeName: 'InboundMessageRecorded', nodeKind: 'event' },
+        ],
+      };
+      const branchMoment: MomentDefinition = {
+        id: 'moment-1-Branch',
+        name: 'Cold sender throttled',
+        contextEntries: [],
+        branches: [
+          {
+            condition: 'ColdSenderThrottled',
+            entries: [
+              { contextId: 'ctx-Refusals', nodeName: 'ThrottleNoticeSent', nodeKind: 'event' },
+            ],
+          },
+        ],
+      };
+      const crossing: ConnectionDefinition = {
+        id: 'conn-0',
+        sourceMomentId: 'moment-0-M1',
+        targetContextId: 'ctx-Scheduling',
+        eventId: 'evt-InboundMessageRecorded',
+        sourceNodeName: 'InboundMessageRecorded',
+        connectionType: 'crosses-to',
+        schemaContract: {
+          eventType: 'InboundMessageRecorded',
+          fields: [
+            { name: 'messageId', type: 'UUID', required: true },
+            { name: 'body', type: 'string', required: false },
+          ],
+          relationshipType: 'CustomerSupplier',
+        },
+      };
+      const triggers: ConnectionDefinition = {
+        id: 'conn-1',
+        sourceMomentId: 'moment-0-M1',
+        targetContextId: 'ctx-Messaging',
+        eventId: 'evt-InboundMessageRecorded',
+        sourceNodeName: 'RecordInboundMessage',
+        targetNodeName: 'InboundMessageRecorded',
+        connectionType: 'triggers',
+      };
+      const flow: FlowDefinition = {
+        id: 'f1',
+        name: 'N1',
+        lanes: [],
+        moments: [moment1, branchMoment],
+        connections: [crossing, triggers],
+      };
+      return makeIR({ contexts: [], flows: [flow] });
+    }
+
+    it('flow-only spec produces non-empty catalog from flow entries', () => {
+      const catalog = generateEventCatalog(makeFlowOnlyIR());
+
+      expect(catalog.metadata.totalEvents).toBeGreaterThan(0);
+      const names = catalog.events.map((e) => e.eventName);
+      expect(names).toContain('RecordInboundMessage');
+      expect(names).toContain('InboundMessageRecorded');
+      expect(names).toContain('ThrottleNoticeSent');
+    });
+
+    it('fallback entries carry kind from nodeKind and context from the lane contextId', () => {
+      const catalog = generateEventCatalog(makeFlowOnlyIR());
+
+      const cmd = catalog.events.find((e) => e.eventName === 'RecordInboundMessage')!;
+      expect(cmd.kind).toBe('command');
+      expect(cmd.producer.context).toBe('Messaging');
+
+      const evt = catalog.events.find((e) => e.eventName === 'InboundMessageRecorded')!;
+      expect(evt.kind).toBe('event');
+    });
+
+    it('crossing schema contracts provide fallback payload schemas and consumers', () => {
+      const catalog = generateEventCatalog(makeFlowOnlyIR());
+
+      const evt = catalog.events.find((e) => e.eventName === 'InboundMessageRecorded')!;
+      expect(evt.schema.fields.map((f) => f.name)).toEqual(['messageId', 'body']);
+      expect(evt.consumers).toHaveLength(1);
+      expect(evt.consumers[0].context).toBe('Scheduling');
+      expect(evt.consumers[0].relationshipType).toBe('CustomerSupplier');
+      // Producer command resolved from the triggers edge
+      expect(evt.producer.command).toBe('RecordInboundMessage');
+    });
+
+    it('branch entries get their true temporal location', () => {
+      const catalog = generateEventCatalog(makeFlowOnlyIR());
+
+      const branchEvt = catalog.events.find((e) => e.eventName === 'ThrottleNoticeSent')!;
+      expect(branchEvt.temporalLocation).toEqual({
+        moment: 'Cold sender throttled',
+        momentIndex: 1,
+      });
     });
   });
 });

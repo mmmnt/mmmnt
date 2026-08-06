@@ -17,6 +17,7 @@ import type {
   ConnectionDefinition,
   ContextDefinition,
 } from '@mmmnt/core';
+import { orderedMomentChildren } from './moment-children.js';
 
 // ---------------------------------------------------------------------------
 // Output types (ADR-023 §2)
@@ -66,6 +67,14 @@ export interface TopologyConnection {
   readonly to: string;
   readonly label?: string;
   readonly style: string;
+  /** Raw event/node name carried by this connection (e.g. 'RecordInboundMessage'). */
+  readonly eventType: string;
+  /** Name of the node that declares this connection, when known. */
+  readonly sourceNodeName?: string;
+  /** For triggers/triggered-by: the node on the other end of the edge. */
+  readonly targetNodeName?: string;
+  /** For returns-to: the human label of the loop-target moment. */
+  readonly targetMomentLabel?: string;
   readonly crossBoundary?: boolean;
   readonly relationship?: string;
   readonly schemaContract?: TopologySchemaContract;
@@ -163,17 +172,18 @@ function buildFrameNodes(
   laneIndex: Map<string, LaneDefinition>,
 ): TopologyNode[] {
   const nodes: TopologyNode[] = [];
-  let branchIdx = 0;
 
-  for (const entry of moment.contextEntries) {
-    nodes.push(entryToNode(entry, moment, ctxMap, laneIndex, 'main'));
-  }
-
-  for (const branch of moment.branches ?? []) {
-    for (const entry of branch.entries) {
-      nodes.push(entryToNode(entry, moment, ctxMap, laneIndex, `br${branchIdx}`));
+  // Sequence-aware (M-S12): node order follows the moment's textual child
+  // order when the IR carries it; the branch scope index is the branch's
+  // declaration index, not its iteration position.
+  for (const child of orderedMomentChildren(moment, 'entries-first')) {
+    if (child.kind === 'entry') {
+      nodes.push(entryToNode(child.entry, moment, ctxMap, laneIndex, 'main'));
+    } else {
+      for (const entry of child.branch.entries) {
+        nodes.push(entryToNode(entry, moment, ctxMap, laneIndex, `br${child.branchIndex}`));
+      }
     }
-    branchIdx++;
   }
 
   return nodes;
@@ -238,15 +248,49 @@ function findAggregate(nodeName: string, ctx: ContextDefinition | undefined): st
 
 function buildConnections(flow: FlowDefinition): TopologyConnection[] {
   return flow.connections.map((conn) => {
+    const eventType = conn.eventId.replace(/^evt-/, '');
+    const endpoints = {
+      eventType,
+      sourceNodeName: conn.sourceNodeName,
+      targetNodeName: conn.targetNodeName,
+    };
+
+    // Audit fix #1: returns-to edges are frame→frame loops. The IR now carries
+    // the resolved targetMomentId; use it so the edge lands on a real frame.
+    if (conn.connectionType === 'returns-to') {
+      if (conn.targetMomentId) {
+        return {
+          from: conn.sourceMomentId,
+          to: conn.targetMomentId,
+          style: 'return',
+          targetMomentLabel: conn.targetMomentLabel,
+          ...endpoints,
+        };
+      }
+      // Unresolvable label: keep the old (context-target) shape but warn
+      // rather than fabricating a frame id.
+      return {
+        from: conn.sourceMomentId,
+        to: conn.targetContextId,
+        label: `unresolved returns-to target: ${conn.targetMomentLabel ?? '(unknown)'}`,
+        style: 'return',
+        targetMomentLabel: conn.targetMomentLabel,
+        ...endpoints,
+      };
+    }
+
     const isCrossing = conn.connectionType === 'crosses-to';
     return {
       from: conn.sourceMomentId,
+      // For 'triggers' the core now resolves targetContextId to the context
+      // where the TARGET node is placed (not the source's own lane).
       to: conn.targetContextId,
-      label: isCrossing ? conn.eventId.replace(/^evt-/, '') : undefined,
+      label: isCrossing ? eventType : undefined,
       style: mapConnectionStyle(conn),
       crossBoundary: isCrossing || undefined,
       relationship: isCrossing ? conn.schemaContract.relationshipType : undefined,
       schemaContract: isCrossing ? mapSchemaContract(conn) : undefined,
+      ...endpoints,
     };
   });
 }
@@ -289,8 +333,6 @@ function buildEventRouting(
   const routing: Record<string, Set<string>> = {};
 
   for (const moment of flow.moments) {
-    let branchIdx = 0;
-
     const addEntry = (entry: MomentEntry, scope: string): void => {
       const ctx = ctxMap.get(entry.contextId);
       const kind = resolveNodeKind(entry, ctx);
@@ -314,15 +356,15 @@ function buildEventRouting(
       }
     };
 
-    for (const entry of moment.contextEntries) {
-      addEntry(entry, 'main');
-    }
-
-    for (const branch of moment.branches ?? []) {
-      for (const entry of branch.entries) {
-        addEntry(entry, `br${branchIdx}`);
+    // Sequence-aware (M-S12): mirror buildFrameNodes' child order.
+    for (const child of orderedMomentChildren(moment, 'entries-first')) {
+      if (child.kind === 'entry') {
+        addEntry(child.entry, 'main');
+      } else {
+        for (const entry of child.branch.entries) {
+          addEntry(entry, `br${child.branchIndex}`);
+        }
       }
-      branchIdx++;
     }
   }
 
@@ -343,10 +385,13 @@ function buildBranchPredicates(flow: FlowDefinition): Record<string, TopologyBra
   for (const moment of flow.moments) {
     if (!moment.branches || moment.branches.length === 0) continue;
 
+    // Audit fix #5: each branch condition maps to a route label that IS the
+    // condition itself, so route labels are distinct per branch point and
+    // coverage denominators make sense. The scenario generator emits
+    // payload.outcome with the selected condition (agreed contract).
     const routes: Record<string, string> = {};
     for (const branch of moment.branches) {
-      const hasTerminal = branch.entries.some((e) => e.terminal);
-      routes[branch.condition] = hasTerminal ? 'terminal' : 'happy';
+      routes[branch.condition] = branch.condition;
     }
 
     predicates[moment.id] = {
@@ -369,7 +414,13 @@ function buildContextMap(
   ctxMap: Map<string, ContextDefinition>,
 ): TopologyContextMap {
   const contexts = buildBoundedContexts(flow, ctxMap);
-  const relationships = buildContextRelationships(flow);
+  // Audit fix #7: never emit relationships that reference contexts absent
+  // from boundedContexts — consumers resolve relationship endpoints against
+  // that list.
+  const known = new Set(contexts.map((c) => c.contextId));
+  const relationships = buildContextRelationships(flow).filter(
+    (r) => known.has(r.sourceContextId) && known.has(r.targetContextId),
+  );
   return { contexts, relationships };
 }
 
@@ -437,9 +488,11 @@ function collectContextIds(flow: FlowDefinition): string[] {
   const ids = new Set<string>();
   for (const moment of flow.moments) {
     for (const entry of moment.contextEntries) ids.add(entry.contextId);
+    // Audit fix #7: include contexts reachable only via branch entries —
+    // terminal entries still occur in their context.
     for (const branch of moment.branches ?? []) {
       for (const entry of branch.entries) {
-        if (!entry.terminal) ids.add(entry.contextId);
+        ids.add(entry.contextId);
       }
     }
   }

@@ -618,6 +618,97 @@ describe('DerivationEngine', () => {
       expect(compCase!.setupSteps[0].precondition).toBe('CancelOrder');
     });
 
+    it('emits saga cases once, into the flow containing the trigger, not every flow', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        sagas: [
+          {
+            id: 'saga-1',
+            name: 'OrderFulfillment',
+            trigger: 'OrderPlaced',
+            states: ['Pending', 'Completed'],
+            compensation: 'CancelOrder',
+            timeout: '30m',
+          },
+        ],
+      };
+      // OrderPlaced only appears in the second flow
+      const flowA = makeFlow('fa', 'Flow A', [makeMoment('fr1', 'M1', 'ctx-1', 'DoThing')], []);
+      const flowB = makeFlow('fb', 'Flow B', [makeMoment('fr2', 'M2', 'ctx-1', 'OrderPlaced')], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flowA, flowB] });
+
+      const topology = deriveTopology(ir);
+
+      const sagaCasesA = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      const sagaCasesB = topology.suites[1].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      expect(sagaCasesA).toHaveLength(0);
+      expect(sagaCasesB.length).toBeGreaterThan(0);
+    });
+
+    it('falls back to the first flow when no flow contains the saga trigger', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        sagas: [
+          {
+            id: 'saga-1',
+            name: 'OrderFulfillment',
+            trigger: 'NeverEmitted',
+            states: ['Pending', 'Completed'],
+            compensation: 'CancelOrder',
+            timeout: '30m',
+          },
+        ],
+      };
+      const flowA = makeFlow('fa', 'Flow A', [makeMoment('fr1', 'M1', 'ctx-1', 'DoThing')], []);
+      const flowB = makeFlow('fb', 'Flow B', [makeMoment('fr2', 'M2', 'ctx-1', 'DoOther')], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flowA, flowB] });
+
+      const topology = deriveTopology(ir);
+
+      const sagaCasesA = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      const sagaCasesB = topology.suites[1].testCases.filter((tc) =>
+        tc.momentId.startsWith('saga-'),
+      );
+      expect(sagaCasesA.length).toBeGreaterThan(0);
+      expect(sagaCasesB).toHaveLength(0);
+    });
+
+    it('emits policy cases once across multiple flows', () => {
+      const ctx: ContextDefinition = {
+        ...makeContext('ctx-1', 'Ordering'),
+        policies: [
+          {
+            id: 'pol-1',
+            name: 'AutoApprovePolicy',
+            trigger: 'OrderPlaced',
+            action: 'ApproveOrder',
+            chainsTo: 'SendConfirmation',
+          },
+        ],
+      };
+      const flowA = makeFlow('fa', 'Flow A', [makeMoment('fr1', 'M1', 'ctx-1', 'OrderPlaced')], []);
+      const flowB = makeFlow('fb', 'Flow B', [makeMoment('fr2', 'M2', 'ctx-1', 'OrderPlaced')], []);
+      const ir = makeIR({ contexts: [ctx], flows: [flowA, flowB] });
+
+      const topology = deriveTopology(ir);
+
+      const allPolicyCases = topology.suites.flatMap((s) =>
+        s.testCases.filter((tc) => tc.momentId.startsWith('policy-')),
+      );
+      expect(allPolicyCases).toHaveLength(1);
+      // Assigned to the first flow that contains the trigger
+      const policyCasesA = topology.suites[0].testCases.filter((tc) =>
+        tc.momentId.startsWith('policy-'),
+      );
+      expect(policyCasesA).toHaveLength(1);
+    });
+
     it('context with no sagas produces no saga test cases', () => {
       const ctx = makeContext('ctx-1', 'Ordering');
       const moment = makeMoment('fr1', 'Place Order', 'ctx-1', 'PlaceOrder');

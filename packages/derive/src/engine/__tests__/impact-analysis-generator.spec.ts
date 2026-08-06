@@ -175,6 +175,112 @@ describe('ImpactAnalysisGenerator', () => {
     expect(evtNode!.triggers).toContain('saga:Sales:OrderFulfillment');
   });
 
+  it('M-E7: cross-context policy trigger/chain attach to the declaring contexts, no phantom nodes', () => {
+    // Mirrors ticketwave: Inventory declares SeatsHeld + ConvertHoldToReservation,
+    // AntiFraud's policy triggers on SeatsHeld, Checkout's policy chains to
+    // Inventory's command. Neither may mint event:AntiFraud:SeatsHeld or
+    // command:Checkout:ConvertHoldToReservation phantoms.
+    const inventory = makeContext('ctx-Inventory', 'Inventory', {
+      aggregates: [
+        makeAggregate({
+          commands: [
+            {
+              id: 'cmd-1',
+              name: 'ConvertHoldToReservation',
+              inputs: [],
+              preconditions: [],
+              emitsEvent: 'HoldConverted',
+            },
+          ],
+          events: [{ id: 'evt-sh', name: 'SeatsHeld', fields: [] }],
+        }),
+      ],
+    });
+    const antiFraud = makeContext('ctx-AntiFraud', 'AntiFraud', {
+      policies: [
+        {
+          id: 'pol-af',
+          name: 'EvaluateOnHoldRequest',
+          trigger: 'SeatsHeld',
+          action: 'Run real-time risk assessment when seats are held',
+          chainsTo: 'EvaluateHoldRisk',
+        },
+      ],
+    });
+    const checkout = makeContext('ctx-Checkout', 'Checkout', {
+      policies: [
+        {
+          id: 'pol-ck',
+          name: 'ConvertHoldOnPayment',
+          trigger: 'PaymentConfirmed',
+          action: 'Convert seat hold after payment clears',
+          chainsTo: 'ConvertHoldToReservation',
+        },
+      ],
+    });
+    const ir = makeIR({ contexts: [inventory, antiFraud, checkout] });
+
+    const analysis = generateImpactAnalysis(ir);
+    const keyOf = (n: (typeof analysis.nodes)[number]) => `${n.type}:${n.context}:${n.name}`;
+    const keys = analysis.nodes.map(keyOf);
+
+    // No phantom duplicates of nodes declared elsewhere.
+    expect(keys).not.toContain('event:AntiFraud:SeatsHeld');
+    expect(keys).not.toContain('command:Checkout:ConvertHoldToReservation');
+    // Exactly one SeatsHeld event node exists — the real one.
+    expect(keys.filter((k) => k.endsWith(':SeatsHeld'))).toEqual(['event:Inventory:SeatsHeld']);
+
+    // Edges attach to the real declaring-context nodes.
+    const seatsHeld = analysis.nodes.find((n) => keyOf(n) === 'event:Inventory:SeatsHeld')!;
+    expect(seatsHeld.triggers).toContain('policy:AntiFraud:EvaluateOnHoldRequest');
+
+    const afPolicy = analysis.nodes.find(
+      (n) => keyOf(n) === 'policy:AntiFraud:EvaluateOnHoldRequest',
+    )!;
+    expect(afPolicy.dependsOn).toContain('event:Inventory:SeatsHeld');
+    // EvaluateHoldRisk is undeclared anywhere → falls back to the policy's own context.
+    expect(afPolicy.triggers).toContain('command:AntiFraud:EvaluateHoldRisk');
+
+    const ckPolicy = analysis.nodes.find(
+      (n) => keyOf(n) === 'policy:Checkout:ConvertHoldOnPayment',
+    )!;
+    expect(ckPolicy.triggers).toContain('command:Inventory:ConvertHoldToReservation');
+    const convertCmd = analysis.nodes.find(
+      (n) => keyOf(n) === 'command:Inventory:ConvertHoldToReservation',
+    )!;
+    expect(convertCmd.dependsOn).toContain('policy:Checkout:ConvertHoldOnPayment');
+    // PaymentConfirmed is undeclared → fallback keeps it in Checkout (policy's own context).
+    expect(ckPolicy.dependsOn).toContain('event:Checkout:PaymentConfirmed');
+  });
+
+  it('M-E7: cross-context saga trigger attaches to the declaring context', () => {
+    const inventory = makeContext('ctx-Inventory', 'Inventory', {
+      events: [{ id: 'evt-sh', name: 'SeatsHeld', fields: [] }],
+    });
+    const checkout = makeContext('ctx-Checkout', 'Checkout', {
+      sagas: [
+        {
+          id: 'saga-1',
+          name: 'HoldToReservationSaga',
+          trigger: 'SeatsHeld',
+          states: ['Held', 'Converted'],
+          compensation: 'ReleaseHold',
+          timeout: '10m',
+        },
+      ],
+    });
+    const ir = makeIR({ contexts: [inventory, checkout] });
+
+    const analysis = generateImpactAnalysis(ir);
+    const keys = analysis.nodes.map((n) => `${n.type}:${n.context}:${n.name}`);
+
+    expect(keys).not.toContain('event:Checkout:SeatsHeld');
+    const seatsHeld = analysis.nodes.find(
+      (n) => n.type === 'event' && n.context === 'Inventory' && n.name === 'SeatsHeld',
+    )!;
+    expect(seatsHeld.triggers).toContain('saga:Checkout:HoldToReservationSaga');
+  });
+
   it('creates crossing nodes from flow connections', () => {
     const agg = makeAggregate({
       events: [{ id: 'evt-1', name: 'OrderPlaced', fields: [] }],
@@ -284,5 +390,91 @@ describe('ImpactAnalysisGenerator', () => {
     const crossingNode = analysis.nodes.find((n) => n.type === 'crossing');
     expect(crossingNode).toBeDefined();
     expect(crossingNode!.context).toBe('Sales');
+  });
+
+  // -------------------------------------------------------------------------
+  // Audit fix #3: flow-only fallback
+  // -------------------------------------------------------------------------
+  describe('flow-only fallback', () => {
+    function makeFlowOnlyIR(): IntermediateRepresentation {
+      const moment: MomentDefinition = {
+        id: 'moment-0-M1',
+        name: 'M1',
+        contextEntries: [
+          { contextId: 'ctx-Messaging', nodeName: 'RecordInboundMessage', nodeKind: 'command' },
+          { contextId: 'ctx-Messaging', nodeName: 'InboundMessageRecorded', nodeKind: 'event' },
+        ],
+        branches: [
+          {
+            condition: 'ColdSenderThrottled',
+            entries: [
+              { contextId: 'ctx-Refusals', nodeName: 'ThrottleNoticeSent', nodeKind: 'event' },
+            ],
+          },
+        ],
+      };
+      const triggers: ConnectionDefinition = {
+        id: 'conn-0',
+        sourceMomentId: 'moment-0-M1',
+        targetContextId: 'ctx-Messaging',
+        eventId: 'evt-InboundMessageRecorded',
+        sourceNodeName: 'RecordInboundMessage',
+        targetNodeName: 'InboundMessageRecorded',
+        connectionType: 'triggers',
+      };
+      const crossing: ConnectionDefinition = {
+        id: 'conn-1',
+        sourceMomentId: 'moment-0-M1',
+        targetContextId: 'ctx-Scheduling',
+        eventId: 'evt-InboundMessageRecorded',
+        sourceNodeName: 'InboundMessageRecorded',
+        connectionType: 'crosses-to',
+        schemaContract: {
+          eventType: 'InboundMessageRecorded',
+          fields: [{ name: 'messageId', type: 'UUID', required: true }],
+          relationshipType: 'CustomerSupplier',
+        },
+      };
+      const flow: FlowDefinition = {
+        id: 'f1',
+        name: 'N1',
+        lanes: [],
+        moments: [moment],
+        connections: [triggers, crossing],
+      };
+      return makeIR({ contexts: [], flows: [flow] });
+    }
+
+    it('flow-only spec produces impact nodes for every flow node incl. branches', () => {
+      const analysis = generateImpactAnalysis(makeFlowOnlyIR());
+
+      const names = analysis.nodes.map((n) => n.name);
+      expect(names).toContain('RecordInboundMessage');
+      expect(names).toContain('InboundMessageRecorded');
+      expect(names).toContain('ThrottleNoticeSent');
+
+      const cmd = analysis.nodes.find((n) => n.name === 'RecordInboundMessage')!;
+      expect(cmd.type).toBe('command');
+      expect(cmd.context).toBe('Messaging');
+    });
+
+    it('flow triggers connections produce dependsOn/triggers edges', () => {
+      const analysis = generateImpactAnalysis(makeFlowOnlyIR());
+
+      const cmd = analysis.nodes.find((n) => n.name === 'RecordInboundMessage')!;
+      const evt = analysis.nodes.find((n) => n.name === 'InboundMessageRecorded')!;
+      expect(cmd.triggers).toContain('event:Messaging:InboundMessageRecorded');
+      expect(evt.dependsOn).toContain('command:Messaging:RecordInboundMessage');
+    });
+
+    it('crossings resolve via schema contract when contexts are missing', () => {
+      const analysis = generateImpactAnalysis(makeFlowOnlyIR());
+
+      const crossing = analysis.nodes.find((n) => n.type === 'crossing');
+      expect(crossing).toBeDefined();
+      expect(crossing!.name).toBe('InboundMessageRecorded->Scheduling');
+      expect(crossing!.context).toBe('Messaging');
+      expect(crossing!.dependsOn).toContain('event:Messaging:InboundMessageRecorded');
+    });
   });
 });

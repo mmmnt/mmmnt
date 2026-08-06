@@ -9,7 +9,6 @@ export interface SagaStateMachine {
   readonly transitions: readonly SagaTransition[];
   readonly compensation: string;
   readonly timeout: string;
-  readonly earlyExitStates: readonly string[];
   readonly reachability: {
     readonly allReachable: boolean;
     readonly unreachableStates: readonly string[];
@@ -25,6 +24,9 @@ export interface SagaState {
 export interface SagaTransition {
   readonly from: string;
   readonly to: string;
+  /** Domain event that fires this transition (`-> To on Event` in the spec).
+   *  Omitted when the spec declares no mapping — never invented. */
+  readonly onEvent?: string;
 }
 
 export function generateSagaStateMachines(ir: IntermediateRepresentation): SagaStateMachine[] {
@@ -46,13 +48,12 @@ function buildStateMachine(saga: SagaDefinition, contextName: string): SagaState
   const finalState = sagaStates.length > 0 ? sagaStates[sagaStates.length - 1] : '';
 
   const states = buildStates(sagaStates, initialState, finalState);
-  const transitions = buildTransitions(sagaStates);
+  const transitions = buildTransitions(saga);
   const reachability = computeReachability(states, transitions, initialState);
 
-  // States from which the saga may exit early: any state that is neither
-  // the initial state nor the final state.
-  const earlyExitStates = sagaStates.filter((s) => s !== initialState && s !== finalState);
-
+  // Audit fix #8: earlyExitStates was invented — the IR carries no basis for
+  // early-exit semantics (SagaDefinition has only trigger/states/compensation/
+  // timeout), so the field is omitted rather than fabricated.
   return {
     sagaName: saga.name,
     context: contextName,
@@ -62,7 +63,6 @@ function buildStateMachine(saga: SagaDefinition, contextName: string): SagaState
     transitions,
     compensation: saga.compensation,
     timeout: saga.timeout,
-    earlyExitStates,
     reachability,
   };
 }
@@ -79,7 +79,20 @@ function buildStates(
   }));
 }
 
-function buildTransitions(stateNames: readonly string[]): SagaTransition[] {
+function buildTransitions(saga: SagaDefinition): SagaTransition[] {
+  // M-S6: the IR's transitions carry the declared `on <Event>` mapping when
+  // the spec binds a transition to a domain event — emit it verbatim.
+  if (saga.transitions) {
+    return saga.transitions.map((t) => ({
+      from: t.from,
+      to: t.to,
+      ...(t.onEvent !== undefined ? { onEvent: t.onEvent } : {}),
+    }));
+  }
+
+  // Hand-built IR without transitions: derive the unmapped chain from the
+  // flat states list (historical shape, no onEvent).
+  const stateNames = saga.states;
   const transitions: SagaTransition[] = [];
   for (let i = 0; i < stateNames.length - 1; i++) {
     transitions.push({

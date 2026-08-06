@@ -47,6 +47,7 @@ function makeSaga(overrides: Partial<SagaDefinition> = {}): SagaDefinition {
     name: overrides.name ?? 'OrderFulfillment',
     trigger: overrides.trigger ?? 'OrderPlaced',
     states: overrides.states ?? ['Pending', 'Processing', 'Completed'],
+    ...(overrides.transitions !== undefined ? { transitions: overrides.transitions } : {}),
     compensation: overrides.compensation ?? 'CancelOrder',
     timeout: overrides.timeout ?? '30m',
   };
@@ -187,41 +188,54 @@ describe('SagaStateMachineGenerator', () => {
     expect(machine.states).toHaveLength(0);
     expect(machine.transitions).toHaveLength(0);
     expect(machine.reachability.allReachable).toBe(true);
-    expect(machine.earlyExitStates).toHaveLength(0);
   });
 
-  it('earlyExitStates includes intermediate states for multi-state saga', () => {
+  it('does not emit an earlyExitStates field — the IR has no basis for it', () => {
     const saga = makeSaga({ states: ['Held', 'Converting', 'Converted', 'Expired'] });
     const ctx = makeContext('ctx-1', 'Inventory', [saga]);
     const ir = makeIR({ contexts: [ctx] });
 
     const machines = generateSagaStateMachines(ir);
-    const machine = machines[0];
+    const machine = machines[0] as unknown as Record<string, unknown>;
 
-    expect(machine.earlyExitStates).toEqual(['Converting', 'Converted']);
+    expect('earlyExitStates' in machine).toBe(false);
   });
 
-  it('earlyExitStates is empty for single-state saga', () => {
-    const saga = makeSaga({ states: ['Active'] });
-    const ctx = makeContext('ctx-1', 'Ordering', [saga]);
+  it('emits onEvent on transitions when the IR carries the mapping (M-S6)', () => {
+    const saga = makeSaga({
+      states: ['Held', 'Converting', 'Converted', 'Expired'],
+      transitions: [
+        { from: 'Held', to: 'Converting', onEvent: 'PaymentConfirmed' },
+        { from: 'Converting', to: 'Converted', onEvent: 'HoldConvertedToReservation' },
+        { from: 'Converted', to: 'Expired' },
+      ],
+    });
+    const ctx = makeContext('ctx-1', 'Inventory', [saga]);
     const ir = makeIR({ contexts: [ctx] });
 
-    const machines = generateSagaStateMachines(ir);
-    const machine = machines[0];
+    const machine = generateSagaStateMachines(ir)[0];
 
-    // Single state is both initial and final — no intermediate states
-    expect(machine.earlyExitStates).toHaveLength(0);
+    expect(machine.transitions).toEqual([
+      { from: 'Held', to: 'Converting', onEvent: 'PaymentConfirmed' },
+      { from: 'Converting', to: 'Converted', onEvent: 'HoldConvertedToReservation' },
+      { from: 'Converted', to: 'Expired' },
+    ]);
+    // onEvent is truly absent, not undefined-valued, on unmapped transitions.
+    expect('onEvent' in machine.transitions[2]).toBe(false);
+    // Reachability is unchanged by the mapping.
+    expect(machine.reachability.allReachable).toBe(true);
   });
 
-  it('earlyExitStates is empty for two-state saga', () => {
-    const saga = makeSaga({ states: ['Pending', 'Complete'] });
-    const ctx = makeContext('ctx-1', 'Ordering', [saga]);
+  it('falls back to the unmapped state chain when the IR has no transitions', () => {
+    const saga = makeSaga({ states: ['A', 'B', 'C'] });
+    const ctx = makeContext('ctx-1', 'Inventory', [saga]);
     const ir = makeIR({ contexts: [ctx] });
 
-    const machines = generateSagaStateMachines(ir);
-    const machine = machines[0];
+    const machine = generateSagaStateMachines(ir)[0];
 
-    // No states between initial and final
-    expect(machine.earlyExitStates).toHaveLength(0);
+    expect(machine.transitions).toEqual([
+      { from: 'A', to: 'B' },
+      { from: 'B', to: 'C' },
+    ]);
   });
 });
