@@ -560,12 +560,17 @@
         "fieldTypes": {
           "eventId": "UUID"
         }
-      }
+      },
+      "eventType": "EventPublished",
+      "sourceNodeName": "EventPublished"
     },
     {
       "from": "moment-1-Pool-initialization",
       "to": "ctx-Inventory",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "EventPublished",
+      "sourceNodeName": "EventPublished",
+      "targetNodeName": "InitializePool"
     },
     {
       "from": "moment-2-Seat-selection-and-hold",
@@ -592,42 +597,65 @@
           "customerId": "UUID",
           "expiresAt": "DateTime"
         }
-      }
+      },
+      "eventType": "SeatsHeld",
+      "sourceNodeName": "SeatsHeld"
     },
     {
       "from": "moment-3-Hold-fraud-evaluation",
       "to": "ctx-AntiFraud",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "SeatsHeld",
+      "sourceNodeName": "SeatsHeld",
+      "targetNodeName": "EvaluateHoldRisk"
     },
     {
       "from": "moment-4-Hold-risk-decision",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "HoldRiskEvaluated",
+      "sourceNodeName": "HoldRiskEvaluated",
+      "targetNodeName": "CreateCart"
     },
     {
       "from": "moment-4-Hold-risk-decision",
       "to": "ctx-AntiFraud",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "HoldRiskEvaluated",
+      "sourceNodeName": "HoldRiskEvaluated",
+      "targetNodeName": "BlockCustomer"
     },
     {
       "from": "moment-4-Hold-risk-decision",
       "to": "ctx-AntiFraud",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "HoldRiskEvaluated",
+      "sourceNodeName": "HoldRiskEvaluated",
+      "targetNodeName": "FlagForManualReview"
     },
     {
       "from": "moment-5-Cart-population",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "CartCreated",
+      "sourceNodeName": "CartCreated",
+      "targetNodeName": "AddTicketsToCart"
     },
     {
       "from": "moment-6-Fee-calculation",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TicketsAddedToCart",
+      "sourceNodeName": "TicketsAddedToCart",
+      "targetNodeName": "CalculateFees"
     },
     {
       "from": "moment-7-Payment-initiation",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "FeesCalculated",
+      "sourceNodeName": "FeesCalculated",
+      "targetNodeName": "InitiatePayment"
     },
     {
       "from": "moment-7-Payment-initiation",
@@ -648,17 +676,25 @@
           "customerId": "UUID",
           "amount": "Money"
         }
-      }
+      },
+      "eventType": "PaymentInitiated",
+      "sourceNodeName": "PaymentInitiated"
     },
     {
       "from": "moment-8-Payment-fraud-evaluation",
       "to": "ctx-AntiFraud",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentInitiated",
+      "sourceNodeName": "PaymentInitiated",
+      "targetNodeName": "EvaluatePaymentRisk"
     },
     {
       "from": "moment-9-Payment-processing",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentRiskEvaluated",
+      "sourceNodeName": "PaymentRiskEvaluated",
+      "targetNodeName": "ConfirmPayment"
     },
     {
       "from": "moment-9-Payment-processing",
@@ -677,12 +713,17 @@
           "holdId": "UUID",
           "paymentConfirmationId": "UUID"
         }
-      }
+      },
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed"
     },
     {
       "from": "moment-9-Payment-processing",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentRiskEvaluated",
+      "sourceNodeName": "PaymentRiskEvaluated",
+      "targetNodeName": "FailPayment"
     },
     {
       "from": "moment-10-Delivery-trigger",
@@ -705,7 +746,9 @@
           "eventId": "UUID",
           "holdId": "UUID"
         }
-      }
+      },
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed"
     },
     {
       "from": "moment-11-Notification-trigger",
@@ -724,17 +767,25 @@
           "orderId": "UUID",
           "customerId": "UUID"
         }
-      }
+      },
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed"
     },
     {
       "from": "moment-12-Hold-conversion",
       "to": "ctx-Inventory",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "ConvertHoldToReservation"
     },
     {
       "from": "moment-13-Ticket-issuance",
       "to": "ctx-Delivery",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "IssueTickets"
     },
     {
       "from": "moment-13-Ticket-issuance",
@@ -753,22 +804,33 @@
           "orderId": "UUID",
           "customerId": "UUID"
         }
-      }
+      },
+      "eventType": "TicketsIssued",
+      "sourceNodeName": "TicketsIssued"
     },
     {
       "from": "moment-14-Mobile-pass-generation",
       "to": "ctx-Delivery",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TicketsIssued",
+      "sourceNodeName": "TicketsIssued",
+      "targetNodeName": "GenerateMobilePass"
     },
     {
       "from": "moment-15-Order-confirmation",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "SendOrderConfirmation"
     },
     {
       "from": "moment-16-Ticket-delivery-notification",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TicketsIssued",
+      "sourceNodeName": "TicketsIssued",
+      "targetNodeName": "SendTicketDelivery"
     }
   ],
   "eventRouting": {
@@ -891,17 +953,17 @@
       "field": "outcome",
       "defaultRoute": "low-risk",
       "routes": {
-        "low-risk": "happy",
-        "high-risk": "terminal",
-        "medium-risk": "terminal"
+        "low-risk": "low-risk",
+        "high-risk": "high-risk",
+        "medium-risk": "medium-risk"
       }
     },
     "moment-9-Payment-processing": {
       "field": "outcome",
       "defaultRoute": "approved",
       "routes": {
-        "approved": "happy",
-        "declined": "terminal"
+        "approved": "approved",
+        "declined": "declined"
       }
     }
   },

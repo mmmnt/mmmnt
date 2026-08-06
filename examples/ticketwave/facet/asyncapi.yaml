@@ -1,7 +1,7 @@
 asyncapi: '3.0.0'
 info:
-  title: 'Untitled'
-  version: '0.0.0'
+  title: 'ticketwave'
+  version: '1.0.0'
   description: ''
 
 channels:
@@ -28,19 +28,7 @@ channels:
     messages:
       PaymentConfirmed:
         $ref: '#/components/messages/PaymentConfirmed'
-    description: 'Published by Checkout, consumed by Inventory'
-  payment-confirmed:
-    address: 'payment-confirmed'
-    messages:
-      PaymentConfirmed:
-        $ref: '#/components/messages/PaymentConfirmed'
-    description: 'Published by Checkout, consumed by Delivery'
-  payment-confirmed:
-    address: 'payment-confirmed'
-    messages:
-      PaymentConfirmed:
-        $ref: '#/components/messages/PaymentConfirmed'
-    description: 'Published by Checkout, consumed by Notifications'
+    description: 'Published by Checkout, consumed by Inventory, Delivery, Notifications'
   tickets-issued:
     address: 'tickets-issued'
     messages:
@@ -58,25 +46,7 @@ channels:
     messages:
       EventCancelled:
         $ref: '#/components/messages/EventCancelled'
-    description: 'Published by Catalog, consumed by Inventory'
-  event-cancelled:
-    address: 'event-cancelled'
-    messages:
-      EventCancelled:
-        $ref: '#/components/messages/EventCancelled'
-    description: 'Published by Catalog, consumed by Checkout'
-  event-cancelled:
-    address: 'event-cancelled'
-    messages:
-      EventCancelled:
-        $ref: '#/components/messages/EventCancelled'
-    description: 'Published by Catalog, consumed by Delivery'
-  event-cancelled:
-    address: 'event-cancelled'
-    messages:
-      EventCancelled:
-        $ref: '#/components/messages/EventCancelled'
-    description: 'Published by Catalog, consumed by Notifications'
+    description: 'Published by Catalog, consumed by Inventory, Checkout, Delivery, Notifications'
 
 components:
   messages:
@@ -89,6 +59,8 @@ components:
             type: 'string'
           publishedAt:
             type: 'string'
+        required:
+          - eventId
     SeatsHeld:
       name: 'SeatsHeld'
       payload:
@@ -112,6 +84,13 @@ components:
             type: 'string'
           heldAt:
             type: 'string'
+        required:
+          - holdId
+          - eventId
+          - tierId
+          - quantity
+          - customerId
+          - expiresAt
     PaymentInitiated:
       name: 'PaymentInitiated'
       payload:
@@ -133,6 +112,10 @@ components:
             type: 'string'
           initiatedAt:
             type: 'string'
+        required:
+          - paymentId
+          - customerId
+          - amount
     PaymentConfirmed:
       name: 'PaymentConfirmed'
       payload:
@@ -144,6 +127,9 @@ components:
             type: 'string'
           confirmedAt:
             type: 'string'
+        required:
+          - holdId
+          - paymentConfirmationId
     TicketsIssued:
       name: 'TicketsIssued'
       payload:
@@ -163,6 +149,9 @@ components:
             type: 'string'
           issuedAt:
             type: 'string'
+        required:
+          - orderId
+          - customerId
     TransferInitiated:
       name: 'TransferInitiated'
       payload:
@@ -182,6 +171,11 @@ components:
             type: 'string'
           initiatedAt:
             type: 'string'
+        required:
+          - transferId
+          - ticketId
+          - toEmail
+          - toName
     EventCancelled:
       name: 'EventCancelled'
       payload:
@@ -193,3 +187,6 @@ components:
             type: 'string'
           cancelledAt:
             type: 'string'
+        required:
+          - eventId
+          - reason

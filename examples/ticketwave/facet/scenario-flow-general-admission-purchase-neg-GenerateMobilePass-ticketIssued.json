@@ -3,6 +3,7 @@
   "flowId": "flow-general-admission-purchase",
   "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Ticket must be issued not met",
+  "kind": "negative",
   "description": "Negative scenario: Ticket must be issued precondition violation at GenerateMobilePass",
   "given": "A event discovery scenario is initiated",
   "when": "GenerateMobilePass is invoked without satisfying ticketIssued",
@@ -36,7 +37,18 @@
     "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
     "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main"
   ],
-  "activeBranches": [],
+  "activeBranches": [
+    {
+      "momentName": "Hold risk decision",
+      "condition": "low-risk",
+      "routeChosen": "low-risk"
+    },
+    {
+      "momentName": "Payment processing",
+      "condition": "approved",
+      "routeChosen": "approved"
+    }
+  ],
   "events": [
     {
       "eventId": "evt-001",
@@ -97,7 +109,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002"
+        "evt-003"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:03.000Z",
@@ -120,7 +132,7 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002"
+        "evt-004"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:04.000Z",
@@ -142,7 +154,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002"
+        "evt-005"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:05.000Z",
@@ -166,7 +178,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -190,8 +201,7 @@
       "productSource": "antifraud",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006"
+        "evt-007"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:07.000Z",
@@ -214,10 +224,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
         "evt-008"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -227,7 +233,8 @@
         "nodeId": "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
         "processName": "CreateCart",
         "customerId": "customerId-001",
-        "sessionId": "sessionId-001"
+        "sessionId": "sessionId-001",
+        "outcome": "low-risk"
       }
     },
     {
@@ -236,11 +243,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008"
+        "evt-009"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:09.000Z",
@@ -250,7 +253,8 @@
         "cartId": "cartId-001",
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
-        "createdAt": "2026-01-01T10:00:00.000Z"
+        "createdAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "low-risk"
       }
     },
     {
@@ -259,11 +263,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
         "evt-010"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -286,12 +285,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010"
+        "evt-011"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:11.000Z",
@@ -315,12 +309,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
         "evt-012"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -338,13 +326,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012"
+        "evt-013"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:13.000Z",
@@ -365,13 +347,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
         "evt-014"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -392,14 +367,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014"
+        "evt-015"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:15.000Z",
@@ -413,7 +381,8 @@
         "subtotal": 0,
         "totalFees": 0,
         "totalAmount": 0,
-        "initiatedAt": "2026-01-01T10:00:00.000Z"
+        "initiatedAt": "2026-01-01T10:00:00.000Z",
+        "amount": 0
       }
     },
     {
@@ -422,14 +391,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
         "evt-016"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -452,15 +413,7 @@
       "productSource": "antifraud",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016"
+        "evt-017"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:17.000Z",
@@ -482,16 +435,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
         "evt-018"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -501,7 +444,8 @@
         "nodeId": "moment-9-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
         "paymentId": "paymentId-001",
-        "gatewayTransactionId": "sample-gatewayTransactionId"
+        "gatewayTransactionId": "sample-gatewayTransactionId",
+        "outcome": "approved"
       }
     },
     {
@@ -510,17 +454,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018"
+        "evt-019"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:19.000Z",
@@ -529,7 +463,13 @@
         "nodeId": "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z"
+        "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "orderId": "orderId-001",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "outcome": "approved"
       }
     },
     {
@@ -538,17 +478,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018"
+        "evt-020"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:20.000Z",
@@ -557,7 +487,12 @@
         "nodeId": "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z"
+        "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "orderId": "orderId-001",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001"
       }
     },
     {
@@ -566,17 +501,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018"
+        "evt-021"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:21.000Z",
@@ -585,7 +510,12 @@
         "nodeId": "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z"
+        "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "orderId": "orderId-001",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001"
       }
     },
     {
@@ -594,19 +524,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018",
-        "evt-022",
-        "evt-022",
         "evt-022"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -625,20 +542,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018",
-        "evt-022",
-        "evt-022",
-        "evt-022"
+        "evt-023"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:23.000Z",
@@ -656,19 +560,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018",
-        "evt-022",
-        "evt-022",
         "evt-022"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -690,20 +581,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018",
-        "evt-022",
-        "evt-022",
-        "evt-022"
+        "evt-025"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:25.000Z",
@@ -725,21 +603,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
-        "evt-008",
-        "evt-008",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-016",
-        "evt-018",
-        "evt-018",
-        "evt-022",
-        "evt-022",
-        "evt-026",
-        "evt-022",
         "evt-026"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
@@ -767,6 +630,57 @@
         "nodeId": "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
         "failedPrecondition": "ticketIssued",
         "description": "Ticket must be issued"
+      }
+    },
+    {
+      "eventId": "evt-029",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:28.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
+      }
+    },
+    {
+      "eventId": "evt-030",
+      "eventType": "SimSaga.SeatHoldLifecycle.Converting",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-020"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:29.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Converting",
+        "triggeredBy": "PaymentConfirmed"
+      }
+    },
+    {
+      "eventId": "evt-031",
+      "eventType": "SimSaga.SeatHoldLifecycle.Converted",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-024"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:30.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Converted",
+        "triggeredBy": "HoldConvertedToReservation"
       }
     }
   ]

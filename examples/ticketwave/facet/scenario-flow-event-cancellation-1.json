@@ -3,6 +3,7 @@
   "flowId": "flow-event-cancellation",
   "flowName": "event-cancellation",
   "scenarioLabel": "Failure Path: event-cancellation [partial-failure]",
+  "kind": "failure",
   "description": "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event.",
   "given": "A event cancellation scenario is initiated",
   "when": "The flow progresses through Event cancellation, Cancellation propagation to checkout, Cancellation propagation to delivery, Cancellation propagation to notifications, Active holds release, Ticket revocation, Refund processing",
@@ -124,10 +125,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
@@ -146,11 +143,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-006"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
       "timestamp": "2026-01-01T10:00:06.000Z",
@@ -169,10 +162,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
@@ -191,11 +180,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-008"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
       "timestamp": "2026-01-01T10:00:08.000Z",
@@ -213,10 +198,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
@@ -227,7 +208,8 @@
         "processName": "RefundPayment",
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
-        "refundAmount": 0
+        "refundAmount": 0,
+        "outcome": "partial-failure"
       }
     },
     {
@@ -236,11 +218,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-010"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
       "timestamp": "2026-01-01T10:00:10.000Z",
@@ -250,7 +228,8 @@
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
         "refundAmount": 0,
-        "refundedAt": "2026-01-01T10:00:00.000Z"
+        "refundedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "partial-failure"
       }
     },
     {
@@ -259,11 +238,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-011"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
       "timestamp": "2026-01-01T10:00:11.000Z",
@@ -273,7 +248,8 @@
         "paymentId": "paymentId-001",
         "failureReason": "sample-failureReason",
         "gatewayErrorCode": "sample-gatewayErrorCode",
-        "failedAt": "2026-01-01T10:00:00.000Z"
+        "failedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "partial-failure"
       }
     },
     {
@@ -282,17 +258,14 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-1",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-012"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-1",
       "timestamp": "2026-01-01T10:00:12.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1"
+        "nodeId": "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1",
+        "outcome": "partial-failure"
       }
     }
   ]

@@ -3,6 +3,7 @@
   "flowId": "flow-presale-access",
   "flowName": "presale-access",
   "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
+  "kind": "negative",
   "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
   "given": "A presale window opens scenario is initiated",
   "when": "RequestHold is invoked without satisfying customerHoldLimit",
@@ -14,7 +15,13 @@
     "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
     "moment-2-Code-validation-outcome::inventory::RequestHold::br0"
   ],
-  "activeBranches": [],
+  "activeBranches": [
+    {
+      "momentName": "Code validation outcome",
+      "condition": "valid",
+      "routeChosen": "valid"
+    }
+  ],
   "events": [
     {
       "eventId": "evt-001",
@@ -108,7 +115,8 @@
         "sectionId": "sectionId-001",
         "quantity": 0,
         "customerId": "customerId-001",
-        "sessionId": "sessionId-001"
+        "sessionId": "sessionId-001",
+        "outcome": "valid"
       }
     },
     {

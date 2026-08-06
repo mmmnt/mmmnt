@@ -3,6 +3,7 @@
   "flowId": "flow-event-cancellation",
   "flowName": "event-cancellation",
   "scenarioLabel": "Failure: Event must not already be cancelled not met",
+  "kind": "negative",
   "description": "Negative scenario: Event must not already be cancelled precondition violation at CancelEvent",
   "given": "A event cancellation scenario is initiated",
   "when": "CancelEvent is invoked without satisfying eventNotAlreadyCancelled",

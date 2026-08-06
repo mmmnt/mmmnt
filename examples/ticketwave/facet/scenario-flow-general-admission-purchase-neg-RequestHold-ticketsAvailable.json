@@ -3,6 +3,7 @@
   "flowId": "flow-general-admission-purchase",
   "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
+  "kind": "negative",
   "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
   "given": "A event discovery scenario is initiated",
   "when": "RequestHold is invoked without satisfying ticketsAvailable",
@@ -75,7 +76,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002"
+        "evt-003"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:03.000Z",
@@ -98,7 +99,7 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-002"
+        "evt-004"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
       "timestamp": "2026-01-01T10:00:04.000Z",

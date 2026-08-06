@@ -418,7 +418,10 @@
     {
       "from": "moment-2-Code-validation-outcome",
       "to": "ctx-Inventory",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "AccessCodeRedeemed",
+      "sourceNodeName": "AccessCodeRedeemed",
+      "targetNodeName": "RequestHold"
     },
     {
       "from": "moment-2-Code-validation-outcome",
@@ -445,32 +448,49 @@
           "customerId": "UUID",
           "expiresAt": "DateTime"
         }
-      }
+      },
+      "eventType": "SeatsHeld",
+      "sourceNodeName": "SeatsHeld"
     },
     {
       "from": "moment-3-Presale-cart-creation",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "SeatsHeld",
+      "sourceNodeName": "SeatsHeld",
+      "targetNodeName": "CreateCart"
     },
     {
       "from": "moment-4-Presale-cart-population",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "CartCreated",
+      "sourceNodeName": "CartCreated",
+      "targetNodeName": "AddTicketsToCart"
     },
     {
       "from": "moment-5-Presale-fee-calculation",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TicketsAddedToCart",
+      "sourceNodeName": "TicketsAddedToCart",
+      "targetNodeName": "CalculateFees"
     },
     {
       "from": "moment-6-Presale-payment",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "FeesCalculated",
+      "sourceNodeName": "FeesCalculated",
+      "targetNodeName": "InitiatePayment"
     },
     {
       "from": "moment-7-Presale-payment-confirmation",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentInitiated",
+      "sourceNodeName": "PaymentInitiated",
+      "targetNodeName": "ConfirmPayment"
     },
     {
       "from": "moment-7-Presale-payment-confirmation",
@@ -489,7 +509,9 @@
           "holdId": "UUID",
           "paymentConfirmationId": "UUID"
         }
-      }
+      },
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed"
     },
     {
       "from": "moment-8-Presale-delivery-trigger",
@@ -512,27 +534,41 @@
           "eventId": "UUID",
           "holdId": "UUID"
         }
-      }
+      },
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed"
     },
     {
       "from": "moment-9-Presale-hold-conversion",
       "to": "ctx-Inventory",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "ConvertHoldToReservation"
     },
     {
       "from": "moment-10-Presale-ticket-issuance",
       "to": "ctx-Delivery",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "IssueTickets"
     },
     {
       "from": "moment-11-Presale-confirmation",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "SendOrderConfirmation"
     },
     {
       "from": "moment-12-Presale-ticket-delivery",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TicketsIssued",
+      "sourceNodeName": "TicketsIssued",
+      "targetNodeName": "SendTicketDelivery"
     }
   ],
   "eventRouting": {
@@ -629,9 +665,9 @@
       "field": "outcome",
       "defaultRoute": "valid",
       "routes": {
-        "valid": "happy",
-        "invalid": "terminal",
-        "window-expired": "terminal"
+        "valid": "valid",
+        "invalid": "invalid",
+        "window-expired": "window-expired"
       }
     }
   },

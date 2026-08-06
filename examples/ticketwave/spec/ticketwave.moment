@@ -243,7 +243,7 @@ context "Inventory" [Core]
 
   saga SeatHoldLifecycle
     trigger SeatsHeld
-    states Held -> Converting -> Converted -> Expired
+    states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertedToReservation -> Expired
     compensation "Release held seats back to the pool and notify customer"
     timeout holdExpiry
 
@@ -683,7 +683,7 @@ context "Delivery" [Supporting]
 
   saga TransferLifecycle
     trigger TransferInitiated
-    states Pending -> Accepted -> Declined -> Cancelled -> Expired
+    states Pending -> Accepted on TransferAccepted -> Declined -> Cancelled -> Expired
     compensation "Return ticket ownership to original holder"
     timeout transferExpiry
 

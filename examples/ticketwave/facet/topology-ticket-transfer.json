@@ -254,27 +254,41 @@
           "toEmail": "string",
           "toName": "string"
         }
-      }
+      },
+      "eventType": "TransferInitiated",
+      "sourceNodeName": "TransferInitiated"
     },
     {
       "from": "moment-1-Recipient-notification",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TransferInitiated",
+      "sourceNodeName": "TransferInitiated",
+      "targetNodeName": "SendTransferNotification"
     },
     {
       "from": "moment-3-Original-ticket-revocation",
       "to": "ctx-Delivery",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TransferAccepted",
+      "sourceNodeName": "TransferAccepted",
+      "targetNodeName": "RevokeTicket"
     },
     {
       "from": "moment-4-New-ticket-issuance",
       "to": "ctx-Delivery",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TransferAccepted",
+      "sourceNodeName": "TransferAccepted",
+      "targetNodeName": "IssueTickets"
     },
     {
       "from": "moment-5-Transfer-completion-notification",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "TicketsIssued",
+      "sourceNodeName": "TicketsIssued",
+      "targetNodeName": "SendTicketDelivery"
     }
   ],
   "eventRouting": {
@@ -334,9 +348,9 @@
       "field": "outcome",
       "defaultRoute": "accepted",
       "routes": {
-        "accepted": "happy",
-        "declined": "terminal",
-        "expired": "terminal"
+        "accepted": "accepted",
+        "declined": "declined",
+        "expired": "expired"
       }
     }
   },

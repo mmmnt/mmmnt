@@ -1,0 +1,105 @@
+{
+  "scenarioId": "scenario-flow-ticket-transfer-timeout-TransferLifecycle",
+  "flowId": "flow-ticket-transfer",
+  "flowName": "ticket-transfer",
+  "scenarioLabel": "Timeout: ticket-transfer [TransferLifecycle.transferExpiry]",
+  "kind": "timeout",
+  "description": "Timeout scenario: saga TransferLifecycle timeout transferExpiry elapses after TransferInitiated; the domain flow stops at Transfer initiation",
+  "given": "A transfer initiation scenario is initiated",
+  "when": "Saga TransferLifecycle timeout transferExpiry elapses after TransferInitiated",
+  "then": "Saga TransferLifecycle times out and compensates: Return ticket ownership to original holder",
+  "expectedPath": [
+    "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+    "moment-0-Transfer-initiation::delivery::TransferInitiated::main"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.InitiateTransfer",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+        "processName": "InitiateTransfer",
+        "ticketId": "ticketId-001",
+        "fromCustomerId": "fromCustomerId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "TransferInitiated",
+      "productSource": "delivery",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
+        "transferId": "transferId-001",
+        "ticketId": "ticketId-001",
+        "fromCustomerId": "fromCustomerId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "initiatedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimSaga.TransferLifecycle.Pending",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "TransferLifecycle",
+        "state": "Pending",
+        "triggeredBy": "TransferInitiated"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "SimSaga.TransferLifecycle.TimedOut",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "timeoutName": "transferExpiry"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimSaga.TransferLifecycle.Compensated",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [
+        "evt-004"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "description": "Return ticket ownership to original holder"
+      }
+    }
+  ]
+}

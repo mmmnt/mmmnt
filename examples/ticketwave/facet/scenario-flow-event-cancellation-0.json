@@ -3,6 +3,7 @@
   "flowId": "flow-event-cancellation",
   "flowName": "event-cancellation",
   "scenarioLabel": "Happy Path: event-cancellation",
+  "kind": "happy",
   "description": "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event.",
   "given": "A event cancellation scenario is initiated",
   "when": "The flow progresses through Event cancellation, Cancellation propagation to checkout, Cancellation propagation to delivery, Cancellation propagation to notifications, Active holds release, Ticket revocation, Refund processing, Cancellation notifications",
@@ -124,10 +125,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
@@ -146,11 +143,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-006"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
       "timestamp": "2026-01-01T10:00:06.000Z",
@@ -169,10 +162,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
@@ -191,11 +180,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-008"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
       "timestamp": "2026-01-01T10:00:08.000Z",
@@ -213,10 +198,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
@@ -227,7 +208,8 @@
         "processName": "RefundPayment",
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
-        "refundAmount": 0
+        "refundAmount": 0,
+        "outcome": "all-successful"
       }
     },
     {
@@ -236,11 +218,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-010"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
       "timestamp": "2026-01-01T10:00:10.000Z",
@@ -250,7 +228,8 @@
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
         "refundAmount": 0,
-        "refundedAt": "2026-01-01T10:00:00.000Z"
+        "refundedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "all-successful"
       }
     },
     {
@@ -259,10 +238,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
@@ -284,11 +259,7 @@
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-event-cancellation-0",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-012"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation-0",
       "timestamp": "2026-01-01T10:00:12.000Z",

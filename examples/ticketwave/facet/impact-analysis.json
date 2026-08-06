@@ -35,6 +35,7 @@
         "command:Catalog:PublishEvent"
       ],
       "triggers": [
+        "command:Inventory:InitializePool",
         "crossing:Catalog:EventPublished->Inventory"
       ]
     },
@@ -73,6 +74,11 @@
         "command:Catalog:CancelEvent"
       ],
       "triggers": [
+        "policy:Notifications:NotifyOnEventCancelled",
+        "command:Inventory:ReleaseHold",
+        "command:Delivery:RevokeTicket",
+        "command:Checkout:RefundPayment",
+        "command:Notifications:SendEventCancellationNotice",
         "crossing:Catalog:EventCancelled->Inventory",
         "crossing:Catalog:EventCancelled->Checkout",
         "crossing:Catalog:EventCancelled->Delivery",
@@ -155,7 +161,9 @@
       "type": "command",
       "name": "InitializePool",
       "context": "Inventory",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Catalog:EventPublished"
+      ],
       "triggers": [
         "event:Inventory:PoolInitialized"
       ]
@@ -193,7 +201,10 @@
       "type": "command",
       "name": "RequestHold",
       "context": "Inventory",
-      "dependsOn": [],
+      "dependsOn": [
+        "policy:Presale:GrantAccessOnRedemption",
+        "event:Presale:AccessCodeRedeemed"
+      ],
       "triggers": [
         "event:Inventory:SeatsHeld"
       ]
@@ -207,6 +218,9 @@
       ],
       "triggers": [
         "saga:Inventory:SeatHoldLifecycle",
+        "policy:AntiFraud:EvaluateOnHoldRequest",
+        "command:AntiFraud:EvaluateHoldRisk",
+        "command:Checkout:CreateCart",
         "crossing:Inventory:SeatsHeld->Checkout"
       ]
     },
@@ -232,7 +246,10 @@
       "type": "command",
       "name": "ReleaseHold",
       "context": "Inventory",
-      "dependsOn": [],
+      "dependsOn": [
+        "policy:Checkout:ReleaseHoldOnPaymentFailure",
+        "event:Catalog:EventCancelled"
+      ],
       "triggers": [
         "event:Inventory:HoldReleased"
       ]
@@ -253,7 +270,10 @@
       "type": "command",
       "name": "ConvertHoldToReservation",
       "context": "Inventory",
-      "dependsOn": [],
+      "dependsOn": [
+        "policy:Checkout:ConvertHoldOnPayment",
+        "event:Checkout:PaymentConfirmed"
+      ],
       "triggers": [
         "event:Inventory:HoldConvertedToReservation"
       ]
@@ -286,17 +306,19 @@
         "event:Inventory:HoldReleased"
       ],
       "triggers": [
-        "command:Inventory:NotifyWaitlistPromotion"
+        "command:Presale:NotifyWaitlistPromotion"
       ]
     },
     {
       "type": "command",
       "name": "NotifyWaitlistPromotion",
-      "context": "Inventory",
+      "context": "Presale",
       "dependsOn": [
         "policy:Inventory:PromoteWaitlistOnRelease"
       ],
-      "triggers": []
+      "triggers": [
+        "event:Presale:WaitlistPromotionNotified"
+      ]
     },
     {
       "type": "saga",
@@ -311,7 +333,10 @@
       "type": "command",
       "name": "CreateCart",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:AntiFraud:HoldRiskEvaluated",
+        "event:Inventory:SeatsHeld"
+      ],
       "triggers": [
         "event:Checkout:CartCreated"
       ]
@@ -323,13 +348,17 @@
       "dependsOn": [
         "command:Checkout:CreateCart"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Checkout:AddTicketsToCart"
+      ]
     },
     {
       "type": "command",
       "name": "AddTicketsToCart",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Checkout:CartCreated"
+      ],
       "triggers": [
         "event:Checkout:TicketsAddedToCart"
       ]
@@ -341,7 +370,9 @@
       "dependsOn": [
         "command:Checkout:AddTicketsToCart"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Checkout:CalculateFees"
+      ]
     },
     {
       "type": "command",
@@ -383,7 +414,9 @@
       "type": "command",
       "name": "CalculateFees",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Checkout:TicketsAddedToCart"
+      ],
       "triggers": [
         "event:Checkout:FeesCalculated"
       ]
@@ -395,13 +428,17 @@
       "dependsOn": [
         "command:Checkout:CalculateFees"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Checkout:InitiatePayment"
+      ]
     },
     {
       "type": "command",
       "name": "InitiatePayment",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Checkout:FeesCalculated"
+      ],
       "triggers": [
         "event:Checkout:PaymentInitiated"
       ]
@@ -414,6 +451,9 @@
         "command:Checkout:InitiatePayment"
       ],
       "triggers": [
+        "policy:AntiFraud:EvaluateOnPaymentInitiated",
+        "command:AntiFraud:EvaluatePaymentRisk",
+        "command:Checkout:ConfirmPayment",
         "crossing:Checkout:PaymentInitiated->AntiFraud"
       ]
     },
@@ -421,7 +461,10 @@
       "type": "command",
       "name": "ConfirmPayment",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:AntiFraud:PaymentRiskEvaluated",
+        "event:Checkout:PaymentInitiated"
+      ],
       "triggers": [
         "event:Checkout:PaymentConfirmed"
       ]
@@ -435,6 +478,11 @@
       ],
       "triggers": [
         "policy:Checkout:ConvertHoldOnPayment",
+        "policy:Delivery:IssueOnPaymentConfirmed",
+        "policy:Notifications:ConfirmOnPayment",
+        "command:Inventory:ConvertHoldToReservation",
+        "command:Delivery:IssueTickets",
+        "command:Notifications:SendOrderConfirmation",
         "crossing:Checkout:PaymentConfirmed->Inventory",
         "crossing:Checkout:PaymentConfirmed->Delivery",
         "crossing:Checkout:PaymentConfirmed->Notifications"
@@ -444,7 +492,9 @@
       "type": "command",
       "name": "FailPayment",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:AntiFraud:PaymentRiskEvaluated"
+      ],
       "triggers": [
         "event:Checkout:PaymentFailed"
       ]
@@ -464,7 +514,9 @@
       "type": "command",
       "name": "RefundPayment",
       "context": "Checkout",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Catalog:EventCancelled"
+      ],
       "triggers": [
         "event:Checkout:PaymentRefunded"
       ]
@@ -486,17 +538,8 @@
         "event:Checkout:PaymentConfirmed"
       ],
       "triggers": [
-        "command:Checkout:ConvertHoldToReservation"
+        "command:Inventory:ConvertHoldToReservation"
       ]
-    },
-    {
-      "type": "command",
-      "name": "ConvertHoldToReservation",
-      "context": "Checkout",
-      "dependsOn": [
-        "policy:Checkout:ConvertHoldOnPayment"
-      ],
-      "triggers": []
     },
     {
       "type": "policy",
@@ -506,17 +549,8 @@
         "event:Checkout:PaymentFailed"
       ],
       "triggers": [
-        "command:Checkout:ReleaseHold"
+        "command:Inventory:ReleaseHold"
       ]
-    },
-    {
-      "type": "command",
-      "name": "ReleaseHold",
-      "context": "Checkout",
-      "dependsOn": [
-        "policy:Checkout:ReleaseHoldOnPaymentFailure"
-      ],
-      "triggers": []
     },
     {
       "type": "command",
@@ -607,7 +641,8 @@
         "command:Presale:RedeemAccessCode"
       ],
       "triggers": [
-        "policy:Presale:GrantAccessOnRedemption"
+        "policy:Presale:GrantAccessOnRedemption",
+        "command:Inventory:RequestHold"
       ]
     },
     {
@@ -683,22 +718,15 @@
       "triggers": []
     },
     {
-      "type": "command",
-      "name": "NotifyWaitlistPromotion",
-      "context": "Presale",
-      "dependsOn": [],
-      "triggers": [
-        "event:Presale:WaitlistPromotionNotified"
-      ]
-    },
-    {
       "type": "event",
       "name": "WaitlistPromotionNotified",
       "context": "Presale",
       "dependsOn": [
         "command:Presale:NotifyWaitlistPromotion"
       ],
-      "triggers": []
+      "triggers": [
+        "policy:Notifications:NotifyOnWaitlistPromotion"
+      ]
     },
     {
       "type": "policy",
@@ -708,24 +736,17 @@
         "event:Presale:AccessCodeRedeemed"
       ],
       "triggers": [
-        "command:Presale:RequestHold"
+        "command:Inventory:RequestHold"
       ]
-    },
-    {
-      "type": "command",
-      "name": "RequestHold",
-      "context": "Presale",
-      "dependsOn": [
-        "policy:Presale:GrantAccessOnRedemption"
-      ],
-      "triggers": []
     },
     {
       "type": "command",
       "name": "IssueTickets",
       "context": "Delivery",
       "dependsOn": [
-        "policy:Delivery:IssueOnPaymentConfirmed"
+        "policy:Delivery:IssueOnPaymentConfirmed",
+        "event:Checkout:PaymentConfirmed",
+        "event:Delivery:TransferAccepted"
       ],
       "triggers": [
         "event:Delivery:TicketsIssued"
@@ -739,6 +760,9 @@
         "command:Delivery:IssueTickets"
       ],
       "triggers": [
+        "policy:Notifications:NotifyOnTicketsIssued",
+        "command:Delivery:GenerateMobilePass",
+        "command:Notifications:SendTicketDelivery",
         "crossing:Delivery:TicketsIssued->Notifications"
       ]
     },
@@ -746,7 +770,9 @@
       "type": "command",
       "name": "GenerateMobilePass",
       "context": "Delivery",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Delivery:TicketsIssued"
+      ],
       "triggers": [
         "event:Delivery:MobilePassGenerated"
       ]
@@ -764,7 +790,10 @@
       "type": "command",
       "name": "RevokeTicket",
       "context": "Delivery",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:Delivery:TransferAccepted",
+        "event:Catalog:EventCancelled"
+      ],
       "triggers": [
         "event:Delivery:TicketRevoked"
       ]
@@ -797,6 +826,7 @@
       "triggers": [
         "policy:Delivery:NotifyOnTransferInitiated",
         "saga:Delivery:TransferLifecycle",
+        "command:Notifications:SendTransferNotification",
         "crossing:Delivery:TransferInitiated->Notifications"
       ]
     },
@@ -816,7 +846,10 @@
       "dependsOn": [
         "command:Delivery:AcceptTransfer"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Delivery:RevokeTicket",
+        "command:Delivery:IssueTickets"
+      ]
     },
     {
       "type": "command",
@@ -859,19 +892,10 @@
       "name": "IssueOnPaymentConfirmed",
       "context": "Delivery",
       "dependsOn": [
-        "event:Delivery:PaymentConfirmed"
+        "event:Checkout:PaymentConfirmed"
       ],
       "triggers": [
         "command:Delivery:IssueTickets"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "PaymentConfirmed",
-      "context": "Delivery",
-      "dependsOn": [],
-      "triggers": [
-        "policy:Delivery:IssueOnPaymentConfirmed"
       ]
     },
     {
@@ -882,17 +906,20 @@
         "event:Delivery:TransferInitiated"
       ],
       "triggers": [
-        "command:Delivery:SendTransferNotification"
+        "command:Notifications:SendTransferNotification"
       ]
     },
     {
       "type": "command",
       "name": "SendTransferNotification",
-      "context": "Delivery",
+      "context": "Notifications",
       "dependsOn": [
-        "policy:Delivery:NotifyOnTransferInitiated"
+        "policy:Delivery:NotifyOnTransferInitiated",
+        "event:Delivery:TransferInitiated"
       ],
-      "triggers": []
+      "triggers": [
+        "event:Notifications:TransferNotificationSent"
+      ]
     },
     {
       "type": "saga",
@@ -908,7 +935,8 @@
       "name": "EvaluateHoldRisk",
       "context": "AntiFraud",
       "dependsOn": [
-        "policy:AntiFraud:EvaluateOnHoldRequest"
+        "policy:AntiFraud:EvaluateOnHoldRequest",
+        "event:Inventory:SeatsHeld"
       ],
       "triggers": [
         "event:AntiFraud:HoldRiskEvaluated"
@@ -922,7 +950,10 @@
         "command:AntiFraud:EvaluateHoldRisk"
       ],
       "triggers": [
-        "policy:AntiFraud:BlockOnHighRisk"
+        "policy:AntiFraud:BlockOnHighRisk",
+        "command:Checkout:CreateCart",
+        "command:AntiFraud:BlockCustomer",
+        "command:AntiFraud:FlagForManualReview"
       ]
     },
     {
@@ -930,7 +961,8 @@
       "name": "EvaluatePaymentRisk",
       "context": "AntiFraud",
       "dependsOn": [
-        "policy:AntiFraud:EvaluateOnPaymentInitiated"
+        "policy:AntiFraud:EvaluateOnPaymentInitiated",
+        "event:Checkout:PaymentInitiated"
       ],
       "triggers": [
         "event:AntiFraud:PaymentRiskEvaluated"
@@ -943,13 +975,18 @@
       "dependsOn": [
         "command:AntiFraud:EvaluatePaymentRisk"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Checkout:ConfirmPayment",
+        "command:Checkout:FailPayment"
+      ]
     },
     {
       "type": "command",
       "name": "FlagForManualReview",
       "context": "AntiFraud",
-      "dependsOn": [],
+      "dependsOn": [
+        "event:AntiFraud:HoldRiskEvaluated"
+      ],
       "triggers": [
         "event:AntiFraud:FlaggedForManualReview"
       ]
@@ -1004,7 +1041,8 @@
       "name": "BlockCustomer",
       "context": "AntiFraud",
       "dependsOn": [
-        "policy:AntiFraud:BlockOnHighRisk"
+        "policy:AntiFraud:BlockOnHighRisk",
+        "event:AntiFraud:HoldRiskEvaluated"
       ],
       "triggers": [
         "event:AntiFraud:CustomerBlocked"
@@ -1042,19 +1080,10 @@
       "name": "EvaluateOnHoldRequest",
       "context": "AntiFraud",
       "dependsOn": [
-        "event:AntiFraud:SeatsHeld"
+        "event:Inventory:SeatsHeld"
       ],
       "triggers": [
         "command:AntiFraud:EvaluateHoldRisk"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "SeatsHeld",
-      "context": "AntiFraud",
-      "dependsOn": [],
-      "triggers": [
-        "policy:AntiFraud:EvaluateOnHoldRequest"
       ]
     },
     {
@@ -1073,19 +1102,10 @@
       "name": "EvaluateOnPaymentInitiated",
       "context": "AntiFraud",
       "dependsOn": [
-        "event:AntiFraud:PaymentInitiated"
+        "event:Checkout:PaymentInitiated"
       ],
       "triggers": [
         "command:AntiFraud:EvaluatePaymentRisk"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "PaymentInitiated",
-      "context": "AntiFraud",
-      "dependsOn": [],
-      "triggers": [
-        "policy:AntiFraud:EvaluateOnPaymentInitiated"
       ]
     },
     {
@@ -1093,7 +1113,8 @@
       "name": "SendOrderConfirmation",
       "context": "Notifications",
       "dependsOn": [
-        "policy:Notifications:ConfirmOnPayment"
+        "policy:Notifications:ConfirmOnPayment",
+        "event:Checkout:PaymentConfirmed"
       ],
       "triggers": [
         "event:Notifications:OrderConfirmationSent"
@@ -1113,7 +1134,8 @@
       "name": "SendTicketDelivery",
       "context": "Notifications",
       "dependsOn": [
-        "policy:Notifications:NotifyOnTicketsIssued"
+        "policy:Notifications:NotifyOnTicketsIssued",
+        "event:Delivery:TicketsIssued"
       ],
       "triggers": [
         "event:Notifications:TicketDeliverySent"
@@ -1129,15 +1151,6 @@
       "triggers": []
     },
     {
-      "type": "command",
-      "name": "SendTransferNotification",
-      "context": "Notifications",
-      "dependsOn": [],
-      "triggers": [
-        "event:Notifications:TransferNotificationSent"
-      ]
-    },
-    {
       "type": "event",
       "name": "TransferNotificationSent",
       "context": "Notifications",
@@ -1151,7 +1164,8 @@
       "name": "SendEventCancellationNotice",
       "context": "Notifications",
       "dependsOn": [
-        "policy:Notifications:NotifyOnEventCancelled"
+        "policy:Notifications:NotifyOnEventCancelled",
+        "event:Catalog:EventCancelled"
       ],
       "triggers": [
         "event:Notifications:EventCancellationNoticeSent"
@@ -1263,19 +1277,10 @@
       "name": "ConfirmOnPayment",
       "context": "Notifications",
       "dependsOn": [
-        "event:Notifications:PaymentConfirmed"
+        "event:Checkout:PaymentConfirmed"
       ],
       "triggers": [
         "command:Notifications:SendOrderConfirmation"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "PaymentConfirmed",
-      "context": "Notifications",
-      "dependsOn": [],
-      "triggers": [
-        "policy:Notifications:ConfirmOnPayment"
       ]
     },
     {
@@ -1283,19 +1288,10 @@
       "name": "NotifyOnTicketsIssued",
       "context": "Notifications",
       "dependsOn": [
-        "event:Notifications:TicketsIssued"
+        "event:Delivery:TicketsIssued"
       ],
       "triggers": [
         "command:Notifications:SendTicketDelivery"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "TicketsIssued",
-      "context": "Notifications",
-      "dependsOn": [],
-      "triggers": [
-        "policy:Notifications:NotifyOnTicketsIssued"
       ]
     },
     {
@@ -1303,19 +1299,10 @@
       "name": "NotifyOnEventCancelled",
       "context": "Notifications",
       "dependsOn": [
-        "event:Notifications:EventCancelled"
+        "event:Catalog:EventCancelled"
       ],
       "triggers": [
         "command:Notifications:SendEventCancellationNotice"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "EventCancelled",
-      "context": "Notifications",
-      "dependsOn": [],
-      "triggers": [
-        "policy:Notifications:NotifyOnEventCancelled"
       ]
     },
     {
@@ -1323,7 +1310,7 @@
       "name": "NotifyOnWaitlistPromotion",
       "context": "Notifications",
       "dependsOn": [
-        "event:Notifications:WaitlistPromotionNotified"
+        "event:Presale:WaitlistPromotionNotified"
       ],
       "triggers": [
         "command:Notifications:SendWaitlistUpdate"
@@ -1331,12 +1318,59 @@
     },
     {
       "type": "event",
-      "name": "WaitlistPromotionNotified",
-      "context": "Notifications",
+      "name": "CustomerBlocked",
+      "context": "Bot Detected",
       "dependsOn": [],
-      "triggers": [
-        "policy:Notifications:NotifyOnWaitlistPromotion"
-      ]
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "FlaggedForManualReview",
+      "context": "Manual Review",
+      "dependsOn": [],
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "PaymentFailed",
+      "context": "Payment Declined",
+      "dependsOn": [],
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "AccessCodeInvalidated",
+      "context": "Invalid Code",
+      "dependsOn": [],
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "PresaleWindowClosed",
+      "context": "Window Closed",
+      "dependsOn": [],
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "TransferDeclined",
+      "context": "Transfer Declined",
+      "dependsOn": [],
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "TransferCancelled",
+      "context": "Transfer Expired",
+      "dependsOn": [],
+      "triggers": []
+    },
+    {
+      "type": "event",
+      "name": "PaymentFailed",
+      "context": "Partial Refund Failure",
+      "dependsOn": [],
+      "triggers": []
     },
     {
       "type": "crossing",
@@ -1448,6 +1482,6 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-04-06T03:36:28.725Z"
+    "generatedAt": "2026-08-06T22:56:14.897Z"
   }
 }

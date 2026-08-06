@@ -3,6 +3,7 @@
   "flowId": "flow-presale-access",
   "flowName": "presale-access",
   "scenarioLabel": "Failure: Access code must be valid and unredeemed not met",
+  "kind": "negative",
   "description": "Negative scenario: Access code must be valid and unredeemed precondition violation at RedeemAccessCode",
   "given": "A presale window opens scenario is initiated",
   "when": "RedeemAccessCode is invoked without satisfying codeValid",

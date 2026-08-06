@@ -3,6 +3,7 @@
   "flowId": "flow-presale-access",
   "flowName": "presale-access",
   "scenarioLabel": "Failure Path: presale-access [invalid]",
+  "kind": "failure",
   "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
   "given": "A presale window opens scenario is initiated",
   "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome",
@@ -112,7 +113,8 @@
         "nodeId": "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1",
         "processName": "InvalidateAccessCode",
         "codeId": "codeId-001",
-        "reason": "sample-reason"
+        "reason": "sample-reason",
+        "outcome": "invalid"
       }
     },
     {
@@ -121,7 +123,7 @@
       "productSource": "presale",
       "sessionId": "sess-scenario-flow-presale-access-1",
       "causationEventIds": [
-        "evt-004"
+        "evt-005"
       ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:05.000Z",
@@ -130,7 +132,8 @@
         "nodeId": "moment-2-Code-validation-outcome::presale::AccessCodeInvalidated::br1",
         "codeId": "codeId-001",
         "reason": "sample-reason",
-        "invalidatedAt": "2026-01-01T10:00:00.000Z"
+        "invalidatedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "invalid"
       }
     },
     {
@@ -139,13 +142,14 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-1",
       "causationEventIds": [
-        "evt-004"
+        "evt-006"
       ],
       "correlationId": "corr-scenario-flow-presale-access-1",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1"
+        "nodeId": "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1",
+        "outcome": "invalid"
       }
     }
   ]

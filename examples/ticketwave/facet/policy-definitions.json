@@ -1,0 +1,128 @@
+[
+  {
+    "name": "ReplenishOnHoldRelease",
+    "contextId": "ctx-Inventory",
+    "trigger": "HoldReleased",
+    "actionDescription": "Return released quantity back to the ticket pool",
+    "chainsTo": [
+      "AdjustPoolCapacity"
+    ]
+  },
+  {
+    "name": "PromoteWaitlistOnRelease",
+    "contextId": "ctx-Inventory",
+    "trigger": "HoldReleased",
+    "actionDescription": "Check waitlist for customers waiting on this event-tier and promote next eligible",
+    "chainsTo": [
+      "NotifyWaitlistPromotion"
+    ]
+  },
+  {
+    "name": "ConvertHoldOnPayment",
+    "contextId": "ctx-Checkout",
+    "trigger": "PaymentConfirmed",
+    "actionDescription": "Convert seat hold to permanent reservation after payment clears",
+    "chainsTo": [
+      "ConvertHoldToReservation"
+    ]
+  },
+  {
+    "name": "ReleaseHoldOnPaymentFailure",
+    "contextId": "ctx-Checkout",
+    "trigger": "PaymentFailed",
+    "actionDescription": "Release seat hold back to the pool when payment fails",
+    "chainsTo": [
+      "ReleaseHold"
+    ]
+  },
+  {
+    "name": "GrantAccessOnRedemption",
+    "contextId": "ctx-Presale",
+    "trigger": "AccessCodeRedeemed",
+    "actionDescription": "Grant presale access to the customer for the event",
+    "chainsTo": [
+      "RequestHold"
+    ]
+  },
+  {
+    "name": "IssueOnPaymentConfirmed",
+    "contextId": "ctx-Delivery",
+    "trigger": "PaymentConfirmed",
+    "actionDescription": "Issue digital tickets after payment is confirmed",
+    "chainsTo": [
+      "IssueTickets"
+    ]
+  },
+  {
+    "name": "NotifyOnTransferInitiated",
+    "contextId": "ctx-Delivery",
+    "trigger": "TransferInitiated",
+    "actionDescription": "Send transfer invitation to recipient email",
+    "chainsTo": [
+      "SendTransferNotification"
+    ]
+  },
+  {
+    "name": "EvaluateOnHoldRequest",
+    "contextId": "ctx-AntiFraud",
+    "trigger": "SeatsHeld",
+    "actionDescription": "Run real-time risk assessment when seats are held",
+    "chainsTo": [
+      "EvaluateHoldRisk"
+    ]
+  },
+  {
+    "name": "BlockOnHighRisk",
+    "contextId": "ctx-AntiFraud",
+    "trigger": "HoldRiskEvaluated",
+    "actionDescription": "Block customer and release hold when risk score exceeds threshold",
+    "chainsTo": [
+      "BlockCustomer"
+    ]
+  },
+  {
+    "name": "EvaluateOnPaymentInitiated",
+    "contextId": "ctx-AntiFraud",
+    "trigger": "PaymentInitiated",
+    "actionDescription": "Run payment fraud check before gateway submission",
+    "chainsTo": [
+      "EvaluatePaymentRisk"
+    ]
+  },
+  {
+    "name": "ConfirmOnPayment",
+    "contextId": "ctx-Notifications",
+    "trigger": "PaymentConfirmed",
+    "actionDescription": "Send order confirmation email after successful payment",
+    "chainsTo": [
+      "SendOrderConfirmation"
+    ]
+  },
+  {
+    "name": "NotifyOnTicketsIssued",
+    "contextId": "ctx-Notifications",
+    "trigger": "TicketsIssued",
+    "actionDescription": "Send ticket delivery notification with barcodes",
+    "chainsTo": [
+      "SendTicketDelivery"
+    ]
+  },
+  {
+    "name": "NotifyOnEventCancelled",
+    "contextId": "ctx-Notifications",
+    "trigger": "EventCancelled",
+    "actionDescription": "Send cancellation notice to all ticket holders",
+    "chainsTo": [
+      "SendEventCancellationNotice"
+    ]
+  },
+  {
+    "name": "NotifyOnWaitlistPromotion",
+    "contextId": "ctx-Notifications",
+    "trigger": "WaitlistPromotionNotified",
+    "actionDescription": "Send waitlist promotion notification to customer",
+    "chainsTo": [
+      "SendWaitlistUpdate"
+    ]
+  }
+]

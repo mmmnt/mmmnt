@@ -2,6 +2,7 @@
   "events": [
     {
       "eventName": "EventCreated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -55,6 +56,7 @@
     },
     {
       "eventName": "EventPublished",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -77,7 +79,7 @@
       "consumers": [
         {
           "context": "Inventory",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
@@ -87,6 +89,7 @@
     },
     {
       "eventName": "EventDetailsUpdated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -125,6 +128,7 @@
     },
     {
       "eventName": "EventCancelled",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -152,19 +156,19 @@
       "consumers": [
         {
           "context": "Inventory",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         },
         {
           "context": "Checkout",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         },
         {
           "context": "Delivery",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         },
         {
           "context": "Notifications",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
@@ -174,6 +178,7 @@
     },
     {
       "eventName": "EventRescheduled",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -212,6 +217,7 @@
     },
     {
       "eventName": "VenueRegistered",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -255,6 +261,7 @@
     },
     {
       "eventName": "SeatMapUpdated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -283,6 +290,7 @@
     },
     {
       "eventName": "ArtistRegistered",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -321,6 +329,7 @@
     },
     {
       "eventName": "PoolInitialized",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -378,6 +387,7 @@
     },
     {
       "eventName": "PoolCapacityAdjusted",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -416,6 +426,7 @@
     },
     {
       "eventName": "SeatsHeld",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -473,7 +484,7 @@
       "consumers": [
         {
           "context": "Checkout",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
@@ -483,6 +494,7 @@
     },
     {
       "eventName": "HoldExtended",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -511,6 +523,7 @@
     },
     {
       "eventName": "HoldReleased",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -548,6 +561,7 @@
     },
     {
       "eventName": "HoldConvertedToReservation",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -580,6 +594,7 @@
     },
     {
       "eventName": "CartCreated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -611,12 +626,13 @@
       },
       "consumers": [],
       "temporalLocation": {
-        "moment": "Cart population",
-        "momentIndex": 5
+        "moment": "Hold risk decision",
+        "momentIndex": 4
       }
     },
     {
       "eventName": "TicketsAddedToCart",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -679,6 +695,7 @@
     },
     {
       "eventName": "TicketsRemovedFromCart",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -707,6 +724,7 @@
     },
     {
       "eventName": "PromoCodeApplied",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -745,6 +763,7 @@
     },
     {
       "eventName": "FeesCalculated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -792,6 +811,7 @@
     },
     {
       "eventName": "PaymentInitiated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -844,7 +864,7 @@
       "consumers": [
         {
           "context": "AntiFraud",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
@@ -854,6 +874,7 @@
     },
     {
       "eventName": "PaymentConfirmed",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -881,24 +902,25 @@
       "consumers": [
         {
           "context": "Inventory",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         },
         {
           "context": "Delivery",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         },
         {
           "context": "Notifications",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
-        "moment": "Delivery trigger",
-        "momentIndex": 10
+        "moment": "Payment processing",
+        "momentIndex": 9
       }
     },
     {
       "eventName": "PaymentFailed",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -928,10 +950,15 @@
         "aggregate": "Payment",
         "command": "FailPayment"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Payment processing",
+        "momentIndex": 9
+      }
     },
     {
       "eventName": "PaymentRefunded",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -961,10 +988,15 @@
         "aggregate": "Payment",
         "command": "RefundPayment"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Refund processing",
+        "momentIndex": 6
+      }
     },
     {
       "eventName": "PresaleWindowCreated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1018,6 +1050,7 @@
     },
     {
       "eventName": "PresaleWindowOpened",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1045,6 +1078,7 @@
     },
     {
       "eventName": "PresaleWindowClosed",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1069,10 +1103,15 @@
         "aggregate": "PresaleWindow",
         "command": "ClosePresaleWindow"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Code validation outcome",
+        "momentIndex": 2
+      }
     },
     {
       "eventName": "AccessCodesGenerated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1111,6 +1150,7 @@
     },
     {
       "eventName": "AccessCodeRedeemed",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1158,6 +1198,7 @@
     },
     {
       "eventName": "AccessCodeInvalidated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1182,10 +1223,15 @@
         "aggregate": "AccessCode",
         "command": "InvalidateAccessCode"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Code validation outcome",
+        "momentIndex": 2
+      }
     },
     {
       "eventName": "WaitlistJoined",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1234,6 +1280,7 @@
     },
     {
       "eventName": "WaitlistPromoted",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1267,6 +1314,7 @@
     },
     {
       "eventName": "WaitlistLeft",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1295,6 +1343,7 @@
     },
     {
       "eventName": "WaitlistPromotionNotified",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1328,6 +1377,7 @@
     },
     {
       "eventName": "TicketsIssued",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1375,7 +1425,7 @@
       "consumers": [
         {
           "context": "Notifications",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
@@ -1385,6 +1435,7 @@
     },
     {
       "eventName": "MobilePassGenerated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1422,6 +1473,7 @@
     },
     {
       "eventName": "TicketRevoked",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1454,6 +1506,7 @@
     },
     {
       "eventName": "TransferInitiated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1501,7 +1554,7 @@
       "consumers": [
         {
           "context": "Notifications",
-          "relationshipType": "crosses-to"
+          "relationshipType": "CustomerSupplier"
         }
       ],
       "temporalLocation": {
@@ -1511,6 +1564,7 @@
     },
     {
       "eventName": "TransferAccepted",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1547,12 +1601,13 @@
       },
       "consumers": [],
       "temporalLocation": {
-        "moment": "Original ticket revocation",
-        "momentIndex": 3
+        "moment": "Transfer resolution",
+        "momentIndex": 2
       }
     },
     {
       "eventName": "TransferDeclined",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1577,10 +1632,15 @@
         "aggregate": "TicketTransfer",
         "command": "DeclineTransfer"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Transfer resolution",
+        "momentIndex": 2
+      }
     },
     {
       "eventName": "TransferCancelled",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1600,10 +1660,15 @@
         "aggregate": "TicketTransfer",
         "command": "CancelTransfer"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Transfer resolution",
+        "momentIndex": 2
+      }
     },
     {
       "eventName": "HoldRiskEvaluated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1661,6 +1726,7 @@
     },
     {
       "eventName": "PaymentRiskEvaluated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1713,6 +1779,7 @@
     },
     {
       "eventName": "FlaggedForManualReview",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1737,10 +1804,15 @@
         "aggregate": "RiskAssessment",
         "command": "FlagForManualReview"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold risk decision",
+        "momentIndex": 4
+      }
     },
     {
       "eventName": "ManualReviewCompleted",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1779,6 +1851,7 @@
     },
     {
       "eventName": "PurchaseAttemptRecorded",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1832,6 +1905,7 @@
     },
     {
       "eventName": "CustomerBlocked",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1871,10 +1945,15 @@
         "aggregate": "VelocityTracker",
         "command": "BlockCustomer"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold risk decision",
+        "momentIndex": 4
+      }
     },
     {
       "eventName": "CustomerUnblocked",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1903,6 +1982,7 @@
     },
     {
       "eventName": "OrderConfirmationSent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1945,6 +2025,7 @@
     },
     {
       "eventName": "TicketDeliverySent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -1987,6 +2068,7 @@
     },
     {
       "eventName": "TransferNotificationSent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2024,6 +2106,7 @@
     },
     {
       "eventName": "EventCancellationNoticeSent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2066,6 +2149,7 @@
     },
     {
       "eventName": "PresaleAccessNoticeSent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2099,6 +2183,7 @@
     },
     {
       "eventName": "WaitlistUpdateSent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2132,6 +2217,7 @@
     },
     {
       "eventName": "EventReminderSent",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2165,6 +2251,7 @@
     },
     {
       "eventName": "PreferencesUpdated",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2213,6 +2300,7 @@
     },
     {
       "eventName": "AllChannelsUnsubscribed",
+      "kind": "event",
       "schema": {
         "fields": [
           {
@@ -2243,10 +2331,554 @@
         "command": "UnsubscribeAll"
       },
       "consumers": []
+    },
+    {
+      "eventName": "PublishEvent",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Event discovery",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "InitializePool",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Pool initialization",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "RequestHold",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Seat selection and hold",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "EvaluateHoldRisk",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold fraud evaluation",
+        "momentIndex": 3
+      }
+    },
+    {
+      "eventName": "CreateCart",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold risk decision",
+        "momentIndex": 4
+      }
+    },
+    {
+      "eventName": "BlockCustomer",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold risk decision",
+        "momentIndex": 4
+      }
+    },
+    {
+      "eventName": "FlagForManualReview",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold risk decision",
+        "momentIndex": 4
+      }
+    },
+    {
+      "eventName": "AddTicketsToCart",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Cart population",
+        "momentIndex": 5
+      }
+    },
+    {
+      "eventName": "CalculateFees",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Fee calculation",
+        "momentIndex": 6
+      }
+    },
+    {
+      "eventName": "InitiatePayment",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Payment initiation",
+        "momentIndex": 7
+      }
+    },
+    {
+      "eventName": "EvaluatePaymentRisk",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "AntiFraud",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Payment fraud evaluation",
+        "momentIndex": 8
+      }
+    },
+    {
+      "eventName": "ConfirmPayment",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Payment processing",
+        "momentIndex": 9
+      }
+    },
+    {
+      "eventName": "FailPayment",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Payment processing",
+        "momentIndex": 9
+      }
+    },
+    {
+      "eventName": "ConvertHoldToReservation",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold conversion",
+        "momentIndex": 12
+      }
+    },
+    {
+      "eventName": "IssueTickets",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Ticket issuance",
+        "momentIndex": 13
+      }
+    },
+    {
+      "eventName": "GenerateMobilePass",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Mobile pass generation",
+        "momentIndex": 14
+      }
+    },
+    {
+      "eventName": "SendOrderConfirmation",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Order confirmation",
+        "momentIndex": 15
+      }
+    },
+    {
+      "eventName": "SendTicketDelivery",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Ticket delivery notification",
+        "momentIndex": 16
+      }
+    },
+    {
+      "eventName": "OpenPresaleWindow",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Presale window opens",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "RedeemAccessCode",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Access code redemption",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "InvalidateAccessCode",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Code validation outcome",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "ClosePresaleWindow",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Code validation outcome",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "InitiateTransfer",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Transfer initiation",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "SendTransferNotification",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Recipient notification",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "AcceptTransfer",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Transfer resolution",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "DeclineTransfer",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Transfer resolution",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "CancelTransfer",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Transfer resolution",
+        "momentIndex": 2
+      }
+    },
+    {
+      "eventName": "RevokeTicket",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Delivery",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Original ticket revocation",
+        "momentIndex": 3
+      }
+    },
+    {
+      "eventName": "CancelEvent",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Catalog",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Event cancellation",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "ReleaseHold",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Active holds release",
+        "momentIndex": 4
+      }
+    },
+    {
+      "eventName": "RefundPayment",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Checkout",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Refund processing",
+        "momentIndex": 6
+      }
+    },
+    {
+      "eventName": "SendEventCancellationNotice",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Notifications",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Cancellation notifications",
+        "momentIndex": 7
+      }
     }
   ],
   "metadata": {
-    "generatedAt": "2026-04-06T03:36:28.724Z",
-    "totalEvents": 56
+    "generatedAt": "2026-08-06T22:56:14.894Z",
+    "totalEvents": 88
   }
 }

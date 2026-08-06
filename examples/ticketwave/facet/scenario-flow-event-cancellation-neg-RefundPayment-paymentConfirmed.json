@@ -3,6 +3,7 @@
   "flowId": "flow-event-cancellation",
   "flowName": "event-cancellation",
   "scenarioLabel": "Failure: Payment must have been confirmed not met",
+  "kind": "negative",
   "description": "Negative scenario: Payment must have been confirmed precondition violation at RefundPayment",
   "given": "A event cancellation scenario is initiated",
   "when": "RefundPayment is invoked without satisfying paymentConfirmed",
@@ -19,7 +20,13 @@
     "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
     "moment-6-Refund-processing::checkout::RefundPayment::br0"
   ],
-  "activeBranches": [],
+  "activeBranches": [
+    {
+      "momentName": "Refund processing",
+      "condition": "all-successful",
+      "routeChosen": "all-successful"
+    }
+  ],
   "events": [
     {
       "eventId": "evt-001",
@@ -115,10 +122,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation",
@@ -137,11 +140,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-event-cancellation",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-006"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:06.000Z",
@@ -160,10 +159,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation",
@@ -182,11 +177,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-event-cancellation",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005"
+        "evt-008"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation",
       "timestamp": "2026-01-01T10:00:08.000Z",
@@ -204,10 +195,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-event-cancellation",
       "causationEventIds": [
-        "evt-005",
-        "evt-005",
-        "evt-005",
-        "evt-005",
         "evt-005"
       ],
       "correlationId": "corr-scenario-flow-event-cancellation",
@@ -218,7 +205,8 @@
         "processName": "RefundPayment",
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
-        "refundAmount": 0
+        "refundAmount": 0,
+        "outcome": "all-successful"
       }
     },
     {

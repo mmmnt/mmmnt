@@ -280,7 +280,9 @@
           "eventId": "UUID",
           "reason": "string"
         }
-      }
+      },
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled"
     },
     {
       "from": "moment-1-Cancellation-propagation-to-checkout",
@@ -299,7 +301,9 @@
           "eventId": "UUID",
           "reason": "string"
         }
-      }
+      },
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled"
     },
     {
       "from": "moment-2-Cancellation-propagation-to-delivery",
@@ -318,7 +322,9 @@
           "eventId": "UUID",
           "reason": "string"
         }
-      }
+      },
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled"
     },
     {
       "from": "moment-3-Cancellation-propagation-to-notifications",
@@ -337,32 +343,49 @@
           "eventId": "UUID",
           "reason": "string"
         }
-      }
+      },
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled"
     },
     {
       "from": "moment-4-Active-holds-release",
       "to": "ctx-Inventory",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled",
+      "targetNodeName": "ReleaseHold"
     },
     {
       "from": "moment-5-Ticket-revocation",
       "to": "ctx-Delivery",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled",
+      "targetNodeName": "RevokeTicket"
     },
     {
       "from": "moment-6-Refund-processing",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled",
+      "targetNodeName": "RefundPayment"
     },
     {
       "from": "moment-6-Refund-processing",
       "to": "ctx-Checkout",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled",
+      "targetNodeName": "RefundPayment"
     },
     {
       "from": "moment-7-Cancellation-notifications",
       "to": "ctx-Notifications",
-      "style": "happy"
+      "style": "happy",
+      "eventType": "EventCancelled",
+      "sourceNodeName": "EventCancelled",
+      "targetNodeName": "SendEventCancellationNotice"
     }
   ],
   "eventRouting": {
@@ -411,8 +434,8 @@
       "field": "outcome",
       "defaultRoute": "all-successful",
       "routes": {
-        "all-successful": "happy",
-        "partial-failure": "terminal"
+        "all-successful": "all-successful",
+        "partial-failure": "partial-failure"
       }
     }
   },

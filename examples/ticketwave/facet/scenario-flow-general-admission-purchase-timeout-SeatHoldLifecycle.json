@@ -1,33 +1,22 @@
 {
-  "scenarioId": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-holdValid",
+  "scenarioId": "scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle",
   "flowId": "flow-general-admission-purchase",
   "flowName": "general-admission-purchase",
-  "scenarioLabel": "Failure: Referenced hold must be active not met",
-  "kind": "negative",
-  "description": "Negative scenario: Referenced hold must be active precondition violation at AddTicketsToCart",
+  "scenarioLabel": "Timeout: general-admission-purchase [SeatHoldLifecycle.holdExpiry]",
+  "kind": "timeout",
+  "description": "Timeout scenario: saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld; the domain flow stops at Seat selection and hold",
   "given": "A event discovery scenario is initiated",
-  "when": "AddTicketsToCart is invoked without satisfying holdValid",
-  "then": "The command AddTicketsToCart is rejected",
+  "when": "Saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld",
+  "then": "Saga SeatHoldLifecycle times out and compensates: Release held seats back to the pool and notify customer",
   "expectedPath": [
     "moment-0-Event-discovery::catalog::PublishEvent::main",
     "moment-0-Event-discovery::catalog::EventPublished::main",
     "moment-1-Pool-initialization::inventory::InitializePool::main",
     "moment-1-Pool-initialization::inventory::PoolInitialized::main",
     "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
-    "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
-    "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
-    "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
-    "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
-    "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
-    "moment-5-Cart-population::checkout::AddTicketsToCart::main"
+    "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main"
   ],
-  "activeBranches": [
-    {
-      "momentName": "Hold risk decision",
-      "condition": "low-risk",
-      "routeChosen": "low-risk"
-    }
-  ],
+  "activeBranches": [],
   "events": [
     {
       "eventId": "evt-001",
@@ -153,7 +142,7 @@
     },
     {
       "eventId": "evt-007",
-      "eventType": "SimProcess.EvaluateHoldRisk",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
@@ -163,21 +152,15 @@
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
-        "processName": "EvaluateHoldRisk",
-        "holdId": "holdId-001",
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
-        "eventId": "eventId-001",
-        "quantity": 0,
-        "deviceFingerprint": {},
-        "ipAddress": "sample-ipAddress"
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
       }
     },
     {
       "eventId": "evt-008",
-      "eventType": "HoldRiskEvaluated",
-      "productSource": "antifraud",
+      "eventType": "SimSaga.SeatHoldLifecycle.TimedOut",
+      "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
         "evt-007"
@@ -186,20 +169,12 @@
       "timestamp": "2026-01-01T10:00:07.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
-        "assessmentId": "assessmentId-001",
-        "holdId": "holdId-001",
-        "customerId": "customerId-001",
-        "riskScore": 0,
-        "riskLevel": "sample-riskLevel",
-        "signals": {},
-        "velocityCount": 0,
-        "evaluatedAt": "2026-01-01T10:00:00.000Z"
+        "timeoutName": "holdExpiry"
       }
     },
     {
       "eventId": "evt-009",
-      "eventType": "SimProcess.CreateCart",
+      "eventType": "SimSaga.SeatHoldLifecycle.Compensated",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
@@ -209,87 +184,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
-        "processName": "CreateCart",
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
-        "outcome": "low-risk"
-      }
-    },
-    {
-      "eventId": "evt-010",
-      "eventType": "CartCreated",
-      "productSource": "checkout",
-      "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": [
-        "evt-009"
-      ],
-      "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:09.000Z",
-      "version": 1,
-      "payload": {
-        "nodeId": "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
-        "cartId": "cartId-001",
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
-        "createdAt": "2026-01-01T10:00:00.000Z",
-        "outcome": "low-risk"
-      }
-    },
-    {
-      "eventId": "evt-011",
-      "eventType": "SimProcess.AddTicketsToCart",
-      "productSource": "moment:simulation",
-      "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": [
-        "evt-010"
-      ],
-      "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:10.000Z",
-      "version": 1,
-      "payload": {
-        "nodeId": "moment-5-Cart-population::checkout::AddTicketsToCart::main",
-        "processName": "AddTicketsToCart",
-        "cartId": "cartId-001",
-        "holdId": "holdId-001",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "quantity": 0,
-        "unitPrice": 0
-      }
-    },
-    {
-      "eventId": "evt-012",
-      "eventType": "SimFailure.AddTicketsToCart.PreconditionViolation",
-      "productSource": "moment:simulation",
-      "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": [
-        "evt-011"
-      ],
-      "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:11.000Z",
-      "version": 1,
-      "payload": {
-        "nodeId": "moment-5-Cart-population::checkout::AddTicketsToCart::main",
-        "failedPrecondition": "holdValid",
-        "description": "Referenced hold must be active"
-      }
-    },
-    {
-      "eventId": "evt-013",
-      "eventType": "SimSaga.SeatHoldLifecycle.Held",
-      "productSource": "moment:simulation",
-      "sessionId": "sess-scenario-flow-general-admission-purchase",
-      "causationEventIds": [
-        "evt-006"
-      ],
-      "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:12.000Z",
-      "version": 1,
-      "payload": {
-        "sagaName": "SeatHoldLifecycle",
-        "state": "Held",
-        "triggeredBy": "SeatsHeld"
+        "description": "Release held seats back to the pool and notify customer"
       }
     }
   ]

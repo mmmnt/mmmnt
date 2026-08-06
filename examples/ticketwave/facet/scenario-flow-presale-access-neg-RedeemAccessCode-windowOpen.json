@@ -3,6 +3,7 @@
   "flowId": "flow-presale-access",
   "flowName": "presale-access",
   "scenarioLabel": "Failure: Associated presale window must be currently open not met",
+  "kind": "negative",
   "description": "Negative scenario: Associated presale window must be currently open precondition violation at RedeemAccessCode",
   "given": "A presale window opens scenario is initiated",
   "when": "RedeemAccessCode is invoked without satisfying windowOpen",

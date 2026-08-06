@@ -3,6 +3,7 @@
   "flowId": "flow-general-admission-purchase",
   "flowName": "general-admission-purchase",
   "scenarioLabel": "Failure: Event must have at least one ticket tier configured not met",
+  "kind": "negative",
   "description": "Negative scenario: Event must have at least one ticket tier configured precondition violation at PublishEvent",
   "given": "A event discovery scenario is initiated",
   "when": "PublishEvent is invoked without satisfying eventComplete",

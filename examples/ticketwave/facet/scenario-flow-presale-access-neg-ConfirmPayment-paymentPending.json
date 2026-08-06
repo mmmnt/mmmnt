@@ -3,6 +3,7 @@
   "flowId": "flow-presale-access",
   "flowName": "presale-access",
   "scenarioLabel": "Failure: Payment must be in pending state not met",
+  "kind": "negative",
   "description": "Negative scenario: Payment must be in pending state precondition violation at ConfirmPayment",
   "given": "A presale window opens scenario is initiated",
   "when": "ConfirmPayment is invoked without satisfying paymentPending",
@@ -24,7 +25,13 @@
     "moment-6-Presale-payment::checkout::PaymentInitiated::main",
     "moment-7-Presale-payment-confirmation::checkout::ConfirmPayment::main"
   ],
-  "activeBranches": [],
+  "activeBranches": [
+    {
+      "momentName": "Code validation outcome",
+      "condition": "valid",
+      "routeChosen": "valid"
+    }
+  ],
   "events": [
     {
       "eventId": "evt-001",
@@ -118,7 +125,8 @@
         "sectionId": "sectionId-001",
         "quantity": 0,
         "customerId": "customerId-001",
-        "sessionId": "sessionId-001"
+        "sessionId": "sessionId-001",
+        "outcome": "valid"
       }
     },
     {
@@ -127,7 +135,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004"
+        "evt-005"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:05.000Z",
@@ -142,7 +150,8 @@
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
         "expiresAt": "2026-01-01T10:00:00.000Z",
-        "heldAt": "2026-01-01T10:00:00.000Z"
+        "heldAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "valid"
       }
     },
     {
@@ -151,7 +160,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
@@ -170,8 +178,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006"
+        "evt-007"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:07.000Z",
@@ -190,8 +197,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
         "evt-008"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
@@ -214,9 +219,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008"
+        "evt-009"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:09.000Z",
@@ -240,9 +243,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
         "evt-010"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
@@ -260,10 +260,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010"
+        "evt-011"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:11.000Z",
@@ -284,10 +281,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
         "evt-012"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
@@ -308,11 +301,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012"
+        "evt-013"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
       "timestamp": "2026-01-01T10:00:13.000Z",
@@ -335,11 +324,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
         "evt-014"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
@@ -367,6 +351,23 @@
         "nodeId": "moment-7-Presale-payment-confirmation::checkout::ConfirmPayment::main",
         "failedPrecondition": "paymentPending",
         "description": "Payment must be in pending state"
+      }
+    },
+    {
+      "eventId": "evt-017",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access",
+      "timestamp": "2026-01-01T10:00:16.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
       }
     }
   ]
