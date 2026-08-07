@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Listing meta: mmmnt brand mark as the extension icon and gallery banner
+  aligned with the Feat extension
+
 ## 0.1.0
 
 - Initial release: TextMate grammar for `.moment` files (generated from the

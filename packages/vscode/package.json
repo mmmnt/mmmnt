@@ -2,13 +2,13 @@
   "name": "moment-language",
   "displayName": "Moment — DDD flow specifications",
   "description": "Syntax highlighting for Moment (.moment) files — DDD designs translated to temporal, event-storming flows",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "mmmnt",
   "private": true,
   "license": "FSL-1.1-Apache-2.0",
   "icon": "icon.png",
   "galleryBanner": {
-    "color": "#1E1B2E",
+    "color": "#4FC7B0",
     "theme": "dark"
   },
   "repository": {
