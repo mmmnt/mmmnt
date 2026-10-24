@@ -32,6 +32,7 @@ export type MomentKeywordNames =
     | "CustomerSupplier"
     | "Date"
     | "DateTime"
+    | "External"
     | "Generic"
     | "Money"
     | "OpenHostService"
@@ -62,6 +63,7 @@ export type MomentKeywordNames =
     | "emits"
     | "enforced-by"
     | "event"
+    | "external"
     | "field"
     | "flow"
     | "identity"
@@ -168,10 +170,10 @@ export function isClassification(item: unknown): item is Classification {
     return reflection.isInstance(item, Classification.$type);
 }
 
-export type ClassificationValue = 'Core' | 'Generic' | 'Supporting' | 'Terminal';
+export type ClassificationValue = 'Core' | 'External' | 'Generic' | 'Supporting' | 'Terminal';
 
 export function isClassificationValue(item: unknown): item is ClassificationValue {
-    return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal';
+    return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal' || item === 'External';
 }
 
 export interface CommandDeclaration extends langium.AstNode {
@@ -333,6 +335,23 @@ export function isDomainServiceDeclaration(item: unknown): item is DomainService
     return reflection.isInstance(item, DomainServiceDeclaration.$type);
 }
 
+export interface ExternalDeclaration extends langium.AstNode {
+    readonly $container: MomentFile;
+    readonly $type: 'ExternalDeclaration';
+    description: string;
+    name: string;
+}
+
+export const ExternalDeclaration = {
+    $type: 'ExternalDeclaration',
+    description: 'description',
+    name: 'name'
+} as const;
+
+export function isExternalDeclaration(item: unknown): item is ExternalDeclaration {
+    return reflection.isInstance(item, ExternalDeclaration.$type);
+}
+
 export interface FieldDeclaration extends langium.AstNode {
     readonly $container: AggregateDeclaration | DomainEventDeclaration | ProjectionDeclaration | ValueObjectDeclaration;
     readonly $type: 'FieldDeclaration';
@@ -491,12 +510,14 @@ export function isMomentDeclaration(item: unknown): item is MomentDeclaration {
 export interface MomentFile extends langium.AstNode {
     readonly $type: 'MomentFile';
     contexts: Array<ContextDeclaration>;
+    externals: Array<ExternalDeclaration>;
     flows: Array<FlowDeclaration>;
 }
 
 export const MomentFile = {
     $type: 'MomentFile',
     contexts: 'contexts',
+    externals: 'externals',
     flows: 'flows'
 } as const;
 
@@ -879,6 +900,7 @@ export type MomentAstType = {
     ContractField: ContractField
     DomainEventDeclaration: DomainEventDeclaration
     DomainServiceDeclaration: DomainServiceDeclaration
+    ExternalDeclaration: ExternalDeclaration
     FieldDeclaration: FieldDeclaration
     FieldDeprecation: FieldDeprecation
     FlowDeclaration: FlowDeclaration
@@ -1085,6 +1107,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: [ContextMember.$type]
         },
+        ExternalDeclaration: {
+            name: ExternalDeclaration.$type,
+            properties: {
+                description: {
+                    name: ExternalDeclaration.description
+                },
+                name: {
+                    name: ExternalDeclaration.name
+                }
+            },
+            superTypes: []
+        },
         FieldDeclaration: {
             name: FieldDeclaration.$type,
             properties: {
@@ -1207,6 +1241,10 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             properties: {
                 contexts: {
                     name: MomentFile.contexts,
+                    defaultValue: []
+                },
+                externals: {
+                    name: MomentFile.externals,
                     defaultValue: []
                 },
                 flows: {

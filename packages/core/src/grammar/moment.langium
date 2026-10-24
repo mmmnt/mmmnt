@@ -5,7 +5,11 @@ grammar Moment
 // ============================================================================
 
 entry MomentFile:
-    (contexts+=ContextDeclaration | flows+=FlowDeclaration)+;
+    (contexts+=ContextDeclaration | flows+=FlowDeclaration | externals+=ExternalDeclaration)+;
+
+// --- External system (ADR-037 §6): not modelled, may be a relationship end or a lane ---
+ExternalDeclaration:
+    'external' name=ID description=STRING;
 
 // ============================================================================
 // Part I: Spatial Constructs (context files)
@@ -216,7 +220,7 @@ Classification:
     '[' value=ClassificationValue ']';
 
 ClassificationValue returns string:
-    'Core' | 'Supporting' | 'Generic' | 'Terminal';
+    'Core' | 'Supporting' | 'Generic' | 'Terminal' | 'External';
 
 RelationshipType returns string:
     'CustomerSupplier' | 'Partnership' | 'Conformist' |

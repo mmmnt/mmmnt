@@ -3,6 +3,7 @@ export type {
   SpecificationMetadata,
   GlossaryEntry,
   ContextRelationship,
+  ExternalDefinition,
 } from './intermediate-representation.js';
 
 export type {

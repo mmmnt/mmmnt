@@ -66,6 +66,7 @@ import type {
   SchemaContract,
   SchemaFieldDefinition,
   ContextRelationship,
+  ExternalDefinition,
   GlossaryEntry,
   ProjectionDefinition,
   QueryDefinition,
@@ -99,13 +100,23 @@ export function astToIr(
   const nodeKindMap = buildNodeKindMap(contexts);
   const flows: FlowDefinition[] = file.flows.map((flow) => transformFlow(flow, nodeKindMap));
 
-  const relationships: ContextRelationship[] = file.contexts.flatMap(extractRelationships);
+  // Hand-constructed ASTs (no parser) may predate ADR-037 and carry no externals.
+  const externals: ExternalDefinition[] = (file.externals ?? []).map((e) => ({
+    id: `ext-${e.name}`,
+    name: e.name,
+    description: unquote(e.description),
+  }));
+  const externalNames = new Set(externals.map((e) => e.name));
+  const relationships: ContextRelationship[] = file.contexts.flatMap((ctx) =>
+    extractRelationships(ctx, externalNames),
+  );
 
   return {
     contexts,
     flows,
     glossary: file.contexts.flatMap(extractGlossary),
     relationships,
+    externals,
     metadata: {
       name: metadata?.name ?? '',
       version: metadata?.version ?? '0.0.0',
@@ -704,7 +715,15 @@ function transformCrossingToContract(node: NodePlacement): SchemaContract {
   };
 }
 
-function extractRelationships(ctx: ContextDeclaration): ContextRelationship[] {
+/** A relationship end is an external's id when it names a declared external, else a context's. */
+function endId(name: string, externalNames: ReadonlySet<string>): string {
+  return externalNames.has(name) ? `ext-${name}` : `ctx-${name}`;
+}
+
+function extractRelationships(
+  ctx: ContextDeclaration,
+  externalNames: ReadonlySet<string> = new Set(),
+): ContextRelationship[] {
   const relationships: ContextRelationship[] = [];
 
   for (const member of ctx.members) {
@@ -712,8 +731,8 @@ function extractRelationships(ctx: ContextDeclaration): ContextRelationship[] {
       const rel = member as ContextRelationshipDeclaration;
       relationships.push({
         // ctx- prefix matches ContextDefinition.id so consumers can join on id.
-        sourceContextId: `ctx-${rel.source}`,
-        targetContextId: `ctx-${rel.target}`,
+        sourceContextId: endId(rel.source, externalNames),
+        targetContextId: endId(rel.target, externalNames),
         relationshipType: rel.type,
         contract: unquote(rel.contract),
       });

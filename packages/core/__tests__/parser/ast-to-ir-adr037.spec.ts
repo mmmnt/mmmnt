@@ -149,3 +149,32 @@ describe('ADR-037 glossary terms', () => {
     ]);
   });
 });
+
+describe('ADR-037 external systems', () => {
+  it('declares an external, joins a relationship to it by an ext- id, and classifies its lane External', async () => {
+    const ir = await toIr(`
+      external HostedService "The hosted edition, publishing the shared envelope schema"
+      context "Transfer" [Supporting]
+        relationship HostedService -> Transfer
+          type PublishedLanguage
+          contract "envelope schema, versioned"
+      flow "push"
+        lane hosted "HostedService" [External]
+    `);
+
+    expect(ir.externals).toEqual([
+      {
+        id: 'ext-HostedService',
+        name: 'HostedService',
+        description: 'The hosted edition, publishing the shared envelope schema',
+      },
+    ]);
+    expect(ir.relationships[0]).toEqual({
+      sourceContextId: 'ext-HostedService',
+      targetContextId: 'ctx-Transfer',
+      relationshipType: 'PublishedLanguage',
+      contract: 'envelope schema, versioned',
+    });
+    expect(ir.flows[0].lanes[0].classification).toBe('External');
+  });
+});

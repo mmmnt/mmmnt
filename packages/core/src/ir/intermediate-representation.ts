@@ -6,7 +6,14 @@ export interface IntermediateRepresentation {
   flows: FlowDefinition[];
   glossary: GlossaryEntry[];
   relationships: ContextRelationship[];
+  externals?: ExternalDefinition[];
   metadata: SpecificationMetadata;
+}
+
+export interface ExternalDefinition {
+  id: string;
+  name: string;
+  description: string;
 }
 
 export interface SpecificationMetadata {
