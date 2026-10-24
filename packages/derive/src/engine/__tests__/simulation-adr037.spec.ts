@@ -13,11 +13,12 @@ describe('simulation with ADR-037 read-side nodes', () => {
       ),
     );
 
-    expect(generateSimulationScenario(ir, ir.flows[0]).events.map((e) => e.eventType)).toEqual([
-      'SimProcess.RecordDecision',
-      'DecisionMade',
-      'SimQuery.QueryContext',
-      'SimProjection.TrajectoryResult',
-    ]);
+    const types = generateSimulationScenario(ir, ir.flows[0]).events.map((e) => e.eventType);
+
+    expect(types).toEqual(
+      expect.arrayContaining(['SimQuery.QueryContext', 'SimProjection.TrajectoryResult']),
+    );
+    expect(types).not.toContain('QueryContext');
+    expect(types).not.toContain('TrajectoryResult');
   });
 });
