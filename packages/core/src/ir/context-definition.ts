@@ -22,6 +22,7 @@ export interface ContextDefinition {
   invariants: InvariantDefinition[];
   projections?: ProjectionDefinition[];
   queries?: QueryDefinition[];
+  rules?: RuleDefinition[];
 }
 
 export interface ProjectionDefinition {
@@ -38,6 +39,14 @@ export interface QueryDefinition {
   reads: string[];
   inputs: FieldDefinition[];
   description?: string;
+}
+
+export interface RuleDefinition {
+  id: string;
+  description: string;
+  enforcedBy: string;
+  /** `declared`: a service or query of the project; `external`: an enforcer named in prose. */
+  enforcerKind: 'declared' | 'external';
 }
 
 export interface AggregateDefinition {

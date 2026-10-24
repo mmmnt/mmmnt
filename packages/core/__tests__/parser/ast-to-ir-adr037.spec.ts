@@ -84,3 +84,34 @@ describe('ADR-037 queries', () => {
     ]);
   });
 });
+
+describe('ADR-037 rules', () => {
+  it('transforms rules enforced by a declared query and by an external enforcer', async () => {
+    const ir = await toIr(`
+      context "Retrieval" [Core]
+        projection TrajectoryResult
+          sources DecisionMade
+        query QueryContext
+          reads TrajectoryResult
+        rule EmbeddingOrderIsRanking "Results are returned in embedding order"
+          enforced-by QueryContext
+        rule LocalIdentityRequiredToStart "The MCP does not start without a local identity"
+          enforced-by "the process that runs the system"
+    `);
+
+    expect(ir.contexts[0].rules).toEqual([
+      {
+        id: 'EmbeddingOrderIsRanking',
+        description: 'Results are returned in embedding order',
+        enforcedBy: 'QueryContext',
+        enforcerKind: 'declared',
+      },
+      {
+        id: 'LocalIdentityRequiredToStart',
+        description: 'The MCP does not start without a local identity',
+        enforcedBy: 'the process that runs the system',
+        enforcerKind: 'external',
+      },
+    ]);
+  });
+});

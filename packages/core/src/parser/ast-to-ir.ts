@@ -20,6 +20,7 @@ import type {
   AnnotationDeclaration,
   ProjectionDeclaration,
   QueryDeclaration,
+  RuleDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
@@ -34,6 +35,7 @@ import {
   isAnnotationDeclaration,
   isProjectionDeclaration,
   isQueryDeclaration,
+  isRuleDeclaration,
   isReturnsTo,
   isTriggeredBy,
   isTriggers,
@@ -65,6 +67,7 @@ import type {
   ContextRelationship,
   ProjectionDefinition,
   QueryDefinition,
+  RuleDefinition,
 } from '../ir/index.js';
 import { buildMomentSequence } from './moment-sequence.js';
 
@@ -116,6 +119,7 @@ interface ContextMembers {
   sagas: SagaDefinition[];
   projections: ProjectionDefinition[];
   queries: QueryDefinition[];
+  rules: RuleDefinition[];
   commands: CommandDefinition[];
   events: EventDefinition[];
   valueObjects: ValueObjectDefinition[];
@@ -130,6 +134,7 @@ function emptyContextMembers(): ContextMembers {
     sagas: [],
     projections: [],
     queries: [],
+    rules: [],
     commands: [],
     events: [],
     valueObjects: [],
@@ -160,6 +165,8 @@ function collectContextMember(
     out.projections.push(transformProjection(member));
   } else if (isQueryDeclaration(member)) {
     out.queries.push(transformQuery(member));
+  } else if (isRuleDeclaration(member)) {
+    out.rules.push(transformRule(member));
   }
 }
 
@@ -203,6 +210,7 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
     invariants: members.invariants,
     projections: members.projections,
     queries: members.queries,
+    rules: members.rules,
   };
 }
 
@@ -224,6 +232,22 @@ function transformQuery(query: QueryDeclaration): QueryDefinition {
     inputs: query.inputs.map(transformFieldDeclaration),
     ...(query.description ? { description: unquote(query.description) } : {}),
   };
+}
+
+function transformRule(rule: RuleDeclaration): RuleDefinition {
+  return rule.enforcer
+    ? {
+        id: rule.id,
+        description: unquote(rule.description),
+        enforcedBy: rule.enforcer,
+        enforcerKind: 'declared',
+      }
+    : {
+        id: rule.id,
+        description: unquote(rule.description),
+        enforcedBy: unquote(rule.enforcerText ?? ''),
+        enforcerKind: 'external',
+      };
 }
 
 function transformAnnotation(ann: AnnotationDeclaration): AnnotationDefinition {

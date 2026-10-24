@@ -21,6 +21,7 @@ export type {
   AnnotationDefinition,
   ProjectionDefinition,
   QueryDefinition,
+  RuleDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';

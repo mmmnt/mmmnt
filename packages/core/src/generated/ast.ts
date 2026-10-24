@@ -60,6 +60,7 @@ export type MomentKeywordNames =
     | "deprecated"
     | "description"
     | "emits"
+    | "enforced-by"
     | "event"
     | "field"
     | "flow"
@@ -79,6 +80,7 @@ export type MomentKeywordNames =
     | "reads"
     | "relationship"
     | "returns-to"
+    | "rule"
     | "saga"
     | "scope"
     | "service"
@@ -242,7 +244,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
     return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | RuleDeclaration | SagaDeclaration;
 
 export const ContextMember = {
     $type: 'ContextMember'
@@ -366,10 +368,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'field' | 'reads' | 'sources' | string;
+export type FieldName = 'enforced-by' | 'field' | 'reads' | 'sources' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -412,10 +414,10 @@ export function isInputField(item: unknown): item is InputField {
     return reflection.isInstance(item, InputField.$type);
 }
 
-export type InputName = 'projection' | 'query' | FieldName;
+export type InputName = 'projection' | 'query' | 'rule' | FieldName;
 
 export function isInputName(item: unknown): item is InputName {
-    return isFieldName(item) || item === 'projection' || item === 'query';
+    return isFieldName(item) || item === 'projection' || item === 'query' || item === 'rule';
 }
 
 export interface InvariantDeclaration extends langium.AstNode {
@@ -676,6 +678,27 @@ export function isReturnsTo(item: unknown): item is ReturnsTo {
     return reflection.isInstance(item, ReturnsTo.$type);
 }
 
+export interface RuleDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'RuleDeclaration';
+    description: string;
+    enforcer?: string;
+    enforcerText?: string;
+    id: string;
+}
+
+export const RuleDeclaration = {
+    $type: 'RuleDeclaration',
+    description: 'description',
+    enforcer: 'enforcer',
+    enforcerText: 'enforcerText',
+    id: 'id'
+} as const;
+
+export function isRuleDeclaration(item: unknown): item is RuleDeclaration {
+    return reflection.isInstance(item, RuleDeclaration.$type);
+}
+
 export interface SagaDeclaration extends langium.AstNode {
     readonly $container: ContextDeclaration;
     readonly $type: 'SagaDeclaration';
@@ -855,6 +878,7 @@ export type MomentAstType = {
     ProjectionDeclaration: ProjectionDeclaration
     QueryDeclaration: QueryDeclaration
     ReturnsTo: ReturnsTo
+    RuleDeclaration: RuleDeclaration
     SagaDeclaration: SagaDeclaration
     SagaTimeout: SagaTimeout
     SagaTransition: SagaTransition
@@ -1309,6 +1333,24 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: [Connection.$type]
+        },
+        RuleDeclaration: {
+            name: RuleDeclaration.$type,
+            properties: {
+                description: {
+                    name: RuleDeclaration.description
+                },
+                enforcer: {
+                    name: RuleDeclaration.enforcer
+                },
+                enforcerText: {
+                    name: RuleDeclaration.enforcerText
+                },
+                id: {
+                    name: RuleDeclaration.id
+                }
+            },
+            superTypes: [ContextMember.$type]
         },
         SagaDeclaration: {
             name: SagaDeclaration.$type,
