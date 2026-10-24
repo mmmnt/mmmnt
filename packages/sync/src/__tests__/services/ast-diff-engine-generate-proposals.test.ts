@@ -148,6 +148,8 @@ describe('ASTDiffEngine.generateProposals', () => {
         symbolName: 'Order',
         differenceType: 'renamed-interface',
         description: "interface 'Order' was renamed to 'LineItem'",
+        expectedNode: 'interface Order',
+        actualNode: 'interface LineItem',
       },
     ]);
 
@@ -187,9 +189,8 @@ describe('ASTDiffEngine.generateProposals', () => {
     const ids = proposals.map((p) => p.proposalId);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
-    // Check UUID format
     for (const id of ids) {
-      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(id).toMatch(/^prop-[0-9a-f]{16}$/);
     }
   });
 

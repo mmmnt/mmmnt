@@ -1,38 +1,41 @@
 /**
- * moment sync propose — Generate and present implementation change proposals
+ * moment sync propose — Record implementation change proposals for review
  *
  * Pipeline: parse → emit-ts (expected) + read actual → ASTDiffEngine.generateProposals()
- * Delegates to generateProposals() + PushFlowSaga — no proposal logic in CLI (EXIT-C1).
- * Every accepted proposal routes through PushFlowSaga (IS-04).
+ * Delegates to generateProposals() + SyncState — no proposal logic in CLI (EXIT-C1).
+ * Proposals persist in .domain/sync-state.jsonl (ADR-039 §2): a proposal's id is
+ * derived from its drift, so a re-run records only new drift and supersedes
+ * pending proposals whose drift is gone. Decisions are `sync accept` / `sync reject`.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
-import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-import { ASTDiffEngine, LocalGitArtifactStore, PushFlowSaga, SyncState } from '@mmmnt/sync';
+import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
-import type { ImplementationChangeProposal } from '@mmmnt/sync';
+import type { ImplementationChangeProposal, SyncState, SyncStateEvent } from '@mmmnt/sync';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { openSyncLogs } from '../lib/sync-logs.js';
 
 export interface SyncProposeResult {
   readonly success: boolean;
   readonly message: string;
   readonly diagnostics: readonly Diagnostic[];
   readonly filePath?: string;
+  /** Every proposal pending after this run. */
   readonly proposals?: readonly ImplementationChangeProposal[];
-  readonly accepted: number;
-  readonly rejected: number;
-  readonly skipped: number;
+  readonly recorded: number;
+  readonly superseded: number;
   readonly json?: string;
 }
 
 const EMPTY: readonly Diagnostic[] = [];
+const DRIFT_GONE = 'drift no longer present';
 
 function fail(message: string): SyncProposeResult {
-  return { success: false, message, diagnostics: EMPTY, accepted: 0, rejected: 0, skipped: 0 };
+  return { success: false, message, diagnostics: EMPTY, recorded: 0, superseded: 0 };
 }
 
 function readFile(path: string): string | SyncProposeResult {
@@ -55,114 +58,105 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
     strict: false,
   });
 
-  // Fail fast for --auto-accept before doing any expensive work (parse,
-  // emit, diff). The guard is here rather than after the pipeline because
-  // auto-accept has the same "silent no-op" bug as sync accept — SyncState
-  // accepts in memory but never persists or applies to files on disk.
+  // Accepting is a decision with an actor and a commit (ADR-039 §3); propose
+  // only records. Refuse before doing any expensive work.
   if (values['auto-accept'] === true) {
     return fail(
       'Error: --auto-accept is not yet fully implemented — accepted proposals are not ' +
-        'persisted and not applied to files. Omit --auto-accept to generate proposals ' +
-        'for manual review instead. ' +
-        'See https://github.com/mmmnt/mmmnt/issues for tracking.',
+        'persisted and not applied to files. Omit --auto-accept to generate proposals, ' +
+        'then decide them with `moment sync accept` or `moment sync reject`.',
     );
   }
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment sync propose <file.moment>');
+  if (!filePath) return fail('Usage: moment sync propose <file.moment|dir>');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
+  const drift = await detectDrift(resolvedPath);
+  if (!Array.isArray(drift)) return drift;
+
+  const opened = openSyncLogs(resolvedPath);
+  if (typeof opened === 'string') return fail(opened);
+  const { store, logs } = opened;
+
+  const events = reconcileProposals(logs.syncState, drift);
+  store.append({ syncState: events });
+
+  const pending = logs.syncState
+    .getProposals()
+    .filter((entry) => entry.status === 'pending')
+    .map((entry) => entry.proposal);
+  const recorded = events.filter((e) => e.type === 'ProposalRecorded').length;
+  return buildResult(pending, recorded, events.length - recorded, values.json === true);
+}
+
+/** The proposals the current drift implies, or the refusal that stopped the pipeline. */
+async function detectDrift(
+  resolvedPath: string,
+): Promise<ImplementationChangeProposal[] | SyncProposeResult> {
   const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   const parseResult = await parseSpecification(resolvedPath, content);
-
   if (!parseResult.success) {
     return {
       success: false,
       message: `Parse failed with ${parseResult.diagnostics.length} diagnostic(s)`,
       diagnostics: parseResult.diagnostics,
       filePath: resolvedPath,
-      accepted: 0,
-      rejected: 0,
-      skipped: 0,
+      recorded: 0,
+      superseded: 0,
     };
   }
 
-  const ir = parseResult.ir!;
-
   // Generate expected TypeScript from spec
-  const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
+  const tsOutput = new TypeScriptEmitter().emit(parseResult.ir!, { scope: { level: 'system' } });
 
   // Read actual implementation files (project root: manifest > git > spec dir)
   const repoRoot = resolveRepoRoot(resolvedPath);
-  const store = new LocalGitArtifactStore(repoRoot);
-  const actual = await readActualFiles(store, [...tsOutput.files.keys()]);
+  const actual = await readActualFiles(new LocalGitArtifactStore(repoRoot), [
+    ...tsOutput.files.keys(),
+  ]);
 
   // Generate proposals via ASTDiffEngine (EXIT-C1)
-  const proposals = new ASTDiffEngine().generateProposals({
-    expected: tsOutput.files,
-    actual,
-  });
+  return new ASTDiffEngine().generateProposals({ expected: tsOutput.files, actual });
+}
 
-  // Drive PushFlowSaga to terminal state (IS-04)
-  const saga = new PushFlowSaga();
-  saga.start();
-  saga.proposalsGenerated(proposals.length);
-
-  if (proposals.length === 0) {
-    // Zero-proposal shortcut — saga auto-completes
-    const noChanges = { proposals: [], accepted: 0, rejected: 0, skipped: 0 };
-    return {
-      success: true,
-      message: values.json === true ? JSON.stringify(noChanges, null, 2) : 'No changes to propose',
-      diagnostics: EMPTY,
-      proposals: [],
-      accepted: 0,
-      rejected: 0,
-      skipped: 0,
-      json: values.json === true ? JSON.stringify(noChanges, null, 2) : undefined,
-    };
+/** Record new drift; supersede pending proposals whose drift is gone; leave decided ones alone. */
+function reconcileProposals(
+  syncState: SyncState,
+  drift: readonly ImplementationChangeProposal[],
+): SyncStateEvent[] {
+  const drifting = new Set(drift.map((p) => p.proposalId));
+  const events: SyncStateEvent[] = [];
+  for (const proposal of drift) {
+    if (syncState.getProposalStatus(proposal.proposalId) !== undefined) continue;
+    events.push(syncState.recordProposal(proposal));
   }
-
-  // Record proposals in SyncState
-  const syncState = new SyncState();
-  for (const p of proposals) {
-    syncState.recordProposal(p);
+  for (const { proposal, status } of syncState.getProposals()) {
+    if (status !== 'pending' || drifting.has(proposal.proposalId)) continue;
+    events.push(syncState.skipProposal(proposal.proposalId, DRIFT_GONE));
   }
-
-  // autoAccept is always false here — the guard at the top of runSyncPropose
-  // rejects --auto-accept before we reach this point. Kept as a local for
-  // API compatibility with processProposals until the real implementation
-  // lands.
-  const autoAccept = false;
-  const counts = processProposals(proposals, syncState, autoAccept);
-
-  // Drive saga to terminal state
-  saga.confirmationComplete(counts.accepted, counts.rejected, counts.skipped);
-  saga.recordingComplete(counts.accepted);
-  saga.committed(`cli-propose-${saga.getSagaId()}`);
-  saga.complete();
-
-  return buildResult(proposals, counts, values.json === true);
+  return events;
 }
 
 function buildResult(
-  proposals: ImplementationChangeProposal[],
-  counts: { accepted: number; rejected: number; skipped: number },
+  pending: readonly ImplementationChangeProposal[],
+  recorded: number,
+  superseded: number,
   asJson: boolean,
 ): SyncProposeResult {
+  const counts = { proposals: pending, recorded, superseded };
   if (asJson) {
-    const json = JSON.stringify({ proposals, ...counts }, null, 2);
-    return { success: true, message: json, diagnostics: EMPTY, proposals, json, ...counts };
+    const json = JSON.stringify(counts, null, 2);
+    return { success: true, message: json, diagnostics: EMPTY, json, ...counts };
   }
   return {
     success: true,
-    message: formatProposalSummary(proposals, counts),
+    message: formatProposalSummary(pending, recorded, superseded),
     diagnostics: EMPTY,
-    proposals,
     ...counts,
   };
 }
@@ -186,45 +180,33 @@ async function readActualFiles(
   return actual;
 }
 
-function processProposals(
-  proposals: ImplementationChangeProposal[],
-  syncState: SyncState,
-  autoAccept: boolean,
-): { accepted: number; rejected: number; skipped: number } {
-  let accepted = 0;
-  const skipped = autoAccept ? 0 : proposals.length;
-
-  if (autoAccept) {
-    for (const p of proposals) {
-      syncState.acceptProposal(p.proposalId);
-      accepted++;
-    }
-  }
-
-  return { accepted, rejected: 0, skipped };
-}
-
 function formatProposalSummary(
-  proposals: ImplementationChangeProposal[],
-  counts: { accepted: number; rejected: number; skipped: number },
+  pending: readonly ImplementationChangeProposal[],
+  recorded: number,
+  superseded: number,
 ): string {
   const lines: string[] = [];
-  lines.push(`Generated ${proposals.length} proposal(s):`);
+  lines.push(`Recorded ${recorded} new proposal(s); superseded ${superseded}.`);
+  if (pending.length === 0) {
+    lines.push('No pending proposals.');
+    return lines.join('\n');
+  }
+  lines.push(`Pending ${pending.length} proposal(s):`);
   lines.push('');
 
-  for (const p of proposals) {
+  for (const p of pending) {
     // Render payload values (what changed), not the payload's field names.
     const detail = Object.entries(p.proposedPayload)
       .filter(([, v]) => typeof v === 'string' || typeof v === 'number')
       .map(([k, v]) => `${k}: ${String(v)}`)
       .join(', ');
-    lines.push(`  ${p.proposedEventType}${detail ? ` — ${detail}` : ''}`);
+    lines.push(`  ${p.proposalId}  ${p.proposedEventType}${detail ? ` — ${detail}` : ''}`);
     lines.push(`    File: ${p.sourceFile}`);
   }
 
   lines.push('');
   lines.push(
-    `Accepted: ${counts.accepted}, Rejected: ${counts.rejected}, Skipped: ${counts.skipped}`,
+    'Decide with `moment sync accept <spec> <id>...` or `moment sync reject <spec> <id>...`.',
   );
   return lines.join('\n');
 }

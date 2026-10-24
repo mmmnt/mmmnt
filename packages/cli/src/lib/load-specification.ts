@@ -22,6 +22,11 @@ function momentFilesBeneath(dir: string): string[] {
 export const isDirectory = (path: string): boolean =>
   existsSync(path) && statSync(path).isDirectory();
 
+/** The `.moment` files a path names: the file itself, or every one beneath a directory, sorted. */
+export function specificationFiles(path: string): string[] {
+  return isDirectory(path) ? momentFilesBeneath(path) : [path];
+}
+
 /** Load a path that exists: a directory as a project through ProjectLoader, a file through MomentParser. */
 export async function loadSpecification(path: string): Promise<LoadedSpecification> {
   if (isDirectory(path)) {

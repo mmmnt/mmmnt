@@ -18,6 +18,10 @@ export interface TypeDifference {
     | 'renamed-interface'
     | 'unrecognized';
   description: string;
+  expectedNode: string;
+  actualNode: string;
+  /** The field a field-level difference concerns, with its signature(s) as extracted. */
+  field?: { name: string; signature: string; previousSignature?: string };
 }
 
 const printer = ts.createPrinter({ removeComments: true });
@@ -119,6 +123,8 @@ function findRemovedSymbols(
         symbolName: name,
         differenceType: 'removed-interface',
         description: `${sym.kind} '${name}' was removed from implementation`,
+        expectedNode: `${sym.kind} ${name}`,
+        actualNode: '',
       });
     }
   }
@@ -137,6 +143,8 @@ function findAddedSymbols(
         symbolName: name,
         differenceType: 'new-interface',
         description: `${sym.kind} '${name}' was added in implementation`,
+        expectedNode: '',
+        actualNode: `${sym.kind} ${name}`,
       });
     }
   }
@@ -159,22 +167,31 @@ function compareFields(
         symbolName: name,
         differenceType: 'added-field',
         description: `${addedLabel} '${fieldName}' (${fieldType}) was added to '${name}'`,
+        expectedNode: '',
+        actualNode: `${name}.${fieldName}: ${fieldType}`,
+        field: { name: fieldName, signature: fieldType },
       });
     } else if (expectedType !== fieldType) {
       diffs.push({
         symbolName: name,
         differenceType: 'changed-type',
         description: `Field '${fieldName}' in '${name}' changed from '${expectedType}' to '${fieldType}'`,
+        expectedNode: `${name}.${fieldName}: ${expectedType}`,
+        actualNode: `${name}.${fieldName}: ${fieldType}`,
+        field: { name: fieldName, signature: fieldType, previousSignature: expectedType },
       });
     }
   }
 
-  for (const [fieldName] of expected) {
+  for (const [fieldName, fieldType] of expected) {
     if (!actual.has(fieldName)) {
       diffs.push({
         symbolName: name,
         differenceType: 'removed-field',
         description: `${removedLabel} '${fieldName}' was removed from '${name}'`,
+        expectedNode: `${name}.${fieldName}: ${fieldType}`,
+        actualNode: '',
+        field: { name: fieldName, signature: fieldType },
       });
     }
   }
@@ -189,6 +206,8 @@ function compareSharedSymbol(expected: TypeSymbol, actual: TypeSymbol): TypeDiff
         symbolName: expected.name,
         differenceType: 'unrecognized',
         description: `Symbol '${expected.name}' changed kind from '${expected.kind}' to '${actual.kind}'`,
+        expectedNode: `${expected.kind} ${expected.name}`,
+        actualNode: `${actual.kind} ${actual.name}`,
       },
     ];
   }
@@ -213,6 +232,8 @@ function compareSharedSymbol(expected: TypeSymbol, actual: TypeSymbol): TypeDiff
         symbolName: expected.name,
         differenceType: 'changed-type',
         description: `Type alias '${expected.name}' changed`,
+        expectedNode: `type ${expected.name} = ${expected.text}`,
+        actualNode: `type ${actual.name} = ${actual.text}`,
       },
     ];
   }

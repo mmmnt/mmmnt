@@ -12,6 +12,8 @@ export interface ProposalAccepted {
   readonly type: 'ProposalAccepted';
   readonly proposalId: string;
   readonly timestamp: string;
+  /** Who decided: the repo's git user.email (ADR-039 §1). Absent on records written before it. */
+  readonly actor?: string;
 }
 
 export interface ProposalRejected {
@@ -19,6 +21,8 @@ export interface ProposalRejected {
   readonly proposalId: string;
   readonly reason: string;
   readonly timestamp: string;
+  /** Who decided: the repo's git user.email (ADR-039 §1). Absent on records written before it. */
+  readonly actor?: string;
 }
 
 export interface ProposalSkipped {
