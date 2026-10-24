@@ -185,6 +185,14 @@ export class SyncState {
     return this.proposals.get(proposalId)?.status;
   }
 
+  /** Every recorded proposal with its current status, in recording order. */
+  getProposals(): readonly {
+    readonly proposal: ImplementationChangeProposal;
+    readonly status: ProposalStatus;
+  }[] {
+    return [...this.proposals.values()];
+  }
+
   getCursor(): SyncCursor | null {
     return this.cursor;
   }

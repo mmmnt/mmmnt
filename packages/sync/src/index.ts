@@ -107,6 +107,14 @@ export { LocalGitArtifactStore } from './infrastructure/index.js';
 export { LocalGitArtifactWriter } from './infrastructure/index.js';
 export { LocalGitRemoteManager } from './infrastructure/index.js';
 export {
+  JsonlSyncLogStore,
+  SyncLogCorruptedError,
+  SYNC_STATE_LOG,
+  IMPLEMENTATION_FEEDBACK_LOG,
+  PUSH_FLOW_LOG,
+} from './infrastructure/index.js';
+export type { SyncLogs, SyncLogAppend } from './infrastructure/index.js';
+export {
   EnvCredentialStrategy,
   GhCliCredentialStrategy,
   GitCredentialHelperStrategy,

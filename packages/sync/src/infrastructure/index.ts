@@ -24,6 +24,15 @@ export { LocalGitArtifactWriter } from './local-git-artifact-writer.js';
 export type { AuthorConfig } from './local-git-artifact-writer.js';
 export { LocalGitRemoteManager } from './local-git-remote-manager.js';
 
+export {
+  JsonlSyncLogStore,
+  SyncLogCorruptedError,
+  SYNC_STATE_LOG,
+  IMPLEMENTATION_FEEDBACK_LOG,
+  PUSH_FLOW_LOG,
+} from './jsonl-sync-log-store.js';
+export type { SyncLogs, SyncLogAppend } from './jsonl-sync-log-store.js';
+
 export type {
   GitCredentials,
   CredentialStrategy,
