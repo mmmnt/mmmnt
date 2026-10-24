@@ -25,6 +25,11 @@ function buildKnownContextIds(ir: IntermediateRepresentation): Set<string> {
   return new Set(ir.contexts.map((c) => c.id));
 }
 
+/** Relationship ends may also be externals (ADR-037 §6). */
+function buildKnownEndIds(ir: IntermediateRepresentation): Set<string> {
+  return new Set([...buildKnownContextIds(ir), ...(ir.externals ?? []).map((e) => e.id)]);
+}
+
 /** Build event names per context for crossing validation. Uses the
  *  flattened ctx.events rather than walking aggregates — simpler and
  *  resilient if event modeling changes. */
@@ -188,7 +193,7 @@ export function validateCrossFileReferences(
     validateConnections(flow, knownContextIds, eventsByContext, diagnostics);
     validateMomentEntries(flow, knownContextIds, branchLaneContextIds, diagnostics);
   }
-  validateRelationships(ir, knownContextIds, diagnostics);
+  validateRelationships(ir, buildKnownEndIds(ir), diagnostics);
 
   return {
     valid: diagnostics.filter((d) => d.severity === 'error').length === 0,

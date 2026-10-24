@@ -1,0 +1,39 @@
+// ADR-037 corpus exemplar: every construct the ADR adds, resolving across files.
+external HostedService "An upstream system publishing the shared envelope schema"
+
+context "Retrieval" [Core]
+  description "Query-driven reads over memory"
+
+  value-object TokenBudget
+    tokens: number
+
+  projection TrajectoryResult
+    sources DecisionMade
+    description "The shape of a retrieval's result"
+    field entryId: UUID
+
+  query QueryContext
+    reads TrajectoryResult
+    input query: string, budget: TokenBudget
+    description "Orient, traverse, rank, fit"
+
+  rule EmbeddingOrderIsRanking "Results are returned in embedding-similarity order"
+    enforced-by QueryContext
+
+  rule ModelRunsInProcess "The embedding model runs inside the engine"
+    enforced-by "the process that runs the system"
+
+  service FitBudget
+    consumes DecisionMade
+    produces TokenBudget
+    description "Fit candidates to the token budget"
+
+  policy ReEncodeOnEncoderChange
+    trigger condition "the archive's encoder differs from the running encoder"
+    action "re-encode during the rebuild"
+
+  relationship HostedService -> Retrieval
+    type PublishedLanguage
+    contract "envelope schema, versioned"
+
+  term "Budget" "the tokens a retrieval may fill"

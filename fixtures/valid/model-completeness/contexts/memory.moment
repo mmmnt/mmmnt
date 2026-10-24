@@ -1,0 +1,16 @@
+// ADR-037 corpus exemplar: a context whose events another file's projection reads.
+context "Memory" [Core]
+  description "Authored records on streams"
+
+  aggregate "Workspace"
+    identity workspaceId: UUID
+
+    command RecordDecision
+      input text: string
+      emits DecisionMade
+
+    event DecisionMade
+      entryId: UUID
+      text: string
+
+  term "Revision" "a stream's position after an append"
