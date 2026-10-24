@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { runFacetDirPipeline, runServe, runPipeline, describeMode } from './serve.js';
+import {
+  runFacetDirPipeline,
+  runServe,
+  runPipeline,
+  describeMode,
+  parseServeArgs,
+} from './serve.js';
 
 let facetDir: string;
 
@@ -348,6 +354,30 @@ describe('runPipeline (project directory, ADR-038 §5)', () => {
 
     expect(result.ir.contexts.map((c) => c.name).sort()).toEqual(['Memory', 'Retrieval']);
     expect(result.manifest.flows.map((f) => f.flowName)).toEqual(['recall']);
+  });
+});
+
+describe('serve --project (ADR-038 §5)', () => {
+  const PROJECT = resolve(import.meta.dirname, '../../../../fixtures/valid/model-completeness');
+
+  it('reads a directory given with --project as a model project', () => {
+    expect(parseServeArgs(['--project', PROJECT])).toMatchObject({
+      resolvedPath: PROJECT,
+      isFacetDir: false,
+      isProject: true,
+    });
+  });
+
+  it('keeps a bare directory positional as a design-tool output folder', () => {
+    expect(parseServeArgs([PROJECT])).toMatchObject({ isFacetDir: true, isProject: false });
+  });
+
+  it('refuses --project naming a file', () => {
+    const file = join(PROJECT, 'flows', 'recall.moment');
+    expect(parseServeArgs(['--project', file])).toMatchObject({
+      success: false,
+      message: expect.stringMatching(/--project expects a model directory/),
+    });
   });
 });
 

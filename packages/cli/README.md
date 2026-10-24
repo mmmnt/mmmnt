@@ -157,6 +157,7 @@ These are commonly used options available on the commands indicated, not globall
 | `--dry-run` | emit-ts | List files that would be emitted without writing them. |
 | `--verbose` | status | Enable detailed output. |
 | `--port <n>` | serve | WebSocket port (default 4321). |
+| `--project <dir>` | serve | Load every `.moment` file beneath `<dir>` as one model project (ADR-038). Without it, a directory argument is a `moment simulate --out-dir` folder. |
 
 ## Examples
 
