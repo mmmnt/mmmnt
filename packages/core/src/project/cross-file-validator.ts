@@ -56,7 +56,8 @@ function validateLanes(
   diagnostics: Diagnostic[],
 ): void {
   for (const lane of flow.lanes) {
-    if (lane.isBranch || lane.classification === 'Terminal') continue;
+    if (lane.isBranch || lane.classification === 'Terminal' || lane.classification === 'External')
+      continue;
     if (!knownContextIds.has(lane.contextId)) {
       diagnostics.push({
         severity: 'error',

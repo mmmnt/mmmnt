@@ -602,9 +602,10 @@ export class MomentValidator {
 
   // SP-01: Flow lane references must match declared context names.
   // Branch-lanes are outcome routes (e.g. "Refusals"), not contexts — skipped.
+  // External lanes name an external system, which V27 resolves (ADR-037 §6) — skipped.
   checkSP01(flow: FlowDeclaration, accept: ValidationAcceptor, ctx: CrossFileContext): void {
     for (const lane of flow.lanes) {
-      if (lane.isBranch) continue;
+      if (lane.isBranch || lane.classification?.value === 'External') continue;
       if (!ctx.declaredContextNames.includes(lane.label.replace(/^"|"$/g, ''))) {
         accept('error', 'SP-01: Lane label does not match any declared context name.', {
           node: lane,
