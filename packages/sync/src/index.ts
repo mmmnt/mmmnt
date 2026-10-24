@@ -49,6 +49,8 @@ export type {
 } from './services/ast-diff-engine.js';
 export type { DeprecationMetadata } from './services/proposal-generator.js';
 export { planDecision } from './services/sync-decision.js';
+export { impliedSpecEdit, locateDeclarations } from './services/spec-edit.js';
+export type { ImpliedSpecEdit, DeclarationLocation } from './services/spec-edit.js';
 export type {
   DecisionKind,
   DecisionInput,
