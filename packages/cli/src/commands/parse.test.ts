@@ -73,3 +73,19 @@ describe('moment parse', () => {
     expect(formatted).toContain('warning');
   });
 });
+
+describe('moment parse <directory> (ADR-037 §8)', () => {
+  it('loads every .moment file beneath the directory as one project', async () => {
+    const result = await runParse([resolve(FIXTURES, 'valid/model-completeness')]);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe('Parsed project successfully: 3 file(s), 2 context(s), 1 flow(s)');
+  });
+
+  it('fails a project whose references do not resolve across its files', async () => {
+    const result = await runParse([resolve(FIXTURES, 'invalid/model-completeness-unresolved')]);
+
+    expect(result.success).toBe(false);
+    expect(result.diagnostics.map((d) => d.ruleId)).toContain('V22');
+  });
+});

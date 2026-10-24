@@ -8,7 +8,7 @@ import type {
 type CrossingConnection = Extract<ConnectionDefinition, { connectionType: 'crosses-to' }>;
 
 export interface ImpactNode {
-  readonly type: 'event' | 'command' | 'policy' | 'saga' | 'projection' | 'crossing';
+  readonly type: 'event' | 'command' | 'policy' | 'saga' | 'projection' | 'query' | 'crossing';
   readonly name: string;
   readonly context: string;
   readonly dependsOn: readonly string[];
@@ -28,6 +28,7 @@ export function generateImpactAnalysis(ir: IntermediateRepresentation): ImpactAn
     addEventNodes(context, nodeMap);
     addPolicyNodes(context, nodeMap, ir);
     addSagaNodes(context, nodeMap, ir);
+    addReadNodes(context, nodeMap, ir);
   }
 
   // Audit fix #3: flow-only specs (or flows referencing nodes the contexts
@@ -137,6 +138,35 @@ function findDeclaringContextForCommand(
   return undefined;
 }
 
+/** ADR-037: a projection depends on the events it folds; a query on the projections it reads. */
+function addReadNodes(
+  context: ContextDefinition,
+  nodeMap: Map<string, MutableImpactNode>,
+  ir: IntermediateRepresentation,
+): void {
+  for (const projection of context.projections ?? []) {
+    const node = getOrCreate(nodeMap, 'projection', projection.name, context.name);
+    for (const source of projection.sources) {
+      const evtCtxName = (findDeclaringContextForEvent(source, ir) ?? context).name;
+      getOrCreate(nodeMap, 'event', source, evtCtxName).triggers.push(
+        nodeKey('projection', projection.name, context.name),
+      );
+      node.dependsOn.push(nodeKey('event', source, evtCtxName));
+    }
+  }
+  const projectionContext = (name: string): string =>
+    ir.contexts.find((c) => (c.projections ?? []).some((p) => p.name === name))?.name ??
+    context.name;
+  for (const query of context.queries ?? []) {
+    const node = getOrCreate(nodeMap, 'query', query.name, context.name);
+    for (const read of query.reads.filter((r) =>
+      ir.contexts.some((c) => (c.projections ?? []).some((p) => p.name === r)),
+    )) {
+      node.dependsOn.push(nodeKey('projection', read, projectionContext(read)));
+    }
+  }
+}
+
 function addPolicyNodes(
   context: ContextDefinition,
   nodeMap: Map<string, MutableImpactNode>,
@@ -145,8 +175,9 @@ function addPolicyNodes(
   for (const policy of context.policies) {
     const policyNode = getOrCreate(nodeMap, 'policy', policy.name, context.name);
 
-    // Policy triggered by an event — resolved to the event's declaring context
-    if (policy.trigger) {
+    // Policy triggered by an event — resolved to the event's declaring context. A condition (ADR-037 §7)
+    // is prose, not an event, so it adds no edge.
+    if (policy.trigger && policy.triggerKind !== 'condition') {
       const evtCtxName = (findDeclaringContextForEvent(policy.trigger, ir) ?? context).name;
       const evtNode = getOrCreate(nodeMap, 'event', policy.trigger, evtCtxName);
       policyNode.dependsOn.push(nodeKey('event', policy.trigger, evtCtxName));
