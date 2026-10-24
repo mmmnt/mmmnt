@@ -40,11 +40,32 @@ function checkDualPopulation(
   return { applies: true, fieldName };
 }
 
+/** A field signature as extracted (`readonly ?string`) split into its type and optionality. */
+function parseSignature(signature: string): { type: string; optional: boolean } {
+  const bare = signature.replace(/^readonly /, '');
+  return bare.startsWith('?')
+    ? { type: bare.slice(1), optional: true }
+    : { type: bare, optional: false };
+}
+
+function fieldPayload(field: NonNullable<TypeDifference['field']>): Record<string, unknown> {
+  const { type, optional } = parseSignature(field.signature);
+  return {
+    fieldName: field.name,
+    fieldType: type,
+    ...(optional ? { optional } : {}),
+    ...(field.previousSignature === undefined
+      ? {}
+      : { previousFieldType: parseSignature(field.previousSignature).type }),
+  };
+}
+
 function buildPayload(diff: TypeDifference): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     symbolName: diff.symbolName,
     description: diff.description,
     differenceType: diff.differenceType,
+    ...(diff.field ? fieldPayload(diff.field) : {}),
   };
   if (diff.differenceType === 'unrecognized') {
     payload.requiresManualReview = true;

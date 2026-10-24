@@ -20,6 +20,8 @@ export interface TypeDifference {
   description: string;
   expectedNode: string;
   actualNode: string;
+  /** The field a field-level difference concerns, with its signature(s) as extracted. */
+  field?: { name: string; signature: string; previousSignature?: string };
 }
 
 const printer = ts.createPrinter({ removeComments: true });
@@ -167,6 +169,7 @@ function compareFields(
         description: `${addedLabel} '${fieldName}' (${fieldType}) was added to '${name}'`,
         expectedNode: '',
         actualNode: `${name}.${fieldName}: ${fieldType}`,
+        field: { name: fieldName, signature: fieldType },
       });
     } else if (expectedType !== fieldType) {
       diffs.push({
@@ -175,6 +178,7 @@ function compareFields(
         description: `Field '${fieldName}' in '${name}' changed from '${expectedType}' to '${fieldType}'`,
         expectedNode: `${name}.${fieldName}: ${expectedType}`,
         actualNode: `${name}.${fieldName}: ${fieldType}`,
+        field: { name: fieldName, signature: fieldType, previousSignature: expectedType },
       });
     }
   }
@@ -187,6 +191,7 @@ function compareFields(
         description: `${removedLabel} '${fieldName}' was removed from '${name}'`,
         expectedNode: `${name}.${fieldName}: ${fieldType}`,
         actualNode: '',
+        field: { name: fieldName, signature: fieldType },
       });
     }
   }

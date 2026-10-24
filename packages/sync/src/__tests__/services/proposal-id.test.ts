@@ -63,3 +63,37 @@ describe('drift-derived proposal id', () => {
     expect(added?.proposalId).toBe(deriveProposalId(added!.sourceDifference));
   });
 });
+
+describe('proposal payload names the field', () => {
+  it('carries the added field and its type', () => {
+    const added = proposalsFor().find((p) => p.proposedPayload.fieldName === 'notes');
+    expect(added?.proposedPayload).toMatchObject({ fieldName: 'notes', fieldType: 'string' });
+  });
+
+  it('carries the previous and current type of a changed field', () => {
+    const changed = proposalsFor().find(
+      (p) => p.sourceDifference.differenceType === 'changed-type',
+    );
+    expect(changed?.proposedPayload).toMatchObject({
+      fieldName: 'total',
+      fieldType: 'string',
+      previousFieldType: 'number',
+    });
+  });
+
+  it('carries the removed field', () => {
+    const [removed] = proposalsFor(`export interface Order { readonly id: string; }`);
+    expect(removed.proposedPayload).toMatchObject({ fieldName: 'total', fieldType: 'number' });
+  });
+
+  it('marks an optional field', () => {
+    const [added] = proposalsFor(
+      `export interface Order { readonly id: string; readonly total: number; note?: string; }`,
+    );
+    expect(added.proposedPayload).toMatchObject({
+      fieldName: 'note',
+      fieldType: 'string',
+      optional: true,
+    });
+  });
+});
