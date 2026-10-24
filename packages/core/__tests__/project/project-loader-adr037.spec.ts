@@ -96,3 +96,18 @@ describe('ADR-037 invalid corpus exemplars, one per rule', () => {
     },
   );
 });
+
+describe('ProjectLoader resolves flow node names across files (PM-07)', () => {
+  it('fails a flow file whose node names nothing its lane context declares, and accepts the valid project', async () => {
+    const bad = await new ProjectLoader().loadProject([
+      resolve(VALID, 'contexts/memory.moment'),
+      resolve(FIXTURES, 'invalid/model-completeness-unknown-node/flow.moment'),
+    ]);
+    const good = await new ProjectLoader().loadProject(project);
+
+    expect(bad.diagnostics.filter((d) => d.ruleId === 'PM-07').map((d) => d.message)).toEqual([
+      "Flow 'recall', moment 'A decision is recorded': node 'RecordDecisoin' is no building block of context 'Memory'.",
+    ]);
+    expect(good.diagnostics.filter((d) => d.ruleId === 'PM-07')).toEqual([]);
+  });
+});
