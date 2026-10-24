@@ -13,8 +13,7 @@ import { MomentParser } from '@mmmnt/core';
 import { VizEmitter } from '@mmmnt/viz';
 import type { Diagnostic } from '@mmmnt/core';
 import type { VizInitialLoad } from '@mmmnt/viz';
-import { isDirectory, loadSpecification } from '../lib/load-specification.js';
-import type { ParseResult } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface VizCommandResult {
   readonly success: boolean;
@@ -54,15 +53,9 @@ export async function runViz(argv: string[]): Promise<VizCommandResult> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const project = isDirectory(resolvedPath);
-  let parseResult: ParseResult;
-  if (project) {
-    parseResult = await loadSpecification(resolvedPath);
-  } else {
-    const content = readFile(resolvedPath);
-    if (typeof content !== 'string') return content;
-    parseResult = await new MomentParser().parseContent(content, resolvedPath);
-  }
+  const content = specificationText(resolvedPath, readFile);
+  if (typeof content !== 'string') return content;
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

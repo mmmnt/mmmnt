@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { MomentParser, ProjectLoader } from '@mmmnt/core';
 import type { ParseResult } from '@mmmnt/core';
@@ -19,7 +19,8 @@ function momentFilesBeneath(dir: string): string[] {
     .sort();
 }
 
-export const isDirectory = (path: string): boolean => statSync(path).isDirectory();
+export const isDirectory = (path: string): boolean =>
+  existsSync(path) && statSync(path).isDirectory();
 
 /** Load a path that exists: a directory as a project through ProjectLoader, a file through MomentParser. */
 export async function loadSpecification(path: string): Promise<LoadedSpecification> {
@@ -36,4 +37,16 @@ export async function loadSpecification(path: string): Promise<LoadedSpecificati
   }
   const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
   return { ...result, isProject: false, files: [path] };
+}
+
+/** The text a command reads before parsing: nothing for a directory, which is loaded as a project instead. */
+export function specificationText<R>(path: string, read: (p: string) => R): R | '' {
+  return isDirectory(path) ? '' : read(path);
+}
+
+/** Parse a file's text, or load every `.moment` file beneath a directory as one project. */
+export async function parseSpecification(path: string, content: string): Promise<ParseResult> {
+  return isDirectory(path)
+    ? loadSpecification(path)
+    : new MomentParser().parseContent(content, path);
 }

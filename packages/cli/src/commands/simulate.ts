@@ -33,6 +33,7 @@ import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { updateManifestFromIr } from './update-manifest.js';
 import { assertPathWithin } from './project-fs.js';
 import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface SimulateCommandResult {
   readonly success: boolean;
@@ -304,11 +305,10 @@ export async function runSimulate(argv: string[]): Promise<SimulateCommandResult
       'Usage: moment simulate <file.moment> [--json] [--flow <name>] [--all] [--out-dir <path>]',
     );
 
-  const content = readMomentFile(filePath);
+  const content = specificationText(resolve(filePath), () => readMomentFile(filePath));
   if (typeof content !== 'string') return content;
 
-  const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content, resolve(filePath));
+  const parseResult = await parseSpecification(resolve(filePath), content);
 
   if (!parseResult.success) {
     return {

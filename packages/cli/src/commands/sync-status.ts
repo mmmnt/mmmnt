@@ -15,6 +15,7 @@ import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { DriftReport } from '@mmmnt/sync';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface SyncStatusResult {
   readonly success: boolean;
@@ -54,11 +55,11 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

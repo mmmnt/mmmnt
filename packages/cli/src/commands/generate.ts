@@ -17,6 +17,7 @@ import { GherkinGenerator, SpecificationDocumentGenerator } from '@mmmnt/generat
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
 import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface GenerateCommandResult {
   readonly success: boolean;
@@ -67,12 +68,12 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   // Step 1: Parse
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

@@ -12,6 +12,7 @@ import { MomentParser } from '@mmmnt/core';
 import { SchemaRegistry, ConsumptionManifest } from '@mmmnt/schema';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import type { FieldPhase } from '@mmmnt/schema';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 interface SchemaStatusEntry {
   readonly eventType: string;
@@ -185,13 +186,13 @@ async function parseSpecFile(
 
   let content: string;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    content = specificationText(resolvedPath, (p) => readFileSync(p, 'utf-8'));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return fail(`Error: Failed to read ${resolvedPath}: ${msg}`);
   }
 
-  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

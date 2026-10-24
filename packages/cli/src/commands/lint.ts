@@ -18,6 +18,7 @@ import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 interface LintIssue {
   readonly source: 'parse' | 'drift' | 'schema' | 'codex';
@@ -54,13 +55,13 @@ export async function runLint(argv: string[]): Promise<LintResult> {
 
   let content: string;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    content = specificationText(resolvedPath, (p) => readFileSync(p, 'utf-8'));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return fail(`Error: Failed to read ${resolvedPath}: ${msg}`);
   }
 
-  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
   const issues: LintIssue[] = [];
 
   // Source 1: Parse diagnostics

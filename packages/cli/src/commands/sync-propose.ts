@@ -15,6 +15,7 @@ import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore, PushFlowSaga, SyncState } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { ImplementationChangeProposal } from '@mmmnt/sync';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface SyncProposeResult {
   readonly success: boolean;
@@ -73,10 +74,10 @@ export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult>
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
-  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

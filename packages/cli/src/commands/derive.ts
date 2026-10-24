@@ -13,8 +13,7 @@ import { updateManifestFromIr } from './update-manifest.js';
 import { deriveTopology } from '@mmmnt/derive';
 import type { Diagnostic } from '@mmmnt/core';
 import type { TestSuiteTopology } from '@mmmnt/derive';
-import { isDirectory, loadSpecification } from '../lib/load-specification.js';
-import type { ParseResult } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 export interface DeriveCommandResult {
   readonly success: boolean;
   readonly message: string;
@@ -53,15 +52,9 @@ export async function runDerive(argv: string[]): Promise<DeriveCommandResult> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const project = isDirectory(resolvedPath);
-  let parseResult: ParseResult;
-  if (project) {
-    parseResult = await loadSpecification(resolvedPath);
-  } else {
-    const content = readFile(resolvedPath);
-    if (typeof content !== 'string') return content;
-    parseResult = await new MomentParser().parseContent(content, resolvedPath);
-  }
+  const content = specificationText(resolvedPath, readFile);
+  if (typeof content !== 'string') return content;
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {
@@ -73,7 +66,7 @@ export async function runDerive(argv: string[]): Promise<DeriveCommandResult> {
   }
 
   const ir = parseResult.ir!;
-  if (!project) updateManifestFromIr(resolvedPath, ir);
+  updateManifestFromIr(resolvedPath, ir);
 
   const topology = deriveTopology(ir);
   const suiteCount = topology.suites.length;
