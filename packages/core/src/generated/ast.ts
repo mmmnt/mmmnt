@@ -87,6 +87,7 @@ export type MomentKeywordNames =
     | "sources"
     | "states"
     | "string"
+    | "term"
     | "terminal"
     | "timeout"
     | "trigger"
@@ -244,7 +245,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
     return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | RuleDeclaration | SagaDeclaration | ValueObjectDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | RuleDeclaration | SagaDeclaration | TermDeclaration | ValueObjectDeclaration;
 
 export const ContextMember = {
     $type: 'ContextMember'
@@ -414,10 +415,10 @@ export function isInputField(item: unknown): item is InputField {
     return reflection.isInstance(item, InputField.$type);
 }
 
-export type InputName = 'projection' | 'query' | 'rule' | FieldName;
+export type InputName = 'projection' | 'query' | 'rule' | 'term' | FieldName;
 
 export function isInputName(item: unknown): item is InputName {
-    return isFieldName(item) || item === 'projection' || item === 'query' || item === 'rule';
+    return isFieldName(item) || item === 'projection' || item === 'query' || item === 'rule' || item === 'term';
 }
 
 export interface InvariantDeclaration extends langium.AstNode {
@@ -758,6 +759,23 @@ export function isSagaTransition(item: unknown): item is SagaTransition {
     return reflection.isInstance(item, SagaTransition.$type);
 }
 
+export interface TermDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'TermDeclaration';
+    definition: string;
+    term: string;
+}
+
+export const TermDeclaration = {
+    $type: 'TermDeclaration',
+    definition: 'definition',
+    term: 'term'
+} as const;
+
+export function isTermDeclaration(item: unknown): item is TermDeclaration {
+    return reflection.isInstance(item, TermDeclaration.$type);
+}
+
 export interface TriggeredBy extends langium.AstNode {
     readonly $container: NodePlacement;
     readonly $type: 'TriggeredBy';
@@ -882,6 +900,7 @@ export type MomentAstType = {
     SagaDeclaration: SagaDeclaration
     SagaTimeout: SagaTimeout
     SagaTransition: SagaTransition
+    TermDeclaration: TermDeclaration
     TriggeredBy: TriggeredBy
     Triggers: Triggers
     TypeReference: TypeReference
@@ -1400,6 +1419,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: []
+        },
+        TermDeclaration: {
+            name: TermDeclaration.$type,
+            properties: {
+                definition: {
+                    name: TermDeclaration.definition
+                },
+                term: {
+                    name: TermDeclaration.term
+                }
+            },
+            superTypes: [ContextMember.$type]
         },
         TriggeredBy: {
             name: TriggeredBy.$type,

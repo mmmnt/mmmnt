@@ -36,6 +36,7 @@ import {
   isProjectionDeclaration,
   isQueryDeclaration,
   isRuleDeclaration,
+  isTermDeclaration,
   isReturnsTo,
   isTriggeredBy,
   isTriggers,
@@ -65,6 +66,7 @@ import type {
   SchemaContract,
   SchemaFieldDefinition,
   ContextRelationship,
+  GlossaryEntry,
   ProjectionDefinition,
   QueryDefinition,
   RuleDefinition,
@@ -102,7 +104,7 @@ export function astToIr(
   return {
     contexts,
     flows,
-    glossary: [],
+    glossary: file.contexts.flatMap(extractGlossary),
     relationships,
     metadata: {
       name: metadata?.name ?? '',
@@ -250,6 +252,13 @@ function transformRule(rule: RuleDeclaration): RuleDefinition {
         enforcedBy: unquote(rule.enforcerText ?? ''),
         enforcerKind: 'external',
       };
+}
+
+function extractGlossary(ctx: ContextDeclaration): GlossaryEntry[] {
+  const context = unquote(ctx.name);
+  return ctx.members
+    .filter(isTermDeclaration)
+    .map((t) => ({ term: unquote(t.term), definition: unquote(t.definition), context }));
 }
 
 function transformAnnotation(ann: AnnotationDeclaration): AnnotationDefinition {

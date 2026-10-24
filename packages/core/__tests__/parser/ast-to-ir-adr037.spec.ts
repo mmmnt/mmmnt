@@ -133,3 +133,19 @@ describe('ADR-037 context-level value objects', () => {
     ]);
   });
 });
+
+describe('ADR-037 glossary terms', () => {
+  it('fills the glossary with each context term, naming its context', async () => {
+    const ir = await toIr(`
+      context "Memory" [Core]
+        term "Revision" "a stream's position after an append"
+      context "Retrieval" [Core]
+        term "Revision" "not used here the same way"
+    `);
+
+    expect(ir.glossary).toEqual([
+      { term: 'Revision', definition: "a stream's position after an append", context: 'Memory' },
+      { term: 'Revision', definition: 'not used here the same way', context: 'Retrieval' },
+    ]);
+  });
+});

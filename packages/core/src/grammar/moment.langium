@@ -19,7 +19,7 @@ ContextDeclaration:
 ContextMember:
     AggregateDeclaration | DomainServiceDeclaration | PolicyDeclaration |
     SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration |
-    ProjectionDeclaration | QueryDeclaration | RuleDeclaration | ValueObjectDeclaration;
+    ProjectionDeclaration | QueryDeclaration | RuleDeclaration | ValueObjectDeclaration | TermDeclaration;
 
 // --- Projection (ADR-037 §1, PRD §5.1.1) ---
 ProjectionDeclaration:
@@ -32,6 +32,10 @@ ProjectionDeclaration:
 RuleDeclaration:
     'rule' id=ID description=STRING
         'enforced-by' (enforcer=ID | enforcerText=STRING);
+
+// --- Glossary term (ADR-037 §5) ---
+TermDeclaration:
+    'term' term=STRING definition=STRING;
 
 // --- Query (ADR-037 §2) ---
 QueryDeclaration:
@@ -197,7 +201,7 @@ FieldDeprecation:
 // ADR-037 made new words keywords. A comma-separated input list may use any of them as a name; a field
 // list, which a new declaration can follow, may use only those that cannot begin a declaration.
 InputName returns string:
-    FieldName | 'projection' | 'query' | 'rule';
+    FieldName | 'projection' | 'query' | 'rule' | 'term';
 
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by';
