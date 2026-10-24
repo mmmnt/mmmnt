@@ -54,6 +54,7 @@ export type MomentKeywordNames =
     | "chains-to"
     | "command"
     | "compensation"
+    | "condition"
     | "consumes"
     | "context"
     | "contract"
@@ -388,10 +389,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'enforced-by' | 'field' | 'reads' | 'sources' | string;
+export type FieldName = 'condition' | 'enforced-by' | 'field' | 'reads' | 'sources' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'condition' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -606,12 +607,14 @@ export function isPolicyDeclaration(item: unknown): item is PolicyDeclaration {
 export interface PolicyTrigger extends langium.AstNode {
     readonly $container: PolicyDeclaration;
     readonly $type: 'PolicyTrigger';
+    condition?: string;
     eventName?: string;
     fileWatcher?: '"file-watcher"';
 }
 
 export const PolicyTrigger = {
     $type: 'PolicyTrigger',
+    condition: 'condition',
     eventName: 'eventName',
     fileWatcher: 'fileWatcher'
 } as const;
@@ -1321,6 +1324,9 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         PolicyTrigger: {
             name: PolicyTrigger.$type,
             properties: {
+                condition: {
+                    name: PolicyTrigger.condition
+                },
                 eventName: {
                     name: PolicyTrigger.eventName
                 },

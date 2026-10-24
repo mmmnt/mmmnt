@@ -108,7 +108,7 @@ PolicyDeclaration:
         ('chains-to' chainsTo=ID)?;
 
 PolicyTrigger:
-    eventName=ID | fileWatcher='"file-watcher"';
+    eventName=ID | fileWatcher='"file-watcher"' | ('condition' condition=STRING);
 
 // --- Saga ---
 // The state chain is `Initial (-> Target (on Event)?)*`. Each optional
@@ -208,7 +208,7 @@ InputName returns string:
     FieldName | 'projection' | 'query' | 'rule' | 'term';
 
 FieldName returns string:
-    ID | 'sources' | 'field' | 'reads' | 'enforced-by';
+    ID | 'sources' | 'field' | 'reads' | 'enforced-by' | 'condition';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;

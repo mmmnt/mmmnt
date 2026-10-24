@@ -411,16 +411,24 @@ function transformService(
   };
 }
 
+function policyTrigger(pol: PolicyDeclaration): Pick<PolicyDefinition, 'trigger' | 'triggerKind'> {
+  if (pol.trigger.eventName) return { trigger: pol.trigger.eventName, triggerKind: 'event' };
+  if (pol.trigger.condition)
+    return { trigger: unquote(pol.trigger.condition), triggerKind: 'condition' };
+  return { trigger: 'file-watcher', triggerKind: 'file-watcher' };
+}
+
 function transformPolicy(
   pol: PolicyDeclaration,
   annotations?: AnnotationDefinition[],
 ): PolicyDefinition {
-  const trigger = pol.trigger.eventName ?? 'file-watcher';
+  const { trigger, triggerKind } = policyTrigger(pol);
   return {
     id: `pol-${pol.name}`,
     name: pol.name,
     ...(annotations ? { annotations } : {}),
     trigger,
+    triggerKind,
     action: unquote(pol.action),
     chainsTo: pol.chainsTo ?? undefined,
   };

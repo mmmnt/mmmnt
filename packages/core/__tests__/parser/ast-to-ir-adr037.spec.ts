@@ -178,3 +178,19 @@ describe('ADR-037 external systems', () => {
     expect(ir.flows[0].lanes[0].classification).toBe('External');
   });
 });
+
+describe('ADR-037 condition-triggered policies', () => {
+  it('keeps the condition text as the trigger and marks its kind', async () => {
+    const ir = await toIr(`
+      context "Projections" [Supporting]
+        policy ReEncodeOnEncoderVersionChange
+          trigger condition "the manifest's encoder differs from the running encoder"
+          action "re-encode during the rebuild"
+    `);
+
+    expect(ir.contexts[0].policies[0]).toMatchObject({
+      trigger: "the manifest's encoder differs from the running encoder",
+      triggerKind: 'condition',
+    });
+  });
+});

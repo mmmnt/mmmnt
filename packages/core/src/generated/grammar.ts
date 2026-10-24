@@ -1320,6 +1320,27 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
               "$type": "Keyword",
               "value": "\\"file-watcher\\""
             }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "condition"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "condition",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@49"
+                  },
+                  "arguments": []
+                }
+              }
+            ]
           }
         ]
       },
@@ -2465,6 +2486,10 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Keyword",
             "value": "enforced-by"
+          },
+          {
+            "$type": "Keyword",
+            "value": "condition"
           }
         ]
       },

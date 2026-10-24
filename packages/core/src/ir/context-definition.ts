@@ -117,6 +117,8 @@ export interface PolicyDefinition {
   name: string;
   annotations?: AnnotationDefinition[];
   trigger: string;
+  /** How `trigger` reads: an event's name, the file watcher, or a condition's text (ADR-037 §7). */
+  triggerKind?: 'event' | 'file-watcher' | 'condition';
   action: string;
   chainsTo?: string;
 }
