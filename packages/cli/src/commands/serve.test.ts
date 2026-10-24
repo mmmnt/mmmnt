@@ -340,6 +340,17 @@ describe('runPipeline (spec-file live derive)', () => {
   });
 });
 
+describe('runPipeline (project directory, ADR-038 §5)', () => {
+  const PROJECT = resolve(import.meta.dirname, '../../../../fixtures/valid/model-completeness');
+
+  it('derives the initial load from every file of the project merged into one model', async () => {
+    const result = await runPipeline(PROJECT, false);
+
+    expect(result.ir.contexts.map((c) => c.name).sort()).toEqual(['Memory', 'Retrieval']);
+    expect(result.manifest.flows.map((f) => f.flowName)).toEqual(['recall']);
+  });
+});
+
 describe('runServe argument validation', () => {
   it('returns a usage error when no positional is given', async () => {
     const result = await runServe([]);

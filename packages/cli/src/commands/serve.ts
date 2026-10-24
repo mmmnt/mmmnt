@@ -16,7 +16,7 @@ import { resolve, join, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { MomentParser } from '@mmmnt/core';
+import { loadSpecification } from '../lib/load-specification.js';
 import type { IntermediateRepresentation, Diagnostic } from '@mmmnt/core';
 import {
   generateSimulationScenario,
@@ -103,9 +103,7 @@ interface PipelineResult {
 }
 
 export async function runPipeline(specPath: string, includeAll: boolean): Promise<PipelineResult> {
-  const content = readFileSync(specPath, 'utf-8');
-  const parser = new MomentParser();
-  const result = await parser.parseContent(content, specPath);
+  const result = await loadSpecification(specPath);
 
   if (!result.success) {
     const error = new Error(`Parse failed with ${result.diagnostics.length} diagnostic(s)`);
