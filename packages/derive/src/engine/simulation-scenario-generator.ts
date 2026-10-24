@@ -110,6 +110,7 @@ function resolveNodeKind(
   nodeName: string,
   contextId: string,
   contextMap: Map<string, ContextDefinition>,
+  declaredKind: string,
 ): string {
   const ctx = contextMap.get(contextId);
   if (!ctx) return 'event';
@@ -120,7 +121,9 @@ function resolveNodeKind(
   const isEvent = findEvent(ctx, nodeName) !== undefined;
   if (isEvent) return 'event';
 
-  return 'event';
+  // Neither a command nor an event of the lane's context: keep the kind the IR resolved (a policy, a saga,
+  // or an ADR-037 projection or query), so a read is never simulated as a domain event.
+  return declaredKind;
 }
 
 // ---------------------------------------------------------------------------
@@ -614,7 +617,7 @@ function generateEvents(
     const causationEventIds = findCausationEvents(node, nodes, flow, eventIds, i);
 
     // 2a: resolve actual node kind from context map
-    const effectiveKind = resolveNodeKind(node.nodeName, node.contextId, contextMap);
+    const effectiveKind = resolveNodeKind(node.nodeName, node.contextId, contextMap, node.nodeKind);
     const eventType = resolveEventType(node, effectiveKind);
     const productSource = resolveProductSource(node, effectiveKind, contextMap);
     const payload = buildPayload(node, effectiveKind, contextMap, flow);
@@ -690,11 +693,16 @@ function findLatestPriorEmission(
   return undefined;
 }
 
+/** Steps that are not domain events carry their kind as a prefix; ADR-037 adds reads (queries, projections). */
+const STEP_PREFIX: Readonly<Record<string, string>> = {
+  command: 'SimProcess',
+  query: 'SimQuery',
+  projection: 'SimProjection',
+};
+
 function resolveEventType(node: NodeInfo, effectiveKind: string): string {
-  if (effectiveKind === 'command') {
-    return `SimProcess.${node.nodeName}`;
-  }
-  return node.nodeName;
+  const prefix = STEP_PREFIX[effectiveKind];
+  return prefix ? `${prefix}.${node.nodeName}` : node.nodeName;
 }
 
 function resolveProductSource(
@@ -906,7 +914,7 @@ export function deriveNegativeScenarios(
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
-    const kind = resolveNodeKind(node.nodeName, node.contextId, contextMap);
+    const kind = resolveNodeKind(node.nodeName, node.contextId, contextMap, node.nodeKind);
     if (kind !== 'command') continue;
 
     const preconditions = findPreconditions(node, contextMap);
