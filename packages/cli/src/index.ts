@@ -41,14 +41,15 @@ Commands:
   test <file>              Run structural validation test suites
   simulate <file>          Generate simulation scenarios (--all, --json)
   viz <file>               Emit the visualization data envelope
-  serve <file>             Serve topology/scenarios over WebSocket (Facet bridge)
+  serve <file|facet-dir>   Serve topology/scenarios over WebSocket (Facet bridge)
+                           --project <dir> serves a model directory as one project
   cucumber-json <file>     Emit Cucumber JSON for Xray import
   lint <file>              Drift + schema lint
   sync <status|propose|accept> <file>
                            Implementation drift detection and proposals
   schema <status> <file>   Schema governance report
   import --from-sift <dir> Import a Sift JSONL export
-  reconcile <file>         Reconcile upstream drift (--local | --event <path>)
+  reconcile <file|dir>     Reconcile upstream drift (--local | --event <path>)
   status <file>            Unified project status
   auth <login|status|logout|quorum>
                            Manage GitHub and quorum credentials

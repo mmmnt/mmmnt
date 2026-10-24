@@ -16,7 +16,7 @@ import { resolve, join, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { MomentParser } from '@mmmnt/core';
+import { loadSpecification } from '../lib/load-specification.js';
 import type { IntermediateRepresentation, Diagnostic } from '@mmmnt/core';
 import {
   generateSimulationScenario,
@@ -103,9 +103,7 @@ interface PipelineResult {
 }
 
 export async function runPipeline(specPath: string, includeAll: boolean): Promise<PipelineResult> {
-  const content = readFileSync(specPath, 'utf-8');
-  const parser = new MomentParser();
-  const result = await parser.parseContent(content, specPath);
+  const result = await loadSpecification(specPath);
 
   if (!result.success) {
     const error = new Error(`Parse failed with ${result.diagnostics.length} diagnostic(s)`);
@@ -598,7 +596,9 @@ function setupFileWatcher(
   };
 
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  const watcher = watch(specPath, () => {
+  const isProject = statSync(specPath).isDirectory();
+  const watcher = watch(specPath, { recursive: isProject }, (_eventType, filename) => {
+    if (isProject && !filename?.endsWith('.moment')) return;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       void rebuild();
@@ -657,33 +657,55 @@ interface ServeArgs {
    * `.moment` spec file that gets parsed and derived live.
    */
   isFacetDir: boolean;
+  /** True when `--project <dir>` names a directory of `.moment` files loaded as one model (ADR-038 §5). */
+  isProject: boolean;
 }
 
-function parseServeArgs(argv: string[]): ServeArgs | ServeCommandResult {
-  const { values, positionals } = parseArgs({
-    args: argv,
-    options: {
-      port: { type: 'string', short: 'p' },
-      all: { type: 'boolean' },
-    },
-    allowPositionals: true,
-    strict: false,
-  });
+const SERVE_USAGE =
+  'Usage: moment serve <file.moment | facet-dir> | --project <model-dir> [--port 4321] [--all]';
 
-  const specPath = positionals[0];
-  if (!specPath) {
-    return {
-      success: false,
-      message: 'Usage: moment serve <file.moment | facet-dir> [--port 4321] [--all]',
-    };
-  }
+type ServeTarget = Pick<ServeArgs, 'resolvedPath' | 'isFacetDir' | 'isProject'>;
+
+function resolveServeTarget(
+  project: string | undefined,
+  positional: string | undefined,
+): ServeTarget | ServeCommandResult {
+  const specPath = project ?? positional;
+  if (!specPath) return { success: false, message: SERVE_USAGE };
 
   const resolvedPath = resolve(specPath);
   if (!existsSync(resolvedPath)) {
     return { success: false, message: `Error: Path not found: ${resolvedPath}` };
   }
 
-  const isFacetDir = statSync(resolvedPath).isDirectory();
+  const isDirectory = statSync(resolvedPath).isDirectory();
+  if (project !== undefined && !isDirectory) {
+    return {
+      success: false,
+      message: `Error: --project expects a model directory, got a file: ${resolvedPath}`,
+    };
+  }
+  const isProject = project !== undefined;
+  return { resolvedPath, isFacetDir: isDirectory && !isProject, isProject };
+}
+
+export function parseServeArgs(argv: string[]): ServeArgs | ServeCommandResult {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    options: {
+      port: { type: 'string', short: 'p' },
+      all: { type: 'boolean' },
+      project: { type: 'string' },
+    },
+    allowPositionals: true,
+    strict: false,
+  });
+
+  const target = resolveServeTarget(
+    typeof values.project === 'string' ? values.project : undefined,
+    positionals[0],
+  );
+  if ('success' in target) return target;
 
   const rawPort = values.port ?? '4321';
   const port = parseInt(rawPort, 10);
@@ -691,7 +713,7 @@ function parseServeArgs(argv: string[]): ServeArgs | ServeCommandResult {
     return { success: false, message: `Error: Invalid port "${rawPort}". Expected 1-65535.` };
   }
 
-  return { resolvedPath, port, includeAll: values.all === true, isFacetDir };
+  return { ...target, port, includeAll: values.all === true };
 }
 
 async function initialPipeline(
