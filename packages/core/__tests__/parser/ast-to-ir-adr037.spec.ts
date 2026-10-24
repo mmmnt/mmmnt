@@ -194,3 +194,25 @@ describe('ADR-037 condition-triggered policies', () => {
     });
   });
 });
+
+describe('ADR-037 flow nodes', () => {
+  it('resolves a node that names a projection or a query to that kind', async () => {
+    const ir = await toIr(`
+      context "Retrieval" [Core]
+        projection TrajectoryResult
+          sources DecisionMade
+        query QueryContext
+          reads TrajectoryResult
+      flow "recall"
+        lane retrieval "Retrieval" [Core]
+        moment "The agent asks"
+          retrieval: QueryContext
+          retrieval: TrajectoryResult
+    `);
+
+    expect(ir.flows[0].moments[0].contextEntries.map((e) => [e.nodeName, e.nodeKind])).toEqual([
+      ['QueryContext', 'query'],
+      ['TrajectoryResult', 'projection'],
+    ]);
+  });
+});

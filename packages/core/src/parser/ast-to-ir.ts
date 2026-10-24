@@ -479,6 +479,8 @@ function buildNodeKindMap(contexts: ContextDefinition[]): Map<string, MomentEntr
     for (const evt of ctx.events) map.set(evt.name, 'event');
     for (const policy of ctx.policies) map.set(policy.name, 'policy');
     for (const saga of ctx.sagas) map.set(saga.name, 'saga');
+    for (const projection of ctx.projections ?? []) map.set(projection.name, 'projection');
+    for (const query of ctx.queries ?? []) map.set(query.name, 'query');
   }
   return map;
 }

@@ -25,7 +25,7 @@ export type MomentSequenceItem =
 export interface MomentEntry {
   contextId: string;
   nodeName: string;
-  nodeKind: 'command' | 'event' | 'policy' | 'saga' | 'projection';
+  nodeKind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'query';
   multiplicity?: number | string;
   optional?: boolean;
   terminal?: boolean;
