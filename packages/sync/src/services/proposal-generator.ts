@@ -1,17 +1,18 @@
-import { randomUUID } from 'crypto';
 import type {
   ImplementationChangeProposal,
   FeedbackEventType,
   DifferenceType,
+  ASTDifference,
 } from '../value-objects/index.js';
 import type { TypeDifference } from './typescript-ast-utils.js';
+import { deriveProposalId } from './proposal-id.js';
 
 export interface DeprecationMetadata {
   readonly deprecatedFields: ReadonlyMap<string, string>; // oldFieldName → replacementFieldName
 }
 
 export interface ProposalGeneratorOptions {
-  readonly idFactory?: () => string;
+  readonly idFactory?: (difference: ASTDifference) => string;
 }
 
 const DIFFERENCE_TO_EVENT: Record<DifferenceType, FeedbackEventType> = {
@@ -58,29 +59,36 @@ export function generateProposalsFromDifferences(
   options?: ProposalGeneratorOptions,
 ): ImplementationChangeProposal[] {
   const proposals: ImplementationChangeProposal[] = [];
-  const generateId = options?.idFactory ?? randomUUID;
+  const generateId = options?.idFactory ?? deriveProposalId;
 
   for (const diff of differences) {
     const dual = checkDualPopulation(diff, deprecation);
+    const sourceDifference: ASTDifference = {
+      filePath,
+      differenceType: diff.differenceType,
+      expectedNode: diff.expectedNode,
+      actualNode: diff.actualNode,
+    };
 
     proposals.push({
-      proposalId: generateId(),
+      proposalId: generateId(sourceDifference),
       proposedEventType: DIFFERENCE_TO_EVENT[diff.differenceType],
       proposedPayload: buildPayload(diff),
       sourceFile: filePath,
-      sourceDifference: {
-        filePath,
-        differenceType: diff.differenceType,
-        expectedNode: '',
-        actualNode: '',
-      },
+      sourceDifference,
       dualPopulationApplied: dual.applies,
     });
 
     if (dual.applies) {
       const replacement = deprecation!.deprecatedFields.get(dual.fieldName!)!;
+      const replacementDifference: ASTDifference = {
+        filePath,
+        differenceType: 'added-field',
+        expectedNode: '',
+        actualNode: `${diff.symbolName}.${replacement} (replaces deprecated ${dual.fieldName})`,
+      };
       proposals.push({
-        proposalId: generateId(),
+        proposalId: generateId(replacementDifference),
         proposedEventType: 'ValueObjectFieldAdded',
         proposedPayload: {
           symbolName: diff.symbolName,
@@ -88,12 +96,7 @@ export function generateProposalsFromDifferences(
           differenceType: 'added-field' as DifferenceType,
         },
         sourceFile: filePath,
-        sourceDifference: {
-          filePath,
-          differenceType: 'added-field',
-          expectedNode: '',
-          actualNode: '',
-        },
+        sourceDifference: replacementDifference,
         dualPopulationApplied: true,
       });
     }
