@@ -38,6 +38,27 @@ export interface ProjectLoadResult {
 }
 
 const isCompletenessRule = (d: Diagnostic): boolean => /^V2[2-8]$/.test(d.ruleId ?? '');
+// Per-file V21 sees only its own file's events; the merged check below replaces it.
+const isPerFileSagaEventCheck = (d: Diagnostic): boolean => d.message.startsWith('V21:');
+
+/** V21 over the merge: a saga transition event is declared by some context or placed in some flow. */
+function sagaTransitionFindings(ir: IntermediateRepresentation): Diagnostic[] {
+  const known = new Set([
+    ...ir.contexts.flatMap((c) => c.events.map((e) => e.name)),
+    ...ir.flows.flatMap((f) => f.moments.flatMap((m) => m.contextEntries.map((e) => e.nodeName))),
+  ]);
+  return ir.contexts.flatMap((c) =>
+    c.sagas.flatMap((saga) =>
+      (saga.transitions ?? [])
+        .filter((t) => t.onEvent && !known.has(t.onEvent))
+        .map((t) => ({
+          severity: 'warning' as const,
+          ruleId: 'V21',
+          message: `V21: Saga '${saga.name}' transition event '${t.onEvent}' is declared by no context and placed in no flow of the project — possible typo.`,
+        })),
+    ),
+  );
+}
 
 export class ProjectLoader {
   private readonly parser: MomentParser;
@@ -84,7 +105,9 @@ export class ProjectLoader {
     // Phase 3: Cross-file validation on the merged IR. V22–V28 (ADR-037) are advisories per file and
     // errors over the merge, which supersedes them.
     const validationResult = validateCrossFileReferences(mergeResult.ir);
-    const perFile = allDiagnostics.filter((d) => !isCompletenessRule(d));
+    const perFile = allDiagnostics.filter(
+      (d) => !isCompletenessRule(d) && !isPerFileSagaEventCheck(d),
+    );
     allDiagnostics.length = 0;
     allDiagnostics.push(
       ...perFile,
@@ -93,6 +116,7 @@ export class ProjectLoader {
         severity: 'error' as const,
         ...d,
       })),
+      ...sagaTransitionFindings(mergeResult.ir),
     );
 
     const hasErrors = allDiagnostics.some((d) => d.severity === 'error');

@@ -111,3 +111,23 @@ describe('ProjectLoader resolves flow node names across files (PM-07)', () => {
     expect(good.diagnostics.filter((d) => d.ruleId === 'PM-07')).toEqual([]);
   });
 });
+
+describe('ProjectLoader checks saga transition events across files (V21)', () => {
+  it('keeps no per-file V21 warning for an event another file declares', async () => {
+    const result = await new ProjectLoader().loadProject(project);
+
+    expect(result.diagnostics.filter((d) => d.message.startsWith('V21:'))).toEqual([]);
+  });
+});
+
+describe('ProjectLoader still warns about a saga event the whole project lacks (V21)', () => {
+  it('warns once for a transition event no file declares', async () => {
+    const result = await new ProjectLoader().loadProject([
+      resolve(FIXTURES, 'invalid/model-completeness-saga-event/memory.moment'),
+    ]);
+
+    expect(result.diagnostics.filter((d) => d.ruleId === 'V21').map((d) => d.message)).toEqual([
+      "V21: Saga 'RecallFlow' transition event 'NeverHappens' is declared by no context and placed in no flow of the project — possible typo.",
+    ]);
+  });
+});

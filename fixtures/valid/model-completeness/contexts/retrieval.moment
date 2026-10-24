@@ -37,3 +37,9 @@ context "Retrieval" [Core]
     contract "envelope schema, versioned"
 
   term "Budget" "the tokens a retrieval may fill"
+
+  saga RecallFlow
+    trigger DecisionMade
+    states Waiting -> Recalled on DecisionMade
+    compensation "nothing to compensate"
+    timeout "none"
