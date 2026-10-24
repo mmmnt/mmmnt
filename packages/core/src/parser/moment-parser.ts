@@ -2,6 +2,7 @@ import {
   inject,
   createDefaultCoreModule,
   createDefaultSharedCoreModule,
+  DocumentValidator,
   EmptyFileSystem,
   URI,
 } from 'langium';
@@ -16,6 +17,16 @@ import { buildCrossFileContext } from '../validation/moment-validator.js';
 import { SchemaValidator } from '../services/schema-validator.js';
 import type { MomentAddedServices } from '../validation/moment-validator.js';
 import type { LangiumCoreServices } from 'langium';
+
+const SYNTAX_CODES: ReadonlySet<unknown> = new Set([
+  DocumentValidator.LexingError,
+  DocumentValidator.ParsingError,
+]);
+
+const isSyntaxDiagnostic = (d: { data?: unknown }): boolean =>
+  typeof d.data === 'object' &&
+  d.data !== null &&
+  SYNTAX_CODES.has((d.data as { code?: unknown }).code);
 
 /** Spec name = file basename without its extension (M-P12). */
 function specNameFromPath(filePath: string): string {
@@ -95,20 +106,23 @@ export class MomentParser {
               }
             : undefined,
       })),
-      // LSP validation diagnostics use 0-based positions; SourceLocation is 1-based.
-      ...(doc.diagnostics ?? []).map((d) => ({
-        severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
-        message: d.message,
-        source: d.range
-          ? {
-              file,
-              line: d.range.start.line + 1,
-              column: d.range.start.character + 1,
-              endLine: d.range.end.line + 1,
-              endColumn: d.range.end.character + 1,
-            }
-          : undefined,
-      })),
+      // LSP validation diagnostics use 0-based positions; SourceLocation is 1-based. Langium repeats the
+      // lexer and parser errors among them; those are reported above.
+      ...(doc.diagnostics ?? [])
+        .filter((d) => !isSyntaxDiagnostic(d))
+        .map((d) => ({
+          severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
+          message: d.message,
+          source: d.range
+            ? {
+                file,
+                line: d.range.start.line + 1,
+                column: d.range.start.character + 1,
+                endLine: d.range.end.line + 1,
+                endColumn: d.range.end.character + 1,
+              }
+            : undefined,
+        })),
     ];
 
     const hasError = diagnostics.some((d) => d.severity === 'error');

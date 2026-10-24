@@ -142,7 +142,7 @@ export class ProjectLoader {
       };
     }
 
-    const result = await this.parser.parseContent(content);
+    const result = await this.parser.parseContent(content, filePath);
 
     // Attach the file path to any diagnostics that don't already have one.
     const diagnostics: Diagnostic[] = result.diagnostics.map((d) => ({

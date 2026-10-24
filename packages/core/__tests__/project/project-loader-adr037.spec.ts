@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { ProjectLoader } from '../../src/project/index.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
@@ -136,5 +138,18 @@ describe('ADR-038 invalid corpus exemplars, one per rule', () => {
     const result = await new ProjectLoader().loadProject(project);
 
     expect(result.diagnostics.filter((d) => /^V(29|3[0-7])$/.test(d.ruleId ?? ''))).toEqual([]);
+  });
+});
+
+describe('ProjectLoader reports a file that fails to parse', () => {
+  it('names the file and reports each parse error once', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'moment-parse-error-'));
+    const file = join(dir, 'broken.moment');
+    writeFileSync(file, 'context "Memory" [Core]\n  policy P\n    trigger E\n    action "a"\n');
+
+    const result = await new ProjectLoader().loadProject([file]);
+    const errors = result.diagnostics.filter((d) => d.severity === 'error');
+
+    expect(errors.map((d) => d.source?.file)).toEqual([file]);
   });
 });
