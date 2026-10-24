@@ -132,6 +132,7 @@ function buildBlocksByContext(ir: IntermediateRepresentation): Map<string, Set<s
         ...(c.events ?? []).map((x) => x.name),
         ...(c.policies ?? []).map((x) => x.name),
         ...(c.sagas ?? []).map((x) => x.name),
+        ...(c.sagas ?? []).flatMap((x) => (x.commands ?? []).map((cmd) => cmd.name)),
         ...(c.valueObjects ?? []).map((x) => x.name),
         ...(c.projections ?? []).map((x) => x.name),
         ...(c.queries ?? []).map((x) => x.name),

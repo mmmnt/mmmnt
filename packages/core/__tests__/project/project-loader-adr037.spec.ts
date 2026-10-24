@@ -153,3 +153,18 @@ describe('ProjectLoader reports a file that fails to parse', () => {
     expect(errors.map((d) => d.source?.file)).toEqual([file]);
   });
 });
+
+describe('ProjectLoader counts an orchestration command as a block of its context (PM-07, ADR-038)', () => {
+  it('accepts a flow node that names an orchestration command of its lane context', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'moment-pm07-orchestration-'));
+    const flow = join(dir, 'recall-started.moment');
+    writeFileSync(
+      flow,
+      'flow "recall-started"\n  lane retrieval "Retrieval" [Core]\n  moment "A recall starts"\n    retrieval: StartRecall\n',
+    );
+
+    const result = await new ProjectLoader().loadProject([...project, flow]);
+
+    expect(result.diagnostics.filter((d) => d.ruleId === 'PM-07')).toEqual([]);
+  });
+});
