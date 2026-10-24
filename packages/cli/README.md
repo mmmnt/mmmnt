@@ -65,7 +65,7 @@ moment watch specs/
 - **Watch mode** -- monitors `.moment` files and automatically re-parses and regenerates artifacts on save.
 - **Structured output** -- most commands support `--json` for machine-readable output in CI/CD pipelines.
 - **Standard exit codes** -- non-zero exit on validation failures, drift detection, or test failures for pipeline gating.
-- **Subcommand structure** -- complex operations like `sync` and `schema` use subcommands (`sync status`, `sync propose`, `sync accept`, `schema status`) for organized workflows.
+- **Subcommand structure** -- complex operations like `sync` and `schema` use subcommands (`sync status`, `sync propose`, `sync accept`, `sync reject`, `schema status`) for organized workflows.
 - **Authentication support** -- `moment auth` subcommands manage credentials for Moment cloud services when applicable.
 - **Verbose mode** -- `moment status --verbose` enables detailed logging for the unified status command.
 
@@ -116,10 +116,13 @@ moment watch specs/
 | Command | Description |
 |---------|-------------|
 | `moment sync status <file>` | Detect drift between the specification and implementation by comparing generated and actual TypeScript files. Non-zero exit code on drift. |
-| `moment sync propose <file>` | Generate change proposals to reconcile detected drift between specification and implementation. |
-| `moment sync accept <file>` | Accept proposed changes and apply them to the implementation. |
+| `moment sync propose <file\|dir>` | Record a proposal for each new drift in `.domain/sync-state.jsonl` and print every pending proposal with its id. A proposal's id is derived from its drift (`prop-` + 16 hex of sha256), so re-running records only new drift, leaves pending proposals whose drift remains untouched, and supersedes those whose drift is gone. Accepted and rejected proposals are never touched. `--auto-accept` is refused. |
+| `moment sync accept <file\|dir> (<proposal-id>... \| --all)` | Accept pending proposals. Every named id must be pending or the whole run is refused, naming each id and its status; `--all` with nothing pending says so and exits zero. Records the decision with the repo's git `user.email` as actor, exactly one `ImplementationFeedbackRecorded` per accepted proposal, and one push-flow saga; commits only the three `.domain/` logs to the local repo, then advances the sync cursor in a second commit. Prints the spec edit each proposal implies (e.g. ``add field `note: string` to value-object `OrderItem` ``) with the file and line declaring the construct. Never edits a `.moment` or `.ts` file, never pushes. |
+| `moment sync reject <file\|dir> <proposal-id>... --reason "<why>"` | Reject pending proposals with a required reason. Same all-or-nothing check, actor, saga and local commits as accept; records no feedback. |
 | `moment reconcile <file>` | Run cascade reconciliation to classify and resolve drift. Supports `--mode local` and `--mode event` for different reconciliation sources. |
 | `moment status <file>` | Display unified project status: parse validity, sync drift, schema lifecycle, and upstream fingerprint. |
+
+Sync keeps three append-only logs in `.domain/`, beside the spec file or inside the model directory: `sync-state.jsonl` (proposals, decisions and the cursor), `implementation-feedback.jsonl`, and `push-flow-saga.jsonl`. Every sync command replays them and refuses a corrupted log, naming the file and line; a refused run writes nothing. `accept` and `reject` need a git repository whose own config sets `user.name` and `user.email`, with at least one commit (the feedback's `commitRef` is that HEAD). If the local commit fails, the records stay appended, the saga is recorded as aborted, the cursor does not move, and the command exits non-zero.
 
 ### Schema Governance
 
@@ -148,12 +151,13 @@ These are commonly used options available on the commands indicated, not globall
 
 | Option | Available on | Description |
 |--------|-------------|-------------|
-| `--json` | derive, simulate, lint, schema status, sync status/propose/accept, reconcile, status, import | Machine-readable JSON output to stdout. |
+| `--json` | derive, simulate, lint, schema status, sync status/propose, reconcile, status, import | Machine-readable JSON output to stdout. |
 | `--out <dir>` | generate, emit-ts | Override the output directory for generated artifacts (defaults to the project root or cwd). |
 | `--out-dir <dir>` | simulate | Write topology, scenario, and artifact files to the specified directory. |
 | `--output-dir <dir>` | import --from-sift | Write imported `.moment` files to the specified directory. |
 | `--all` | simulate, serve | Generate all branch combinations and negative scenarios (simulate) or serve all scenarios including negatives (serve). |
-| `--all` | sync accept | Accept all pending proposals. |
+| `--all` | sync accept | Accept every pending proposal. |
+| `--reason <why>` | sync reject | Why the proposals are rejected (required). |
 | `--dry-run` | emit-ts | List files that would be emitted without writing them. |
 | `--verbose` | status | Enable detailed output. |
 | `--port <n>` | serve | WebSocket port (default 4321). |
@@ -226,11 +230,12 @@ moment generate specs/my-service.moment
 # Check sync status
 moment sync status specs/my-service.moment
 
-# Generate proposals for detected drift
+# Record proposals for detected drift; prints pending proposal ids
 moment sync propose specs/my-service.moment
 
-# Review proposals, then accept
-moment sync accept specs/my-service.moment
+# Decide them: accept (prints the spec edit to make, and where) or reject
+moment sync accept specs/my-service.moment prop-4b1a1efced680463
+moment sync reject specs/my-service.moment prop-9c03d2e1aa7f5b10 --reason "local workaround"
 
 # Or run full cascade reconciliation
 moment reconcile specs/my-service.moment
