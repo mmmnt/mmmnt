@@ -48,6 +48,13 @@ export type {
   EventTypeDefinition,
 } from './services/ast-diff-engine.js';
 export type { DeprecationMetadata } from './services/proposal-generator.js';
+export { planDecision } from './services/sync-decision.js';
+export type {
+  DecisionKind,
+  DecisionInput,
+  DecisionPlan,
+  DecisionRefusal,
+} from './services/sync-decision.js';
 
 export { PushFlowSaga } from './sagas/push-flow-saga.js';
 export type {
