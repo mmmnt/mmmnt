@@ -20,6 +20,7 @@ export type {
   SagaTransitionDefinition,
   AnnotationDefinition,
   ProjectionDefinition,
+  QueryDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';

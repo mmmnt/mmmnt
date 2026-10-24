@@ -21,6 +21,7 @@ export interface ContextDefinition {
   valueObjects: ValueObjectDefinition[];
   invariants: InvariantDefinition[];
   projections?: ProjectionDefinition[];
+  queries?: QueryDefinition[];
 }
 
 export interface ProjectionDefinition {
@@ -29,6 +30,14 @@ export interface ProjectionDefinition {
   sources: string[];
   description?: string;
   fields: FieldDefinition[];
+}
+
+export interface QueryDefinition {
+  id: string;
+  name: string;
+  reads: string[];
+  inputs: FieldDefinition[];
+  description?: string;
 }
 
 export interface AggregateDefinition {

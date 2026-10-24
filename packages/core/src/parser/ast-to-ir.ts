@@ -19,6 +19,7 @@ import type {
   WhenBlock,
   AnnotationDeclaration,
   ProjectionDeclaration,
+  QueryDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
@@ -32,6 +33,7 @@ import {
   isInvariantDeclaration,
   isAnnotationDeclaration,
   isProjectionDeclaration,
+  isQueryDeclaration,
   isReturnsTo,
   isTriggeredBy,
   isTriggers,
@@ -62,6 +64,7 @@ import type {
   SchemaFieldDefinition,
   ContextRelationship,
   ProjectionDefinition,
+  QueryDefinition,
 } from '../ir/index.js';
 import { buildMomentSequence } from './moment-sequence.js';
 
@@ -112,6 +115,7 @@ interface ContextMembers {
   policies: PolicyDefinition[];
   sagas: SagaDefinition[];
   projections: ProjectionDefinition[];
+  queries: QueryDefinition[];
   commands: CommandDefinition[];
   events: EventDefinition[];
   valueObjects: ValueObjectDefinition[];
@@ -125,6 +129,7 @@ function emptyContextMembers(): ContextMembers {
     policies: [],
     sagas: [],
     projections: [],
+    queries: [],
     commands: [],
     events: [],
     valueObjects: [],
@@ -153,6 +158,8 @@ function collectContextMember(
     out.sagas.push(transformSaga(member, annotations));
   } else if (isProjectionDeclaration(member)) {
     out.projections.push(transformProjection(member));
+  } else if (isQueryDeclaration(member)) {
+    out.queries.push(transformQuery(member));
   }
 }
 
@@ -186,7 +193,16 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
       | 'Terminal'
       | undefined,
     description: ctx.description ? unquote(ctx.description) : undefined,
-    ...members,
+    aggregates: members.aggregates,
+    domainServices: members.domainServices,
+    commands: members.commands,
+    events: members.events,
+    policies: members.policies,
+    sagas: members.sagas,
+    valueObjects: members.valueObjects,
+    invariants: members.invariants,
+    projections: members.projections,
+    queries: members.queries,
   };
 }
 
@@ -197,6 +213,16 @@ function transformProjection(proj: ProjectionDeclaration): ProjectionDefinition 
     sources: [...proj.sources],
     ...(proj.description ? { description: unquote(proj.description) } : {}),
     fields: proj.fields.map(transformFieldDeclaration),
+  };
+}
+
+function transformQuery(query: QueryDeclaration): QueryDefinition {
+  return {
+    id: `query-${query.name}`,
+    name: query.name,
+    reads: [...query.reads],
+    inputs: query.inputs.map(transformFieldDeclaration),
+    ...(query.description ? { description: unquote(query.description) } : {}),
   };
 }
 

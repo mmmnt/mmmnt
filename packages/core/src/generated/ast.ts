@@ -75,6 +75,8 @@ export type MomentKeywordNames =
     | "precondition"
     | "produces"
     | "projection"
+    | "query"
+    | "reads"
     | "relationship"
     | "returns-to"
     | "saga"
@@ -240,7 +242,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
     return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | SagaDeclaration;
 
 export const ContextMember = {
     $type: 'ContextMember'
@@ -332,7 +334,7 @@ export interface FieldDeclaration extends langium.AstNode {
     readonly $container: AggregateDeclaration | DomainEventDeclaration | ProjectionDeclaration | ValueObjectDeclaration;
     readonly $type: 'FieldDeclaration';
     deprecation?: FieldDeprecation;
-    name: string;
+    name: FieldName;
     type: TypeReference;
 }
 
@@ -364,6 +366,12 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
+export type FieldName = 'field' | 'reads' | 'sources' | string;
+
+export function isFieldName(item: unknown): item is FieldName {
+    return item === 'sources' || item === 'field' || item === 'reads' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+}
+
 export interface FlowDeclaration extends langium.AstNode {
     readonly $container: MomentFile;
     readonly $type: 'FlowDeclaration';
@@ -386,10 +394,10 @@ export function isFlowDeclaration(item: unknown): item is FlowDeclaration {
 }
 
 export interface InputField extends langium.AstNode {
-    readonly $container: CommandDeclaration;
+    readonly $container: CommandDeclaration | QueryDeclaration;
     readonly $type: 'InputField';
     deprecation?: FieldDeprecation;
-    name: string;
+    name: InputName;
     type: TypeReference;
 }
 
@@ -402,6 +410,12 @@ export const InputField = {
 
 export function isInputField(item: unknown): item is InputField {
     return reflection.isInstance(item, InputField.$type);
+}
+
+export type InputName = 'projection' | 'query' | FieldName;
+
+export function isInputName(item: unknown): item is InputName {
+    return isFieldName(item) || item === 'projection' || item === 'query';
 }
 
 export interface InvariantDeclaration extends langium.AstNode {
@@ -620,6 +634,27 @@ export function isProjectionDeclaration(item: unknown): item is ProjectionDeclar
     return reflection.isInstance(item, ProjectionDeclaration.$type);
 }
 
+export interface QueryDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'QueryDeclaration';
+    description?: string;
+    inputs: Array<InputField>;
+    name: string;
+    reads: Array<string>;
+}
+
+export const QueryDeclaration = {
+    $type: 'QueryDeclaration',
+    description: 'description',
+    inputs: 'inputs',
+    name: 'name',
+    reads: 'reads'
+} as const;
+
+export function isQueryDeclaration(item: unknown): item is QueryDeclaration {
+    return reflection.isInstance(item, QueryDeclaration.$type);
+}
+
 export type RelationshipType = 'AnticorruptionLayer' | 'Conformist' | 'CustomerSupplier' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' | 'SeparateWays' | string;
 
 export function isRelationshipType(item: unknown): item is RelationshipType {
@@ -818,6 +853,7 @@ export type MomentAstType = {
     PolicyTrigger: PolicyTrigger
     Precondition: Precondition
     ProjectionDeclaration: ProjectionDeclaration
+    QueryDeclaration: QueryDeclaration
     ReturnsTo: ReturnsTo
     SagaDeclaration: SagaDeclaration
     SagaTimeout: SagaTimeout
@@ -1240,6 +1276,26 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 sources: {
                     name: ProjectionDeclaration.sources,
+                    defaultValue: []
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        QueryDeclaration: {
+            name: QueryDeclaration.$type,
+            properties: {
+                description: {
+                    name: QueryDeclaration.description
+                },
+                inputs: {
+                    name: QueryDeclaration.inputs,
+                    defaultValue: []
+                },
+                name: {
+                    name: QueryDeclaration.name
+                },
+                reads: {
+                    name: QueryDeclaration.reads,
                     defaultValue: []
                 }
             },

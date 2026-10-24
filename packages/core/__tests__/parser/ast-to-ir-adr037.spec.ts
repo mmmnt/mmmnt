@@ -57,3 +57,30 @@ describe('ADR-037 projections', () => {
     ]);
   });
 });
+
+describe('ADR-037 queries', () => {
+  it('transforms a query with what it reads, its inputs and description, even when an input is named like a keyword', async () => {
+    const ir = await toIr(`
+      context "Retrieval" [Core]
+        projection TrajectoryResult
+          sources DecisionMade
+        query QueryContext
+          reads TrajectoryResult
+          input query: string, tokenBudget: number
+          description "Orient, traverse, rank, fit"
+    `);
+
+    expect(ir.contexts[0].queries).toEqual([
+      {
+        id: 'query-QueryContext',
+        name: 'QueryContext',
+        reads: ['TrajectoryResult'],
+        inputs: [
+          { name: 'query', type: 'string', isArray: false, required: true },
+          { name: 'tokenBudget', type: 'number', isArray: false, required: true },
+        ],
+        description: 'Orient, traverse, rank, fit',
+      },
+    ]);
+  });
+});

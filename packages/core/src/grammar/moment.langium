@@ -19,7 +19,7 @@ ContextDeclaration:
 ContextMember:
     AggregateDeclaration | DomainServiceDeclaration | PolicyDeclaration |
     SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration |
-    ProjectionDeclaration;
+    ProjectionDeclaration | QueryDeclaration;
 
 // --- Projection (ADR-037 §1, PRD §5.1.1) ---
 ProjectionDeclaration:
@@ -27,6 +27,13 @@ ProjectionDeclaration:
         'sources' sources+=ID (',' sources+=ID)*
         ('description' description=STRING)?
         ('field' fields+=FieldDeclaration)*;
+
+// --- Query (ADR-037 §2) ---
+QueryDeclaration:
+    'query' name=ID
+        'reads' reads+=ID (',' reads+=ID)*
+        ('input' inputs+=InputField (',' inputs+=InputField)*)?
+        ('description' description=STRING)?;
 
 // --- Classification Annotations (PRD §5.1.4, Sift ADR-053 D4) ---
 // An annotation classifies the NEXT declaration in the member list.
@@ -56,7 +63,7 @@ CommandDeclaration:
         'emits' emits=ID;
 
 InputField:
-    name=ID ':' type=TypeReference deprecation=FieldDeprecation?;
+    name=InputName ':' type=TypeReference deprecation=FieldDeprecation?;
 
 Precondition:
     'precondition' name=ID ':' description=STRING;
@@ -177,10 +184,18 @@ ReturnsTo:
 // ============================================================================
 
 FieldDeclaration:
-    name=ID ':' type=TypeReference deprecation=FieldDeprecation?;
+    name=FieldName ':' type=TypeReference deprecation=FieldDeprecation?;
 
 FieldDeprecation:
     '[' 'deprecated' reason=STRING '->' replacement=STRING ']';
+
+// ADR-037 made new words keywords. A comma-separated input list may use any of them as a name; a field
+// list, which a new declaration can follow, may use only those that cannot begin a declaration.
+InputName returns string:
+    FieldName | 'projection' | 'query';
+
+FieldName returns string:
+    ID | 'sources' | 'field' | 'reads';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;
