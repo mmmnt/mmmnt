@@ -30,6 +30,8 @@ import {
   isCommandDeclaration,
   isDomainEventDeclaration,
   isPolicyDeclaration,
+  isProjectionDeclaration,
+  isQueryDeclaration,
   isReturnsTo,
   isMomentDeclaration,
   isFlowDeclaration,
@@ -52,7 +54,7 @@ export interface CrossFileContext {
     string,
     {
       name: string;
-      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'value-object';
+      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'query' | 'value-object';
     }[]
   >;
   declaredSagas: string[];
@@ -73,6 +75,37 @@ function unquote(s: string): string {
  * these checks applied — callers only set the context when the file actually
  * declares contexts.
  */
+type BuildingBlock =
+  CrossFileContext['declaredBuildingBlocks'] extends Map<string, (infer B)[]> ? B : never;
+
+/** The building blocks one aggregate declares; its events are also listed in `events`. */
+function aggregateBlocks(agg: AggregateDeclaration, events: string[]): BuildingBlock[] {
+  const blocks: BuildingBlock[] = [];
+  for (const aggMember of agg.members) {
+    if (isCommandDeclaration(aggMember)) {
+      blocks.push({ name: aggMember.name, kind: 'command' });
+    } else if (isDomainEventDeclaration(aggMember)) {
+      events.push(aggMember.name);
+      blocks.push({ name: aggMember.name, kind: 'event' });
+    } else if (isValueObjectDeclaration(aggMember)) {
+      blocks.push({ name: aggMember.name, kind: 'value-object' });
+    }
+  }
+  return blocks;
+}
+
+/** The building block a context-level member declares, if it is one a flow node may name. */
+function contextMemberBlock(
+  member: ContextDeclaration['members'][number],
+): BuildingBlock | undefined {
+  if (isPolicyDeclaration(member)) return { name: member.name, kind: 'policy' };
+  if (isSagaDeclaration(member)) return { name: member.name, kind: 'saga' };
+  if (isProjectionDeclaration(member)) return { name: member.name, kind: 'projection' };
+  if (isQueryDeclaration(member)) return { name: member.name, kind: 'query' };
+  if (isValueObjectDeclaration(member)) return { name: member.name, kind: 'value-object' };
+  return undefined;
+}
+
 export function buildCrossFileContext(file: MomentFile): CrossFileContext {
   const declaredContextNames: string[] = [];
   const declaredEvents = new Map<string, string[]>();
@@ -83,29 +116,16 @@ export function buildCrossFileContext(file: MomentFile): CrossFileContext {
     const contextName = unquote(ctx.name);
     declaredContextNames.push(contextName);
     const events: string[] = [];
-    const blocks: {
-      name: string;
-      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'value-object';
-    }[] = [];
+    const blocks: BuildingBlock[] = [];
 
     for (const member of ctx.members) {
       if (isAggregateDeclaration(member)) {
-        for (const aggMember of member.members) {
-          if (isCommandDeclaration(aggMember)) {
-            blocks.push({ name: aggMember.name, kind: 'command' });
-          } else if (isDomainEventDeclaration(aggMember)) {
-            events.push(aggMember.name);
-            blocks.push({ name: aggMember.name, kind: 'event' });
-          } else if (isValueObjectDeclaration(aggMember)) {
-            blocks.push({ name: aggMember.name, kind: 'value-object' });
-          }
-        }
-      } else if (isPolicyDeclaration(member)) {
-        blocks.push({ name: member.name, kind: 'policy' });
-      } else if (isSagaDeclaration(member)) {
-        blocks.push({ name: member.name, kind: 'saga' });
-        declaredSagas.push(member.name);
+        blocks.push(...aggregateBlocks(member, events));
+        continue;
       }
+      const block = contextMemberBlock(member);
+      if (block) blocks.push(block);
+      if (block?.kind === 'saga') declaredSagas.push(block.name);
     }
 
     declaredEvents.set(contextName, events);
