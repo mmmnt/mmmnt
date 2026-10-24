@@ -402,7 +402,58 @@ export class SpecificationDocumentGenerator {
 
     for (const ctx of ir.contexts) {
       this.renderContextModel(lines, ctx);
+      this.renderReadSide(lines, ctx);
+      this.renderTerms(
+        lines,
+        ir.glossary.filter((g) => g.context === ctx.name),
+      );
     }
+    this.renderExternals(lines, ir);
+  }
+
+  /** ADR-037: a context's projections, queries and rules outside its aggregates. */
+  private renderReadSide(lines: string[], ctx: ContextDefinition): void {
+    const describe = (text?: string): string => (text ? `: ${text}` : '');
+    this.renderList(
+      lines,
+      'Projections',
+      (ctx.projections ?? []).map(
+        (p) => `- **${p.name}** ← ${p.sources.join(', ')}${describe(p.description)}`,
+      ),
+    );
+    this.renderList(
+      lines,
+      'Queries',
+      (ctx.queries ?? []).map(
+        (q) => `- **${q.name}** reads ${q.reads.join(', ')}${describe(q.description)}`,
+      ),
+    );
+    this.renderList(
+      lines,
+      'Rules',
+      (ctx.rules ?? []).map((r) => `- **${r.id}**: ${r.description} (enforced by ${r.enforcedBy})`),
+    );
+  }
+
+  private renderTerms(lines: string[], terms: IntermediateRepresentation['glossary']): void {
+    this.renderList(
+      lines,
+      'Terms',
+      terms.map((t) => `- **${t.term}**: ${t.definition}`),
+    );
+  }
+
+  private renderExternals(lines: string[], ir: IntermediateRepresentation): void {
+    this.renderList(
+      lines,
+      'External systems',
+      (ir.externals ?? []).map((e) => `- **${e.name}**: ${e.description}`),
+    );
+  }
+
+  private renderList(lines: string[], title: string, items: string[]): void {
+    if (items.length === 0) return;
+    lines.push(`**${title}:**`, '', ...items, '');
   }
 
   private renderContextModel(lines: string[], ctx: ContextDefinition): void {
