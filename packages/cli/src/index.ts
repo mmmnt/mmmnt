@@ -49,7 +49,7 @@ Commands:
                            Implementation drift detection and proposals
   schema <status> <file>   Schema governance report
   import --from-sift <dir> Import a Sift JSONL export
-  reconcile <file>         Reconcile upstream drift (--local | --event <path>)
+  reconcile <file|dir>     Reconcile upstream drift (--local | --event <path>)
   status <file>            Unified project status
   auth <login|status|logout|quorum>
                            Manage GitHub and quorum credentials
