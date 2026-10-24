@@ -193,6 +193,13 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
               "$ref": "#/rules@4"
             },
             "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@14"
+            },
+            "arguments": []
           }
         ]
       },

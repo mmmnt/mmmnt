@@ -244,7 +244,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
     return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | RuleDeclaration | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | RuleDeclaration | SagaDeclaration | ValueObjectDeclaration;
 
 export const ContextMember = {
     $type: 'ContextMember'
@@ -812,7 +812,7 @@ export function isTypeReference(item: unknown): item is TypeReference {
 }
 
 export interface ValueObjectDeclaration extends langium.AstNode {
-    readonly $container: AggregateDeclaration;
+    readonly $container: AggregateDeclaration | ContextDeclaration;
     readonly $type: 'ValueObjectDeclaration';
     fields: Array<FieldDeclaration>;
     name: string;
@@ -1443,7 +1443,7 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     name: ValueObjectDeclaration.name
                 }
             },
-            superTypes: [AggregateMember.$type]
+            superTypes: [AggregateMember.$type, ContextMember.$type]
         },
         WhenBlock: {
             name: WhenBlock.$type,

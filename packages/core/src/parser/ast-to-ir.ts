@@ -167,6 +167,8 @@ function collectContextMember(
     out.queries.push(transformQuery(member));
   } else if (isRuleDeclaration(member)) {
     out.rules.push(transformRule(member));
+  } else if (isValueObjectDeclaration(member)) {
+    out.valueObjects.push(transformValueObject(member, annotations));
   }
 }
 

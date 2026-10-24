@@ -115,3 +115,21 @@ describe('ADR-037 rules', () => {
     ]);
   });
 });
+
+describe('ADR-037 context-level value objects', () => {
+  it('collects a value object declared on the context beside the aggregates', async () => {
+    const ir = await toIr(`
+      context "Retrieval" [Core]
+        value-object TokenBudget
+          tokens: number
+    `);
+
+    expect(ir.contexts[0].valueObjects).toEqual([
+      {
+        id: 'vo-TokenBudget',
+        name: 'TokenBudget',
+        fields: [{ name: 'tokens', type: 'number', isArray: false, required: true }],
+      },
+    ]);
+  });
+});

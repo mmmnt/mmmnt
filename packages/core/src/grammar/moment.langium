@@ -19,7 +19,7 @@ ContextDeclaration:
 ContextMember:
     AggregateDeclaration | DomainServiceDeclaration | PolicyDeclaration |
     SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration |
-    ProjectionDeclaration | QueryDeclaration | RuleDeclaration;
+    ProjectionDeclaration | QueryDeclaration | RuleDeclaration | ValueObjectDeclaration;
 
 // --- Projection (ADR-037 §1, PRD §5.1.1) ---
 ProjectionDeclaration:
