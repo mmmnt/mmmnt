@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import * as git from 'isomorphic-git';
@@ -22,6 +23,22 @@ function logged(project: SyncProject, log: string): LoggedEvent[] {
     .split('\n')
     .map((line) => (JSON.parse(line) as { event: LoggedEvent }).event);
 }
+
+async function committedEvents(project: SyncProject, log: string): Promise<LoggedEvent[]> {
+  const { blob } = await git.readBlob({
+    fs,
+    dir: project.dir,
+    oid: await head(project),
+    filepath: join(project.domainDir, log).slice(project.dir.length + 1),
+  });
+  return Buffer.from(blob)
+    .toString()
+    .trimEnd()
+    .split('\n')
+    .map((line) => (JSON.parse(line) as { event: LoggedEvent }).event);
+}
+
+const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
 
 async function head(project: SyncProject): Promise<string> {
   return git.resolveRef({ fs, dir: project.dir, ref: 'HEAD' });
@@ -224,5 +241,103 @@ describe('moment sync accept', () => {
     expect(result.success).toBe(true);
     const files = await git.listFiles({ fs, dir: project.dir, ref: result.commitRef! });
     expect(files).toContain('model/.domain/sync-state.jsonl');
+  });
+});
+
+describe('moment sync accept — the sync cursor (ADR-039 §4)', () => {
+  let project: SyncProject;
+
+  afterEach(() => project?.cleanup());
+
+  it('advances the cursor to the spec hash after the decision is committed', async () => {
+    const { project: p, ids } = await proposed(['note: string']);
+    project = p;
+
+    await runSyncAccept([project.spec, ids[0]]);
+
+    const cursor = logged(project, 'sync-state.jsonl').at(-1);
+    expect(cursor).toMatchObject({
+      type: 'CursorAdvanced',
+      cursor: {
+        specificationHash: sha256(project.read('ordering.moment')),
+        lastProcessedFile: 'ordering.moment',
+      },
+    });
+  });
+
+  it('commits the cursor too, leaving every sync log clean', async () => {
+    const { project: p, ids } = await proposed(['note: string']);
+    project = p;
+
+    const result = await runSyncAccept([project.spec, ids[0]]);
+
+    expect((await committedEvents(project, 'sync-state.jsonl')).at(-1)?.type).toBe(
+      'CursorAdvanced',
+    );
+    expect((await committedEvents(project, 'push-flow-saga.jsonl')).at(-1)?.type).toBe(
+      'PushFlowCompleted',
+    );
+    const { commit } = await git.readCommit({ fs, dir: project.dir, oid: await head(project) });
+    expect(commit.parent).toEqual([result.commitRef]);
+    expect(commit.message).toBe(
+      `chore(sync): advance the sync cursor\n\nafter ${result.commitRef}\n`,
+    );
+    for (const log of [
+      'sync-state.jsonl',
+      'implementation-feedback.jsonl',
+      'push-flow-saga.jsonl',
+    ]) {
+      expect(await git.status({ fs, dir: project.dir, filepath: `.domain/${log}` })).toBe(
+        'unmodified',
+      );
+    }
+  });
+
+  it('hashes every spec text under a model directory', async () => {
+    const { project: p, ids } = await proposed(['note: string'], { directory: true });
+    project = p;
+
+    await runSyncAccept([project.spec, ids[0]]);
+
+    const texts = ['model/fulfillment.moment', 'model/ordering.moment'].map((f) => project.read(f));
+    expect(logged(project, 'sync-state.jsonl').at(-1)).toMatchObject({
+      type: 'CursorAdvanced',
+      cursor: { specificationHash: sha256(JSON.stringify(texts)), lastProcessedFile: 'model' },
+    });
+  });
+
+  it('moves the cursor forward on every run', async () => {
+    const { project: p, ids } = await proposed(['note: string', 'sku: string']);
+    project = p;
+
+    await runSyncAccept([project.spec, ids[0]]);
+    const second = await runSyncAccept([project.spec, ids[1]]);
+
+    expect(second.success).toBe(true);
+    expect(
+      logged(project, 'sync-state.jsonl').filter((e) => e.type === 'CursorAdvanced'),
+    ).toHaveLength(2);
+  });
+
+  it('when the commit fails: keeps the records, aborts the saga, leaves the cursor, exits non-zero', async () => {
+    const { project: p, ids } = await proposed(['note: string']);
+    project = p;
+    const before = await head(project);
+
+    const result = await runSyncAccept([project.spec, ids[0]], {
+      commit: () => Promise.reject(new Error('disk full')),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('disk full');
+    expect(result.message).toContain('cursor did not move');
+    const decisions = logged(project, 'sync-state.jsonl');
+    expect(decisions.map((e) => e.type)).toEqual(['ProposalRecorded', 'ProposalAccepted']);
+    expect(logged(project, 'implementation-feedback.jsonl')).toHaveLength(1);
+    expect(logged(project, 'push-flow-saga.jsonl').at(-1)).toMatchObject({
+      type: 'PushFlowAborted',
+      reason: expect.stringContaining('disk full'),
+    });
+    expect(await head(project)).toBe(before);
   });
 });

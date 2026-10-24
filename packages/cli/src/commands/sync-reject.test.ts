@@ -66,7 +66,7 @@ describe('moment sync reject', () => {
 
     expect(result.success).toBe(true);
     expect(result.decided).toEqual(ids);
-    expect(logged(project, 'sync-state.jsonl').slice(2)).toEqual([
+    expect(logged(project, 'sync-state.jsonl').slice(2, 4)).toEqual([
       expect.objectContaining({
         type: 'ProposalRejected',
         proposalId: ids[0],
@@ -75,6 +75,14 @@ describe('moment sync reject', () => {
       }),
       expect.objectContaining({ type: 'ProposalRejected', proposalId: ids[1] }),
     ]);
+  });
+
+  it('advances the sync cursor after committing the rejection', async () => {
+    await propose('note: string');
+
+    await runSyncReject([project.spec, ids[0], '--reason', 'no']);
+
+    expect(logged(project, 'sync-state.jsonl').at(-1)?.type).toBe('CursorAdvanced');
   });
 
   it('records no feedback and runs one saga with the rejected count', async () => {

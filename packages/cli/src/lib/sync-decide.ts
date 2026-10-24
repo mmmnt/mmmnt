@@ -4,7 +4,8 @@
  * commits ONLY the .domain/ sync logs to the local repo. No push, no network.
  */
 
-import { existsSync, realpathSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { parseArgs } from 'node:util';
 import {
@@ -24,6 +25,7 @@ import type {
   SyncLogs,
 } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
+import { isDirectory, specificationFiles } from './load-specification.js';
 import { domainDirOf, openSyncLogs } from './sync-logs.js';
 
 export interface SyncDecisionResult {
@@ -86,6 +88,21 @@ function logPaths(specPath: string, identity: RepoIdentity): string[] {
     .map((path) => relative(identity.root, path).split(sep).join('/'));
 }
 
+/** sha256 of the spec text; for a model directory, of every file's text in path order. */
+function specificationHash(specPath: string): string {
+  const texts = specificationFiles(specPath).map((file) => readFileSync(file, 'utf-8'));
+  const hashed = isDirectory(specPath) ? JSON.stringify(texts) : texts[0];
+  return createHash('sha256').update(hashed).digest('hex');
+}
+
+/** SS-02 needs each cursor strictly after the last, even within one millisecond. */
+function cursorTimestamp(logs: SyncLogs): string {
+  const last = logs.syncState.getCursor();
+  const now = Date.now();
+  const previous = last ? Date.parse(last.timestamp) : Number.NEGATIVE_INFINITY;
+  return new Date(Math.max(now, previous + 1)).toISOString();
+}
+
 function commitMessage(kind: DecisionKind, plan: DecisionPlan): string {
   const ids = plan.proposals.map((p) => p.proposalId);
   return `chore(sync): ${kind} ${ids.length} proposal(s)\n\n${ids.join('\n')}\n`;
@@ -102,7 +119,7 @@ function targetIds(logs: SyncLogs, args: DecisionArgs): readonly string[] {
 async function commitDecision(
   kind: DecisionKind,
   specPath: string,
-  store: JsonlSyncLogStore,
+  { store, logs }: { store: JsonlSyncLogStore; logs: SyncLogs },
   plan: DecisionPlan,
   identity: RepoIdentity,
   commit: (input: CommitPathsInput) => Promise<string>,
@@ -128,7 +145,35 @@ async function commitDecision(
     };
   }
 
-  store.append({ pushFlow: [plan.saga.committed(oid), plan.saga.complete()] });
+  // The cursor moves only once the decision is committed, so it needs a commit of
+  // its own; the saga's Committed and Complete records ride in that one too.
+  const cursor = logs.syncState.advanceCursor({
+    specificationHash: specificationHash(specPath),
+    timestamp: cursorTimestamp(logs),
+    lastProcessedFile: relative(identity.root, realpathSync(specPath)).split(sep).join('/'),
+  });
+  store.append({
+    syncState: [cursor],
+    pushFlow: [plan.saga.committed(oid), plan.saga.complete()],
+  });
+  try {
+    await commit({
+      root: identity.root,
+      paths: logPaths(specPath, identity),
+      message: `chore(sync): advance the sync cursor\n\nafter ${oid}\n`,
+      author: { name: identity.name, email: identity.email },
+    });
+  } catch (err: unknown) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      ...fail(
+        `Error: the ${kind} decision(s) are committed as ${oid}, but committing the advanced ` +
+          `sync cursor failed: ${reason}. Commit ${domainDirOf(specPath)} yourself.`,
+      ),
+      decided: ids,
+      commitRef: oid,
+    };
+  }
 
   const verb = kind === 'accept' ? 'Accepted' : 'Rejected';
   return {
@@ -179,5 +224,12 @@ export async function runSyncDecision(
   if ('refused' in plan) return fail(`Error: nothing was recorded — ${plan.refused}`);
 
   store.append(plan);
-  return commitDecision(kind, args.specPath, store, plan, identity, deps.commit ?? commitPathsOnly);
+  return commitDecision(
+    kind,
+    args.specPath,
+    opened,
+    plan,
+    identity,
+    deps.commit ?? commitPathsOnly,
+  );
 }
