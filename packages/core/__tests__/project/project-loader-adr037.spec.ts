@@ -76,3 +76,23 @@ describe('MomentParser reports V22–V28 for a single file as advisories', () =>
     ]);
   });
 });
+
+describe('ADR-037 invalid corpus exemplars, one per rule', () => {
+  it.each(['V22', 'V23', 'V24', 'V25', 'V26', 'V27', 'V28'])(
+    '%s fails its exemplar project with that rule',
+    async (rule) => {
+      const dir =
+        rule === 'V22'
+          ? INVALID
+          : resolve(FIXTURES, `invalid/model-completeness-${rule.toLowerCase()}`);
+      const file =
+        rule === 'V22' ? resolve(dir, 'retrieval.moment') : resolve(dir, 'memory.moment');
+      const result = await new ProjectLoader().loadProject([file]);
+
+      expect(result.success).toBe(false);
+      expect(
+        result.diagnostics.filter((d) => /^V2[2-8]$/.test(d.ruleId ?? '')).map((d) => d.ruleId),
+      ).toEqual([rule]);
+    },
+  );
+});
