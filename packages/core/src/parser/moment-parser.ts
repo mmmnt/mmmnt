@@ -9,6 +9,7 @@ import { MomentGeneratedModule, MomentGeneratedSharedModule } from '../generated
 import { MomentModule, registerMomentValidationChecks } from '../moment-module.js';
 import type { MomentFile } from '../generated/ast.js';
 import type { ParseResult, Diagnostic } from '../ir/index.js';
+import { validateModelCompleteness } from '../validation/model-completeness.js';
 import { astToIr } from './ast-to-ir.js';
 import { buildCrossFileContext } from '../validation/moment-validator.js';
 import { SchemaValidator } from '../services/schema-validator.js';
@@ -130,6 +131,9 @@ export class MomentParser {
           message: d.message,
           ruleId: d.ruleId,
         })),
+        // V22–V28 (ADR-037): a file alone cannot see its siblings, so these are advisories here and
+        // errors only over a merged project (ProjectLoader).
+        ...validateModelCompleteness(ir).map((d) => ({ severity: 'warning' as const, ...d })),
       );
     }
 
