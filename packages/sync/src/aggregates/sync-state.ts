@@ -32,6 +32,12 @@ function parseTimestamp(ts: string): number {
   return parsed;
 }
 
+function assertActor(actor: string | undefined): void {
+  if (actor !== undefined && actor.trim().length === 0) {
+    throw new Error('A decision actor must be a non-empty identity');
+  }
+}
+
 export class SyncState {
   private readonly proposals: Map<
     string,
@@ -61,14 +67,16 @@ export class SyncState {
 
   /**
    * SS-03: Accept a proposal. Throws if proposal not found or in terminal state.
+   * `actor` names who decided (ADR-039 §1).
    */
-  acceptProposal(proposalId: string): ProposalAccepted {
+  acceptProposal(proposalId: string, actor?: string): ProposalAccepted {
     this.assertProposalExistsAndNotTerminal(proposalId);
 
     const event: ProposalAccepted = {
       type: 'ProposalAccepted',
       proposalId,
       timestamp: new Date().toISOString(),
+      ...(actor === undefined ? {} : { actor }),
     };
 
     this.apply(event);
@@ -77,8 +85,9 @@ export class SyncState {
 
   /**
    * SS-03: Reject a proposal. Throws if proposal not found or in terminal state.
+   * `actor` names who decided (ADR-039 §1).
    */
-  rejectProposal(proposalId: string, reason: string): ProposalRejected {
+  rejectProposal(proposalId: string, reason: string, actor?: string): ProposalRejected {
     this.assertProposalExistsAndNotTerminal(proposalId);
 
     const event: ProposalRejected = {
@@ -86,6 +95,7 @@ export class SyncState {
       proposalId,
       reason,
       timestamp: new Date().toISOString(),
+      ...(actor === undefined ? {} : { actor }),
     };
 
     this.apply(event);
@@ -146,6 +156,7 @@ export class SyncState {
 
       case 'ProposalAccepted':
         this.assertProposalExistsAndNotTerminal(event.proposalId);
+        assertActor(event.actor);
         this.proposals.set(event.proposalId, {
           ...this.proposals.get(event.proposalId)!,
           status: 'accepted',
@@ -154,6 +165,7 @@ export class SyncState {
 
       case 'ProposalRejected':
         this.assertProposalExistsAndNotTerminal(event.proposalId);
+        assertActor(event.actor);
         this.proposals.set(event.proposalId, {
           ...this.proposals.get(event.proposalId)!,
           status: 'rejected',
