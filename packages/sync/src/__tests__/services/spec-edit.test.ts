@@ -85,6 +85,7 @@ describe('impliedSpecEdit', () => {
       FILES,
     );
     expect(edit).toEqual({
+      symbol: 'OrderPlaced',
       edit: 'add field `note: string` to event `OrderPlaced`',
       locations: [{ file: 'ordering.moment', line: 7, kind: 'event' }],
     });
@@ -100,6 +101,7 @@ describe('impliedSpecEdit', () => {
       FILES,
     );
     expect(edit).toEqual({
+      symbol: 'Invoice',
       edit: 'add field `n: number` to value-object `Invoice`',
       locations: [],
     });

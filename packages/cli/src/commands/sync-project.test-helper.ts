@@ -18,7 +18,7 @@ export interface SyncProject {
   read(path: string): string;
   write(path: string, content: string): void;
   /** Add a field to an emitted interface, as a developer editing generated code would. */
-  addField(symbol: string, field: string): void;
+  addField(symbol: string, field: string, file?: string): void;
   restore(path: string): void;
   cleanup(): void;
 }
@@ -87,11 +87,11 @@ export async function createSyncProject(options: SyncProjectOptions = {}): Promi
     domainDir: join(specDir, '.domain'),
     read,
     write,
-    addField(symbol, field) {
+    addField(symbol, field, file = TYPES_FILE) {
       const marker = `export interface ${symbol} {\n`;
-      const source = read(TYPES_FILE);
-      if (!source.includes(marker)) throw new Error(`No interface ${symbol} in ${TYPES_FILE}`);
-      write(TYPES_FILE, source.replace(marker, `${marker}  readonly ${field};\n`));
+      const source = read(file);
+      if (!source.includes(marker)) throw new Error(`No interface ${symbol} in ${file}`);
+      write(file, source.replace(marker, `${marker}  readonly ${field};\n`));
     },
     restore(path) {
       const content = emitted.files.get(path);

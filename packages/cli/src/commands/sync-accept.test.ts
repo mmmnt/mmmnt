@@ -341,3 +341,66 @@ describe('moment sync accept — the sync cursor (ADR-039 §4)', () => {
     expect(await head(project)).toBe(before);
   });
 });
+
+describe('moment sync accept — the implied spec edit (ADR-039 §5)', () => {
+  let project: SyncProject;
+
+  afterEach(() => project?.cleanup());
+
+  const lineOf = (text: string, declaration: string): number =>
+    text.split('\n').findIndex((line) => line.trim() === declaration) + 1;
+
+  it('prints the edit for each accepted proposal with the declaring file and line', async () => {
+    const { project: p, ids } = await proposed(['note: string']);
+    project = p;
+    const line = lineOf(project.read('ordering.moment'), 'value-object OrderItem');
+
+    const result = await runSyncAccept([project.spec, ids[0]]);
+
+    expect(result.edits).toEqual([
+      {
+        proposalId: ids[0],
+        symbol: 'OrderItem',
+        edit: 'add field `note: string` to value-object `OrderItem`',
+        locations: [{ file: 'ordering.moment', line, kind: 'value-object' }],
+      },
+    ]);
+    expect(result.message).toContain('add field `note: string` to value-object `OrderItem`');
+    expect(result.message).toContain(`ordering.moment:${line}`);
+  });
+
+  it('searches every .moment file under a model directory', async () => {
+    const { project: p, ids } = await proposed(['note: string'], { directory: true });
+    project = p;
+    const fulfillment = lineOf(project.read('model/fulfillment.moment'), 'value-object OrderItem');
+    const ordering = lineOf(project.read('model/ordering.moment'), 'value-object OrderItem');
+
+    const result = await runSyncAccept([project.spec, ids[0]]);
+
+    expect(result.message).toContain(`fulfillment.moment:${fulfillment}`);
+    expect(result.message).toContain(`ordering.moment:${ordering}`);
+  });
+
+  it('prints a construct declared in no file as such', async () => {
+    project = await createSyncProject();
+    project.addField('OrderAggregate', 'note: string', 'src/ordering/order.aggregate.ts');
+    const [proposal] = (await runSyncPropose([project.spec])).proposals ?? [];
+
+    const result = await runSyncAccept([project.spec, proposal.proposalId]);
+
+    expect(result.edits?.[0].locations).toEqual([]);
+    expect(result.message).toContain('`OrderAggregate` is declared in no .moment file');
+  });
+
+  it('never writes the edit to a .moment or .ts file', async () => {
+    const { project: p, ids } = await proposed(['note: string']);
+    project = p;
+    const spec = project.read('ordering.moment');
+    const types = project.read('src/ordering/order.types.ts');
+
+    await runSyncAccept([project.spec, ids[0]]);
+
+    expect(project.read('ordering.moment')).toBe(spec);
+    expect(project.read('src/ordering/order.types.ts')).toBe(types);
+  });
+});

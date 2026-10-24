@@ -13,6 +13,7 @@ import {
   PUSH_FLOW_LOG,
   SYNC_STATE_LOG,
   commitPathsOnly,
+  impliedSpecEdit,
   planDecision,
   resolveRepoIdentity,
 } from '@mmmnt/sync';
@@ -20,6 +21,7 @@ import type {
   CommitPathsInput,
   DecisionKind,
   DecisionPlan,
+  ImpliedSpecEdit,
   JsonlSyncLogStore,
   RepoIdentity,
   SyncLogs,
@@ -37,6 +39,12 @@ export interface SyncDecisionResult {
   readonly decided: readonly string[];
   /** The local commit holding the decision. */
   readonly commitRef?: string;
+  /** For each accepted proposal, the spec edit it implies — printed, never written. */
+  readonly edits?: readonly ProposalEdit[];
+}
+
+export interface ProposalEdit extends ImpliedSpecEdit {
+  readonly proposalId: string;
 }
 
 export interface SyncDecisionDeps {
@@ -101,6 +109,31 @@ function cursorTimestamp(logs: SyncLogs): string {
   const now = Date.now();
   const previous = last ? Date.parse(last.timestamp) : Number.NEGATIVE_INFINITY;
   return new Date(Math.max(now, previous + 1)).toISOString();
+}
+
+/** The edit each accepted proposal implies, searched for in the spec file(s), paths relative to them. */
+function impliedEdits(specPath: string, plan: DecisionPlan): ProposalEdit[] {
+  const base = join(domainDirOf(specPath), '..');
+  const files = new Map(
+    specificationFiles(specPath).map((file) => [
+      relative(base, file).split(sep).join('/'),
+      readFileSync(file, 'utf-8'),
+    ]),
+  );
+  return plan.proposals.map((proposal) => ({
+    proposalId: proposal.proposalId,
+    ...impliedSpecEdit(proposal, files),
+  }));
+}
+
+function formatEdits(edits: readonly ProposalEdit[]): string[] {
+  const lines = edits.length > 0 ? ['', 'Make these edits to the specification:'] : [];
+  for (const { proposalId, symbol, edit, locations } of edits) {
+    lines.push(`  ${proposalId}: ${edit}`);
+    if (locations.length === 0) lines.push(`    \`${symbol}\` is declared in no .moment file`);
+    for (const { file, line } of locations) lines.push(`    at ${file}:${line}`);
+  }
+  return lines;
 }
 
 function commitMessage(kind: DecisionKind, plan: DecisionPlan): string {
@@ -176,15 +209,18 @@ async function commitDecision(
   }
 
   const verb = kind === 'accept' ? 'Accepted' : 'Rejected';
+  const edits = kind === 'accept' ? impliedEdits(specPath, plan) : [];
   return {
     success: true,
     message: [
       `${verb} ${ids.length} proposal(s) — committed ${oid.slice(0, 7)}:`,
       ...ids.map((id) => `  ${id}`),
+      ...formatEdits(edits),
     ].join('\n'),
     diagnostics: EMPTY,
     decided: ids,
     commitRef: oid,
+    edits,
   };
 }
 

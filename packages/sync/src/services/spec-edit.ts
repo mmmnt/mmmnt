@@ -17,6 +17,8 @@ export interface DeclarationLocation {
 }
 
 export interface ImpliedSpecEdit {
+  /** The construct the edit concerns. */
+  readonly symbol: string;
   readonly edit: string;
   /** Every file and line declaring the construct; empty when none does. */
   readonly locations: readonly DeclarationLocation[];
@@ -81,6 +83,7 @@ export function impliedSpecEdit(
   const locations = locateDeclarations(symbol, files);
   const kind = locations[0]?.kind ?? 'value-object';
   return {
+    symbol,
     edit: DESCRIBE[proposal.proposedEventType](`${kind} \`${symbol}\``, proposal.proposedPayload),
     locations,
   };
