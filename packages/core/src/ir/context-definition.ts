@@ -20,6 +20,15 @@ export interface ContextDefinition {
   sagas: SagaDefinition[];
   valueObjects: ValueObjectDefinition[];
   invariants: InvariantDefinition[];
+  projections?: ProjectionDefinition[];
+}
+
+export interface ProjectionDefinition {
+  id: string;
+  name: string;
+  sources: string[];
+  description?: string;
+  fields: FieldDefinition[];
 }
 
 export interface AggregateDefinition {

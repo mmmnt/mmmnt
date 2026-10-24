@@ -18,7 +18,15 @@ ContextDeclaration:
 
 ContextMember:
     AggregateDeclaration | DomainServiceDeclaration | PolicyDeclaration |
-    SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration;
+    SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration |
+    ProjectionDeclaration;
+
+// --- Projection (ADR-037 §1, PRD §5.1.1) ---
+ProjectionDeclaration:
+    'projection' name=ID
+        'sources' sources+=ID (',' sources+=ID)*
+        ('description' description=STRING)?
+        ('field' fields+=FieldDeclaration)*;
 
 // --- Classification Annotations (PRD §5.1.4, Sift ADR-053 D4) ---
 // An annotation classifies the NEXT declaration in the member list.

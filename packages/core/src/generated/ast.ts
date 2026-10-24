@@ -61,6 +61,7 @@ export type MomentKeywordNames =
     | "description"
     | "emits"
     | "event"
+    | "field"
     | "flow"
     | "identity"
     | "input"
@@ -73,11 +74,13 @@ export type MomentKeywordNames =
     | "policy"
     | "precondition"
     | "produces"
+    | "projection"
     | "relationship"
     | "returns-to"
     | "saga"
     | "scope"
     | "service"
+    | "sources"
     | "states"
     | "string"
     | "terminal"
@@ -237,7 +240,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
     return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | SagaDeclaration;
 
 export const ContextMember = {
     $type: 'ContextMember'
@@ -326,7 +329,7 @@ export function isDomainServiceDeclaration(item: unknown): item is DomainService
 }
 
 export interface FieldDeclaration extends langium.AstNode {
-    readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
+    readonly $container: AggregateDeclaration | DomainEventDeclaration | ProjectionDeclaration | ValueObjectDeclaration;
     readonly $type: 'FieldDeclaration';
     deprecation?: FieldDeprecation;
     name: string;
@@ -596,6 +599,27 @@ export function isPrecondition(item: unknown): item is Precondition {
     return reflection.isInstance(item, Precondition.$type);
 }
 
+export interface ProjectionDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'ProjectionDeclaration';
+    description?: string;
+    fields: Array<FieldDeclaration>;
+    name: string;
+    sources: Array<string>;
+}
+
+export const ProjectionDeclaration = {
+    $type: 'ProjectionDeclaration',
+    description: 'description',
+    fields: 'fields',
+    name: 'name',
+    sources: 'sources'
+} as const;
+
+export function isProjectionDeclaration(item: unknown): item is ProjectionDeclaration {
+    return reflection.isInstance(item, ProjectionDeclaration.$type);
+}
+
 export type RelationshipType = 'AnticorruptionLayer' | 'Conformist' | 'CustomerSupplier' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' | 'SeparateWays' | string;
 
 export function isRelationshipType(item: unknown): item is RelationshipType {
@@ -793,6 +817,7 @@ export type MomentAstType = {
     PolicyDeclaration: PolicyDeclaration
     PolicyTrigger: PolicyTrigger
     Precondition: Precondition
+    ProjectionDeclaration: ProjectionDeclaration
     ReturnsTo: ReturnsTo
     SagaDeclaration: SagaDeclaration
     SagaTimeout: SagaTimeout
@@ -1199,6 +1224,26 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: []
+        },
+        ProjectionDeclaration: {
+            name: ProjectionDeclaration.$type,
+            properties: {
+                description: {
+                    name: ProjectionDeclaration.description
+                },
+                fields: {
+                    name: ProjectionDeclaration.fields,
+                    defaultValue: []
+                },
+                name: {
+                    name: ProjectionDeclaration.name
+                },
+                sources: {
+                    name: ProjectionDeclaration.sources,
+                    defaultValue: []
+                }
+            },
+            superTypes: [ContextMember.$type]
         },
         ReturnsTo: {
             name: ReturnsTo.$type,

@@ -18,6 +18,7 @@ import type {
   ValueObjectDeclaration,
   WhenBlock,
   AnnotationDeclaration,
+  ProjectionDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
@@ -30,6 +31,7 @@ import {
   isValueObjectDeclaration,
   isInvariantDeclaration,
   isAnnotationDeclaration,
+  isProjectionDeclaration,
   isReturnsTo,
   isTriggeredBy,
   isTriggers,
@@ -59,6 +61,7 @@ import type {
   SchemaContract,
   SchemaFieldDefinition,
   ContextRelationship,
+  ProjectionDefinition,
 } from '../ir/index.js';
 import { buildMomentSequence } from './moment-sequence.js';
 
@@ -103,18 +106,59 @@ export function astToIr(
   };
 }
 
+interface ContextMembers {
+  aggregates: AggregateDefinition[];
+  domainServices: DomainServiceDefinition[];
+  policies: PolicyDefinition[];
+  sagas: SagaDefinition[];
+  projections: ProjectionDefinition[];
+  commands: CommandDefinition[];
+  events: EventDefinition[];
+  valueObjects: ValueObjectDefinition[];
+  invariants: InvariantDefinition[];
+}
+
+function emptyContextMembers(): ContextMembers {
+  return {
+    aggregates: [],
+    domainServices: [],
+    policies: [],
+    sagas: [],
+    projections: [],
+    commands: [],
+    events: [],
+    valueObjects: [],
+    invariants: [],
+  };
+}
+
+/** Add one context member to the collected members. Relationships are read by extractRelationships. */
+function collectContextMember(
+  member: ContextDeclaration['members'][number],
+  annotations: AnnotationDefinition[] | undefined,
+  out: ContextMembers,
+): void {
+  if (isAggregateDeclaration(member)) {
+    const aggDef = transformAggregate(member, annotations);
+    out.aggregates.push(aggDef);
+    out.commands.push(...aggDef.commands);
+    out.events.push(...aggDef.events);
+    out.valueObjects.push(...aggDef.valueObjects);
+    out.invariants.push(...aggDef.invariants);
+  } else if (isDomainServiceDeclaration(member)) {
+    out.domainServices.push(transformService(member, annotations));
+  } else if (isPolicyDeclaration(member)) {
+    out.policies.push(transformPolicy(member, annotations));
+  } else if (isSagaDeclaration(member)) {
+    out.sagas.push(transformSaga(member, annotations));
+  } else if (isProjectionDeclaration(member)) {
+    out.projections.push(transformProjection(member));
+  }
+}
+
 function transformContext(ctx: ContextDeclaration): ContextDefinition {
   const name = unquote(ctx.name);
-  const aggregates: AggregateDefinition[] = [];
-  const domainServices: DomainServiceDefinition[] = [];
-  const policies: PolicyDefinition[] = [];
-  const sagas: SagaDefinition[] = [];
-
-  // Collect all top-level commands, events, value objects, invariants from aggregates
-  const allCommands: CommandDefinition[] = [];
-  const allEvents: EventDefinition[] = [];
-  const allValueObjects: ValueObjectDefinition[] = [];
-  const allInvariants: InvariantDefinition[] = [];
+  const members = emptyContextMembers();
 
   // Annotations classify the NEXT declaration in the member list (§5.1.4).
   let pendingAnnotations: AnnotationDefinition[] = [];
@@ -124,24 +168,12 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
       pendingAnnotations.push(transformAnnotation(member));
       continue;
     }
-    const annotations = pendingAnnotations.length > 0 ? pendingAnnotations : undefined;
+    collectContextMember(
+      member,
+      pendingAnnotations.length > 0 ? pendingAnnotations : undefined,
+      members,
+    );
     pendingAnnotations = [];
-
-    if (isAggregateDeclaration(member)) {
-      const aggDef = transformAggregate(member, annotations);
-      aggregates.push(aggDef);
-      allCommands.push(...aggDef.commands);
-      allEvents.push(...aggDef.events);
-      allValueObjects.push(...aggDef.valueObjects);
-      allInvariants.push(...aggDef.invariants);
-    } else if (isDomainServiceDeclaration(member)) {
-      domainServices.push(transformService(member, annotations));
-    } else if (isPolicyDeclaration(member)) {
-      policies.push(transformPolicy(member, annotations));
-    } else if (isSagaDeclaration(member)) {
-      sagas.push(transformSaga(member, annotations));
-    }
-    // ContextRelationshipDeclaration handled separately via extractRelationships
   }
 
   return {
@@ -154,14 +186,17 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
       | 'Terminal'
       | undefined,
     description: ctx.description ? unquote(ctx.description) : undefined,
-    aggregates,
-    domainServices,
-    commands: allCommands,
-    events: allEvents,
-    policies,
-    sagas,
-    valueObjects: allValueObjects,
-    invariants: allInvariants,
+    ...members,
+  };
+}
+
+function transformProjection(proj: ProjectionDeclaration): ProjectionDefinition {
+  return {
+    id: `proj-${proj.name}`,
+    name: proj.name,
+    sources: [...proj.sources],
+    ...(proj.description ? { description: unquote(proj.description) } : {}),
+    fields: proj.fields.map(transformFieldDeclaration),
   };
 }
 
