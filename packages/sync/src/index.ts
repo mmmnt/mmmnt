@@ -114,8 +114,8 @@ export {
   PUSH_FLOW_LOG,
 } from './infrastructure/index.js';
 export type { SyncLogs, SyncLogAppend } from './infrastructure/index.js';
-export { resolveRepoIdentity } from './infrastructure/index.js';
-export type { RepoIdentity } from './infrastructure/index.js';
+export { resolveRepoIdentity, commitPathsOnly } from './infrastructure/index.js';
+export type { RepoIdentity, CommitPathsInput } from './infrastructure/index.js';
 export {
   EnvCredentialStrategy,
   GhCliCredentialStrategy,

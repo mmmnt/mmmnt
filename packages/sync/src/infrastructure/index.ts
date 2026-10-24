@@ -33,8 +33,8 @@ export {
 } from './jsonl-sync-log-store.js';
 export type { SyncLogs, SyncLogAppend } from './jsonl-sync-log-store.js';
 
-export { resolveRepoIdentity } from './local-git-sync-committer.js';
-export type { RepoIdentity } from './local-git-sync-committer.js';
+export { resolveRepoIdentity, commitPathsOnly } from './local-git-sync-committer.js';
+export type { RepoIdentity, CommitPathsInput } from './local-git-sync-committer.js';
 
 export type {
   GitCredentials,
