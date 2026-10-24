@@ -33,6 +33,9 @@ export {
 } from './jsonl-sync-log-store.js';
 export type { SyncLogs, SyncLogAppend } from './jsonl-sync-log-store.js';
 
+export { resolveRepoIdentity } from './local-git-sync-committer.js';
+export type { RepoIdentity } from './local-git-sync-committer.js';
+
 export type {
   GitCredentials,
   CredentialStrategy,
