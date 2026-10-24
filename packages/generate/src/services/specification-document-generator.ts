@@ -475,7 +475,15 @@ export class SpecificationDocumentGenerator {
       lines.push('');
       for (const saga of ctx.sagas) {
         lines.push(`- **${saga.name}**: ${saga.states.join(' → ')}`);
-        lines.push(`  - Triggered by: ${saga.trigger}`);
+        lines.push(
+          saga.commands
+            ? `  - Invoked by: ${saga.trigger}${saga.startEvent ? ` (on ${saga.startEvent})` : ''}`
+            : `  - Triggered by: ${saga.trigger}`,
+        );
+        if (saga.issues && saga.issues.length > 0)
+          lines.push(
+            `  - Issues: ${saga.issues.map((i) => (i.external ? `${i.external}.${i.name}` : i.name)).join(', ')}`,
+          );
         lines.push(`  - Compensation: ${saga.compensation}`);
       }
       lines.push('');
@@ -831,7 +839,7 @@ export class SpecificationDocumentGenerator {
         const triggerStep = this.findSagaTriggerStep(saga, flow);
         if (triggerStep >= 1 && triggerStep <= step) {
           // Verify the trigger event is in the events we've seen
-          if (eventsUpTo.has(saga.trigger)) {
+          if (eventsUpTo.has(saga.startEvent ?? saga.trigger)) {
             return { saga, triggerStep };
           }
         }
@@ -844,7 +852,7 @@ export class SpecificationDocumentGenerator {
     for (let i = 0; i < flow.moments.length; i++) {
       const moment = flow.moments[i];
       const hasEvent = moment.contextEntries.some(
-        (e) => e.nodeKind === 'event' && e.nodeName === saga.trigger,
+        (e) => e.nodeKind === 'event' && e.nodeName === (saga.startEvent ?? saga.trigger),
       );
       if (hasEvent) return i + 1;
     }

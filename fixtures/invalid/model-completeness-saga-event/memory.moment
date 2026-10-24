@@ -1,7 +1,0 @@
-// Project-mode exemplar: V21 over the merge — a saga transition event that no file of the project declares.
-context "Memory" [Core]
-  saga RecallFlow
-    trigger DecisionMade
-    states Waiting -> Recalled on NeverHappens
-    compensation "nothing to compensate"
-    timeout "none"

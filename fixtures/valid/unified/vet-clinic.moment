@@ -179,11 +179,20 @@ context "Clinical" [Core]
   invariant CLN-03 "Treatment plan requires confirmed diagnosis"
     scope TreatmentPlan
 
-  saga VisitLifecycle
-    trigger PatientIntakeRegistered
+  orchestration VisitLifecycle
+    command OpenVisit
+      input visitId: UUID
+    command CancelVisit
+    invoked-by OpenVisit
+    issues CompleteTriage, CreateTreatmentPlan
     states Triaging -> Diagnosing -> Cataloging -> Treating -> Complete
-    compensation "Cancel visit and release appointment slot"
+    compensation on CancelVisit issues CreateDischargeRecord
     timeout visitTimeout
+
+  policy OpenVisitOnIntakeRegistered
+    trigger PatientIntakeRegistered
+    action "Open the visit the intake registered"
+    chains-to OpenVisit
 
   policy TriageOnIntakeRegistered
     trigger PatientIntakeRegistered

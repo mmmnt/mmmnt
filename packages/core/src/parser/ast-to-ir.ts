@@ -21,6 +21,10 @@ import type {
   ProjectionDeclaration,
   QueryDeclaration,
   RuleDeclaration,
+  GatewayDeclaration,
+  IssuedCommand,
+  OrchestrationCommand,
+  AggregateStateDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
@@ -71,8 +75,14 @@ import type {
   ProjectionDefinition,
   QueryDefinition,
   RuleDefinition,
+  GatewayDefinition,
+  AggregateStatesDefinition,
+  OrchestrationCommandDefinition,
+  IssuedCommandDefinition,
+  CompensationDefinition,
 } from '../ir/index.js';
 import { buildMomentSequence } from './moment-sequence.js';
+import { bindRelayEvents } from './relay-events.js';
 
 /**
  * Strip surrounding double-quotes from a Langium STRING token value.
@@ -96,7 +106,7 @@ export function astToIr(
   file: MomentFile,
   metadata?: Partial<SpecificationMetadata>,
 ): IntermediateRepresentation {
-  const contexts: ContextDefinition[] = file.contexts.map(transformContext);
+  const contexts: ContextDefinition[] = bindRelayEvents(file.contexts.map(transformContext));
   const nodeKindMap = buildNodeKindMap(contexts);
   const flows: FlowDefinition[] = file.flows.map((flow) => transformFlow(flow, nodeKindMap));
 
@@ -105,6 +115,7 @@ export function astToIr(
     id: `ext-${e.name}`,
     name: e.name,
     description: unquote(e.description),
+    ...gatewaysOf(e.gateways ?? []),
   }));
   const externalNames = new Set(externals.map((e) => e.name));
   const relationships: ContextRelationship[] = file.contexts.flatMap((ctx) =>
@@ -236,7 +247,22 @@ function transformProjection(proj: ProjectionDeclaration): ProjectionDefinition 
     sources: [...proj.sources],
     ...(proj.description ? { description: unquote(proj.description) } : {}),
     fields: proj.fields.map(transformFieldDeclaration),
+    ...gatewaysOf(proj.gateways),
   };
+}
+
+function transformGateway(gw: GatewayDeclaration): GatewayDefinition {
+  return {
+    id: `gw-${gw.name}`,
+    name: gw.name,
+    consumes: gw.consumes,
+    produces: gw.produces,
+    ...(gw.description ? { description: unquote(gw.description) } : {}),
+  };
+}
+
+function gatewaysOf(gateways: GatewayDeclaration[]): { gateways?: GatewayDefinition[] } {
+  return gateways.length > 0 ? { gateways: gateways.map(transformGateway) } : {};
 }
 
 function transformQuery(query: QueryDeclaration): QueryDefinition {
@@ -321,6 +347,22 @@ function transformAggregate(
     events,
     valueObjects,
     invariants,
+    ...statesOf(agg.states ?? []),
+  };
+}
+
+function statesOf(decls: AggregateStateDeclaration[]): { states?: AggregateStatesDefinition } {
+  return decls.length > 0 ? { states: transformStates(decls) } : {};
+}
+
+function transformStates(decls: AggregateStateDeclaration[]): AggregateStatesDefinition {
+  const initials = decls.filter((d) => d.initial).map((d) => d.name ?? '');
+  return {
+    ...(initials.length > 0 ? { initial: initials[0] } : {}),
+    initials,
+    transitions: decls
+      .filter((d) => !d.initial)
+      .map((d) => ({ from: d.from ?? '', to: d.to ?? '', command: d.command ?? '' })),
   };
 }
 
@@ -411,27 +453,52 @@ function transformService(
   };
 }
 
-function policyTrigger(pol: PolicyDeclaration): Pick<PolicyDefinition, 'trigger' | 'triggerKind'> {
-  if (pol.trigger.eventName) return { trigger: pol.trigger.eventName, triggerKind: 'event' };
-  if (pol.trigger.condition)
-    return { trigger: unquote(pol.trigger.condition), triggerKind: 'condition' };
-  return { trigger: 'file-watcher', triggerKind: 'file-watcher' };
-}
-
 function transformPolicy(
   pol: PolicyDeclaration,
   annotations?: AnnotationDefinition[],
 ): PolicyDefinition {
-  const { trigger, triggerKind } = policyTrigger(pol);
   return {
     id: `pol-${pol.name}`,
     name: pol.name,
     ...(annotations ? { annotations } : {}),
-    trigger,
-    triggerKind,
+    trigger: pol.trigger,
     action: unquote(pol.action),
-    chainsTo: pol.chainsTo ?? undefined,
+    chainsTo: pol.chainsTo,
+    ...gatewaysOf(pol.gateways),
   };
+}
+
+function transformIssued(cmd: IssuedCommand): IssuedCommandDefinition {
+  return cmd.operation ? { name: cmd.operation, external: cmd.target } : { name: cmd.target };
+}
+
+const issuedText = (cmd: IssuedCommandDefinition): string =>
+  cmd.external ? `${cmd.external}.${cmd.name}` : cmd.name;
+
+function transformOrchestrationCommand(cmd: OrchestrationCommand): OrchestrationCommandDefinition {
+  return {
+    id: `cmd-${cmd.name}`,
+    name: cmd.name,
+    inputs: cmd.inputs.map(transformFieldDeclaration),
+    preconditions: cmd.preconditions.map(transformPrecondition),
+    ...(cmd.emits ? { emitsEvent: cmd.emits } : {}),
+  };
+}
+
+function transformCompensation(
+  c: SagaDeclaration['compensations'][number],
+): CompensationDefinition {
+  return c.none
+    ? { none: true }
+    : { onCommand: c.command ?? '', issues: c.undo.map(transformIssued) };
+}
+
+/** The compensation lines as one text, for consumers that print a saga's compensation. */
+function compensationText(compensations: CompensationDefinition[]): string {
+  const lines = compensations.flatMap((c) =>
+    c.none ? [] : [`on ${c.onCommand} issues ${c.issues.map(issuedText).join(', ')}`],
+  );
+  return lines.length > 0 ? lines.join('; ') : 'none';
 }
 
 function transformSaga(
@@ -439,24 +506,29 @@ function transformSaga(
   annotations?: AnnotationDefinition[],
 ): SagaDefinition {
   const timeout = saga.timeout.duration ?? 'none';
-  // The grammar's state chain is `initialState (-> target (on event)?)*`.
-  // `states` keeps the historical flat list; `transitions` additionally
-  // carries the per-transition event mapping (M-S6).
+  // The grammar's state chain is `initialState (-> target (on command)?)*`.
+  // `states` keeps the historical flat list; `transitions` carries each step's command (M-S6).
   const states = [saga.initialState, ...saga.transitions.map((t) => t.target)];
   const transitions: SagaTransitionDefinition[] = saga.transitions.map((t, i) => ({
     from: states[i],
     to: t.target,
-    ...(t.event !== undefined ? { onEvent: t.event } : {}),
+    ...(t.command !== undefined ? { onCommand: t.command } : {}),
   }));
+  const compensations = saga.compensations.map(transformCompensation);
   return {
     id: `saga-${saga.name}`,
     name: saga.name,
     ...(annotations ? { annotations } : {}),
-    trigger: saga.trigger,
+    keyword: saga.keyword === 'saga' ? 'saga' : 'orchestration',
+    trigger: saga.invokedBy,
     states,
     transitions,
-    compensation: unquote(saga.compensation),
+    compensation: compensationText(compensations),
     timeout,
+    commands: saga.commands.map(transformOrchestrationCommand),
+    issues: saga.issues.map(transformIssued),
+    compensations,
+    ...gatewaysOf(saga.gateways),
   };
 }
 
@@ -478,11 +550,17 @@ function buildNodeKindMap(contexts: ContextDefinition[]): Map<string, MomentEntr
     for (const cmd of ctx.commands) map.set(cmd.name, 'command');
     for (const evt of ctx.events) map.set(evt.name, 'event');
     for (const policy of ctx.policies) map.set(policy.name, 'policy');
-    for (const saga of ctx.sagas) map.set(saga.name, 'saga');
+    for (const saga of ctx.sagas) setSagaKinds(map, saga);
     for (const projection of ctx.projections ?? []) map.set(projection.name, 'projection');
     for (const query of ctx.queries ?? []) map.set(query.name, 'query');
   }
   return map;
+}
+
+/** An orchestration is a `saga` node; the commands invoked on it are `command` nodes (ADR-038 §2). */
+function setSagaKinds(map: Map<string, MomentEntry['nodeKind']>, saga: SagaDefinition): void {
+  map.set(saga.name, 'saga');
+  for (const cmd of saga.commands ?? []) map.set(cmd.name, 'command');
 }
 
 /** Map every node name placed in the flow to the lane it is declared in. */

@@ -42,7 +42,7 @@
         "to": "Expired"
       }
     ],
-    "compensation": "Release held seats back to the pool and notify customer",
+    "compensation": "on ExpireHold issues ReleaseHold",
     "timeout": "holdExpiry",
     "reachability": {
       "allReachable": true,
@@ -100,7 +100,7 @@
         "to": "Expired"
       }
     ],
-    "compensation": "Return ticket ownership to original holder",
+    "compensation": "on RevertTransfer issues CancelTransfer",
     "timeout": "transferExpiry",
     "reachability": {
       "allReachable": true,

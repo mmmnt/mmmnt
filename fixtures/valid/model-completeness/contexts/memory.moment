@@ -1,16 +1,50 @@
 // ADR-037 corpus exemplar: a context whose events another file's projection reads.
+// ADR-038 exemplar: aggregate internal state, and an orchestration written with the `saga` alias that has nothing to undo.
 context "Memory" [Core]
   description "Authored records on streams"
 
   aggregate "Workspace"
     identity workspaceId: UUID
 
+    state initial Open
+    state Open -> Recalled on MarkRecalled
+    state Recalled -> Open on ClearRecall
+
     command RecordDecision
       input text: string
       emits DecisionMade
 
+    command MarkRecalled
+      input entryId: UUID
+      emits DecisionRecalled
+
+    command ClearRecall
+      input entryId: UUID
+      emits RecallCleared
+
+    command RejectRecall
+      input entryId: UUID
+      emits RecallRejected
+
     event DecisionMade
       entryId: UUID
       text: string
+
+    event DecisionRecalled
+      entryId: UUID
+
+    event RecallCleared
+      entryId: UUID
+
+    event RecallRejected
+      entryId: UUID
+
+  saga ArchiveFlow
+    command StartArchive
+    invoked-by StartArchive
+    issues RecordDecision
+    states Archiving
+    compensation none
+    timeout "none"
 
   term "Revision" "a stream's position after an append"

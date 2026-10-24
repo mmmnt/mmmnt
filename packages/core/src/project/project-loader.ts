@@ -23,6 +23,8 @@ import type { IntermediateRepresentation, Diagnostic, SpecificationMetadata } fr
 import { mergeIrs } from './ir-merger.js';
 import { validateCrossFileReferences } from './cross-file-validator.js';
 import { validateModelCompleteness } from '../validation/model-completeness.js';
+import { validatePaletteConformance } from '../validation/palette-conformance.js';
+import { bindRelayEvents } from '../parser/relay-events.js';
 
 export interface ProjectLoadResult {
   /** True if all files parsed successfully and cross-file validation passed. */
@@ -37,28 +39,8 @@ export interface ProjectLoadResult {
   readonly filesErrored: number;
 }
 
-const isCompletenessRule = (d: Diagnostic): boolean => /^V2[2-8]$/.test(d.ruleId ?? '');
-// Per-file V21 sees only its own file's events; the merged check below replaces it.
-const isPerFileSagaEventCheck = (d: Diagnostic): boolean => d.message.startsWith('V21:');
-
-/** V21 over the merge: a saga transition event is declared by some context or placed in some flow. */
-function sagaTransitionFindings(ir: IntermediateRepresentation): Diagnostic[] {
-  const known = new Set([
-    ...ir.contexts.flatMap((c) => c.events.map((e) => e.name)),
-    ...ir.flows.flatMap((f) => f.moments.flatMap((m) => m.contextEntries.map((e) => e.nodeName))),
-  ]);
-  return ir.contexts.flatMap((c) =>
-    c.sagas.flatMap((saga) =>
-      (saga.transitions ?? [])
-        .filter((t) => t.onEvent && !known.has(t.onEvent))
-        .map((t) => ({
-          severity: 'warning' as const,
-          ruleId: 'V21',
-          message: `V21: Saga '${saga.name}' transition event '${t.onEvent}' is declared by no context and placed in no flow of the project — possible typo.`,
-        })),
-    ),
-  );
-}
+// V22–V37 (ADR-037, ADR-038): advisories per file, errors over the merge.
+const isCompletenessRule = (d: Diagnostic): boolean => /^V(2[2-9]|3[0-7])$/.test(d.ruleId ?? '');
 
 export class ProjectLoader {
   private readonly parser: MomentParser;
@@ -99,15 +81,17 @@ export class ProjectLoader {
     }
 
     // Phase 2: Merge all successful IRs.
-    const mergeResult = mergeIrs(successfulIrs, metadataOverride);
+    const merged = mergeIrs(successfulIrs, metadataOverride);
+    const mergeResult = {
+      ...merged,
+      ir: { ...merged.ir, contexts: bindRelayEvents(merged.ir.contexts) },
+    };
     allDiagnostics.push(...mergeResult.diagnostics);
 
-    // Phase 3: Cross-file validation on the merged IR. V22–V28 (ADR-037) are advisories per file and
-    // errors over the merge, which supersedes them.
+    // Phase 3: Cross-file validation on the merged IR. V22–V37 are advisories per file and errors over
+    // the merge, which supersedes them.
     const validationResult = validateCrossFileReferences(mergeResult.ir);
-    const perFile = allDiagnostics.filter(
-      (d) => !isCompletenessRule(d) && !isPerFileSagaEventCheck(d),
-    );
+    const perFile = allDiagnostics.filter((d) => !isCompletenessRule(d));
     allDiagnostics.length = 0;
     allDiagnostics.push(
       ...perFile,
@@ -116,7 +100,10 @@ export class ProjectLoader {
         severity: 'error' as const,
         ...d,
       })),
-      ...sagaTransitionFindings(mergeResult.ir),
+      ...validatePaletteConformance(mergeResult.ir).map((d) => ({
+        severity: 'error' as const,
+        ...d,
+      })),
     );
 
     const hasErrors = allDiagnostics.some((d) => d.severity === 'error');

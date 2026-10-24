@@ -26,7 +26,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@2"
+                "$ref": "#/rules@3"
               },
               "arguments": []
             }
@@ -38,7 +38,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@25"
+                "$ref": "#/rules@29"
               },
               "arguments": []
             }
@@ -78,7 +78,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -90,10 +90,105 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "gateways",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@2"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
+          }
+        ]
+      },
+      "entry": false,
+      "fragment": false,
+      "parameters": []
+    },
+    {
+      "$type": "ParserRule",
+      "name": "GatewayDeclaration",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "gateway"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "consumes"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "consumes",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "produces"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "produces",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "description"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "description",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@53"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "?"
           }
         ]
       },
@@ -118,7 +213,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -130,7 +225,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@45"
+                "$ref": "#/rules@49"
               },
               "arguments": []
             },
@@ -150,7 +245,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@49"
+                    "$ref": "#/rules@53"
                   },
                   "arguments": []
                 }
@@ -165,7 +260,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@3"
+                "$ref": "#/rules@4"
               },
               "arguments": []
             },
@@ -186,21 +281,14 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@10"
+              "$ref": "#/rules@11"
             },
             "arguments": []
           },
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@18"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@19"
+              "$ref": "#/rules@20"
             },
             "arguments": []
           },
@@ -214,28 +302,21 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@24"
+              "$ref": "#/rules@22"
             },
             "arguments": []
           },
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@8"
+              "$ref": "#/rules@28"
             },
             "arguments": []
           },
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@4"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@7"
+              "$ref": "#/rules@9"
             },
             "arguments": []
           },
@@ -249,7 +330,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@16"
+              "$ref": "#/rules@8"
             },
             "arguments": []
           },
@@ -257,6 +338,20 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "$type": "RuleCall",
             "rule": {
               "$ref": "#/rules@6"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@18"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@7"
             },
             "arguments": []
           }
@@ -283,7 +378,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -299,7 +394,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -318,7 +413,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
@@ -340,7 +435,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@49"
+                    "$ref": "#/rules@53"
                   },
                   "arguments": []
                 }
@@ -362,12 +457,25 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@39"
+                    "$ref": "#/rules@43"
                   },
                   "arguments": []
                 }
               }
             ],
+            "cardinality": "*"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "gateways",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@2"
+              },
+              "arguments": []
+            },
             "cardinality": "*"
           }
         ]
@@ -393,7 +501,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -405,7 +513,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -424,7 +532,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
@@ -436,7 +544,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@49"
+                    "$ref": "#/rules@53"
                   },
                   "arguments": []
                 }
@@ -466,7 +574,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -478,7 +586,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -506,7 +614,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -522,7 +630,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -541,7 +649,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
@@ -563,7 +671,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@13"
+                    "$ref": "#/rules@15"
                   },
                   "arguments": []
                 }
@@ -582,7 +690,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                     "terminal": {
                       "$type": "RuleCall",
                       "rule": {
-                        "$ref": "#/rules@13"
+                        "$ref": "#/rules@15"
                       },
                       "arguments": []
                     }
@@ -607,7 +715,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@49"
+                    "$ref": "#/rules@53"
                   },
                   "arguments": []
                 }
@@ -638,7 +746,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -654,7 +762,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@9"
+                "$ref": "#/rules@10"
               },
               "arguments": []
             }
@@ -679,14 +787,14 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@48"
+              "$ref": "#/rules@52"
             },
             "arguments": []
           },
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@49"
+              "$ref": "#/rules@53"
             },
             "arguments": []
           }
@@ -713,7 +821,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -729,10 +837,23 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@39"
+                "$ref": "#/rules@43"
               },
               "arguments": []
             }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "states",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@13"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
           },
           {
             "$type": "Assignment",
@@ -741,7 +862,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@11"
+                "$ref": "#/rules@12"
               },
               "arguments": []
             },
@@ -762,21 +883,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@12"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@15"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@16"
+              "$ref": "#/rules@14"
             },
             "arguments": []
           },
@@ -790,9 +897,119 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@8"
+              "$ref": "#/rules@18"
             },
             "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@19"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@9"
+            },
+            "arguments": []
+          }
+        ]
+      },
+      "entry": false,
+      "fragment": false,
+      "parameters": []
+    },
+    {
+      "$type": "ParserRule",
+      "name": "AggregateStateDeclaration",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "state"
+          },
+          {
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Assignment",
+                    "feature": "initial",
+                    "operator": "?=",
+                    "terminal": {
+                      "$type": "Keyword",
+                      "value": "initial"
+                    }
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "name",
+                    "operator": "=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@52"
+                      },
+                      "arguments": []
+                    }
+                  }
+                ]
+              },
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Assignment",
+                    "feature": "from",
+                    "operator": "=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@52"
+                      },
+                      "arguments": []
+                    }
+                  },
+                  {
+                    "$type": "Keyword",
+                    "value": "->"
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "to",
+                    "operator": "=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@52"
+                      },
+                      "arguments": []
+                    }
+                  },
+                  {
+                    "$type": "Keyword",
+                    "value": "on"
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "command",
+                    "operator": "=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@52"
+                      },
+                      "arguments": []
+                    }
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -817,7 +1034,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -836,7 +1053,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@13"
+                    "$ref": "#/rules@15"
                   },
                   "arguments": []
                 }
@@ -855,7 +1072,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                     "terminal": {
                       "$type": "RuleCall",
                       "rule": {
-                        "$ref": "#/rules@13"
+                        "$ref": "#/rules@15"
                       },
                       "arguments": []
                     }
@@ -873,7 +1090,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@14"
+                "$ref": "#/rules@16"
               },
               "arguments": []
             },
@@ -890,7 +1107,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -914,7 +1131,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@41"
+                "$ref": "#/rules@45"
               },
               "arguments": []
             }
@@ -930,7 +1147,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@43"
+                "$ref": "#/rules@47"
               },
               "arguments": []
             }
@@ -942,7 +1159,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@40"
+                "$ref": "#/rules@44"
               },
               "arguments": []
             },
@@ -971,7 +1188,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -987,7 +1204,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1015,7 +1232,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1027,7 +1244,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@39"
+                "$ref": "#/rules@43"
               },
               "arguments": []
             },
@@ -1056,7 +1273,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1068,7 +1285,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@39"
+                "$ref": "#/rules@43"
               },
               "arguments": []
             },
@@ -1097,7 +1314,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1109,7 +1326,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1125,7 +1342,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1153,7 +1370,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1169,7 +1386,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1185,7 +1402,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1201,7 +1418,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1229,7 +1446,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1245,7 +1462,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@20"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1261,7 +1478,123 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "chains-to"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "chainsTo",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "gateways",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@2"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
+          }
+        ]
+      },
+      "entry": false,
+      "fragment": false,
+      "parameters": []
+    },
+    {
+      "$type": "ParserRule",
+      "name": "SagaDeclaration",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Assignment",
+            "feature": "keyword",
+            "operator": "=",
+            "terminal": {
+              "$type": "Alternatives",
+              "elements": [
+                {
+                  "$type": "Keyword",
+                  "value": "orchestration"
+                },
+                {
+                  "$type": "Keyword",
+                  "value": "saga"
+                }
+              ]
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "commands",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@23"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
+          },
+          {
+            "$type": "Keyword",
+            "value": "invoked-by"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "invokedBy",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "issues"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "issues",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@24"
               },
               "arguments": []
             }
@@ -1271,16 +1604,194 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "elements": [
               {
                 "$type": "Keyword",
-                "value": "chains-to"
+                "value": ","
               },
               {
                 "$type": "Assignment",
-                "feature": "chainsTo",
+                "feature": "issues",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@24"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          },
+          {
+            "$type": "Keyword",
+            "value": "states"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "initialState",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "transitions",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@25"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "compensations",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@26"
+              },
+              "arguments": []
+            },
+            "cardinality": "+"
+          },
+          {
+            "$type": "Keyword",
+            "value": "timeout"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "timeout",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@27"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "gateways",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@2"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
+          }
+        ]
+      },
+      "entry": false,
+      "fragment": false,
+      "parameters": []
+    },
+    {
+      "$type": "ParserRule",
+      "name": "OrchestrationCommand",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "command"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@52"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "input"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "inputs",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@15"
+                  },
+                  "arguments": []
+                }
+              },
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Keyword",
+                    "value": ","
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "inputs",
+                    "operator": "+=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@15"
+                      },
+                      "arguments": []
+                    }
+                  }
+                ],
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "preconditions",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@16"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "emits"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "emits",
                 "operator": "=",
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
@@ -1296,29 +1807,20 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
     },
     {
       "$type": "ParserRule",
-      "name": "PolicyTrigger",
+      "name": "IssuedCommand",
       "definition": {
-        "$type": "Alternatives",
+        "$type": "Group",
         "elements": [
           {
             "$type": "Assignment",
-            "feature": "eventName",
+            "feature": "target",
             "operator": "=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
-            }
-          },
-          {
-            "$type": "Assignment",
-            "feature": "fileWatcher",
-            "operator": "=",
-            "terminal": {
-              "$type": "Keyword",
-              "value": "\\"file-watcher\\""
             }
           },
           {
@@ -1326,126 +1828,22 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "elements": [
               {
                 "$type": "Keyword",
-                "value": "condition"
+                "value": "."
               },
               {
                 "$type": "Assignment",
-                "feature": "condition",
+                "feature": "operation",
                 "operator": "=",
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@49"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
               }
-            ]
-          }
-        ]
-      },
-      "entry": false,
-      "fragment": false,
-      "parameters": []
-    },
-    {
-      "$type": "ParserRule",
-      "name": "SagaDeclaration",
-      "definition": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "Keyword",
-            "value": "saga"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "name",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@48"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Keyword",
-            "value": "trigger"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "trigger",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@48"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Keyword",
-            "value": "states"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "initialState",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@48"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Assignment",
-            "feature": "transitions",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@22"
-              },
-              "arguments": []
-            },
-            "cardinality": "*"
-          },
-          {
-            "$type": "Keyword",
-            "value": "compensation"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "compensation",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@49"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Keyword",
-            "value": "timeout"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "timeout",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@23"
-              },
-              "arguments": []
-            }
+            ],
+            "cardinality": "?"
           }
         ]
       },
@@ -1470,7 +1868,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1484,18 +1882,107 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
               },
               {
                 "$type": "Assignment",
-                "feature": "event",
+                "feature": "command",
                 "operator": "=",
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
               }
             ],
             "cardinality": "?"
+          }
+        ]
+      },
+      "entry": false,
+      "fragment": false,
+      "parameters": []
+    },
+    {
+      "$type": "ParserRule",
+      "name": "Compensation",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "compensation"
+          },
+          {
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "none",
+                "operator": "?=",
+                "terminal": {
+                  "$type": "Keyword",
+                  "value": "none"
+                }
+              },
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Keyword",
+                    "value": "on"
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "command",
+                    "operator": "=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@52"
+                      },
+                      "arguments": []
+                    }
+                  },
+                  {
+                    "$type": "Keyword",
+                    "value": "issues"
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "undo",
+                    "operator": "+=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@24"
+                      },
+                      "arguments": []
+                    }
+                  },
+                  {
+                    "$type": "Group",
+                    "elements": [
+                      {
+                        "$type": "Keyword",
+                        "value": ","
+                      },
+                      {
+                        "$type": "Assignment",
+                        "feature": "undo",
+                        "operator": "+=",
+                        "terminal": {
+                          "$type": "RuleCall",
+                          "rule": {
+                            "$ref": "#/rules@24"
+                          },
+                          "arguments": []
+                        }
+                      }
+                    ],
+                    "cardinality": "*"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -1516,7 +2003,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1553,7 +2040,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1569,7 +2056,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1585,7 +2072,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@47"
+                "$ref": "#/rules@51"
               },
               "arguments": []
             }
@@ -1601,7 +2088,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1629,7 +2116,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1648,7 +2135,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@49"
+                    "$ref": "#/rules@53"
                   },
                   "arguments": []
                 }
@@ -1663,7 +2150,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@26"
+                "$ref": "#/rules@30"
               },
               "arguments": []
             },
@@ -1676,7 +2163,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@27"
+                "$ref": "#/rules@31"
               },
               "arguments": []
             },
@@ -1719,7 +2206,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1731,7 +2218,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1743,7 +2230,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@45"
+                "$ref": "#/rules@49"
               },
               "arguments": []
             },
@@ -1772,7 +2259,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -1797,7 +2284,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@29"
+                    "$ref": "#/rules@33"
                   },
                   "arguments": []
                 }
@@ -1809,7 +2296,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@28"
+                    "$ref": "#/rules@32"
                   },
                   "arguments": []
                 }
@@ -1840,7 +2327,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1859,7 +2346,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
@@ -1878,7 +2365,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@29"
+                "$ref": "#/rules@33"
               },
               "arguments": []
             },
@@ -1903,7 +2390,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1919,7 +2406,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -1927,32 +2414,6 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Assignment",
             "feature": "multiplicity",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@30"
-              },
-              "arguments": []
-            },
-            "cardinality": "?"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "modifier",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@31"
-              },
-              "arguments": []
-            },
-            "cardinality": "?"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "crossing",
             "operator": "=",
             "terminal": {
               "$type": "RuleCall",
@@ -1965,12 +2426,38 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           },
           {
             "$type": "Assignment",
+            "feature": "modifier",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@35"
+              },
+              "arguments": []
+            },
+            "cardinality": "?"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "crossing",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@38"
+              },
+              "arguments": []
+            },
+            "cardinality": "?"
+          },
+          {
+            "$type": "Assignment",
             "feature": "connections",
             "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@33"
+                "$ref": "#/rules@37"
               },
               "arguments": []
             },
@@ -2006,7 +2493,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@50"
+                    "$ref": "#/rules@54"
                   },
                   "arguments": []
                 }
@@ -2018,7 +2505,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$ref": "#/rules@48"
+                    "$ref": "#/rules@52"
                   },
                   "arguments": []
                 }
@@ -2052,7 +2539,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@32"
+                "$ref": "#/rules@36"
               },
               "arguments": []
             }
@@ -2097,21 +2584,21 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@36"
+              "$ref": "#/rules@40"
             },
             "arguments": []
           },
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@37"
+              "$ref": "#/rules@41"
             },
             "arguments": []
           },
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@38"
+              "$ref": "#/rules@42"
             },
             "arguments": []
           }
@@ -2138,7 +2625,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -2154,7 +2641,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@47"
+                "$ref": "#/rules@51"
               },
               "arguments": []
             }
@@ -2170,7 +2657,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@35"
+                "$ref": "#/rules@39"
               },
               "arguments": []
             },
@@ -2195,7 +2682,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -2211,7 +2698,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@43"
+                "$ref": "#/rules@47"
               },
               "arguments": []
             }
@@ -2249,7 +2736,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -2277,7 +2764,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@48"
+                "$ref": "#/rules@52"
               },
               "arguments": []
             }
@@ -2305,7 +2792,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -2329,7 +2816,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@42"
+                "$ref": "#/rules@46"
               },
               "arguments": []
             }
@@ -2345,7 +2832,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@43"
+                "$ref": "#/rules@47"
               },
               "arguments": []
             }
@@ -2357,7 +2844,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@40"
+                "$ref": "#/rules@44"
               },
               "arguments": []
             },
@@ -2390,7 +2877,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -2406,7 +2893,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@49"
+                "$ref": "#/rules@53"
               },
               "arguments": []
             }
@@ -2431,7 +2918,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@42"
+              "$ref": "#/rules@46"
             },
             "arguments": []
           },
@@ -2467,7 +2954,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@48"
+              "$ref": "#/rules@52"
             },
             "arguments": []
           },
@@ -2489,7 +2976,27 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           },
           {
             "$type": "Keyword",
-            "value": "condition"
+            "value": "state"
+          },
+          {
+            "$type": "Keyword",
+            "value": "initial"
+          },
+          {
+            "$type": "Keyword",
+            "value": "issues"
+          },
+          {
+            "$type": "Keyword",
+            "value": "gateway"
+          },
+          {
+            "$type": "Keyword",
+            "value": "none"
+          },
+          {
+            "$type": "Keyword",
+            "value": "invoked-by"
           }
         ]
       },
@@ -2510,7 +3017,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@44"
+                "$ref": "#/rules@48"
               },
               "arguments": []
             }
@@ -2569,7 +3076,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@48"
+              "$ref": "#/rules@52"
             },
             "arguments": []
           }
@@ -2596,7 +3103,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@46"
+                "$ref": "#/rules@50"
               },
               "arguments": []
             }
@@ -2682,7 +3189,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@48"
+              "$ref": "#/rules@52"
             },
             "arguments": []
           }

@@ -30,10 +30,16 @@ describe('impact analysis with ADR-037 constructs', () => {
     });
   });
 
-  it('gives a condition-triggered policy no event to depend on', () => {
+  it('makes an orchestration depend on the command that invokes it and trigger the commands it issues (ADR-038 §2)', () => {
     const nodes = generateImpactAnalysis(ir).nodes;
 
-    expect(nodes.find((n) => n.name === 'ReEncodeOnEncoderChange')?.dependsOn).toEqual([]);
-    expect(nodes.some((n) => n.name.startsWith("the archive's encoder"))).toBe(false);
+    expect(nodes.find((n) => n.name === 'RecallFlow')).toMatchObject({
+      type: 'saga',
+      dependsOn: ['command:Retrieval:StartRecall'],
+      triggers: ['command:Memory:MarkRecalled', 'command:Memory:ClearRecall'],
+    });
+    expect(nodes.find((n) => n.name === 'RecallOnDecisionMade')?.triggers).toEqual([
+      'command:Retrieval:StartRecall',
+    ]);
   });
 });

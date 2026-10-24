@@ -23,6 +23,11 @@ export type {
   ProjectionDefinition,
   QueryDefinition,
   RuleDefinition,
+  GatewayDefinition,
+  AggregateStatesDefinition,
+  OrchestrationCommandDefinition,
+  IssuedCommandDefinition,
+  CompensationDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';

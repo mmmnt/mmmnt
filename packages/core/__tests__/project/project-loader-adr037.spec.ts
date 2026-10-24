@@ -112,22 +112,29 @@ describe('ProjectLoader resolves flow node names across files (PM-07)', () => {
   });
 });
 
-describe('ProjectLoader checks saga transition events across files (V21)', () => {
-  it('keeps no per-file V21 warning for an event another file declares', async () => {
+describe('ADR-038 invalid corpus exemplars, one per rule', () => {
+  it.each(['V29', 'V30', 'V31', 'V32', 'V33', 'V34', 'V35', 'V36', 'V37'])(
+    '%s fails its exemplar project with that rule, and warns for the file alone',
+    async (rule) => {
+      const file = resolve(FIXTURES, `invalid/palette-${rule.toLowerCase()}/memory.moment`);
+      const project = await new ProjectLoader().loadProject([file]);
+      const single = await new MomentParser().parseContent(readFileSync(file, 'utf-8'), file);
+      const palette = (d: { ruleId?: string }): boolean => /^V(29|3[0-7])$/.test(d.ruleId ?? '');
+
+      expect(project.success).toBe(false);
+      expect(project.diagnostics.filter(palette).map((d) => [d.severity, d.ruleId])).toEqual([
+        ['error', rule],
+      ]);
+      expect(single.success).toBe(true);
+      expect(single.diagnostics.filter(palette).map((d) => [d.severity, d.ruleId])).toEqual([
+        ['warning', rule],
+      ]);
+    },
+  );
+
+  it('loads the ADR-038 exemplar project with no V29–V37 finding', async () => {
     const result = await new ProjectLoader().loadProject(project);
 
-    expect(result.diagnostics.filter((d) => d.message.startsWith('V21:'))).toEqual([]);
-  });
-});
-
-describe('ProjectLoader still warns about a saga event the whole project lacks (V21)', () => {
-  it('warns once for a transition event no file declares', async () => {
-    const result = await new ProjectLoader().loadProject([
-      resolve(FIXTURES, 'invalid/model-completeness-saga-event/memory.moment'),
-    ]);
-
-    expect(result.diagnostics.filter((d) => d.ruleId === 'V21').map((d) => d.message)).toEqual([
-      "V21: Saga 'RecallFlow' transition event 'NeverHappens' is declared by no context and placed in no flow of the project — possible typo.",
-    ]);
+    expect(result.diagnostics.filter((d) => /^V(29|3[0-7])$/.test(d.ruleId ?? ''))).toEqual([]);
   });
 });

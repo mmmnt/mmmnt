@@ -1,5 +1,12 @@
 // ADR-037 corpus exemplar: every construct the ADR adds, resolving across files.
+// ADR-038 exemplar: a policy is one event and one command; an orchestration is invoked by its own command,
+// issues aggregate and external commands, advances on relay policies and compensates with a named command;
+// gateways sit on an external, a projection, a policy and an orchestration.
 external HostedService "An upstream system publishing the shared envelope schema"
+  gateway ReadEnvelope
+    consumes DecisionMade
+    produces TokenBudget
+    description "per envelope: the budget it carries"
 
 context "Retrieval" [Core]
   description "Query-driven reads over memory"
@@ -11,6 +18,9 @@ context "Retrieval" [Core]
     sources DecisionMade
     description "The shape of a retrieval's result"
     field entryId: UUID
+    gateway RankEntries
+      consumes DecisionMade
+      produces TokenBudget
 
   query QueryContext
     reads TrajectoryResult
@@ -28,9 +38,23 @@ context "Retrieval" [Core]
     produces TokenBudget
     description "Fit candidates to the token budget"
 
-  policy ReEncodeOnEncoderChange
-    trigger condition "the archive's encoder differs from the running encoder"
-    action "re-encode during the rebuild"
+  policy RecallOnDecisionMade
+    trigger DecisionMade
+    action "recall what the decision touches"
+    chains-to StartRecall
+    gateway BudgetForDecision
+      consumes DecisionMade
+      produces TokenBudget
+
+  policy FinishRecallOnDecisionRecalled
+    trigger DecisionRecalled
+    action "the decision is recalled"
+    chains-to FinishRecall
+
+  policy AbortRecallOnRecallRejected
+    trigger RecallRejected
+    action "the recall was rejected; undo it"
+    chains-to AbortRecall
 
   relationship HostedService -> Retrieval
     type PublishedLanguage
@@ -38,8 +62,16 @@ context "Retrieval" [Core]
 
   term "Budget" "the tokens a retrieval may fill"
 
-  saga RecallFlow
-    trigger DecisionMade
-    states Waiting -> Recalled on DecisionMade
-    compensation "nothing to compensate"
+  orchestration RecallFlow
+    command StartRecall
+      input entryId: UUID
+    command FinishRecall
+    command AbortRecall
+    invoked-by StartRecall
+    issues MarkRecalled, HostedService.memoryImport
+    states Waiting -> Recalled on FinishRecall
+    compensation on AbortRecall issues ClearRecall
     timeout "none"
+    gateway RecallBudget
+      consumes DecisionRecalled
+      produces TokenBudget

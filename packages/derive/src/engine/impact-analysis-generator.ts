@@ -131,6 +131,7 @@ function findDeclaringContextForCommand(
 ): ContextDefinition | undefined {
   for (const ctx of ir.contexts) {
     if (ctx.commands.some((c) => c.name === commandName)) return ctx;
+    if (ctx.sagas.some((s) => (s.commands ?? []).some((c) => c.name === commandName))) return ctx;
     for (const agg of ctx.aggregates) {
       if (agg.commands.some((c) => c.name === commandName)) return ctx;
     }
@@ -175,9 +176,8 @@ function addPolicyNodes(
   for (const policy of context.policies) {
     const policyNode = getOrCreate(nodeMap, 'policy', policy.name, context.name);
 
-    // Policy triggered by an event — resolved to the event's declaring context. A condition (ADR-037 §7)
-    // is prose, not an event, so it adds no edge.
-    if (policy.trigger && policy.triggerKind !== 'condition') {
+    // Policy triggered by an event — resolved to the event's declaring context
+    if (policy.trigger) {
       const evtCtxName = (findDeclaringContextForEvent(policy.trigger, ir) ?? context).name;
       const evtNode = getOrCreate(nodeMap, 'event', policy.trigger, evtCtxName);
       policyNode.dependsOn.push(nodeKey('event', policy.trigger, evtCtxName));
@@ -202,11 +202,22 @@ function addSagaNodes(
   for (const saga of context.sagas) {
     const sagaNode = getOrCreate(nodeMap, 'saga', saga.name, context.name);
 
+    // An orchestration is invoked by one of its own commands and issues aggregate commands, compensations
+    // included (ADR-038 §2). External operations are not nodes of this graph.
     if (saga.trigger) {
-      const evtCtxName = (findDeclaringContextForEvent(saga.trigger, ir) ?? context).name;
-      const evtNode = getOrCreate(nodeMap, 'event', saga.trigger, evtCtxName);
-      sagaNode.dependsOn.push(nodeKey('event', saga.trigger, evtCtxName));
-      evtNode.triggers.push(nodeKey('saga', saga.name, context.name));
+      const cmdNode = getOrCreate(nodeMap, 'command', saga.trigger, context.name);
+      sagaNode.dependsOn.push(nodeKey('command', saga.trigger, context.name));
+      cmdNode.triggers.push(nodeKey('saga', saga.name, context.name));
+    }
+    const issued = [
+      ...(saga.issues ?? []),
+      ...(saga.compensations ?? []).flatMap((c) => (c.none ? [] : c.issues)),
+    ].filter((c) => c.external === undefined);
+    for (const name of new Set(issued.map((c) => c.name))) {
+      const cmdCtxName = (findDeclaringContextForCommand(name, ir) ?? context).name;
+      const cmdNode = getOrCreate(nodeMap, 'command', name, cmdCtxName);
+      sagaNode.triggers.push(nodeKey('command', name, cmdCtxName));
+      cmdNode.dependsOn.push(nodeKey('saga', saga.name, context.name));
     }
   }
 }

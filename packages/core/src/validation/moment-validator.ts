@@ -157,7 +157,6 @@ export function registerMomentValidationChecks(
     AnnotationDeclaration: validator.checkAnnotationName,
     ContextDeclaration: validator.checkTrailingAnnotation,
     AggregateDeclaration: validator.checkTrailingAnnotation,
-    SagaDeclaration: validator.checkSagaTransitionEvents,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
@@ -488,63 +487,6 @@ export class MomentValidator {
         { node: conn, property: 'nodeName' },
       );
     }
-  }
-
-  // =========================================================================
-  // V21: saga transition event unknown -> warning (M-S6)
-  // A `-> Target on Event` mapping whose event is neither declared by any
-  // context in the file nor placed in any flow is probably a typo. Guarded
-  // like the other cross-file checks: only meaningful when the file declares
-  // contexts (sagas always live inside one); an `on` event that only appears
-  // as a flow node placement is accepted, so mixed/flow-heavy specs that
-  // never re-declare events in contexts do not warn.
-  // =========================================================================
-  checkSagaTransitionEvents(saga: SagaDeclaration, accept: ValidationAcceptor): void {
-    const file = getMomentFileFromNode(saga);
-    if (!file || file.contexts.length === 0) return;
-
-    const knownEvents = this.collectDeclaredEventNames(file);
-    const placedNodeNames = this.collectPlacedNodeNames(file);
-
-    for (const transition of saga.transitions) {
-      const event = transition.event;
-      if (event === undefined) continue;
-      if (!knownEvents.has(event) && !placedNodeNames.has(event)) {
-        accept(
-          'warning',
-          `V21: Saga transition event '${event}' is not declared by any context in this file and is not placed in any flow — possible typo.`,
-          { node: transition, property: 'event' },
-        );
-      }
-    }
-  }
-
-  /** Event names declared by any aggregate in any context of the file. */
-  private collectDeclaredEventNames(file: MomentFile): Set<string> {
-    const names = new Set<string>();
-    for (const ctx of file.contexts) {
-      for (const member of ctx.members) {
-        if (!isAggregateDeclaration(member)) continue;
-        for (const aggMember of member.members) {
-          if (isDomainEventDeclaration(aggMember)) names.add(aggMember.name);
-        }
-      }
-    }
-    return names;
-  }
-
-  /** Node names placed anywhere in the file's flows (main lists and when blocks). */
-  private collectPlacedNodeNames(file: MomentFile): Set<string> {
-    const names = new Set<string>();
-    for (const flow of file.flows) {
-      for (const moment of flow.moments) {
-        for (const node of moment.nodes) names.add(node.nodeName);
-        for (const wb of moment.whenBlocks) {
-          for (const node of wb.nodes) names.add(node.nodeName);
-        }
-      }
-    }
-    return names;
   }
 
   // =========================================================================

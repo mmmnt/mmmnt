@@ -1,0 +1,16 @@
+// ADR-038 invalid exemplar: V35 — an orchestration that compensates on a command that is not its own.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  orchestration Recall
+    command StartRecall
+    invoked-by StartRecall
+    issues RecordDecision
+    states Recalling
+    compensation on RecordDecision issues RecordDecision
+    timeout "none"
