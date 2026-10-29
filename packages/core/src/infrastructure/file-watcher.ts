@@ -1,4 +1,5 @@
 import chokidar, { type FSWatcher } from 'chokidar';
+import type { Stats } from 'node:fs';
 import { resolve } from 'node:path';
 import type { WatchConfiguration } from '../ir/index.js';
 
@@ -6,6 +7,21 @@ export interface FileWatcherOptions {
   config: WatchConfiguration;
   rootDir: string;
   onFileChange: (filePath: string) => void;
+}
+
+const WATCHED_EXTENSIONS = ['.moment', '.yaml', '.yml'];
+
+const isWatchedFile = (path: string): boolean =>
+  WATCHED_EXTENSIONS.some((ext) => path.endsWith(ext));
+
+/**
+ * Chokidar's `ignored` predicate. Only files with another extension are ignored; directories are
+ * always walked. Chokidar may call this before it has stats, so a path without stats is kept and
+ * the change handler filters by extension. (Treating every dot-less path as ignorable skipped any
+ * watched directory such as `model/` whose absolute path happened to contain no dot.)
+ */
+export function isIgnored(path: string, stats?: Stats): boolean {
+  return stats?.isFile() === true && !isWatchedFile(path);
 }
 
 export class FileWatcher {
@@ -22,11 +38,7 @@ export class FileWatcher {
 
     const paths = this.options.config.paths.map((p) => resolve(this.options.rootDir, p));
     this.watcher = chokidar.watch(paths, {
-      ignored: (path) =>
-        !path.endsWith('.moment') &&
-        !path.endsWith('.yaml') &&
-        !path.endsWith('.yml') &&
-        !path.includes('.'),
+      ignored: isIgnored,
       persistent: true,
       ignoreInitial: true,
     });
@@ -35,12 +47,7 @@ export class FileWatcher {
     const pendingChanges = new Set<string>();
 
     const handler = (filePath: string) => {
-      if (
-        !filePath.endsWith('.moment') &&
-        !filePath.endsWith('.yaml') &&
-        !filePath.endsWith('.yml')
-      )
-        return;
+      if (!isWatchedFile(filePath)) return;
       pendingChanges.add(filePath);
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {

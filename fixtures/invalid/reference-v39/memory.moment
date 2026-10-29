@@ -1,0 +1,15 @@
+// Invalid exemplar: V39 — a node triggers a node that is placed nowhere in the flow.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+flow "record"
+  lane memory "Memory" [Core]
+  moment "A decision is recorded"
+    memory: RecordDecision
+      triggers ArchiveDecision
+    memory: DecisionMade

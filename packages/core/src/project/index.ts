@@ -4,3 +4,9 @@ export { mergeIrs } from './ir-merger.js';
 export type { MergeResult } from './ir-merger.js';
 export { validateCrossFileReferences } from './cross-file-validator.js';
 export type { CrossFileValidationResult } from './cross-file-validator.js';
+export {
+  loadSpecification,
+  specificationFiles,
+  isDirectory,
+  type LoadedSpecification,
+} from './load-specification.js';

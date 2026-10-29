@@ -88,7 +88,7 @@ node packages/mcp/dist/mcp.mjs
 
 ## Tools
 
-Tools marked **(Read)** carry the MCP `readOnlyHint` annotation. Tools that take a `filePath` read a single `.moment` file; a model directory (project mode) is not supported here -- use `@mmmnt/cli` for that. Diagnostics from a single file include the V22–V37 model rules as warnings (see [@mmmnt/core](../core/README.md#validation-rules)).
+Tools marked **(Read)** carry the MCP `readOnlyHint` annotation. Tools that take a `filePath` accept a single `.moment` file or a model directory, which is loaded as one project exactly as `@mmmnt/cli` loads it (`.domain/` is then read from that directory). Diagnostics carry their `ruleId` and source; the V22–V39 model rules are warnings for a single file and errors over a project (see [@mmmnt/core](../core/README.md#validation-rules)).
 
 ### `moment_validate` (Read)
 
