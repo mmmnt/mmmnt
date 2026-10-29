@@ -1,5 +1,48 @@
 # @mmmnt/core
 
+## 0.6.0
+
+### Minor Changes
+
+- [#181](https://github.com/mmmnt/mmmnt/pull/181) [`e5b7fc1`](https://github.com/mmmnt/mmmnt/commit/e5b7fc194063043441f19c1ebbfa393f8112b52f) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Grammar completeness, palette conformance, project mode and sync (ADR-037, ADR-038, ADR-039).
+
+  **Grammar (ADR-037).** Projections with sources, description and fields; query declarations; context-level rules with a declared or external enforcer; value objects at the context level; per-context glossary terms; external systems as relationship ends and External lanes. Flow nodes resolve to projection and query kinds. Code generation emits read-model types for value objects, projections and queries; the specification document renders projections, queries, rules, terms and externals; the context map draws externals.
+
+  **Palette conformance and project mode (ADR-038).** The grammar is held to the NDD palette: a policy is one domain event and one command; `orchestration` is the palette's saga (`saga` remains an alias), invoked by one of its own commands, issuing aggregate commands and `<External>.<operation>`, and compensating with named commands or `compensation none`; aggregates may declare internal `state`; projections, policies, orchestrations and externals may declare gateways. Completeness rules V22–V28 and palette rules V29–V37 check a model; V21 is retired (V34 covers it). Every read-only command, `serve --project`, and `reconcile` accept a model directory and load it as one merged project; project mode checks node placement, saga transitions and external lanes across files.
+
+  **Sync (ADR-039).** `sync propose` persists drift proposals in `.domain/`; `sync accept` and `sync reject` decide them with the deciding identity from git, record feedback in an append-only journal, and commit exactly the paths they name.
+
+  **Breaking for existing models.**
+  - `chains-to` is now required on every policy, and the `condition` and `"file-watcher"` policy triggers are removed: a model using them no longer parses.
+  - V22–V37 are warnings for a single file and errors over a merged project, so `moment parse <dir>` can fail on a model that previously passed.
+
+  Run `moment parse <dir>` after upgrading.
+
+- [#181](https://github.com/mmmnt/mmmnt/pull/181) [`e5b7fc1`](https://github.com/mmmnt/mmmnt/commit/e5b7fc194063043441f19c1ebbfa393f8112b52f) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Upgrade Langium to 4.4.0 and require Node 22.
+
+  Langium 4.2.1 pinned chevrotain ~11.1.1, which pinned `lodash-es` to exactly 4.17.23, a version with a high-severity advisory (patched from 4.17.24); every consumer of `@mmmnt/cli` installed it and could not override it. Langium 4.4.0 uses chevrotain 13.2, which no longer depends on `lodash-es`, and chevrotain-allstar 0.5, which requires `lodash-es` ^4.18.1.
+
+  **Breaking: Node 20 is no longer supported.** Every Langium release free of the vulnerable pin depends on chevrotain 12 or 13, which require Node 22. Node 20 reached end-of-life on April 30, 2026. All packages now declare `node >=22`, and CI tests on Node 22 and 24.
+
+  Diagnostic messages that LSP 3.18 may now deliver as MarkupContent are reduced to their text, so the IR's `Diagnostic.message` stays a string.
+
+- [#184](https://github.com/mmmnt/mmmnt/pull/184) [`160323b`](https://github.com/mmmnt/mmmnt/commit/160323b7001dc079e8136703a516bc150a8541c0) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Remaining fixes from the 0.6 documentation pass.
+  - **`moment sync status` exits 1 when the implementation has drifted**, like `moment status`, so CI can gate on it. The report still prints on stdout (`--json` too) for callers that only want to read it.
+  - **Two new reference rules.** V38: every aggregate command `emits` an event declared in the model. V39: every `triggers` target is placed in the same flow (`triggered-by` was already checked by V5). Like V22–V37 they are warnings for a single file and errors over a project, so `moment parse <dir>` can now fail on a model that names an undeclared event or a missing trigger target.
+  - **The file watcher watches every configured directory.** It skipped any directory whose absolute path contained no dot, so `moment watch` with `paths: ['model']` never fired.
+  - **Diagnostics without a position name their file alone** instead of `file:0:0` or `<unknown>`.
+  - **`@mmmnt/mcp` loads model directories.** Every tool that takes a `filePath` accepts a directory and loads it as one project, as the CLI does, reading `.domain/` from that directory; diagnostics carry their rule id and source. `loadSpecification` moved into `@mmmnt/core` so the CLI and the MCP server share it.
+  - **`@mmmnt/mcp` reports its real version** instead of `0.0.0`, drops two unused dependencies (`@mmmnt/schema`, `@mmmnt/generate`), and moves to `@modelcontextprotocol/sdk` 1.32.2 and `zod` 4.6.7, clearing its high and critical advisories.
+  - The CLI and MCP bundles target Node 22.
+
+### Patch Changes
+
+- [#183](https://github.com/mmmnt/mmmnt/pull/183) [`a06ff54`](https://github.com/mmmnt/mmmnt/commit/a06ff54321599311357388d513e372246e31ccad) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Fixes found while documenting 0.6.
+  - **`moment <command> --help` no longer runs the command.** Commands that ignored unknown flags ran instead: `moment init --help` initialised a project in the current directory. Any command given `--help` or `-h` now prints its own usage and exits 0.
+  - **`moment parse` prints warnings on success.** Rules V22–V37 report warnings for a single file; they were computed but never shown. Diagnostics now name their rule (`V22: …`), and rules without a position are attributed to the file parsed.
+  - **Reconcile and Sift import no longer misread sync logs.** The Sift event reader skips the `sync-state`, `implementation-feedback` and `push-flow-saga` logs that `moment sync` writes into `.domain/`, which it had reported line by line as malformed Sift events.
+  - **Reads are not described as emissions.** Generated specification documents and Gherkin say a query step "answers query" and a projection step "serves projection" instead of "emits" (ADR-037).
+
 ## 0.5.0
 
 ### Minor Changes

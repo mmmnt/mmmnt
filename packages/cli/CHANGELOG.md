@@ -1,5 +1,19 @@
 # @mmmnt/cli
 
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies [[`e5b7fc1`](https://github.com/mmmnt/mmmnt/commit/e5b7fc194063043441f19c1ebbfa393f8112b52f), [`a06ff54`](https://github.com/mmmnt/mmmnt/commit/a06ff54321599311357388d513e372246e31ccad), [`e5b7fc1`](https://github.com/mmmnt/mmmnt/commit/e5b7fc194063043441f19c1ebbfa393f8112b52f), [`160323b`](https://github.com/mmmnt/mmmnt/commit/160323b7001dc079e8136703a516bc150a8541c0)]:
+  - @mmmnt/core@0.6.0
+  - @mmmnt/derive@0.6.0
+  - @mmmnt/emit-ts@0.6.0
+  - @mmmnt/generate@0.6.0
+  - @mmmnt/harness@0.6.0
+  - @mmmnt/schema@0.6.0
+  - @mmmnt/viz@0.6.0
+  - @mmmnt/sync@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
