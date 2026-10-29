@@ -54,8 +54,8 @@
     "provenance": true
   },
   "devDependencies": {
-    "@types/ws": "^8.18.1",
-    "isomorphic-git": "^1.37.5",
-    "ws": "^8.20.0"
+    "@types/ws": "^8.18.2",
+    "isomorphic-git": "^1.44.5",
+    "ws": "^8.22.0"
   }
 }

@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "astro": "^5.16.0",
-    "@astrojs/sitemap": "^3.6.0"
+    "@astrojs/sitemap": "^3.7.4"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
+    "@astrojs/check": "^0.9.12",
     "typescript": "^5.8.0"
   }
 }
