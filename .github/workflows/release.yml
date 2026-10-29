@@ -40,7 +40,7 @@ jobs:
       # required status checks. See mmmnt/mmmnt#140.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -59,7 +59,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js 24 (ships npm 11+ for OIDC trusted publishing)
         uses: actions/setup-node@v6
