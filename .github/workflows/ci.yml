@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20, 22]
+        node-version: [22, 24]
 
     steps:
       - name: Checkout
@@ -53,20 +53,10 @@ jobs:
         run: pnpm audit:deps
 
       - name: Build
-        run: |
-          if [ "${{ matrix.node-version }}" = "20" ]; then
-            pnpm turbo build --filter='!@mmmnt/site'
-          else
-            pnpm turbo build
-          fi
+        run: pnpm turbo build
 
       - name: Unit tests with coverage
-        run: |
-          if [ "${{ matrix.node-version }}" = "20" ]; then
-            pnpm turbo test --filter='!@mmmnt/site' -- --coverage --passWithNoTests
-          else
-            pnpm turbo test -- --coverage --passWithNoTests
-          fi
+        run: pnpm turbo test -- --coverage --passWithNoTests
 
       # Pack every @mmmnt/* package, install the tarballs into a throwaway
       # consumer project, and run the full CLI happy path (init → parse →
@@ -140,12 +130,7 @@ jobs:
           path: test-results/cucumber/*.cucumber.json
 
       - name: Snapshot freshness
-        run: |
-          if [ "${{ matrix.node-version }}" = "20" ]; then
-            pnpm turbo test --filter='!@mmmnt/site' -- --no-update --passWithNoTests
-          else
-            pnpm turbo test -- --no-update --passWithNoTests
-          fi
+        run: pnpm turbo test -- --no-update --passWithNoTests
 
       - name: Commitlint
         if: github.event_name == 'pull_request'
