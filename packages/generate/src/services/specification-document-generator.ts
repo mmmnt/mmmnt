@@ -325,7 +325,13 @@ export class SpecificationDocumentGenerator {
       const target = this.resolveCtxName(crossing.targetContextId, ir);
       lines.push(`${indent}- **${entry.nodeName}** → crosses to **${target}**`);
     } else {
-      lines.push(`${indent}- ${ctxName} emits **${entry.nodeName}**`);
+      const verb =
+        entry.nodeKind === 'query'
+          ? 'answers query'
+          : entry.nodeKind === 'projection'
+            ? 'serves projection'
+            : 'emits';
+      lines.push(`${indent}- ${ctxName} ${verb} **${entry.nodeName}**`);
     }
   }
 

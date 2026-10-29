@@ -439,6 +439,13 @@ function renderCrossingStep(
   }
 }
 
+/** ADR-037: reads are not domain events, so a query or projection step does not "emit". */
+function readOrEmit(entry: MomentEntry): string {
+  if (entry.nodeKind === 'query') return 'answers query';
+  if (entry.nodeKind === 'projection') return 'serves projection';
+  return 'emits';
+}
+
 function renderInternalEventStep(
   lines: string[],
   entry: MomentEntry,
@@ -446,7 +453,7 @@ function renderInternalEventStep(
   ctxName: string,
 ): void {
   const modifier = entry.optional ? ' (optional)' : entry.terminal ? ' (terminal)' : '';
-  lines.push(`      Then ${ctxName} emits ${entry.nodeName}${modifier}`);
+  lines.push(`      Then ${ctxName} ${readOrEmit(entry)} ${entry.nodeName}${modifier}`);
 
   if (evt && evt.fields.length > 0) {
     lines.push(`        carrying ${evt.fields.map((f) => f.name).join(', ')}`);
