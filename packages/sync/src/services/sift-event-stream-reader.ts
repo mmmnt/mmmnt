@@ -20,6 +20,21 @@ import type {
   PolicyDefinedPayload,
   SagaDefinedPayload,
 } from '../events/sift-event-types.js';
+import {
+  IMPLEMENTATION_FEEDBACK_LOG,
+  PUSH_FLOW_LOG,
+  SYNC_STATE_LOG,
+} from '../infrastructure/jsonl-sync-log-store.js';
+
+/**
+ * Logs Moment's own sync writes into `.domain/` (ADR-039). They share the directory and the
+ * `.jsonl` extension with Sift and quorum streams but are not Sift events, so they are not read.
+ */
+const MOMENT_SYNC_LOGS: ReadonlySet<string> = new Set([
+  SYNC_STATE_LOG,
+  IMPLEMENTATION_FEEDBACK_LOG,
+  PUSH_FLOW_LOG,
+]);
 
 /** Accumulated building block — mirrors AccumulatedBuildingBlock from @mmmnt/core */
 export interface AccumulatedBuildingBlock {
@@ -28,8 +43,19 @@ export interface AccumulatedBuildingBlock {
   aggregates: Array<{
     name: string;
     identityField: { name: string; type: string };
-    commands: Array<{ name: string; inputs: Array<{ name: string; type: string }>; emitsEvent: string }>;
-    events: Array<{ name: string; fields: Array<{ name: string; type: string; deprecated?: { reason: string; replacement: string } }> }>;
+    commands: Array<{
+      name: string;
+      inputs: Array<{ name: string; type: string }>;
+      emitsEvent: string;
+    }>;
+    events: Array<{
+      name: string;
+      fields: Array<{
+        name: string;
+        type: string;
+        deprecated?: { reason: string; replacement: string };
+      }>;
+    }>;
     valueObjects: Array<{ name: string; fields: Array<{ name: string; type: string }> }>;
   }>;
 }
@@ -52,12 +78,24 @@ export interface SiftEventStreamReadResult {
 export class SiftEventStreamReader {
   read(domainDir: string): SiftEventStreamReadResult {
     if (!existsSync(domainDir)) {
-      return { input: emptyInput(), eventsProcessed: 0, filesRead: 0, errors: [`Directory not found: ${domainDir}`] };
+      return {
+        input: emptyInput(),
+        eventsProcessed: 0,
+        filesRead: 0,
+        errors: [`Directory not found: ${domainDir}`],
+      };
     }
 
-    const jsonlFiles = readdirSync(domainDir).filter((f) => f.endsWith('.jsonl')).sort();
+    const jsonlFiles = readdirSync(domainDir)
+      .filter((f) => f.endsWith('.jsonl') && !MOMENT_SYNC_LOGS.has(f))
+      .sort();
     if (jsonlFiles.length === 0) {
-      return { input: emptyInput(), eventsProcessed: 0, filesRead: 0, errors: ['No .jsonl files found in .domain/'] };
+      return {
+        input: emptyInput(),
+        eventsProcessed: 0,
+        filesRead: 0,
+        errors: ['No .jsonl files found in .domain/'],
+      };
     }
 
     const accumulator = new SiftEventAccumulator();
@@ -144,14 +182,22 @@ class SiftEventAccumulator {
 
   apply(eventType: SiftEventType, payload: unknown): void {
     switch (eventType) {
-      case 'BoundedContextDefined': return this.onBoundedContextDefined(payload as BoundedContextDefinedPayload);
-      case 'AggregateAdded': return this.onAggregateAdded(payload as AggregateAddedPayload);
-      case 'CommandDefined': return this.onCommandDefined(payload as CommandDefinedPayload);
-      case 'EventDefined': return this.onEventDefined(payload as EventDefinedPayload);
-      case 'ValueObjectDefined': return this.onValueObjectDefined(payload as ValueObjectDefinedPayload);
-      case 'InvariantDefined': return this.onInvariantDefined(payload as InvariantDefinedPayload);
-      case 'PolicyDefined': return this.onPolicyDefined(payload as PolicyDefinedPayload);
-      case 'SagaDefined': return this.onSagaDefined(payload as SagaDefinedPayload);
+      case 'BoundedContextDefined':
+        return this.onBoundedContextDefined(payload as BoundedContextDefinedPayload);
+      case 'AggregateAdded':
+        return this.onAggregateAdded(payload as AggregateAddedPayload);
+      case 'CommandDefined':
+        return this.onCommandDefined(payload as CommandDefinedPayload);
+      case 'EventDefined':
+        return this.onEventDefined(payload as EventDefinedPayload);
+      case 'ValueObjectDefined':
+        return this.onValueObjectDefined(payload as ValueObjectDefinedPayload);
+      case 'InvariantDefined':
+        return this.onInvariantDefined(payload as InvariantDefinedPayload);
+      case 'PolicyDefined':
+        return this.onPolicyDefined(payload as PolicyDefinedPayload);
+      case 'SagaDefined':
+        return this.onSagaDefined(payload as SagaDefinedPayload);
     }
   }
 
@@ -177,9 +223,17 @@ class SiftEventAccumulator {
     ctx: AccumulatedBuildingBlock,
     aggregateName: string,
   ): AccumulatedBuildingBlock['aggregates'][number] {
-    let agg = ctx.aggregates.find((a: AccumulatedBuildingBlock['aggregates'][number]) => a.name === aggregateName);
+    let agg = ctx.aggregates.find(
+      (a: AccumulatedBuildingBlock['aggregates'][number]) => a.name === aggregateName,
+    );
     if (!agg) {
-      agg = { name: aggregateName, identityField: { name: 'id', type: 'UUID' }, commands: [], events: [], valueObjects: [] };
+      agg = {
+        name: aggregateName,
+        identityField: { name: 'id', type: 'UUID' },
+        commands: [],
+        events: [],
+        valueObjects: [],
+      };
       ctx.aggregates.push(agg);
     }
     return agg;
@@ -211,7 +265,11 @@ class SiftEventAccumulator {
     const agg = this.getOrCreateAggregate(ctx, p.aggregateName);
     agg.events.push({
       name: p.eventName,
-      fields: p.fields.map((f) => ({ name: f.name, type: f.type, ...(f.deprecated ? { deprecated: f.deprecated } : {}) })),
+      fields: p.fields.map((f) => ({
+        name: f.name,
+        type: f.type,
+        ...(f.deprecated ? { deprecated: f.deprecated } : {}),
+      })),
     });
   }
 
@@ -244,5 +302,10 @@ class SiftEventAccumulator {
 }
 
 function emptyInput(): AccumulatedImportInput {
-  return { sourceProduct: 'unknown', sourceVersion: '1.0.0', buildingBlocks: [], timelineEvents: [] };
+  return {
+    sourceProduct: 'unknown',
+    sourceVersion: '1.0.0',
+    buildingBlocks: [],
+    timelineEvents: [],
+  };
 }

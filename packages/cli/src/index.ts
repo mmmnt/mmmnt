@@ -27,41 +27,9 @@ import { runQuorumWatch } from './commands/quorum-watch.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { USAGE, commandHelp, wantsHelp } from './help.js';
 
 const [command, ...args] = process.argv.slice(2);
-
-const USAGE = `Usage: moment <command> [options]
-
-Commands:
-  init                     Initialize a Moment project with a manifest
-  parse <file>             Parse and validate a .moment specification
-  watch                    Watch .moment files and re-run the pipeline on change
-  derive <file>            Derive test topology from a specification
-  generate <file>          Generate Gherkin, TypeScript scaffolds, and docs
-  emit-ts <file>           Emit TypeScript types and scaffolds
-  test <file>              Run structural validation test suites
-  simulate <file>          Generate simulation scenarios (--all, --json)
-  viz <file>               Emit the visualization data envelope
-  serve <file|facet-dir>   Serve topology/scenarios over WebSocket (Facet bridge)
-                           --project <dir> serves a model directory as one project
-  cucumber-json <file>     Emit Cucumber JSON for Xray import
-  lint <file>              Drift + schema lint
-  sync <status|propose> <file|dir>
-                           Implementation drift detection; propose records proposals
-  sync accept <file|dir> (<proposal-id>... | --all)
-  sync reject <file|dir> <proposal-id>... --reason "<why>"
-                           Decide pending proposals; commits .domain/ logs locally
-  schema <status> <file>   Schema governance report
-  import --from-sift <dir> Import a Sift JSONL export
-  reconcile <file|dir>     Reconcile upstream drift (--local | --event <path>)
-  status <file>            Unified project status
-  auth <login|status|logout|quorum>
-                           Manage GitHub and quorum credentials
-  quorum <watch> <stream>  Subscribe to a quorum stream into .domain/
-
-Flags:
-  -v, --version            Print the CLI version
-  -h, --help               Show this help`;
 
 function cliVersion(): string {
   try {
@@ -82,6 +50,17 @@ if (command === '--help' || command === '-h' || command === 'help' || command ==
   process.exit(command === undefined ? 1 : 0);
 }
 
+// `moment <command> --help` prints that command's usage and runs nothing. Without this, commands
+// that parse with `strict: false` ignored the flag and ran: `moment init --help` initialised a
+// project in the current directory.
+if (wantsHelp(args)) {
+  const help = commandHelp(command);
+  if (help !== undefined) {
+    console.log(help);
+    process.exit(0);
+  }
+}
+
 switch (command) {
   case 'init': {
     const result = runInit(args);
@@ -98,6 +77,11 @@ switch (command) {
       .then((result) => {
         if (result.success) {
           console.log(result.message);
+          // Warnings (V22–V37 on a single file, for example) do not fail a parse but must be seen.
+          // Cross-reference rules carry no position, so they are attributed to the file parsed.
+          for (const d of result.diagnostics) {
+            console.error(formatDiagnostic(d, args[0]));
+          }
         } else {
           console.error(result.message);
           for (const d of result.diagnostics) {
