@@ -6,6 +6,6 @@ export const SITE_DESCRIPTION =
 export const SITE_KEYWORDS =
   'moment, DSL, DDD, domain-driven design, temporal DDD, event storming, bounded contexts, event-driven, complai, facet, saga, langium, typescript, open source';
 export const TWITTER_HANDLE = '@mmmnt';
-export const GITHUB_URL = 'https://github.com/mmmnt/moment';
-export const GITHUB_WIKI_URL = 'https://github.com/mmmnt/moment/wiki';
-export const GITHUB_RELEASES_URL = 'https://github.com/mmmnt/moment/releases';
+export const GITHUB_URL = 'https://github.com/mmmnt/mmmnt';
+export const GITHUB_WIKI_URL = 'https://github.com/mmmnt/mmmnt/wiki';
+export const GITHUB_RELEASES_URL = 'https://github.com/mmmnt/mmmnt/releases';

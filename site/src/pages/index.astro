@@ -113,20 +113,17 @@ const jsonLd = [
             </div>
             <div
               data-kind="commit"
-              data-delay="750"
-              style="padding:2px 10px; border-left:2px solid rgba(34,211,238,0.55); background:rgba(34,211,238,0.05); opacity:1; transition:opacity .5s ease, border-color .5s ease, background .5s ease;"
-            >
-              <span style="color:#22D3EE;">context</span>
-              <span style="color:#9DE6C6;">"Fulfillment"</span>
-              <span style="color:#5b7077;">[Supporting]</span>
-            </div>
-            <div style="height:10px;"></div>
-            <div
-              data-kind="commit"
               data-delay="1000"
               style="padding:2px 10px 2px 34px; border-left:2px solid rgba(34,211,238,0.55); background:rgba(34,211,238,0.05); opacity:1; transition:opacity .5s ease, border-color .5s ease, background .5s ease;"
             >
               <span style="color:#22D3EE;">aggregate</span> <span style="color:#9DE6C6;">"Order"</span>
+            </div>
+            <div
+              data-kind="reveal"
+              data-delay="1100"
+              style="padding:2px 10px 2px 58px; opacity:.92; transition:opacity .5s ease;"
+            >
+              <span style="color:#5b7077;">identity</span> orderId: <span style="color:#8FD3FF;">UUID</span>
             </div>
             <div
               data-kind="commit"
@@ -168,11 +165,35 @@ const jsonLd = [
             <div style="height:10px;"></div>
             <div
               data-kind="commit"
+              data-delay="2000"
+              style="padding:2px 10px; border-left:2px solid rgba(34,211,238,0.55); background:rgba(34,211,238,0.05); opacity:1; transition:opacity .5s ease, border-color .5s ease, background .5s ease;"
+            >
+              <span style="color:#22D3EE;">context</span>
+              <span style="color:#9DE6C6;">"Fulfillment"</span>
+              <span style="color:#5b7077;">[Supporting]</span>
+            </div>
+            <div style="height:10px;"></div>
+            <div
+              data-kind="commit"
               data-delay="2100"
               style="padding:2px 10px; border-left:2px solid rgba(34,211,238,0.55); background:rgba(34,211,238,0.05); opacity:1; transition:opacity .5s ease, border-color .5s ease, background .5s ease;"
             >
               <span style="color:#22D3EE;">flow</span>
               <span style="color:#9DE6C6;">"order-placed"</span>
+            </div>
+            <div
+              data-kind="reveal"
+              data-delay="2170"
+              style="padding:2px 10px 2px 34px; opacity:.92; transition:opacity .5s ease;"
+            >
+              <span style="color:#22D3EE;">lane</span> ordering <span style="color:#9DE6C6;">"Ordering"</span>
+            </div>
+            <div
+              data-kind="reveal"
+              data-delay="2200"
+              style="padding:2px 10px 2px 34px; opacity:.92; transition:opacity .5s ease;"
+            >
+              <span style="color:#22D3EE;">lane</span> fulfillment <span style="color:#9DE6C6;">"Fulfillment"</span>
             </div>
             <div
               data-kind="reveal"
@@ -202,6 +223,13 @@ const jsonLd = [
               style="padding:2px 10px 2px 82px; opacity:.92; transition:opacity .5s ease;"
             >
               <span style="color:#5b7077;">via</span> CustomerSupplier
+            </div>
+            <div
+              data-kind="reveal"
+              data-delay="2750"
+              style="padding:2px 10px 2px 82px; opacity:.92; transition:opacity .5s ease;"
+            >
+              <span style="color:#5b7077;">contract</span> orderId: <span style="color:#8FD3FF;">UUID</span> <span style="color:#5b7077;">[required]</span>
             </div>
           </div>
         </div>
@@ -292,7 +320,7 @@ const jsonLd = [
                   fill="#5b7077">[Core]</text
                 >
               </g>
-              <g data-kind="draw" data-delay="750" style="opacity:1; transition:opacity .45s ease;">
+              <g data-kind="draw" data-delay="2000" style="opacity:1; transition:opacity .45s ease;">
                 <rect
                   x="0"
                   y="150"
@@ -384,7 +412,7 @@ const jsonLd = [
                   y="139"
                   font-family="JetBrains Mono, monospace"
                   font-size="8.5"
-                  fill="#5b7077">contract {'{orderId, items}'}</text
+                  fill="#5b7077">contract {'{orderId}'}</text
                 >
               </g>
               <g data-kind="draw" data-delay="2500" style="opacity:1; transition:opacity .45s ease;">
@@ -593,7 +621,7 @@ const jsonLd = [
                 <span>order-api.yaml</span><span style="color:#8a7a55;">drifts</span>
               </div>
               <div style="display:flex; justify-content:space-between;">
-                <span>facet.json</span><span style="color:#5b7077;">impossible</span>
+                <span>scenarios.json</span><span style="color:#5b7077;">impossible</span>
               </div>
             </div>
             <div
@@ -634,7 +662,7 @@ const jsonLd = [
                 <span>order-api.yaml</span><span style="color:#7fbf9a;">generated</span>
               </div>
               <div style="display:flex; justify-content:space-between;">
-                <span>facet.json</span><span style="color:#7fbf9a;">generated</span>
+                <span>scenarios.json</span><span style="color:#7fbf9a;">generated</span>
               </div>
             </div>
             <div
@@ -693,7 +721,7 @@ const jsonLd = [
             </div>
             <div style="font-weight:600; font-size:16px; margin-bottom:8px;">Facet scenarios</div>
             <p style="margin:0 0 14px; font-size:13.5px; line-height:1.55; color:#90A2AA;">
-              Test topologies, <span style="color:#C9E8ED;">facet.json</span> scenarios, saga state
+              Test topologies, <span style="color:#C9E8ED;">simulation</span> scenarios, saga state
               machines, and impact analysis.
             </p>
             <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#5b7077;">
@@ -728,7 +756,7 @@ const jsonLd = [
             </div>
             <div style="font-weight:600; font-size:16px; margin-bottom:8px;">Typed TypeScript</div>
             <p style="margin:0 0 14px; font-size:13.5px; line-height:1.55; color:#90A2AA;">
-              Types, aggregate contracts, and test scaffolds written deterministically to disk.
+              Types, aggregate contracts, read-model types, and test scaffolds written deterministically to disk.
             </p>
             <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#5b7077;">
               @mmmnt/emit-ts
@@ -801,10 +829,10 @@ const jsonLd = [
               <div
                 style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#7C8C92; margin-bottom:6px;"
               >
-                facet.json
+                facet/
               </div>
               <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#C9E8ED;">
-                scenario + contracts
+                scenarios + contracts
               </div>
             </div>
             <div
@@ -976,7 +1004,7 @@ const jsonLd = [
                     y="156"
                     font-family="JetBrains Mono, monospace"
                     font-size="8.5"
-                    fill="#5b7077">contract {'{orderId, items}'}</text
+                    fill="#5b7077">contract {'{orderId}'}</text
                   >
                   <rect
                     x="222"
@@ -1016,7 +1044,7 @@ const jsonLd = [
                 >
                   <div style="display:flex; justify-content:space-between; gap:8px;">
                     <span style="color:#90A2AA;">schema: OrderPlaced</span><span
-                      style="color:#7fbf9a; white-space:nowrap;">✓ 6 fields</span
+                      style="color:#7fbf9a; white-space:nowrap;">✓ 2 fields</span
                     >
                   </div>
                   <div style="display:flex; justify-content:space-between; gap:8px;">
@@ -1115,14 +1143,14 @@ const jsonLd = [
             Convergence is the definition of done.
           </h2>
           <p style="font-size:16px; line-height:1.62; color:#90A2AA; margin:0;">
-            Moment diagnoses every gap between the specification and the implementation by severity —
+            Moment reports every finding about a specification by severity —
             <span style="color:#C9E8ED;">ERROR</span> blocks convergence, <span
               style="color:#C9E8ED;">WARNING</span
-            > is advisory, <span style="color:#C9E8ED;">INFO</span> tracks fitness. Drift detection makes
-            divergence visible at AST-level precision instead of letting it surface as an incident, and
-            <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;"
-              >moment reconcile</span
-            > closes the loop in either direction.
+            > is advisory, <span style="color:#C9E8ED;">INFO</span> is informational. Drift detection makes
+            divergence between spec and code visible at AST-level precision instead of letting it surface
+            as an incident, and <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;"
+              >moment sync</span
+            > turns each drift into a proposal you accept or reject.
           </p>
         </div>
         <div
@@ -1131,30 +1159,30 @@ const jsonLd = [
           <div style="color:#7C8C92; margin-bottom:14px;">$ moment status</div>
           <div style="display:flex; flex-direction:column; gap:11px;">
             <div style="display:flex; justify-content:space-between;">
-              <span style="color:#90A2AA;">OrderPlaced.placedAt</span><span style="color:#7fbf9a;"
-                >✓ in sync</span
+              <span style="color:#90A2AA;">Specification</span><span style="color:#7fbf9a;"
+                >✓ valid</span
               >
             </div>
             <div style="display:flex; justify-content:space-between;">
-              <span style="color:#90A2AA;">CancelOrder precondition</span><span style="color:#7fbf9a;"
-                >✓ in sync</span
+              <span style="color:#90A2AA;">Schema lifecycle</span><span style="color:#7fbf9a;"
+                >✓ all fields active</span
               >
             </div>
             <div style="display:flex; justify-content:space-between;">
-              <span style="color:#90A2AA;">CustomerSupplier contract</span><span style="color:#e0b25a;"
-                >⚠ field added in code</span
+              <span style="color:#90A2AA;">Implementation sync</span><span style="color:#e0b25a;"
+                >⚠ 1 file drifted</span
               >
             </div>
             <div style="display:flex; justify-content:space-between;">
-              <span style="color:#90A2AA;">saga: order-placed</span><span style="color:#7fbf9a;"
-                >✓ in sync</span
+              <span style="color:#90A2AA;">Upstream source</span><span style="color:#7fbf9a;"
+                >✓ none configured</span
               >
             </div>
           </div>
           <div
             style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); color:#22D3EE;"
           >
-            1 WARNING · moment reconcile --local
+            drift detected · moment sync propose
           </div>
         </div>
       </div>
@@ -1259,7 +1287,7 @@ const jsonLd = [
               { name: 'Sift', tag: 'UPSTREAM', desc: 'Automates Event Storming and supplies a converged spec. Optional input — hand-authoring is the primary path.' },
               { name: 'Codex', tag: 'UPSTREAM', desc: 'Versioned regulatory rule packs, consumed through an anti-corruption layer. Empty when no pack is active.' },
               { name: 'Moment', tag: 'YOU ARE HERE', desc: 'Gives DDD its missing temporal dimension — spec to typed code, tests, docs, and simulation. Open source.', highlight: true },
-              { name: 'Facet', tag: 'DOWNSTREAM', desc: 'The visual test surface — renders the sequence from facet.json and asserts every crossing contract.' },
+              { name: 'Facet', tag: 'DOWNSTREAM', desc: 'The visual test surface — renders the sequence from Moment’s simulation scenarios and asserts every crossing contract.' },
               { name: 'Forge', tag: 'DOWNSTREAM', desc: 'Turns the building-block inventory and flow definitions into work items and execution plans.' },
               { name: 'Proof', tag: 'DOWNSTREAM', desc: 'Evaluates Moment artifacts against governing protocols and audits co-evolution debt.' },
               { name: 'Glean', tag: 'DOWNSTREAM', desc: 'Learns from every Moment stream — a pure consumer, never in the request path.' },
@@ -1306,22 +1334,21 @@ const jsonLd = [
             <div
               style="font-weight:600; font-size:42px; color:#F2FBFC; line-height:1; margin-bottom:12px; letter-spacing:-.02em;"
             >
-              11
+              10
             </div>
             <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#90A2AA; line-height:1.5;">
-              packages — core, derive, generate, emit-ts, translate, sync, schema, viz, harness, mcp,
-              cli
+              packages — core, derive, generate, emit-ts, sync, schema, viz, harness, mcp, cli
             </div>
           </div>
           <div style="background:#07090D; padding:30px 28px;">
             <div
               style="font-weight:600; font-size:42px; color:#F2FBFC; line-height:1; margin-bottom:12px; letter-spacing:-.02em;"
             >
-              20+
+              19
             </div>
             <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#90A2AA; line-height:1.5;">
-              CLI commands — parse, derive, generate, emit-ts, simulate, test, watch, status,
-              reconcile, viz
+              CLI commands — parse, derive, generate, emit-ts, simulate, serve, sync, status,
+              reconcile, watch
             </div>
           </div>
           <div style="background:#07090D; padding:30px 28px;">
@@ -1398,25 +1425,24 @@ const jsonLd = [
           <div
             style="margin:0; padding:22px 20px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.95; color:#C9E8ED;"
           >
-            <div><span style="color:#5b7077;">$</span> git clone https://github.com/mmmnt/moment.git</div>
-            <div><span style="color:#5b7077;">$</span> cd moment && pnpm install</div>
-            <div><span style="color:#5b7077;">$</span> pnpm turbo build</div>
+            <div><span style="color:#5b7077;">$</span> npm install --save-dev @mmmnt/cli</div>
+            <div><span style="color:#5b7077;">$</span> npx moment --help</div>
             <div style="height:1.95em;"></div>
             <div>
               <span style="color:#5b7077;"># parse a spec and generate everything</span>
             </div>
             <div>
-              <span style="color:#5b7077;">$</span> moment parse <span style="color:#9DE6C6;"
+              <span style="color:#5b7077;">$</span> npx moment parse <span style="color:#9DE6C6;"
                 >spec.moment</span
               >
             </div>
-            <div><span style="color:#5b7077;">$</span> moment derive</div>
+            <div><span style="color:#5b7077;">$</span> npx moment derive spec.moment</div>
             <div>
-              <span style="color:#5b7077;">$</span> moment generate <span style="color:#22D3EE;"
-                >--all</span
+              <span style="color:#5b7077;">$</span> npx moment generate <span style="color:#9DE6C6;"
+                >spec.moment</span
               >
             </div>
-            <div><span style="color:#5b7077;">$</span> moment simulate</div>
+            <div><span style="color:#5b7077;">$</span> npx moment simulate spec.moment --out-dir facet</div>
           </div>
         </div>
       </div>
@@ -1449,9 +1475,11 @@ const jsonLd = [
             </div>
             <p style="margin:0; font-size:14.5px; line-height:1.6; color:#90A2AA;">
               <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
-                >moment drift</span
-              > catches when implementation diverges from the spec. Fix the spec or reconcile the implementation
-              — either direction works.
+                >moment sync status</span
+              > catches when implementation diverges from the spec. Fix the spec, or record the drift with
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+                >moment sync propose</span
+              > and accept or reject each proposal.
             </p>
           </div>
           <div>
@@ -1468,11 +1496,12 @@ const jsonLd = [
               How mature is it?
             </div>
             <p style="margin:0; font-size:14.5px; line-height:1.6; color:#90A2AA;">
-              Moment is v1.0 stable. The full pipeline runs end to end, and all 10 packages — schema
-              governance, drift detection, visualization, and the MCP server — are published on npm
-              under <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+              Pre-1.0 and in active development. The pipeline runs end to end, and all 10 packages —
+              including schema governance, drift detection, visualization, and the MCP server — are
+              published on npm under <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
                 >@mmmnt</span
-              >.
+              > and versioned together. Minor releases can still change the language; each one ships a
+              changelog.
             </p>
           </div>
           <div>
@@ -1514,7 +1543,7 @@ const jsonLd = [
           Test before you code.
         </h2>
         <p style="font-size:18px; color:#90A2AA; max-width:500px; margin:0 auto 34px;">
-          Functionally complete. Ten packages. MCP-ready. Source-available under FSL-1.1-Apache-2.0.
+          Pre-1.0 and on npm. Ten packages. MCP-ready. Source-available under FSL-1.1-Apache-2.0.
         </p>
         <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
           <a

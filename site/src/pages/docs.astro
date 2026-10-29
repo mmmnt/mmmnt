@@ -9,14 +9,16 @@ const description =
   'Everything you need to run Moment locally — install, quickstart, CLI reference, packages, and MCP server configuration.';
 
 const cliRows = [
-  { cmd: 'moment parse', desc: 'Parse a .moment file into the typed IR.' },
-  { cmd: 'moment derive', desc: 'Derive scenarios, topologies, and facet.json.' },
-  { cmd: 'moment generate', desc: 'Emit types, tests, docs, and contracts.' },
-  { cmd: 'moment simulate', desc: 'Run the local simulation and write facet.json.' },
-  { cmd: 'moment viz --bridge', desc: 'Open the live Facet bridge in the browser.' },
-  { cmd: 'moment status', desc: 'Report spec↔code gaps by severity.' },
-  { cmd: 'moment reconcile', desc: 'Close a gap — update spec or code.' },
-  { cmd: 'moment watch', desc: 'Regenerate on every spec change.' },
+  { cmd: 'moment parse', desc: 'Validate a .moment file, or a model directory as one project.' },
+  { cmd: 'moment derive', desc: 'Derive the test topology from a specification.' },
+  { cmd: 'moment generate', desc: 'Generate Gherkin, TypeScript scaffolds, and a specification document.' },
+  { cmd: 'moment simulate', desc: 'Write simulation scenarios, topologies, and AsyncAPI (--out-dir).' },
+  { cmd: 'moment serve', desc: 'Stream topology and scenarios to Facet over WebSocket; --project serves a model directory.' },
+  { cmd: 'moment status', desc: 'Report spec validity, implementation drift, and schema lifecycle.' },
+  { cmd: 'moment sync propose', desc: 'Record implementation drift as proposals in .domain/.' },
+  { cmd: 'moment sync accept · reject', desc: 'Decide pending proposals and commit the decision.' },
+  { cmd: 'moment reconcile', desc: 'Reconcile upstream drift (--local or --event).' },
+  { cmd: 'moment watch', desc: 'Re-run the pipeline on every spec change.' },
 ];
 
 const packages = [
@@ -24,8 +26,7 @@ const packages = [
   { name: '@mmmnt/derive', desc: 'scenarios' },
   { name: '@mmmnt/generate', desc: 'docs · tests' },
   { name: '@mmmnt/emit-ts', desc: 'TypeScript' },
-  { name: '@mmmnt/translate', desc: 'temporal mapping' },
-  { name: '@mmmnt/sync', desc: 'drift · reconcile' },
+  { name: '@mmmnt/sync', desc: 'drift · proposals · reconcile' },
   { name: '@mmmnt/schema', desc: 'governance' },
   { name: '@mmmnt/viz', desc: 'Facet bridge' },
   { name: '@mmmnt/harness', desc: 'test runner' },
@@ -125,7 +126,9 @@ const jsonLd = {
             Install
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
-            Requires Node 18+ and pnpm. Clone the monorepo and build the workspace.
+            Requires Node 22 or newer. Install the CLI from npm; it provides the <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">moment</span
+            > command. pnpm (10.29.3, via corepack) is only needed to develop Moment itself.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
@@ -138,12 +141,10 @@ const jsonLd = {
             <div
               style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
             >
-              <div><span style="color:#5b7077;">$</span> git clone https://github.com/mmmnt/moment.git</div>
-              <div><span style="color:#5b7077;">$</span> cd moment && pnpm install</div>
-              <div><span style="color:#5b7077;">$</span> pnpm turbo build</div>
+              <div><span style="color:#5b7077;">$</span> npm install --save-dev @mmmnt/cli</div>
               <div>
-                <span style="color:#5b7077;">$</span> moment --version <span style="color:#7fbf9a;"
-                  ># 1.0.0</span
+                <span style="color:#5b7077;">$</span> npx moment --version <span style="color:#7fbf9a;"
+                  ># 0.6.0</span
                 >
               </div>
             </div>
@@ -158,7 +159,7 @@ const jsonLd = {
             Quickstart
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
-            Write a spec, generate everything, and simulate before writing code. The full five-step
+            Write a spec, generate the artifacts, and simulate before writing code. The full five-step
             walkthrough lives on the <a
               href="/get-started"
               style="color:#C9E8ED; border-bottom:1px solid rgba(201,232,237,0.3);">Get started</a
@@ -176,23 +177,23 @@ const jsonLd = {
               style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
             >
               <div>
-                <span style="color:#5b7077;">$</span> moment parse <span style="color:#9DE6C6;"
+                <span style="color:#5b7077;">$</span> npx moment parse <span style="color:#9DE6C6;"
                   >order.moment</span
                 >
               </div>
               <div>
-                <span style="color:#5b7077;">$</span> moment generate <span style="color:#22D3EE;"
-                  >--all</span
+                <span style="color:#5b7077;">$</span> npx moment generate <span style="color:#9DE6C6;"
+                  >order.moment</span
                 >
               </div>
               <div>
-                <span style="color:#5b7077;">$</span> moment simulate <span style="color:#22D3EE;"
-                  >--out</span
-                > facet.json
+                <span style="color:#5b7077;">$</span> npx moment simulate order.moment <span style="color:#22D3EE;"
+                  >--out-dir</span
+                > facet
               </div>
               <div>
-                <span style="color:#5b7077;">$</span> moment viz <span style="color:#22D3EE;"
-                  >--bridge</span
+                <span style="color:#5b7077;">$</span> npx moment serve <span style="color:#9DE6C6;"
+                  >order.moment</span
                 >
               </div>
             </div>
@@ -232,7 +233,9 @@ const jsonLd = {
             }
           </div>
           <p style="font-size:13.5px; color:#5b7077; margin:14px 0 0;">
-            20+ commands in total — see the <a
+            19 commands in total, run <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">moment --help</span
+            > or see the <a
               href={GITHUB_WIKI_URL}
               target="_blank"
               rel="noopener"
@@ -249,9 +252,9 @@ const jsonLd = {
             Packages
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 20px;">
-            Eleven <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+            Ten <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
               >@mmmnt</span
-            > packages, each doing one job in the pipeline.
+            > packages, published to npm and versioned together, each doing one job in the pipeline.
           </p>
           <div
             style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; font-family:'JetBrains Mono',monospace; font-size:12.5px;"
@@ -284,16 +287,22 @@ const jsonLd = {
             <div
               style="padding:11px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#7C8C92;"
             >
-              ~/.config/mcp/servers.json
+              .mcp.json
             </div>
             <pre
               style="margin:0; padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;">{'{\n  '}<span
+                style="color:#9DE6C6;">"mcpServers"</span
+              >{': {\n    '}<span
                 style="color:#9DE6C6;">"moment"</span
-              >{': {\n    '}<span style="color:#9DE6C6;">"command"</span>{': '}<span
-                style="color:#C9E8ED;">"moment"</span
-              >{',\n    '}<span style="color:#9DE6C6;">"args"</span>{': ['}<span
-                style="color:#C9E8ED;">"mcp"</span
-              >{']\n  }\n}'}</pre>
+              >{': {\n      '}<span
+                style="color:#9DE6C6;">"command"</span
+              >{': '}<span
+                style="color:#C9E8ED;">"npx"</span
+              >{',\n      '}<span
+                style="color:#9DE6C6;">"args"</span
+              >{': ['}<span
+                style="color:#C9E8ED;">"@mmmnt/mcp"</span
+              >{']\n    }\n  }\n}'}</pre>
           </div>
         </div>
 

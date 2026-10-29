@@ -6,7 +6,7 @@ import { GITHUB_WIKI_URL } from '../consts';
 
 const title = 'Get started';
 const description =
-  'From an empty folder to a validated flow in five steps. Node 18+ and pnpm are all you need — everything runs locally.';
+  'From an empty folder to a validated flow in five steps. Node 22 or newer and npm are all you need — everything runs locally.';
 ---
 
 <Base title={title} description={description}>
@@ -37,7 +37,7 @@ const description =
         From an empty folder to a validated flow in five steps.
       </h1>
       <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:660px; margin:0;">
-        Node 18+ and pnpm are all you need. Everything runs locally — no account, no platform. Each
+        Node 22 or newer and npm are all you need. Everything runs locally — no account, no platform. Each
         step links to the repo wiki for deeper reference.
       </p>
     </section>
@@ -59,9 +59,11 @@ const description =
             Install the toolchain
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px; max-width:640px;">
-            Clone the monorepo and build all eleven <span
-              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">@mmmnt</span
-            > packages. Source-available under FSL-1.1-Apache-2.0.
+            Add <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">@mmmnt/cli</span
+            > from npm. It provides the <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">moment</span
+            > command. Source-available under FSL-1.1-Apache-2.0.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
@@ -74,9 +76,9 @@ const description =
             <div
               style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
             >
-              <div><span style="color:#5b7077;">$</span> git clone https://github.com/mmmnt/moment.git</div>
-              <div><span style="color:#5b7077;">$</span> cd moment && pnpm install</div>
-              <div><span style="color:#5b7077;">$</span> pnpm turbo build</div>
+              <div><span style="color:#5b7077;">$</span> npm init -y</div>
+              <div><span style="color:#5b7077;">$</span> npm install --save-dev @mmmnt/cli</div>
+              <div><span style="color:#5b7077;">$</span> npx moment --help</div>
             </div>
           </div>
         </div>
@@ -97,7 +99,7 @@ const description =
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px; max-width:640px;">
             Create <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
               >order.moment</span
-            >. Start with one bounded context, one flow, one crossing — you can grow it later.
+            >. Start with two bounded contexts, one flow, and one crossing between them — you can grow it later.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
@@ -108,17 +110,7 @@ const description =
               order.moment
             </div>
             <pre
-              style="margin:0; padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.85; color:#C2C6D2; overflow:auto;"><span
-                style="color:#22D3EE;">context</span
-              > <span style="color:#9DE6C6;">"Ordering"</span> <span style="color:#5b7077;">[Core]</span>{'\n  '}<span
-                style="color:#22D3EE;">event</span
-              > <span style="color:#E7C9A0;">OrderPlaced</span>{'\n    orderId: '}<span
-                style="color:#8FD3FF;">UUID</span
-              >{'\n\n'}<span style="color:#22D3EE;">flow</span> <span style="color:#9DE6C6;">"order-placed"</span
-              >{'\n  '}<span style="color:#22D3EE;">moment</span> <span style="color:#9DE6C6;">"Submission"</span
-              >{'\n    ordering: '}<span style="color:#E7C9A0;">OrderPlaced</span>{'\n      '}<span
-                style="color:#C58CFF;">crosses-to</span
-              >{' fulfillment\n        '}<span style="color:#5b7077;">contract</span>{' { orderId }'}</pre>
+              style="margin:0; padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.85; color:#C2C6D2; overflow:auto;"><span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Ordering"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Order"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">PlaceOrder</span>{'\n      '}<span style="color:#5b7077;">input</span>{' customerId: '}<span style="color:#8FD3FF;">UUID</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">OrderPlaced</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">OrderPlaced</span>{'\n      orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n\n'}<span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Fulfillment"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Shipment"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' shipmentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">InitiateFulfillment</span>{'\n      '}<span style="color:#5b7077;">input</span>{' orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">FulfillmentInitiated</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">FulfillmentInitiated</span>{'\n      shipmentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n\n'}<span style="color:#22D3EE;">flow</span>{' '}<span style="color:#9DE6C6;">"order-placed"</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' ordering '}<span style="color:#9DE6C6;">"Ordering"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' fulfillment '}<span style="color:#9DE6C6;">"Fulfillment"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Submission"</span>{'\n    ordering: '}<span style="color:#E7C9A0;">PlaceOrder</span>{'\n    ordering: '}<span style="color:#E7C9A0;">OrderPlaced</span>{' '}<span style="color:#C58CFF;">crosses-to</span>{' fulfillment '}<span style="color:#5b7077;">via</span>{' CustomerSupplier\n      '}<span style="color:#5b7077;">contract</span>{'\n        orderId: '}<span style="color:#8FD3FF;">UUID</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Fulfillment"</span>{'\n    fulfillment: '}<span style="color:#E7C9A0;">InitiateFulfillment</span>{' '}<span style="color:#C58CFF;">triggered-by</span>{' '}<span style="color:#E7C9A0;">OrderPlaced</span>{'\n    fulfillment: '}<span style="color:#E7C9A0;">FulfillmentInitiated</span></pre>
           </div>
         </div>
       </li>
@@ -136,8 +128,8 @@ const description =
             Generate every artifact
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px; max-width:640px;">
-            Parse, derive scenarios, and emit typed code, tests, docs, and contracts —
-            deterministically.
+            Parse, derive the test topology, and generate typed code, test scaffolds, Gherkin features,
+            and a specification document — deterministically.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
@@ -151,17 +143,17 @@ const description =
               style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
             >
               <div>
-                <span style="color:#5b7077;">$</span> moment parse <span style="color:#9DE6C6;"
+                <span style="color:#5b7077;">$</span> npx moment parse <span style="color:#9DE6C6;"
                   >order.moment</span
                 >
               </div>
-              <div><span style="color:#5b7077;">$</span> moment derive</div>
+              <div><span style="color:#5b7077;">$</span> npx moment derive order.moment</div>
               <div>
-                <span style="color:#5b7077;">$</span> moment generate <span style="color:#22D3EE;"
-                  >--all</span
+                <span style="color:#5b7077;">$</span> npx moment generate <span style="color:#9DE6C6;"
+                  >order.moment</span
                 >
               </div>
-              <div style="color:#7fbf9a;">✓ 6 artifacts written · 0 drift</div>
+              <div style="color:#7fbf9a;">Generated: 1 .feature file(s), 3 .spec.ts file(s), 1 document(s)</div>
             </div>
           </div>
         </div>
@@ -182,10 +174,10 @@ const description =
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px; max-width:640px;">
             <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
               >moment simulate</span
-            > is free and local. It produces the <span
-              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">facet.json</span
-            > scenario that loads straight into Facet, where the sequence is visualized and every crossing
-            contract is asserted.
+            > is free and local. It writes the flow topology, the simulation scenarios, and an AsyncAPI
+            contract; <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">moment serve</span
+            > streams them to Facet over a local WebSocket and pushes an update every time you save.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
@@ -199,16 +191,16 @@ const description =
               style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
             >
               <div>
-                <span style="color:#5b7077;">$</span> moment simulate <span style="color:#22D3EE;"
-                  >--out</span
-                > facet.json
+                <span style="color:#5b7077;">$</span> npx moment simulate order.moment <span style="color:#22D3EE;"
+                  >--out-dir</span
+                > facet
               </div>
               <div>
-                <span style="color:#5b7077;">$</span> moment viz <span style="color:#22D3EE;"
-                  >--bridge</span
+                <span style="color:#5b7077;">$</span> npx moment serve <span style="color:#9DE6C6;"
+                  >order.moment</span
                 >
               </div>
-              <div style="color:#7fbf9a;">✓ live at localhost:5173 · 12/12 contracts pass</div>
+              <div style="color:#7fbf9a;">Serving on ws://localhost:4321</div>
             </div>
           </div>
         </div>
@@ -230,10 +222,13 @@ const description =
             As implementation grows, <span
               style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
               >moment status</span
-            > reports gaps by severity and <span
+            > reports where the code has drifted from the spec, and <span
               style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
-              >moment reconcile</span
-            > closes them in either direction. Run it in watch mode or in CI.
+              >moment sync propose</span
+            > records each drift as a proposal in <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+              >.domain/</span
+            > for you to accept or reject. Run it locally or in CI.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"
@@ -246,11 +241,11 @@ const description =
             <div
               style="padding:18px 18px; font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.9; color:#C9E8ED;"
             >
-              <div><span style="color:#5b7077;">$</span> moment status</div>
+              <div><span style="color:#5b7077;">$</span> npx moment status order.moment</div>
               <div style="color:#7fbf9a;">
-                ✓ 0 ERROR · <span style="color:#e0b25a;">1 WARNING</span> · 3 INFO
+                ✓ Implementation Sync: 7 file(s) aligned
               </div>
-              <div><span style="color:#5b7077;">$</span> moment watch</div>
+              <div><span style="color:#5b7077;">$</span> npx moment sync propose order.moment</div>
             </div>
           </div>
         </div>

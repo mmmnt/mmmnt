@@ -293,7 +293,9 @@ const description =
           <div style="padding-left:22px;">ordering: <span style="color:#E7C9A0;">OrderPlaced</span></div>
           <div style="padding-left:22px;"><span style="color:#C58CFF;">crosses-to</span> fulfillment</div>
           <div style="padding-left:44px;"><span style="color:#5b7077;">via</span> CustomerSupplier</div>
-          <div style="padding-left:44px;"><span style="color:#5b7077;">contract</span> {'{ orderId, items }'}</div>
+          <div style="padding-left:44px;"><span style="color:#5b7077;">contract</span></div>
+          <div style="padding-left:66px;">orderId: <span style="color:#8FD3FF;">UUID</span> <span style="color:#5b7077;">[required]</span></div>
+          <div style="padding-left:66px;">items: <span style="color:#8FD3FF;">LineItem[]</span> <span style="color:#5b7077;">[required]</span></div>
           <div
             style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.07); color:#7fbf9a;"
           >
@@ -333,7 +335,7 @@ const description =
               Blocks convergence
             </div>
             <p style="margin:0; font-size:14px; line-height:1.55; color:#90A2AA;">
-              A crossing with no contract, an event no flow consumes, a saga with no terminal state.
+              A crossing with an empty contract, a flow node no context declares, a policy whose trigger is no declared event.
               The gate stays shut.
             </p>
           </div>
@@ -349,8 +351,8 @@ const description =
               Advisory
             </div>
             <p style="margin:0; font-size:14px; line-height:1.55; color:#90A2AA;">
-              Implementation added a field the spec doesn’t know about. Reconcile in either direction
-              when you’re ready.
+              A Partnership crossing with no reverse crossing, a branch lane no branch routes into. Fix
+              them when you’re ready.
             </p>
           </div>
           <div
@@ -365,7 +367,7 @@ const description =
               Fitness signal
             </div>
             <p style="margin:0; font-size:14px; line-height:1.55; color:#90A2AA;">
-              Coverage, naming drift, unused contracts. Tracked over time so the model stays healthy,
+              Notes that need no action, reported beside errors and warnings so the model stays healthy,
               not just legal.
             </p>
           </div>
