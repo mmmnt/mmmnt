@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Grammar synced with `@mmmnt/core` 0.6: highlights `projection`, `query`,
+  `rule`, `term`, `external`, `orchestration`, `state`, `gateway` and their
+  clauses. The grammar had not been synced since 0.1.0.
+
 ## 0.1.1
 
 - Listing meta: mmmnt brand mark as the extension icon and gallery banner
