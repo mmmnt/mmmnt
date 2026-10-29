@@ -17,6 +17,7 @@ describe('moment sync status', () => {
     expect(result.report!.totalDrifted).toBeGreaterThan(0);
     expect(result.report!.totalAligned).toBe(0);
     expect(result.message).toContain('Drift detected');
+    expect(result.hasDrift).toBe(true);
   });
 
   it('delegates to ASTDiffEngine.detectDrift()', async () => {
@@ -43,6 +44,7 @@ describe('moment sync status', () => {
     expect(result.json).toBeDefined();
     const parsed = JSON.parse(result.json!);
     expect(typeof parsed.totalDrifted).toBe('number');
+    expect(result.hasDrift).toBe(parsed.totalDrifted > 0);
     expect(typeof parsed.totalAligned).toBe('number');
     expect(parsed.scope).toBeDefined();
     expect(parsed.timestamp).toBeTruthy();

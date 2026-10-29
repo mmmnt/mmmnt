@@ -24,6 +24,8 @@ export interface SyncStatusResult {
   readonly filePath?: string;
   readonly report?: DriftReport;
   readonly json?: string;
+  /** True when the implementation has drifted from the spec; the command then exits non-zero. */
+  readonly hasDrift?: boolean;
 }
 
 const EMPTY: readonly Diagnostic[] = [];
@@ -50,7 +52,7 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   });
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment sync status <file.moment>');
+  if (!filePath) return fail('Usage: moment sync status <file.moment | directory> [--json]');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
@@ -97,7 +99,14 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
 
   if (values.json === true) {
     const json = JSON.stringify(report, null, 2);
-    return { success: true, message: json, diagnostics: EMPTY, report, json };
+    return {
+      success: true,
+      message: json,
+      diagnostics: EMPTY,
+      report,
+      json,
+      hasDrift: report.totalDrifted > 0,
+    };
   }
 
   if (report.totalDrifted === 0) {
@@ -106,6 +115,7 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
       message: `No drift detected. ${report.totalAligned} file(s) aligned.`,
       diagnostics: EMPTY,
       report,
+      hasDrift: false,
     };
   }
 
@@ -114,5 +124,6 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
     message: `Drift detected: ${report.totalDrifted} drifted, ${report.totalAligned} aligned`,
     diagnostics: EMPTY,
     report,
+    hasDrift: true,
   };
 }
