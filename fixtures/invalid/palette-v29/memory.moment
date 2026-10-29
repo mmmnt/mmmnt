@@ -1,0 +1,13 @@
+// ADR-038 invalid exemplar: V29 — a policy whose command names no command of an aggregate or an orchestration.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  policy RecallOnDecision
+    trigger DecisionMade
+    action "recall"
+    chains-to NoSuchCommand

@@ -1,4 +1,4 @@
-import type { ContextDefinition } from './context-definition.js';
+import type { ContextDefinition, GatewayDefinition } from './context-definition.js';
 import type { FlowDefinition } from './flow-definition.js';
 
 export interface IntermediateRepresentation {
@@ -6,7 +6,15 @@ export interface IntermediateRepresentation {
   flows: FlowDefinition[];
   glossary: GlossaryEntry[];
   relationships: ContextRelationship[];
+  externals?: ExternalDefinition[];
   metadata: SpecificationMetadata;
+}
+
+export interface ExternalDefinition {
+  id: string;
+  name: string;
+  description: string;
+  gateways?: GatewayDefinition[];
 }
 
 export interface SpecificationMetadata {

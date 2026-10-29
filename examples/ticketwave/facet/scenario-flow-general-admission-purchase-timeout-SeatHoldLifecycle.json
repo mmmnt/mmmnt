@@ -7,7 +7,7 @@
   "description": "Timeout scenario: saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld; the domain flow stops at Seat selection and hold",
   "given": "A event discovery scenario is initiated",
   "when": "Saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld",
-  "then": "Saga SeatHoldLifecycle times out and compensates: Release held seats back to the pool and notify customer",
+  "then": "Saga SeatHoldLifecycle times out and compensates: on ExpireHold issues ReleaseHold",
   "expectedPath": [
     "moment-0-Event-discovery::catalog::PublishEvent::main",
     "moment-0-Event-discovery::catalog::EventPublished::main",
@@ -184,7 +184,7 @@
       "timestamp": "2026-01-01T10:00:08.000Z",
       "version": 1,
       "payload": {
-        "description": "Release held seats back to the pool and notify customer"
+        "description": "on ExpireHold issues ReleaseHold"
       }
     }
   ]

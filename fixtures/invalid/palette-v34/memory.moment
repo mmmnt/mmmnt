@@ -1,0 +1,17 @@
+// ADR-038 invalid exemplar: V34 — an orchestration step on its own command that no policy chains to.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  orchestration Recall
+    command StartRecall
+    command FinishRecall
+    invoked-by StartRecall
+    issues RecordDecision
+    states Recalling -> Recalled on FinishRecall
+    compensation none
+    timeout "none"

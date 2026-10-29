@@ -1,0 +1,16 @@
+// ADR-038 invalid exemplar: V33 — an orchestration that issues no aggregate's command.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  orchestration Recall
+    command StartRecall
+    invoked-by StartRecall
+    issues NoSuchCommand
+    states Recalling
+    compensation none
+    timeout "none"

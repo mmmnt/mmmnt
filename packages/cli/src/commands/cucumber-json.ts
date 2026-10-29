@@ -13,6 +13,7 @@ import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator, generateCucumberJson } from '@mmmnt/generate';
 import { TestRunner } from '@mmmnt/harness';
 import type { Diagnostic } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface CucumberJsonCommandResult {
   readonly success: boolean;
@@ -51,11 +52,9 @@ export async function runCucumberJson(argv: string[]): Promise<CucumberJsonComma
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
-
-  const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

@@ -26,7 +26,7 @@
     "event-storming"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -51,11 +51,11 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
-    "langium-cli": "4.2.0"
+    "langium-cli": "4.4.0"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
-    "langium": "4.2.1",
+    "langium": "4.4.0",
     "yaml": "^2.8.3"
   },
   "publishConfig": {

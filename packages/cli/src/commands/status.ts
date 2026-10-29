@@ -15,6 +15,7 @@ import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 interface StatusSection {
   readonly label: string;
@@ -55,7 +56,7 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
 
   let content: string;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    content = specificationText(resolvedPath, (p) => readFileSync(p, 'utf-8'));
   } catch (err: unknown) {
     return fail(
       `Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`,
@@ -64,7 +65,7 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
 
   const sections: StatusSection[] = [];
 
-  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
   sections.push(buildParseSection(parseResult));
 
   if (parseResult.success && parseResult.ir) {

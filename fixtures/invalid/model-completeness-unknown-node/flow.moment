@@ -1,0 +1,5 @@
+// Project-mode invalid exemplar: PM-07 — a flow node in its own file that names nothing its lane's context declares.
+flow "recall"
+  lane memory "Memory" [Core]
+  moment "A decision is recorded"
+    memory: RecordDecisoin

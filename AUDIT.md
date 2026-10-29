@@ -1,5 +1,7 @@
 # Moment Toolchain Audit — Documented vs Built vs Working
 
+> **Historical record.** This audit describes v0.3.1 as of July 14, 2026. Many gaps it lists have since been closed; current behavior is documented in the package READMEs and the wiki, and changes are recorded in each package's `CHANGELOG.md`.
+
 **Date:** 2026-07-14
 **Version audited:** v0.3.1, built from `main` @ `077e956` (12/12 packages compile clean, ~17s)
 **Method:** End-to-end execution of every CLI command against a purpose-built pseudo-product

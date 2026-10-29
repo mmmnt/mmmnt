@@ -1,0 +1,17 @@
+// ADR-038 invalid exemplar: V31 — an orchestration command that emits a domain event.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  orchestration Recall
+    command StartRecall
+      emits DecisionMade
+    invoked-by StartRecall
+    issues RecordDecision
+    states Recalling
+    compensation none
+    timeout "none"

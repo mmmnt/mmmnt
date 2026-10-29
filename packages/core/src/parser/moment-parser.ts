@@ -2,6 +2,7 @@ import {
   inject,
   createDefaultCoreModule,
   createDefaultSharedCoreModule,
+  DocumentValidator,
   EmptyFileSystem,
   URI,
 } from 'langium';
@@ -9,11 +10,31 @@ import { MomentGeneratedModule, MomentGeneratedSharedModule } from '../generated
 import { MomentModule, registerMomentValidationChecks } from '../moment-module.js';
 import type { MomentFile } from '../generated/ast.js';
 import type { ParseResult, Diagnostic } from '../ir/index.js';
+import { validateModelCompleteness } from '../validation/model-completeness.js';
+import { validatePaletteConformance } from '../validation/palette-conformance.js';
 import { astToIr } from './ast-to-ir.js';
 import { buildCrossFileContext } from '../validation/moment-validator.js';
 import { SchemaValidator } from '../services/schema-validator.js';
 import type { MomentAddedServices } from '../validation/moment-validator.js';
 import type { LangiumCoreServices } from 'langium';
+
+/**
+ * LSP 3.18 (Langium 4.4) lets a diagnostic message be MarkupContent. Moment's validator emits plain
+ * strings; take the text of markup if one ever arrives so the IR's Diagnostic stays a string.
+ */
+function messageText(message: string | { value: string }): string {
+  return typeof message === 'string' ? message : message.value;
+}
+
+const SYNTAX_CODES: ReadonlySet<unknown> = new Set([
+  DocumentValidator.LexingError,
+  DocumentValidator.ParsingError,
+]);
+
+const isSyntaxDiagnostic = (d: { data?: unknown }): boolean =>
+  typeof d.data === 'object' &&
+  d.data !== null &&
+  SYNTAX_CODES.has((d.data as { code?: unknown }).code);
 
 /** Spec name = file basename without its extension (M-P12). */
 function specNameFromPath(filePath: string): string {
@@ -93,20 +114,23 @@ export class MomentParser {
               }
             : undefined,
       })),
-      // LSP validation diagnostics use 0-based positions; SourceLocation is 1-based.
-      ...(doc.diagnostics ?? []).map((d) => ({
-        severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
-        message: d.message,
-        source: d.range
-          ? {
-              file,
-              line: d.range.start.line + 1,
-              column: d.range.start.character + 1,
-              endLine: d.range.end.line + 1,
-              endColumn: d.range.end.character + 1,
-            }
-          : undefined,
-      })),
+      // LSP validation diagnostics use 0-based positions; SourceLocation is 1-based. Langium repeats the
+      // lexer and parser errors among them; those are reported above.
+      ...(doc.diagnostics ?? [])
+        .filter((d) => !isSyntaxDiagnostic(d))
+        .map((d) => ({
+          severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
+          message: messageText(d.message),
+          source: d.range
+            ? {
+                file,
+                line: d.range.start.line + 1,
+                column: d.range.start.character + 1,
+                endLine: d.range.end.line + 1,
+                endColumn: d.range.end.character + 1,
+              }
+            : undefined,
+        })),
     ];
 
     const hasError = diagnostics.some((d) => d.severity === 'error');
@@ -127,9 +151,14 @@ export class MomentParser {
         // specific text range — fabricating an offset would be untruthful.
         ...schemaResult.diagnostics.map((d) => ({
           severity: 'warning' as const,
-          message: d.message,
+          message: messageText(d.message),
           ruleId: d.ruleId,
         })),
+        // V22–V28 (ADR-037): a file alone cannot see its siblings, so these are advisories here and
+        // errors only over a merged project (ProjectLoader).
+        ...validateModelCompleteness(ir).map((d) => ({ severity: 'warning' as const, ...d })),
+        // V29–V37 (ADR-038), likewise.
+        ...validatePaletteConformance(ir).map((d) => ({ severity: 'warning' as const, ...d })),
       );
     }
 

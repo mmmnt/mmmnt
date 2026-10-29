@@ -197,67 +197,167 @@ describe('Moment Grammar > Spatial Constructs', () => {
     }
   });
 
-  it('parses saga with trigger, states, compensation, timeout', async () => {
+  it('parses an orchestration with its own commands, invoked-by, issues, states, compensation, timeout', async () => {
     const doc = await parse(`
       context "Test" [Core]
-        saga OrderFulfillment
-          trigger PlaceOrder
+        orchestration OrderFulfillment
+          command StartFulfillment
+            input orderId: UUID
+          command CancelFulfillment
+          invoked-by StartFulfillment
+          issues ReserveStock, Carrier.ship
           states Pending -> Reserved -> Shipped -> Complete
-          compensation "Cancel reservation and refund"
+          compensation on CancelFulfillment issues ReleaseStock
           timeout "none"
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
     const member = doc.parseResult.value.contexts[0].members[0];
     expect(member.$type).toBe('SagaDeclaration');
     if (member.$type === 'SagaDeclaration') {
+      expect(member.keyword).toBe('orchestration');
       expect(member.name).toBe('OrderFulfillment');
+      expect(member.commands.map((c) => c.name)).toEqual(['StartFulfillment', 'CancelFulfillment']);
+      expect(member.invokedBy).toBe('StartFulfillment');
+      expect(member.issues.map((c) => [c.target, c.operation])).toEqual([
+        ['ReserveStock', undefined],
+        ['Carrier', 'ship'],
+      ]);
       expect(member.initialState).toBe('Pending');
       expect(member.transitions.map((t) => t.target)).toEqual(['Reserved', 'Shipped', 'Complete']);
-      expect(member.transitions.every((t) => t.event === undefined)).toBe(true);
+      expect(member.compensations.map((c) => [c.command, c.undo.map((u) => u.target)])).toEqual([
+        ['CancelFulfillment', ['ReleaseStock']],
+      ]);
     }
   });
 
-  it('parses saga transitions with per-transition `on` event mapping', async () => {
+  it('parses orchestration steps on its own commands', async () => {
     const doc = await parse(`
       context "Test" [Core]
         saga HoldLifecycle
-          trigger PlaceHold
-          states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertedToReservation
-          compensation "Release the hold"
-          timeout "none"
+          command TrackHold
+          command AwaitConversion
+          command CloseHold
+          invoked-by TrackHold
+          issues ConvertHold
+          states Held -> Converting on AwaitConversion -> Converted on CloseHold -> Expired
+          compensation none
+          timeout P30D
     `);
     expect(doc.parseResult.lexerErrors).toHaveLength(0);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
     const member = doc.parseResult.value.contexts[0].members[0];
     expect(member.$type).toBe('SagaDeclaration');
     if (member.$type === 'SagaDeclaration') {
-      expect(member.initialState).toBe('Held');
-      expect(member.transitions).toHaveLength(2);
-      expect(member.transitions[0].target).toBe('Converting');
-      expect(member.transitions[0].event).toBe('PaymentConfirmed');
-      expect(member.transitions[1].target).toBe('Converted');
-      expect(member.transitions[1].event).toBe('HoldConvertedToReservation');
+      expect(member.keyword).toBe('saga');
+      expect(member.transitions.map((t) => t.command)).toEqual([
+        'AwaitConversion',
+        'CloseHold',
+        undefined,
+      ]);
+      expect(member.compensations.map((c) => c.none)).toEqual([true]);
     }
   });
 
-  it('parses saga with mixed mapped and unmapped transitions', async () => {
+  it('refuses the event-started saga form with prose compensation (ADR-038 §2)', async () => {
     const doc = await parse(`
       context "Test" [Core]
         saga OrderFulfillment
-          trigger PlaceOrder
-          states Pending -> Reserved on InventoryReserved -> Shipped -> Complete on DeliveryConfirmed
+          trigger OrderPlaced
+          states Pending -> Reserved on InventoryReserved
           compensation "Cancel reservation and refund"
-          timeout P30D
+          timeout "none"
+    `);
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+  });
+
+  it('refuses an orchestration with no compensation line (ADR-038 O2)', async () => {
+    const doc = await parse(`
+      context "Test" [Core]
+        orchestration OrderFulfillment
+          command StartFulfillment
+          invoked-by StartFulfillment
+          issues ReserveStock
+          states Pending
+          timeout "none"
+    `);
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+  });
+
+  it('refuses a policy that invokes no command (ADR-038 §1)', async () => {
+    const doc = await parse(`
+      context "Test" [Core]
+        policy ProjectOnOrderPlaced
+          trigger OrderPlaced
+          action "update the order list"
+    `);
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+  });
+
+  it('refuses a condition-triggered policy (ADR-038 §1)', async () => {
+    const doc = await parse(`
+      context "Test" [Core]
+        policy ReEncode
+          trigger condition "the encoder changed"
+          action "re-encode"
+          chains-to Rebuild
+    `);
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+  });
+
+  it('parses aggregate internal state (ADR-038 §3)', async () => {
+    const doc = await parse(`
+      context "Test" [Core]
+        aggregate "Node"
+          identity nodeId: UUID
+          state initial WritesOpen
+          state WritesOpen -> Paused on PauseWrites
+          command PauseWrites
+            emits WritesPaused
+          event WritesPaused
+            state: string
     `);
     expect(doc.parseResult.parserErrors).toHaveLength(0);
-    const member = doc.parseResult.value.contexts[0].members[0];
-    expect(member.$type).toBe('SagaDeclaration');
-    if (member.$type === 'SagaDeclaration') {
-      expect(member.transitions.map((t) => t.event)).toEqual([
-        'InventoryReserved',
-        undefined,
-        'DeliveryConfirmed',
+    const agg = doc.parseResult.value.contexts[0].members[0];
+    if (agg.$type === 'AggregateDeclaration') {
+      expect(agg.states.map((m) => [m.initial, m.name, m.from, m.to, m.command])).toEqual([
+        [true, 'WritesOpen', undefined, undefined, undefined],
+        [false, undefined, 'WritesOpen', 'Paused', 'PauseWrites'],
       ]);
+    }
+  });
+
+  it('parses gateways on an external, a projection and a policy (ADR-038 §4)', async () => {
+    const doc = await parse(`
+      external Hosted "upstream"
+        gateway ReadEnvelope
+          consumes Envelope
+          produces Budget
+      context "Test" [Core]
+        projection ConnectionsList
+          sources ConnectionOpened
+          gateway ResolveConnection
+            consumes ConnectionToken
+            produces Actor
+            description "per request"
+        policy RebuildOnImported
+          trigger SnapshotImported
+          action "rebuild"
+          chains-to Rebuild
+          gateway PickEncoder
+            consumes SnapshotImported
+            produces Encoder
+    `);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    const file = doc.parseResult.value;
+    expect(file.externals[0].gateways.map((g) => g.name)).toEqual(['ReadEnvelope']);
+    const [projection, policy] = file.contexts[0].members;
+    if (projection.$type === 'ProjectionDeclaration') {
+      expect(projection.gateways.map((g) => [g.consumes, g.produces])).toEqual([
+        ['ConnectionToken', 'Actor'],
+      ]);
+    }
+    if (policy.$type === 'PolicyDeclaration') {
+      expect(policy.gateways.map((g) => g.name)).toEqual(['PickEncoder']);
     }
   });
 

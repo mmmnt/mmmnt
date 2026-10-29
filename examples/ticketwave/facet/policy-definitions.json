@@ -1,5 +1,32 @@
 [
   {
+    "name": "TrackHoldOnSeatsHeld",
+    "contextId": "ctx-Inventory",
+    "trigger": "SeatsHeld",
+    "actionDescription": "Track the hold until it converts or expires",
+    "chainsTo": [
+      "TrackHold"
+    ]
+  },
+  {
+    "name": "AwaitConversionOnPaymentConfirmed",
+    "contextId": "ctx-Inventory",
+    "trigger": "PaymentConfirmed",
+    "actionDescription": "The hold's payment is confirmed; await its conversion",
+    "chainsTo": [
+      "AwaitConversion"
+    ]
+  },
+  {
+    "name": "CloseHoldOnConversion",
+    "contextId": "ctx-Inventory",
+    "trigger": "HoldConvertedToReservation",
+    "actionDescription": "The hold became a reservation",
+    "chainsTo": [
+      "CloseHold"
+    ]
+  },
+  {
     "name": "ReplenishOnHoldRelease",
     "contextId": "ctx-Inventory",
     "trigger": "HoldReleased",
@@ -42,6 +69,24 @@
     "actionDescription": "Grant presale access to the customer for the event",
     "chainsTo": [
       "RequestHold"
+    ]
+  },
+  {
+    "name": "TrackTransferOnTransferInitiated",
+    "contextId": "ctx-Delivery",
+    "trigger": "TransferInitiated",
+    "actionDescription": "Track the transfer until it is accepted, declined, cancelled or expires",
+    "chainsTo": [
+      "TrackTransfer"
+    ]
+  },
+  {
+    "name": "CompleteTransferOnTransferAccepted",
+    "contextId": "ctx-Delivery",
+    "trigger": "TransferAccepted",
+    "actionDescription": "The recipient accepted; complete the transfer",
+    "chainsTo": [
+      "CompleteTransfer"
     ]
   },
   {

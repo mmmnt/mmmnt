@@ -55,7 +55,7 @@ function resolveSharedCaseFlow(
 
   for (const [, ctx] of ctxMap) {
     for (const saga of ctx.sagas) {
-      if (owningFlowIdx(saga.trigger) === flowIdx) sagas.add(saga.id);
+      if (owningFlowIdx(saga.startEvent ?? saga.trigger) === flowIdx) sagas.add(saga.id);
     }
     for (const pol of ctx.policies) {
       if (pol.chainsTo && owningFlowIdx(pol.trigger) === flowIdx) policies.add(pol.id);
@@ -120,20 +120,23 @@ function buildSagaInitCase(
   ctx: ContextDefinition,
   saga: ContextDefinition['sagas'][number],
 ): TestCaseDefinition {
+  const start = saga.startEvent ?? saga.trigger;
   return {
     momentId: `saga-${saga.name}-initiated`,
-    momentName: `saga ${saga.name} starts on ${saga.trigger}`,
+    momentName: saga.commands
+      ? `saga ${saga.name} is invoked by ${saga.trigger}`
+      : `saga ${saga.name} starts on ${saga.trigger}`,
     assertions: [
       {
         crossingId: `saga-init-${saga.name}`,
         sourceContext: ctx.id,
         targetContext: ctx.id,
-        schemaContract: { eventType: saga.trigger, expectedFields: [] },
+        schemaContract: { eventType: start, expectedFields: [] },
         assertionType: 'saga',
       },
     ],
     setupSteps: [
-      { contextName: ctx.name, aggregateName: saga.name, precondition: `${saga.trigger} occurs` },
+      { contextName: ctx.name, aggregateName: saga.name, precondition: `${start} occurs` },
     ],
   };
 }

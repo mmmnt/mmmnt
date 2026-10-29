@@ -17,10 +17,10 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
-import { MomentParser } from '@mmmnt/core';
 import { SiftEventStreamReader } from '@mmmnt/sync';
-import type { IntermediateRepresentation } from '@mmmnt/core';
+import type { IntermediateRepresentation, ParseResult } from '@mmmnt/core';
 import type { CascadeCategory } from '@mmmnt/sync';
+import { isDirectory, loadSpecification } from '../lib/load-specification.js';
 
 type ReconcileOutcome = 'APPLIED' | 'DRIFT' | 'BREAKING';
 
@@ -68,7 +68,9 @@ function validateArgs(
   positionals: string[],
 ): ReconcileResult | null {
   if (!positionals[0])
-    return fail('Usage: moment reconcile [--local | --event <cascade.json>] <file.moment>');
+    return fail(
+      'Usage: moment reconcile [--local | --event <cascade.json>] <file.moment | model-dir>',
+    );
   if (!values.local && !values.event) return fail('Error: specify --local or --event <path>');
   if (values.local && values.event)
     return fail('Error: --local and --event are mutually exclusive');
@@ -80,19 +82,22 @@ async function parseSpec(
 ): Promise<ReconcileResult | { ir: IntermediateRepresentation }> {
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  let content: string;
+  let parseResult: ParseResult;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    parseResult = await loadSpecification(resolvedPath);
   } catch (err: unknown) {
     return fail(
       `Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
-
-  const parseResult = await new MomentParser().parseContent(content, resolvedPath);
   if (!parseResult.success) return fail('Error: Spec has parse errors — fix before reconciling');
 
   return { ir: parseResult.ir! };
+}
+
+/** A project directory holds its own `.domain/`; a single file's sits beside it. */
+function projectDirOf(specPath: string): string {
+  return isDirectory(specPath) ? specPath : dirname(specPath);
 }
 
 function reconcileLocal(
@@ -100,7 +105,7 @@ function reconcileLocal(
   specPath: string,
   asJson: boolean,
 ): ReconcileResult {
-  const projectDir = dirname(specPath);
+  const projectDir = projectDirOf(specPath);
   const domainDir = join(projectDir, '.domain');
 
   if (!existsSync(domainDir)) {
@@ -145,7 +150,7 @@ function reconcileFromEvent(
   const elements = validateAffectedElements(eventPayload.affectedElements);
   if (typeof elements === 'string') return fail(elements);
 
-  const projectDir = dirname(specPath);
+  const projectDir = projectDirOf(specPath);
   const category = classifyAffectedElements(ir, elements);
   const outcome = categoryToOutcome(category);
 
@@ -164,7 +169,7 @@ function validateAffectedElements(value: unknown): string[] | string {
 
 function classifyDrift(ir: IntermediateRepresentation, specPath: string): CascadeCategory {
   try {
-    const domainDir = join(dirname(specPath), '.domain');
+    const domainDir = join(projectDirOf(specPath), '.domain');
     const reader = new SiftEventStreamReader();
     const readResult = reader.read(domainDir);
 

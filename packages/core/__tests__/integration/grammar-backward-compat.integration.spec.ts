@@ -7,8 +7,7 @@
  * `sequence` indexes stay within contextEntries/branches bounds.
  *
  * Swept sources: repo fixtures (valid/**, including unified/vet-clinic),
- * examples/ticketwave, and — when the sibling checkout exists — all of
- * howie's .moment files.
+ * and examples/ticketwave.
  */
 import { MomentParser } from '../../src/index.js';
 import type { IntermediateRepresentation } from '../../src/index.js';
@@ -18,7 +17,6 @@ import { resolve, join } from 'node:path';
 const REPO_ROOT = resolve(import.meta.dirname, '../../../..');
 const FIXTURES_VALID = resolve(REPO_ROOT, 'fixtures/valid');
 const EXAMPLES = resolve(REPO_ROOT, 'examples');
-const HOWIE_MOMENTS = resolve(REPO_ROOT, '..', 'howie/moments');
 
 function collectMomentFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
@@ -78,7 +76,6 @@ describe('Grammar backward compatibility (saga `on` + sequence, additive only)',
   const suites: [name: string, dir: string][] = [
     ['repo fixtures (valid, incl. vet-clinic)', FIXTURES_VALID],
     ['examples (ticketwave)', EXAMPLES],
-    ['howie moments (sibling checkout)', HOWIE_MOMENTS],
   ];
 
   for (const [name, dir] of suites) {

@@ -48,6 +48,15 @@ export type {
   EventTypeDefinition,
 } from './services/ast-diff-engine.js';
 export type { DeprecationMetadata } from './services/proposal-generator.js';
+export { planDecision } from './services/sync-decision.js';
+export { impliedSpecEdit, locateDeclarations } from './services/spec-edit.js';
+export type { ImpliedSpecEdit, DeclarationLocation } from './services/spec-edit.js';
+export type {
+  DecisionKind,
+  DecisionInput,
+  DecisionPlan,
+  DecisionRefusal,
+} from './services/sync-decision.js';
 
 export { PushFlowSaga } from './sagas/push-flow-saga.js';
 export type {
@@ -106,6 +115,16 @@ export type {
 export { LocalGitArtifactStore } from './infrastructure/index.js';
 export { LocalGitArtifactWriter } from './infrastructure/index.js';
 export { LocalGitRemoteManager } from './infrastructure/index.js';
+export {
+  JsonlSyncLogStore,
+  SyncLogCorruptedError,
+  SYNC_STATE_LOG,
+  IMPLEMENTATION_FEEDBACK_LOG,
+  PUSH_FLOW_LOG,
+} from './infrastructure/index.js';
+export type { SyncLogs, SyncLogAppend } from './infrastructure/index.js';
+export { resolveRepoIdentity, commitPathsOnly } from './infrastructure/index.js';
+export type { RepoIdentity, CommitPathsInput } from './infrastructure/index.js';
 export {
   EnvCredentialStrategy,
   GhCliCredentialStrategy,

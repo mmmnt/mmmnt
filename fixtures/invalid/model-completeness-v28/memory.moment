@@ -1,0 +1,14 @@
+// ADR-037 invalid exemplar: V28 — a service input that is neither an event nor a value object.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+    value-object Actor
+      sub: string
+  service ResolveConnection
+    consumes Request
+    produces Actor
+    description "resolve"

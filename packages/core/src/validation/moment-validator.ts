@@ -30,6 +30,8 @@ import {
   isCommandDeclaration,
   isDomainEventDeclaration,
   isPolicyDeclaration,
+  isProjectionDeclaration,
+  isQueryDeclaration,
   isReturnsTo,
   isMomentDeclaration,
   isFlowDeclaration,
@@ -52,7 +54,7 @@ export interface CrossFileContext {
     string,
     {
       name: string;
-      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'value-object';
+      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'query' | 'value-object';
     }[]
   >;
   declaredSagas: string[];
@@ -73,6 +75,37 @@ function unquote(s: string): string {
  * these checks applied — callers only set the context when the file actually
  * declares contexts.
  */
+type BuildingBlock =
+  CrossFileContext['declaredBuildingBlocks'] extends Map<string, (infer B)[]> ? B : never;
+
+/** The building blocks one aggregate declares; its events are also listed in `events`. */
+function aggregateBlocks(agg: AggregateDeclaration, events: string[]): BuildingBlock[] {
+  const blocks: BuildingBlock[] = [];
+  for (const aggMember of agg.members) {
+    if (isCommandDeclaration(aggMember)) {
+      blocks.push({ name: aggMember.name, kind: 'command' });
+    } else if (isDomainEventDeclaration(aggMember)) {
+      events.push(aggMember.name);
+      blocks.push({ name: aggMember.name, kind: 'event' });
+    } else if (isValueObjectDeclaration(aggMember)) {
+      blocks.push({ name: aggMember.name, kind: 'value-object' });
+    }
+  }
+  return blocks;
+}
+
+/** The building block a context-level member declares, if it is one a flow node may name. */
+function contextMemberBlock(
+  member: ContextDeclaration['members'][number],
+): BuildingBlock | undefined {
+  if (isPolicyDeclaration(member)) return { name: member.name, kind: 'policy' };
+  if (isSagaDeclaration(member)) return { name: member.name, kind: 'saga' };
+  if (isProjectionDeclaration(member)) return { name: member.name, kind: 'projection' };
+  if (isQueryDeclaration(member)) return { name: member.name, kind: 'query' };
+  if (isValueObjectDeclaration(member)) return { name: member.name, kind: 'value-object' };
+  return undefined;
+}
+
 export function buildCrossFileContext(file: MomentFile): CrossFileContext {
   const declaredContextNames: string[] = [];
   const declaredEvents = new Map<string, string[]>();
@@ -83,29 +116,16 @@ export function buildCrossFileContext(file: MomentFile): CrossFileContext {
     const contextName = unquote(ctx.name);
     declaredContextNames.push(contextName);
     const events: string[] = [];
-    const blocks: {
-      name: string;
-      kind: 'command' | 'event' | 'policy' | 'saga' | 'projection' | 'value-object';
-    }[] = [];
+    const blocks: BuildingBlock[] = [];
 
     for (const member of ctx.members) {
       if (isAggregateDeclaration(member)) {
-        for (const aggMember of member.members) {
-          if (isCommandDeclaration(aggMember)) {
-            blocks.push({ name: aggMember.name, kind: 'command' });
-          } else if (isDomainEventDeclaration(aggMember)) {
-            events.push(aggMember.name);
-            blocks.push({ name: aggMember.name, kind: 'event' });
-          } else if (isValueObjectDeclaration(aggMember)) {
-            blocks.push({ name: aggMember.name, kind: 'value-object' });
-          }
-        }
-      } else if (isPolicyDeclaration(member)) {
-        blocks.push({ name: member.name, kind: 'policy' });
-      } else if (isSagaDeclaration(member)) {
-        blocks.push({ name: member.name, kind: 'saga' });
-        declaredSagas.push(member.name);
+        blocks.push(...aggregateBlocks(member, events));
+        continue;
       }
+      const block = contextMemberBlock(member);
+      if (block) blocks.push(block);
+      if (block?.kind === 'saga') declaredSagas.push(block.name);
     }
 
     declaredEvents.set(contextName, events);
@@ -137,7 +157,6 @@ export function registerMomentValidationChecks(
     AnnotationDeclaration: validator.checkAnnotationName,
     ContextDeclaration: validator.checkTrailingAnnotation,
     AggregateDeclaration: validator.checkTrailingAnnotation,
-    SagaDeclaration: validator.checkSagaTransitionEvents,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
@@ -471,63 +490,6 @@ export class MomentValidator {
   }
 
   // =========================================================================
-  // V21: saga transition event unknown -> warning (M-S6)
-  // A `-> Target on Event` mapping whose event is neither declared by any
-  // context in the file nor placed in any flow is probably a typo. Guarded
-  // like the other cross-file checks: only meaningful when the file declares
-  // contexts (sagas always live inside one); an `on` event that only appears
-  // as a flow node placement is accepted, so mixed/flow-heavy specs that
-  // never re-declare events in contexts do not warn.
-  // =========================================================================
-  checkSagaTransitionEvents(saga: SagaDeclaration, accept: ValidationAcceptor): void {
-    const file = getMomentFileFromNode(saga);
-    if (!file || file.contexts.length === 0) return;
-
-    const knownEvents = this.collectDeclaredEventNames(file);
-    const placedNodeNames = this.collectPlacedNodeNames(file);
-
-    for (const transition of saga.transitions) {
-      const event = transition.event;
-      if (event === undefined) continue;
-      if (!knownEvents.has(event) && !placedNodeNames.has(event)) {
-        accept(
-          'warning',
-          `V21: Saga transition event '${event}' is not declared by any context in this file and is not placed in any flow — possible typo.`,
-          { node: transition, property: 'event' },
-        );
-      }
-    }
-  }
-
-  /** Event names declared by any aggregate in any context of the file. */
-  private collectDeclaredEventNames(file: MomentFile): Set<string> {
-    const names = new Set<string>();
-    for (const ctx of file.contexts) {
-      for (const member of ctx.members) {
-        if (!isAggregateDeclaration(member)) continue;
-        for (const aggMember of member.members) {
-          if (isDomainEventDeclaration(aggMember)) names.add(aggMember.name);
-        }
-      }
-    }
-    return names;
-  }
-
-  /** Node names placed anywhere in the file's flows (main lists and when blocks). */
-  private collectPlacedNodeNames(file: MomentFile): Set<string> {
-    const names = new Set<string>();
-    for (const flow of file.flows) {
-      for (const moment of flow.moments) {
-        for (const node of moment.nodes) names.add(node.nodeName);
-        for (const wb of moment.whenBlocks) {
-          for (const node of wb.nodes) names.add(node.nodeName);
-        }
-      }
-    }
-    return names;
-  }
-
-  // =========================================================================
   // V17: returns-to depth capped at 1 -> warning
   // =========================================================================
   checkReturnsToDepth(flow: FlowDeclaration, accept: ValidationAcceptor): void {
@@ -582,9 +544,10 @@ export class MomentValidator {
 
   // SP-01: Flow lane references must match declared context names.
   // Branch-lanes are outcome routes (e.g. "Refusals"), not contexts — skipped.
+  // External lanes name an external system, which V27 resolves (ADR-037 §6) — skipped.
   checkSP01(flow: FlowDeclaration, accept: ValidationAcceptor, ctx: CrossFileContext): void {
     for (const lane of flow.lanes) {
-      if (lane.isBranch) continue;
+      if (lane.isBranch || lane.classification?.value === 'External') continue;
       if (!ctx.declaredContextNames.includes(lane.label.replace(/^"|"$/g, ''))) {
         accept('error', 'SP-01: Lane label does not match any declared context name.', {
           node: lane,

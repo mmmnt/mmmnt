@@ -22,6 +22,9 @@ import { MomentParser } from '../parser/index.js';
 import type { IntermediateRepresentation, Diagnostic, SpecificationMetadata } from '../ir/index.js';
 import { mergeIrs } from './ir-merger.js';
 import { validateCrossFileReferences } from './cross-file-validator.js';
+import { validateModelCompleteness } from '../validation/model-completeness.js';
+import { validatePaletteConformance } from '../validation/palette-conformance.js';
+import { bindRelayEvents } from '../parser/relay-events.js';
 
 export interface ProjectLoadResult {
   /** True if all files parsed successfully and cross-file validation passed. */
@@ -35,6 +38,9 @@ export interface ProjectLoadResult {
   /** Number of files that had parse errors. */
   readonly filesErrored: number;
 }
+
+// V22–V37 (ADR-037, ADR-038): advisories per file, errors over the merge.
+const isCompletenessRule = (d: Diagnostic): boolean => /^V(2[2-9]|3[0-7])$/.test(d.ruleId ?? '');
 
 export class ProjectLoader {
   private readonly parser: MomentParser;
@@ -75,12 +81,30 @@ export class ProjectLoader {
     }
 
     // Phase 2: Merge all successful IRs.
-    const mergeResult = mergeIrs(successfulIrs, metadataOverride);
+    const merged = mergeIrs(successfulIrs, metadataOverride);
+    const mergeResult = {
+      ...merged,
+      ir: { ...merged.ir, contexts: bindRelayEvents(merged.ir.contexts) },
+    };
     allDiagnostics.push(...mergeResult.diagnostics);
 
-    // Phase 3: Cross-file validation on the merged IR.
+    // Phase 3: Cross-file validation on the merged IR. V22–V37 are advisories per file and errors over
+    // the merge, which supersedes them.
     const validationResult = validateCrossFileReferences(mergeResult.ir);
-    allDiagnostics.push(...validationResult.diagnostics);
+    const perFile = allDiagnostics.filter((d) => !isCompletenessRule(d));
+    allDiagnostics.length = 0;
+    allDiagnostics.push(
+      ...perFile,
+      ...validationResult.diagnostics,
+      ...validateModelCompleteness(mergeResult.ir).map((d) => ({
+        severity: 'error' as const,
+        ...d,
+      })),
+      ...validatePaletteConformance(mergeResult.ir).map((d) => ({
+        severity: 'error' as const,
+        ...d,
+      })),
+    );
 
     const hasErrors = allDiagnostics.some((d) => d.severity === 'error');
 
@@ -118,7 +142,7 @@ export class ProjectLoader {
       };
     }
 
-    const result = await this.parser.parseContent(content);
+    const result = await this.parser.parseContent(content, filePath);
 
     // Attach the file path to any diagnostics that don't already have one.
     const diagnostics: Diagnostic[] = result.diagnostics.map((d) => ({

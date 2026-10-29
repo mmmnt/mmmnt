@@ -5,7 +5,7 @@ import Footer from '../components/Footer.astro';
 
 const title = 'Examples';
 const description =
-  'Real .moment specs and the Facet flows they render — commerce, payments sagas, multi-context onboarding. The diagram is a build artifact of the spec.';
+  'Real .moment specs and the Facet flows they render — commerce, a payments orchestration, multi-context onboarding. The diagram is a build artifact of the spec.';
 ---
 
 <Base title={title} description={description}>
@@ -65,25 +65,7 @@ const description =
             order.moment
           </div>
           <pre
-            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span
-              style="color:#22D3EE;">context</span
-            > <span style="color:#9DE6C6;">"Ordering"</span> <span style="color:#5b7077;">[Core]</span
-            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">OrderPlaced</span
-            >{'\n    orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    items: '}<span
-              style="color:#8FD3FF;">LineItem[]</span
-            >{'\n\n'}<span style="color:#22D3EE;">context</span> <span style="color:#9DE6C6;">"Fulfillment"</span
-            > <span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">command</span
-            > <span style="color:#E7C9A0;">InitiateFulfillment</span>{'\n\n'}<span
-              style="color:#22D3EE;">flow</span
-            > <span style="color:#9DE6C6;">"order-placed"</span>{'\n  '}<span style="color:#22D3EE;">moment</span
-            > <span style="color:#9DE6C6;">"Submission"</span>{'\n    ordering: '}<span
-              style="color:#E7C9A0;">OrderPlaced</span
-            >{'\n      '}<span style="color:#C58CFF;">crosses-to</span>{' fulfillment\n        '}<span
-              style="color:#5b7077;">via</span
-            >{' CustomerSupplier\n        '}<span style="color:#5b7077;">contract</span
-            >{' { orderId, items }\n      '}<span style="color:#C58CFF;">triggers</span> <span
-              style="color:#E7C9A0;">InitiateFulfillment</span
-            ></pre>
+            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Ordering"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Order"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">PlaceOrder</span>{'\n      '}<span style="color:#5b7077;">input</span>{' items: '}<span style="color:#8FD3FF;">LineItem[]</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">OrderPlaced</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">OrderPlaced</span>{'\n      orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n      items: '}<span style="color:#8FD3FF;">LineItem[]</span>{'\n  '}<span style="color:#22D3EE;">value-object</span>{' '}<span style="color:#E7C9A0;">LineItem</span>{'\n    sku: '}<span style="color:#8FD3FF;">string</span>{'\n    quantity: '}<span style="color:#8FD3FF;">number</span>{'\n\n'}<span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Fulfillment"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Shipment"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' shipmentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">InitiateFulfillment</span>{'\n      '}<span style="color:#5b7077;">input</span>{' orderId: '}<span style="color:#8FD3FF;">UUID</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">FulfillmentInitiated</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">FulfillmentInitiated</span>{'\n      shipmentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n\n'}<span style="color:#22D3EE;">flow</span>{' '}<span style="color:#9DE6C6;">"order-placed"</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' ordering '}<span style="color:#9DE6C6;">"Ordering"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' fulfillment '}<span style="color:#9DE6C6;">"Fulfillment"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Submission"</span>{'\n    ordering: '}<span style="color:#E7C9A0;">OrderPlaced</span>{' '}<span style="color:#C58CFF;">crosses-to</span>{' fulfillment '}<span style="color:#5b7077;">via</span>{' CustomerSupplier\n      '}<span style="color:#5b7077;">contract</span>{'\n        orderId: '}<span style="color:#8FD3FF;">UUID</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n        items: '}<span style="color:#8FD3FF;">LineItem[]</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n      '}<span style="color:#C58CFF;">triggers</span>{' '}<span style="color:#E7C9A0;">InitiateFulfillment</span></pre>
         </div>
         <div
           style="background:#080C11; border:1px solid rgba(34,211,238,0.22); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;"
@@ -98,7 +80,7 @@ const description =
               style="display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7fbf9a;"
               ><span
                 style="width:6px;height:6px;border-radius:50%;background:#7fbf9a;animation:exPulse 1.8s ease infinite;"
-              ></span>3/3 contracts</span
+              ></span>1/1 contracts</span
             >
           </div>
           <div style="padding:18px; flex:1; display:flex; align-items:center;">
@@ -197,7 +179,7 @@ const description =
         >
         <span style="width:1px; height:14px; background:rgba(255,255,255,0.14);"></span>
         <h2 style="font-weight:600; font-size:24px; letter-spacing:-.01em; margin:0; color:#F2FBFC;">
-          A saga with compensation
+          An orchestration with compensation
         </h2>
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch;">
@@ -210,19 +192,7 @@ const description =
             payment.moment
           </div>
           <pre
-            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span
-              style="color:#22D3EE;">context</span
-            > <span style="color:#9DE6C6;">"Payments"</span> <span style="color:#5b7077;">[Core]</span
-            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">PaymentAuthorized</span
-            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">PaymentCaptured</span
-            >{'\n  '}<span style="color:#22D3EE;">event</span> <span style="color:#E7C9A0;">PaymentRefunded</span
-            >{'\n\n'}<span style="color:#22D3EE;">flow</span> <span style="color:#9DE6C6;">"settlement"</span
-            >{'\n  '}<span style="color:#22D3EE;">saga</span> <span style="color:#9DE6C6;">"capture-or-refund"</span
-            >{'\n    '}<span style="color:#22D3EE;">moment</span> <span style="color:#9DE6C6;">"Authorize"</span
-            >{'\n      payments: '}<span style="color:#E7C9A0;">PaymentAuthorized</span>{'\n        '}<span
-              style="color:#C58CFF;">triggers</span
-            > <span style="color:#E7C9A0;">CapturePayment</span>{'\n    '}<span style="color:#5b7077;">until</span
-            >{' PaymentCaptured\n        '}<span style="color:#5b7077;">|</span>{' PaymentRefunded'}</pre>
+            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Payments"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Payment"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' paymentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">AuthorizePayment</span>{'\n      '}<span style="color:#5b7077;">input</span>{' amount: '}<span style="color:#8FD3FF;">Money</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">PaymentAuthorized</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">CapturePayment</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">PaymentCaptured</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">RefundPayment</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">PaymentRefunded</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">PaymentAuthorized</span>{'\n      paymentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">PaymentCaptured</span>{'\n      paymentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">PaymentRefunded</span>{'\n      paymentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n\n  '}<span style="color:#22D3EE;">orchestration</span>{' '}<span style="color:#E7C9A0;">Settlement</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">StartSettlement</span>{'\n      '}<span style="color:#5b7077;">input</span>{' paymentId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">CompleteSettlement</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">AbortSettlement</span>{'\n    '}<span style="color:#5b7077;">invoked-by</span>{' '}<span style="color:#E7C9A0;">StartSettlement</span>{'\n    '}<span style="color:#5b7077;">issues</span>{' '}<span style="color:#E7C9A0;">AuthorizePayment</span>{', '}<span style="color:#E7C9A0;">CapturePayment</span>{'\n    '}<span style="color:#5b7077;">states</span>{' Capturing -> Settled '}<span style="color:#5b7077;">on</span>{' CompleteSettlement\n    '}<span style="color:#5b7077;">compensation</span>{' '}<span style="color:#5b7077;">on</span>{' AbortSettlement '}<span style="color:#5b7077;">issues</span>{' '}<span style="color:#E7C9A0;">RefundPayment</span>{'\n    '}<span style="color:#5b7077;">timeout</span>{' P1D\n\n  '}<span style="color:#22D3EE;">policy</span>{' '}<span style="color:#E7C9A0;">CompleteOnCaptured</span>{'\n    '}<span style="color:#5b7077;">trigger</span>{' '}<span style="color:#E7C9A0;">PaymentCaptured</span>{'\n    '}<span style="color:#5b7077;">action</span>{' '}<span style="color:#9DE6C6;">"the payment is captured"</span>{'\n    '}<span style="color:#5b7077;">chains-to</span>{' '}<span style="color:#E7C9A0;">CompleteSettlement</span>{'\n\n'}<span style="color:#22D3EE;">flow</span>{' '}<span style="color:#9DE6C6;">"settlement"</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' payments '}<span style="color:#9DE6C6;">"Payments"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Authorize"</span>{'\n    payments: '}<span style="color:#E7C9A0;">AuthorizePayment</span>{'\n    payments: '}<span style="color:#E7C9A0;">PaymentAuthorized</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Capture or refund"</span>{' '}<span style="color:#5b7077;">[branch]</span>{'\n    '}<span style="color:#22D3EE;">when</span>{' captured\n      payments: '}<span style="color:#E7C9A0;">CapturePayment</span>{'\n      payments: '}<span style="color:#E7C9A0;">PaymentCaptured</span>{' '}<span style="color:#5b7077;">[terminal]</span>{'\n    '}<span style="color:#22D3EE;">when</span>{' declined\n      payments: '}<span style="color:#E7C9A0;">RefundPayment</span>{'\n      payments: '}<span style="color:#E7C9A0;">PaymentRefunded</span>{' '}<span style="color:#5b7077;">[terminal]</span></pre>
         </div>
         <div
           style="background:#080C11; border:1px solid rgba(34,211,238,0.22); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;"
@@ -301,7 +271,7 @@ const description =
                 y="120"
                 font-family="JetBrains Mono, monospace"
                 font-size="9"
-                fill="#5b7077">until — either terminal</text
+                fill="#5b7077">either branch is terminal</text
               >
             </svg>
           </div>
@@ -331,22 +301,7 @@ const description =
             onboarding.moment
           </div>
           <pre
-            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span
-              style="color:#22D3EE;">flow</span
-            > <span style="color:#9DE6C6;">"customer-onboarding"</span>{'\n  '}<span
-              style="color:#22D3EE;">moment</span
-            > <span style="color:#9DE6C6;">"SignUp"</span>{'\n    identity: '}<span
-              style="color:#E7C9A0;">AccountCreated</span
-            >{'\n      '}<span style="color:#C58CFF;">crosses-to</span>{' billing\n        '}<span
-              style="color:#5b7077;">contract</span
-            >{' { accountId, plan }\n  '}<span style="color:#22D3EE;">moment</span> <span
-              style="color:#9DE6C6;">"Provision"</span
-            >{'\n    billing: '}<span style="color:#E7C9A0;">SubscriptionStarted</span>{'\n      '}<span
-              style="color:#C58CFF;">crosses-to</span
-            >{' workspace\n        '}<span style="color:#5b7077;">contract</span
-            >{' { accountId, seats }\n      '}<span style="color:#C58CFF;">triggers</span> <span
-              style="color:#E7C9A0;">ProvisionWorkspace</span
-            ></pre>
+            style="margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.8; color:#C2C6D2; overflow:auto;"><span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Identity"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Account"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' accountId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">CreateAccount</span>{'\n      '}<span style="color:#5b7077;">input</span>{' plan: '}<span style="color:#8FD3FF;">string</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">AccountCreated</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">AccountCreated</span>{'\n      accountId: '}<span style="color:#8FD3FF;">UUID</span>{'\n      plan: '}<span style="color:#8FD3FF;">string</span>{'\n\n'}<span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Billing"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Subscription"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' subscriptionId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">StartSubscription</span>{'\n      '}<span style="color:#5b7077;">input</span>{' accountId: '}<span style="color:#8FD3FF;">UUID</span>{', plan: '}<span style="color:#8FD3FF;">string</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">SubscriptionStarted</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">SubscriptionStarted</span>{'\n      accountId: '}<span style="color:#8FD3FF;">UUID</span>{'\n      seats: '}<span style="color:#8FD3FF;">number</span>{'\n\n'}<span style="color:#22D3EE;">context</span>{' '}<span style="color:#9DE6C6;">"Workspace"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">aggregate</span>{' '}<span style="color:#9DE6C6;">"Workspace"</span>{'\n    '}<span style="color:#5b7077;">identity</span>{' workspaceId: '}<span style="color:#8FD3FF;">UUID</span>{'\n    '}<span style="color:#22D3EE;">command</span>{' '}<span style="color:#E7C9A0;">ProvisionWorkspace</span>{'\n      '}<span style="color:#5b7077;">input</span>{' accountId: '}<span style="color:#8FD3FF;">UUID</span>{', seats: '}<span style="color:#8FD3FF;">number</span>{'\n      '}<span style="color:#5b7077;">emits</span>{' '}<span style="color:#E7C9A0;">WorkspaceProvisioned</span>{'\n    '}<span style="color:#22D3EE;">event</span>{' '}<span style="color:#E7C9A0;">WorkspaceProvisioned</span>{'\n      workspaceId: '}<span style="color:#8FD3FF;">UUID</span>{'\n\n'}<span style="color:#22D3EE;">flow</span>{' '}<span style="color:#9DE6C6;">"customer-onboarding"</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' accounts '}<span style="color:#9DE6C6;">"Identity"</span>{' '}<span style="color:#5b7077;">[Core]</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' billing '}<span style="color:#9DE6C6;">"Billing"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">lane</span>{' workspace '}<span style="color:#9DE6C6;">"Workspace"</span>{' '}<span style="color:#5b7077;">[Supporting]</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Sign up"</span>{'\n    accounts: '}<span style="color:#E7C9A0;">AccountCreated</span>{' '}<span style="color:#C58CFF;">crosses-to</span>{' billing '}<span style="color:#5b7077;">via</span>{' CustomerSupplier\n      '}<span style="color:#5b7077;">contract</span>{'\n        accountId: '}<span style="color:#8FD3FF;">UUID</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n        plan: '}<span style="color:#8FD3FF;">string</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n  '}<span style="color:#22D3EE;">moment</span>{' '}<span style="color:#9DE6C6;">"Provision"</span>{'\n    billing: '}<span style="color:#E7C9A0;">SubscriptionStarted</span>{' '}<span style="color:#C58CFF;">crosses-to</span>{' workspace '}<span style="color:#5b7077;">via</span>{' CustomerSupplier\n      '}<span style="color:#5b7077;">contract</span>{'\n        accountId: '}<span style="color:#8FD3FF;">UUID</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n        seats: '}<span style="color:#8FD3FF;">number</span>{' '}<span style="color:#5b7077;">[required]</span>{'\n      '}<span style="color:#C58CFF;">triggers</span>{' '}<span style="color:#E7C9A0;">ProvisionWorkspace</span></pre>
         </div>
         <div
           style="background:#080C11; border:1px solid rgba(34,211,238,0.22); border-radius:14px; overflow:hidden; display:flex; flex-direction:column;"
@@ -464,7 +419,7 @@ const description =
         <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:540px; margin:0 auto 32px;">
           Every one of these is a plain <span
             style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;">.moment</span
-          > file. Clone the repo and render your first flow in minutes.
+          > file. Install the CLI and validate your first model in minutes.
         </p>
         <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
           <a

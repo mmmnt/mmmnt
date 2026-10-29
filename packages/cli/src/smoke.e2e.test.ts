@@ -19,12 +19,16 @@ const MCP = resolve(__dirname, '..', '..', 'mcp', 'dist', 'mcp.mjs');
 const hasCli = existsSync(CLI);
 const hasMcp = existsSync(MCP);
 
+// A spawned bundle may wait behind every other package's tests under `turbo test`; each test may take
+// as long as the process it spawns is allowed to.
+const SPAWN_TIMEOUT = 30_000;
+
 function runCli(args: string[], cwd?: string): { code: number; out: string; err: string } {
-  const r = spawnSync('node', [CLI, ...args], { encoding: 'utf-8', cwd, timeout: 30_000 });
+  const r = spawnSync('node', [CLI, ...args], { encoding: 'utf-8', cwd, timeout: SPAWN_TIMEOUT });
   return { code: r.status ?? -1, out: r.stdout, err: r.stderr };
 }
 
-describe.skipIf(!hasCli)('moment CLI bundle smoke', () => {
+describe.skipIf(!hasCli)('moment CLI bundle smoke', { timeout: SPAWN_TIMEOUT }, () => {
   it('--version prints a semver and exits 0', () => {
     const { code, out } = runCli(['--version']);
     expect(code).toBe(0);
@@ -63,7 +67,7 @@ describe.skipIf(!hasCli)('moment CLI bundle smoke', () => {
     const fail = runCli(['parse', bad]);
     expect(fail.code).toBe(1);
     expect(fail.err).toMatch(/bad\.moment:\d+:\d+/);
-  });
+  }, 30_000);
 });
 
 describe.skipIf(!hasMcp)('mcp bundle smoke', () => {

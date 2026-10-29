@@ -1,0 +1,15 @@
+// ADR-037 corpus exemplar: a flow in its own file naming a command, an event, a query and a projection.
+flow "recall"
+  description "An agent records a decision, then asks for context"
+
+  lane memory "Memory" [Core]
+  lane retrieval "Retrieval" [Core]
+  lane hosted "HostedService" [External]
+
+  moment "A decision is recorded"
+    memory: RecordDecision
+    memory: DecisionMade
+
+  moment "The agent asks"
+    retrieval: QueryContext
+    retrieval: TrajectoryResult

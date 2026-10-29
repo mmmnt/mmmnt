@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { writeOutputFiles } from './project-fs.js';
+import { findProjectRoot, writeOutputFiles } from './project-fs.js';
 
 let outDir: string;
 
@@ -55,5 +55,14 @@ describe('writeOutputFiles', () => {
     // Without a path-separator boundary, a naive startsWith check would accept this.
     const files = new Map<string, string>([['../' + 'x.ts', 'pwned']]);
     expect(() => writeOutputFiles(files, outDir)).toThrow(/Path traversal/);
+  });
+});
+
+describe('findProjectRoot for a directory (ADR-037 §8)', () => {
+  it('finds the manifest that sits inside the directory itself', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'moment-project-root-'));
+    writeFileSync(join(dir, '.manifest.yaml'), 'name: model\n');
+
+    expect(findProjectRoot(dir)).toBe(dir);
   });
 });

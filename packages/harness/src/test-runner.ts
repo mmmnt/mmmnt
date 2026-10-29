@@ -147,7 +147,9 @@ export class TestRunner {
     }
 
     if (testCase.momentId.endsWith('-initiated')) {
-      return this.eventExistsInIr(saga.trigger, ir);
+      return saga.commands
+        ? saga.commands.some((c) => c.name === saga.trigger)
+        : this.eventExistsInIr(saga.trigger, ir);
     }
 
     return this.evaluateSagaTransition(testCase.momentId, saga);
@@ -247,6 +249,8 @@ export class TestRunner {
       for (const agg of ctx.aggregates) {
         if (agg.commands.some((c) => c.name === commandName)) return true;
       }
+      if (ctx.sagas.some((s) => (s.commands ?? []).some((c) => c.name === commandName)))
+        return true;
     }
     return false;
   }

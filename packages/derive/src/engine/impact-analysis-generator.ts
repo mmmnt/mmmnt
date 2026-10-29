@@ -8,7 +8,7 @@ import type {
 type CrossingConnection = Extract<ConnectionDefinition, { connectionType: 'crosses-to' }>;
 
 export interface ImpactNode {
-  readonly type: 'event' | 'command' | 'policy' | 'saga' | 'projection' | 'crossing';
+  readonly type: 'event' | 'command' | 'policy' | 'saga' | 'projection' | 'query' | 'crossing';
   readonly name: string;
   readonly context: string;
   readonly dependsOn: readonly string[];
@@ -28,6 +28,7 @@ export function generateImpactAnalysis(ir: IntermediateRepresentation): ImpactAn
     addEventNodes(context, nodeMap);
     addPolicyNodes(context, nodeMap, ir);
     addSagaNodes(context, nodeMap, ir);
+    addReadNodes(context, nodeMap, ir);
   }
 
   // Audit fix #3: flow-only specs (or flows referencing nodes the contexts
@@ -130,11 +131,41 @@ function findDeclaringContextForCommand(
 ): ContextDefinition | undefined {
   for (const ctx of ir.contexts) {
     if (ctx.commands.some((c) => c.name === commandName)) return ctx;
+    if (ctx.sagas.some((s) => (s.commands ?? []).some((c) => c.name === commandName))) return ctx;
     for (const agg of ctx.aggregates) {
       if (agg.commands.some((c) => c.name === commandName)) return ctx;
     }
   }
   return undefined;
+}
+
+/** ADR-037: a projection depends on the events it folds; a query on the projections it reads. */
+function addReadNodes(
+  context: ContextDefinition,
+  nodeMap: Map<string, MutableImpactNode>,
+  ir: IntermediateRepresentation,
+): void {
+  for (const projection of context.projections ?? []) {
+    const node = getOrCreate(nodeMap, 'projection', projection.name, context.name);
+    for (const source of projection.sources) {
+      const evtCtxName = (findDeclaringContextForEvent(source, ir) ?? context).name;
+      getOrCreate(nodeMap, 'event', source, evtCtxName).triggers.push(
+        nodeKey('projection', projection.name, context.name),
+      );
+      node.dependsOn.push(nodeKey('event', source, evtCtxName));
+    }
+  }
+  const projectionContext = (name: string): string =>
+    ir.contexts.find((c) => (c.projections ?? []).some((p) => p.name === name))?.name ??
+    context.name;
+  for (const query of context.queries ?? []) {
+    const node = getOrCreate(nodeMap, 'query', query.name, context.name);
+    for (const read of query.reads.filter((r) =>
+      ir.contexts.some((c) => (c.projections ?? []).some((p) => p.name === r)),
+    )) {
+      node.dependsOn.push(nodeKey('projection', read, projectionContext(read)));
+    }
+  }
 }
 
 function addPolicyNodes(
@@ -171,11 +202,22 @@ function addSagaNodes(
   for (const saga of context.sagas) {
     const sagaNode = getOrCreate(nodeMap, 'saga', saga.name, context.name);
 
+    // An orchestration is invoked by one of its own commands and issues aggregate commands, compensations
+    // included (ADR-038 §2). External operations are not nodes of this graph.
     if (saga.trigger) {
-      const evtCtxName = (findDeclaringContextForEvent(saga.trigger, ir) ?? context).name;
-      const evtNode = getOrCreate(nodeMap, 'event', saga.trigger, evtCtxName);
-      sagaNode.dependsOn.push(nodeKey('event', saga.trigger, evtCtxName));
-      evtNode.triggers.push(nodeKey('saga', saga.name, context.name));
+      const cmdNode = getOrCreate(nodeMap, 'command', saga.trigger, context.name);
+      sagaNode.dependsOn.push(nodeKey('command', saga.trigger, context.name));
+      cmdNode.triggers.push(nodeKey('saga', saga.name, context.name));
+    }
+    const issued = [
+      ...(saga.issues ?? []),
+      ...(saga.compensations ?? []).flatMap((c) => (c.none ? [] : c.issues)),
+    ].filter((c) => c.external === undefined);
+    for (const name of new Set(issued.map((c) => c.name))) {
+      const cmdCtxName = (findDeclaringContextForCommand(name, ir) ?? context).name;
+      const cmdNode = getOrCreate(nodeMap, 'command', name, cmdCtxName);
+      sagaNode.triggers.push(nodeKey('command', name, cmdCtxName));
+      cmdNode.dependsOn.push(nodeKey('saga', saga.name, context.name));
     }
   }
 }

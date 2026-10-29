@@ -5,7 +5,19 @@ grammar Moment
 // ============================================================================
 
 entry MomentFile:
-    (contexts+=ContextDeclaration | flows+=FlowDeclaration)+;
+    (contexts+=ContextDeclaration | flows+=FlowDeclaration | externals+=ExternalDeclaration)+;
+
+// --- External system (ADR-037 §6): not modelled, may be a relationship end or a lane ---
+ExternalDeclaration:
+    'external' name=ID description=STRING
+        gateways+=GatewayDeclaration*;
+
+// --- Gateway (ADR-038 §4): the palette's Gateway tab on a projection, orchestration, policy or external ---
+GatewayDeclaration:
+    'gateway' name=ID
+        'consumes' consumes=ID
+        'produces' produces=ID
+        ('description' description=STRING)?;
 
 // ============================================================================
 // Part I: Spatial Constructs (context files)
@@ -18,7 +30,32 @@ ContextDeclaration:
 
 ContextMember:
     AggregateDeclaration | DomainServiceDeclaration | PolicyDeclaration |
-    SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration;
+    SagaDeclaration | ContextRelationshipDeclaration | AnnotationDeclaration |
+    ProjectionDeclaration | QueryDeclaration | RuleDeclaration | ValueObjectDeclaration | TermDeclaration;
+
+// --- Projection (ADR-037 §1, PRD §5.1.1) ---
+ProjectionDeclaration:
+    'projection' name=ID
+        'sources' sources+=ID (',' sources+=ID)*
+        ('description' description=STRING)?
+        ('field' fields+=FieldDeclaration)*
+        gateways+=GatewayDeclaration*;
+
+// --- Rule outside an aggregate (ADR-037 §3): enforced by a declared service or query, or an external enforcer ---
+RuleDeclaration:
+    'rule' id=ID description=STRING
+        'enforced-by' (enforcer=ID | enforcerText=STRING);
+
+// --- Glossary term (ADR-037 §5) ---
+TermDeclaration:
+    'term' term=STRING definition=STRING;
+
+// --- Query (ADR-037 §2) ---
+QueryDeclaration:
+    'query' name=ID
+        'reads' reads+=ID (',' reads+=ID)*
+        ('input' inputs+=InputField (',' inputs+=InputField)*)?
+        ('description' description=STRING)?;
 
 // --- Classification Annotations (PRD §5.1.4, Sift ADR-053 D4) ---
 // An annotation classifies the NEXT declaration in the member list.
@@ -35,11 +72,17 @@ AnnotationValue returns string:
 AggregateDeclaration:
     'aggregate' name=STRING
         'identity' identityField=FieldDeclaration
+        states+=AggregateStateDeclaration*
         members+=AggregateMember*;
 
 AggregateMember:
     CommandDeclaration | DomainEventDeclaration | ValueObjectDeclaration | InvariantDeclaration |
     AnnotationDeclaration;
+
+// --- Aggregate internal state (ADR-038 §3), right after the identity: one initial state, transitions on
+// the aggregate's own commands. Written first, it cannot be read as an event field named `state`. ---
+AggregateStateDeclaration:
+    'state' (initial?='initial' name=ID | from=ID '->' to=ID 'on' command=ID);
 
 CommandDeclaration:
     'command' name=ID
@@ -48,7 +91,7 @@ CommandDeclaration:
         'emits' emits=ID;
 
 InputField:
-    name=ID ':' type=TypeReference deprecation=FieldDeprecation?;
+    name=InputName ':' type=TypeReference deprecation=FieldDeprecation?;
 
 Precondition:
     'precondition' name=ID ':' description=STRING;
@@ -72,31 +115,42 @@ DomainServiceDeclaration:
         'produces' produces=ID
         'description' description=STRING;
 
-// --- Policy ---
+// --- Policy (ADR-038 §1): When one domain event, Then one command ---
 PolicyDeclaration:
     'policy' name=ID
-        'trigger' trigger=PolicyTrigger
-        'action' action=STRING
-        ('chains-to' chainsTo=ID)?;
-
-PolicyTrigger:
-    eventName=ID | fileWatcher='"file-watcher"';
-
-// --- Saga ---
-// The state chain is `Initial (-> Target (on Event)?)*`. Each optional
-// `on <Event>` names the domain event that fires the transition it follows
-// (Held -> Converting on PaymentConfirmed: Held→Converting fires on
-// PaymentConfirmed). NOTE: `on` is a grammar keyword — a bare `on` can no
-// longer be used as an ID anywhere (longer names like `onboarding` are fine).
-SagaDeclaration:
-    'saga' name=ID
         'trigger' trigger=ID
+        'action' action=STRING
+        'chains-to' chainsTo=ID
+        gateways+=GatewayDeclaration*;
+
+// --- Orchestration (ADR-038 §2), the palette's Saga; `saga` is an alias ---
+// Invoked by one of its own commands, it issues commands to aggregates and
+// externals and advances only on its own commands, each invoked by a relay
+// policy on the previous step's event. `on` is a grammar keyword.
+SagaDeclaration:
+    keyword=('orchestration' | 'saga') name=ID
+        commands+=OrchestrationCommand*
+        'invoked-by' invokedBy=ID
+        'issues' issues+=IssuedCommand (',' issues+=IssuedCommand)*
         'states' initialState=ID transitions+=SagaTransition*
-        'compensation' compensation=STRING
-        'timeout' timeout=SagaTimeout;
+        compensations+=Compensation+
+        'timeout' timeout=SagaTimeout
+        gateways+=GatewayDeclaration*;
+
+OrchestrationCommand:
+    'command' name=ID
+        ('input' inputs+=InputField (',' inputs+=InputField)*)?
+        preconditions+=Precondition*
+        ('emits' emits=ID)?;
+
+IssuedCommand:
+    target=ID ('.' operation=ID)?;
 
 SagaTransition:
-    '->' target=ID ('on' event=ID)?;
+    '->' target=ID ('on' command=ID)?;
+
+Compensation:
+    'compensation' (none?='none' | 'on' command=ID 'issues' undo+=IssuedCommand (',' undo+=IssuedCommand)*);
 
 SagaTimeout:
     duration=ID | none='"none"';
@@ -169,10 +223,21 @@ ReturnsTo:
 // ============================================================================
 
 FieldDeclaration:
-    name=ID ':' type=TypeReference deprecation=FieldDeprecation?;
+    name=FieldName ':' type=TypeReference deprecation=FieldDeprecation?;
 
 FieldDeprecation:
     '[' 'deprecated' reason=STRING '->' replacement=STRING ']';
+
+// ADR-037 made new words keywords. A comma-separated input list may use any of them as a name; a field
+// list, which a new declaration can follow, may use only those that cannot begin a declaration.
+InputName returns string:
+    FieldName | 'projection' | 'query' | 'rule' | 'term';
+
+// A keyword that never starts a declaration may name a field; one that does (`orchestration`) may not,
+// or a field list would read the next declaration as a field.
+FieldName returns string:
+    ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
+    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;
@@ -184,7 +249,7 @@ Classification:
     '[' value=ClassificationValue ']';
 
 ClassificationValue returns string:
-    'Core' | 'Supporting' | 'Generic' | 'Terminal';
+    'Core' | 'Supporting' | 'Generic' | 'Terminal' | 'External';
 
 RelationshipType returns string:
     'CustomerSupplier' | 'Partnership' | 'Conformist' |

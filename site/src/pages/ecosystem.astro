@@ -13,7 +13,7 @@ const upstreamCards = [
   { name: 'Codex', tag: 'UPSTREAM', desc: 'Versioned regulatory rule packs, consumed through an anti-corruption layer. When no pack is active, Moment behaves exactly as it does open-source.' },
 ];
 const downstreamCards = [
-  { name: 'Facet', tag: 'DOWNSTREAM', desc: 'The visual test surface. Renders the sequence from facet.json and asserts every crossing contract before code exists.' },
+  { name: 'Facet', tag: 'DOWNSTREAM', desc: 'The visual test surface. Renders the sequence from Moment’s simulation scenarios and asserts every crossing contract before code exists.' },
   { name: 'Forge', tag: 'DOWNSTREAM', desc: "Turns Moment's building-block inventory and flow definitions into work items and execution plans for delivery." },
   { name: 'Proof', tag: 'DOWNSTREAM', desc: 'Evaluates Moment artifacts against governing protocols and audits co-evolution debt for regulated delivery.' },
   { name: 'Glean', tag: 'DOWNSTREAM', desc: 'Learns from every Moment stream — a pure consumer that never sits in the request path.' },
@@ -227,10 +227,7 @@ const downstreamCards = [
                     {p.tag}
                   </span>
                 </div>
-                <p
-                  set:html={p.desc.replace('facet.json', '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#C9E8ED;">facet.json</span>')}
-                  style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;"
-                />
+                <p style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;">{p.desc}</p>
               </div>
             ))
           }
@@ -274,7 +271,7 @@ const downstreamCards = [
           You only ever need the core.
         </h2>
         <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:560px; margin:0 auto 32px;">
-          Clone the repo, write a <span
+          Install the CLI, write a <span
             style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;">.moment</span
           > file, and run the full pipeline today — no account, no platform, no lock-in.
         </p>

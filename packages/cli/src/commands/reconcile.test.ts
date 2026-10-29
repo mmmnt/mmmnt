@@ -11,7 +11,11 @@ const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 const tmpBase = join(tmpdir(), 'mmnt-reconcile-test-' + Date.now());
 
 afterEach(() => {
-  try { rmSync(tmpBase, { recursive: true, force: true }); } catch { /* */ }
+  try {
+    rmSync(tmpBase, { recursive: true, force: true });
+  } catch {
+    /* */
+  }
 });
 
 describe('moment reconcile', () => {
@@ -30,10 +34,25 @@ describe('moment reconcile', () => {
     const domainDir = join(workDir, '.domain');
 
     mkdirSync(domainDir, { recursive: true });
-    writeFileSync(specPath, 'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n');
+    writeFileSync(
+      specPath,
+      'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n',
+    );
 
-    writeFileSync(join(domainDir, 'ordering.jsonl'),
-      JSON.stringify({ eventId: 'e1', eventType: 'BoundedContextDefined', version: 1, productSource: 'sift', sessionId: 's', causationEventIds: [], correlationId: 'c', timestamp: new Date().toISOString(), payload: { contextName: 'Ordering' } }) + '\n');
+    writeFileSync(
+      join(domainDir, 'ordering.jsonl'),
+      JSON.stringify({
+        eventId: 'e1',
+        eventType: 'BoundedContextDefined',
+        version: 1,
+        productSource: 'sift',
+        sessionId: 's',
+        causationEventIds: [],
+        correlationId: 'c',
+        timestamp: new Date().toISOString(),
+        payload: { contextName: 'Ordering' },
+      }) + '\n',
+    );
 
     const result = await runReconcile(['--local', specPath]);
 
@@ -48,13 +67,40 @@ describe('moment reconcile', () => {
     const domainDir = join(workDir, '.domain');
 
     mkdirSync(domainDir, { recursive: true });
-    writeFileSync(specPath, 'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n');
+    writeFileSync(
+      specPath,
+      'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n',
+    );
 
     // Domain has a context not in the spec
-    writeFileSync(join(domainDir, 'ordering.jsonl'),
-      JSON.stringify({ eventId: 'e1', eventType: 'BoundedContextDefined', version: 1, productSource: 'sift', sessionId: 's', causationEventIds: [], correlationId: 'c', timestamp: new Date().toISOString(), payload: { contextName: 'Ordering' } }) + '\n');
-    writeFileSync(join(domainDir, 'shipping.jsonl'),
-      JSON.stringify({ eventId: 'e2', eventType: 'BoundedContextDefined', version: 1, productSource: 'sift', sessionId: 's', causationEventIds: [], correlationId: 'c', timestamp: new Date().toISOString(), payload: { contextName: 'Shipping' } }) + '\n');
+    writeFileSync(
+      join(domainDir, 'ordering.jsonl'),
+      JSON.stringify({
+        eventId: 'e1',
+        eventType: 'BoundedContextDefined',
+        version: 1,
+        productSource: 'sift',
+        sessionId: 's',
+        causationEventIds: [],
+        correlationId: 'c',
+        timestamp: new Date().toISOString(),
+        payload: { contextName: 'Ordering' },
+      }) + '\n',
+    );
+    writeFileSync(
+      join(domainDir, 'shipping.jsonl'),
+      JSON.stringify({
+        eventId: 'e2',
+        eventType: 'BoundedContextDefined',
+        version: 1,
+        productSource: 'sift',
+        sessionId: 's',
+        causationEventIds: [],
+        correlationId: 'c',
+        timestamp: new Date().toISOString(),
+        payload: { contextName: 'Shipping' },
+      }) + '\n',
+    );
 
     const result = await runReconcile(['--local', specPath]);
 
@@ -69,7 +115,10 @@ describe('moment reconcile', () => {
     const eventPath = join(workDir, 'cascade.json');
 
     mkdirSync(workDir, { recursive: true });
-    writeFileSync(specPath, 'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n');
+    writeFileSync(
+      specPath,
+      'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n',
+    );
     writeFileSync(eventPath, JSON.stringify({ affectedElements: ['Order'] }));
 
     const result = await runReconcile(['--event', eventPath, specPath]);
@@ -86,8 +135,20 @@ describe('moment reconcile', () => {
 
     mkdirSync(domainDir, { recursive: true });
     writeFileSync(specPath, 'context "Test" [Core]\n  aggregate "A"\n    identity id: UUID\n');
-    writeFileSync(join(domainDir, 'test.jsonl'),
-      JSON.stringify({ eventId: 'e1', eventType: 'BoundedContextDefined', version: 1, productSource: 'sift', sessionId: 's', causationEventIds: [], correlationId: 'c', timestamp: new Date().toISOString(), payload: { contextName: 'Test' } }) + '\n');
+    writeFileSync(
+      join(domainDir, 'test.jsonl'),
+      JSON.stringify({
+        eventId: 'e1',
+        eventType: 'BoundedContextDefined',
+        version: 1,
+        productSource: 'sift',
+        sessionId: 's',
+        causationEventIds: [],
+        correlationId: 'c',
+        timestamp: new Date().toISOString(),
+        payload: { contextName: 'Test' },
+      }) + '\n',
+    );
 
     await runReconcile(['--local', specPath]);
 
@@ -151,14 +212,64 @@ describe('moment reconcile', () => {
 
     mkdirSync(domainDir, { recursive: true });
     // Spec has context "Ordering" but domain does NOT
-    writeFileSync(specPath, 'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n');
-    writeFileSync(join(domainDir, 'other.jsonl'),
-      JSON.stringify({ eventId: 'e1', eventType: 'BoundedContextDefined', version: 1, productSource: 'sift', sessionId: 's', causationEventIds: [], correlationId: 'c', timestamp: new Date().toISOString(), payload: { contextName: 'Other' } }) + '\n');
+    writeFileSync(
+      specPath,
+      'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n',
+    );
+    writeFileSync(
+      join(domainDir, 'other.jsonl'),
+      JSON.stringify({
+        eventId: 'e1',
+        eventType: 'BoundedContextDefined',
+        version: 1,
+        productSource: 'sift',
+        sessionId: 's',
+        causationEventIds: [],
+        correlationId: 'c',
+        timestamp: new Date().toISOString(),
+        payload: { contextName: 'Other' },
+      }) + '\n',
+    );
 
     const result = await runReconcile(['--local', specPath]);
 
     expect(result.success).toBe(false);
     expect(result.outcome).toBe('BREAKING');
     expect(result.category).toBe(3);
+  });
+  it('--local on a directory reconciles every file of the project as one model (ADR-038 §5)', async () => {
+    const workDir = join(tmpBase, 'project1');
+    const domainDir = join(workDir, '.domain');
+    mkdirSync(join(workDir, 'contexts'), { recursive: true });
+    mkdirSync(domainDir, { recursive: true });
+    writeFileSync(
+      join(workDir, 'contexts', 'ordering.moment'),
+      'context "Ordering" [Core]\n  aggregate "Order"\n    identity orderId: UUID\n',
+    );
+    writeFileSync(
+      join(workDir, 'contexts', 'shipping.moment'),
+      'context "Shipping" [Core]\n  aggregate "Parcel"\n    identity parcelId: UUID\n',
+    );
+    for (const contextName of ['Ordering', 'Shipping']) {
+      writeFileSync(
+        join(domainDir, `${contextName}.jsonl`),
+        JSON.stringify({
+          eventId: contextName,
+          eventType: 'BoundedContextDefined',
+          version: 1,
+          productSource: 'sift',
+          sessionId: 's',
+          causationEventIds: [],
+          correlationId: 'c',
+          timestamp: new Date().toISOString(),
+          payload: { contextName },
+        }) + '\n',
+      );
+    }
+
+    const result = await runReconcile(['--local', workDir]);
+
+    expect(result.outcome).toBe('APPLIED');
+    expect(existsSync(join(workDir, '.complai', 'events', 'moment'))).toBe(true);
   });
 });

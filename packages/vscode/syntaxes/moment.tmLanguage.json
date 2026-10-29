@@ -8,7 +8,7 @@
     },
     {
       "name": "keyword.control.moment",
-      "match": "\\b(AnticorruptionLayer|Conformist|Core|CustomerSupplier|Date|DateTime|Generic|Money|OpenHostService|Partnership|PublishedLanguage|SeparateWays|Supporting|Terminal|UUID|action|aggregate|boolean|branch-lane|chains-to|command|compensation|consumes|context|contract|crosses-to|deprecated|description|emits|event|flow|identity|input|invariant|lane|moment|number|on|optional|policy|precondition|produces|relationship|returns-to|saga|scope|service|states|string|terminal|timeout|trigger|triggered-by|triggers|type|value-object|via|when)\\b|\\B(\"file-watcher\"|\"none\"|\\[branch\\]|\\[required\\])\\B"
+      "match": "\\b(AnticorruptionLayer|PublishedLanguage|CustomerSupplier|OpenHostService|orchestration|compensation|precondition|relationship|SeparateWays|triggered-by|value-object|branch-lane|description|enforced-by|Partnership|Conformist|crosses-to|deprecated|invoked-by|projection|returns-to|Supporting|aggregate|chains-to|invariant|consumes|contract|DateTime|external|External|identity|optional|produces|terminal|Terminal|triggers|boolean|command|context|gateway|Generic|initial|service|sources|timeout|trigger|action|issues|moment|number|policy|states|string|emits|event|field|input|Money|query|reads|scope|state|Core|Date|flow|lane|none|rule|saga|term|type|UUID|when|via|on)\\b|\\B(\\[required\\]|\\[branch\\]|\"none\")\\B"
     },
     {
       "name": "string.quoted.double.moment",
