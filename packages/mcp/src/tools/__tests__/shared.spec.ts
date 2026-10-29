@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
-import { okResult, errorResult, wrapTool, readMomentFile } from '../shared.js';
+import { okResult, errorResult, wrapTool, loadModel, projectDirOf } from '../shared.js';
 
 describe('okResult', () => {
   it('produces a CallToolResult with JSON text content', () => {
@@ -71,15 +71,36 @@ describe('wrapTool', () => {
   });
 });
 
-describe('readMomentFile', () => {
-  it('reads an existing file and returns content', () => {
-    const fixturePath = resolve(__dirname, '../../../../../fixtures/valid/unified/vet-clinic.moment');
-    const content = readMomentFile(fixturePath);
-    expect(content).toContain('context');
-    expect(typeof content).toBe('string');
+describe('loadModel', () => {
+  const FIXTURES = resolve(__dirname, '../../../../../fixtures/valid');
+
+  it('loads a single .moment file', async () => {
+    const result = await loadModel(resolve(FIXTURES, 'unified/vet-clinic.moment'));
+    expect(result.success).toBe(true);
+    expect(result.isProject).toBe(false);
+    expect(result.files).toEqual([resolve(FIXTURES, 'unified/vet-clinic.moment')]);
   });
 
-  it('throws for a nonexistent file', () => {
-    expect(() => readMomentFile('/tmp/nonexistent-file-abc123.moment')).toThrow('File not found');
+  it('loads a model directory as one project (ADR-038 project mode)', async () => {
+    const dir = resolve(FIXTURES, 'model-completeness');
+    const result = await loadModel(dir);
+    expect(result.success).toBe(true);
+    expect(result.isProject).toBe(true);
+    expect(result.files.length).toBeGreaterThan(1);
+    expect(result.path).toBe(dir);
+  });
+
+  it('throws for a path that does not exist', async () => {
+    await expect(loadModel('/tmp/nonexistent-file-abc123.moment')).rejects.toThrow(
+      'File not found',
+    );
+  });
+});
+
+describe('projectDirOf', () => {
+  it("is a model directory itself, or a file's parent", () => {
+    const dir = resolve(__dirname, '../../../../../fixtures/valid/model-completeness');
+    expect(projectDirOf(dir)).toBe(dir);
+    expect(projectDirOf(resolve(dir, 'flows/recall.moment'))).toBe(resolve(dir, 'flows'));
   });
 });

@@ -168,3 +168,38 @@ describe('ProjectLoader counts an orchestration command as a block of its contex
     expect(result.diagnostics.filter((d) => d.ruleId === 'PM-07')).toEqual([]);
   });
 });
+
+describe('reference rules V38–V39, one invalid exemplar each', () => {
+  it.each(['V38', 'V39'])(
+    '%s fails its exemplar project with that rule, and warns for the file alone',
+    async (rule) => {
+      const file = resolve(FIXTURES, `invalid/reference-${rule.toLowerCase()}/memory.moment`);
+      const project = await new ProjectLoader().loadProject([file]);
+      const single = await new MomentParser().parseContent(readFileSync(file, 'utf-8'), file);
+      const reference = (d: { ruleId?: string }): boolean => /^V3[89]$/.test(d.ruleId ?? '');
+
+      expect(project.success).toBe(false);
+      expect(project.diagnostics.filter(reference).map((d) => [d.severity, d.ruleId])).toEqual([
+        ['error', rule],
+      ]);
+      expect(single.success).toBe(true);
+      expect(single.diagnostics.filter(reference).map((d) => [d.severity, d.ruleId])).toEqual([
+        ['warning', rule],
+      ]);
+    },
+  );
+
+  it('names the command and the event, and the triggering and triggered nodes', async () => {
+    const message = async (rule: string): Promise<string | undefined> => {
+      const file = resolve(FIXTURES, `invalid/reference-${rule.toLowerCase()}/memory.moment`);
+      const result = await new MomentParser().parseContent(readFileSync(file, 'utf-8'), file);
+      return result.diagnostics.find((d) => d.ruleId === rule)?.message;
+    };
+    expect(await message('V38')).toBe(
+      "Command 'ForgetDecision' emits 'DecisionForgotten', which is no declared event.",
+    );
+    expect(await message('V39')).toBe(
+      "In flow 'record', 'RecordDecision' triggers 'ArchiveDecision', which is placed nowhere in the flow.",
+    );
+  });
+});

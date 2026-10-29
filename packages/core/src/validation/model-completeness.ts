@@ -1,5 +1,5 @@
 /**
- * ADR-037 — model completeness checks V22–V28 over an IR.
+ * ADR-037 — model completeness checks V22–V28 over an IR, and the reference checks V38–V39.
  *
  * They compare names across declarations, so they run on the IR: per file as
  * advisories (a file cannot see its siblings) and over the merged project as
@@ -130,13 +130,46 @@ function checkExternals(ir: IntermediateRepresentation): Finding[] {
   return out;
 }
 
-/** Every V22–V28 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
+/** V38: an aggregate command emits an event declared somewhere in the model. */
+const v38 = (ctx: ContextDefinition, known: Known): Finding[] =>
+  ctx.commands
+    .filter((c) => c.emitsEvent && !known.events.has(c.emitsEvent))
+    .map((c) => ({
+      ruleId: 'V38',
+      message: `Command '${c.name}' emits '${c.emitsEvent}', which is no declared event.`,
+    }));
+
+/** V39: `N triggers X` names a node placed in the same flow (V20 checks its order, V5 covers triggered-by). */
+function v39(ir: IntermediateRepresentation): Finding[] {
+  return ir.flows.flatMap((flow) => {
+    const placed = new Set(
+      flow.moments.flatMap((m) => [
+        ...m.contextEntries.map((e) => e.nodeName),
+        ...(m.branches ?? []).flatMap((b) => b.entries.map((e) => e.nodeName)),
+      ]),
+    );
+    return flow.connections
+      .filter(
+        (c) => c.connectionType === 'triggers' && c.targetNodeName && !placed.has(c.targetNodeName),
+      )
+      .map((c) => ({
+        ruleId: 'V39',
+        message: `In flow '${flow.name}', '${c.sourceNodeName ?? ''}' triggers '${c.targetNodeName ?? ''}', which is placed nowhere in the flow.`,
+      }));
+  });
+}
+
+/** Every V22–V28 and V38–V39 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
 export function validateModelCompleteness(ir: IntermediateRepresentation): Finding[] {
   const known = namesOf(ir);
   const termsByContext = (name: string): string[] =>
     ir.glossary.filter((g) => g.context === name).map((g) => g.term);
   return [
-    ...ir.contexts.flatMap((ctx) => checkContext(ctx, known, termsByContext(ctx.name))),
+    ...ir.contexts.flatMap((ctx) => [
+      ...checkContext(ctx, known, termsByContext(ctx.name)),
+      ...v38(ctx, known),
+    ]),
     ...checkExternals(ir),
+    ...v39(ir),
   ];
 }

@@ -103,4 +103,15 @@ describe('moment parse <directory> (ADR-037 §8)', () => {
       ),
     ).toBe('error: a.moment — V13: Lane ID does not match.');
   });
+
+  it('formatDiagnostic omits a zero position', () => {
+    expect(
+      formatDiagnostic({
+        severity: 'warning',
+        ruleId: 'V38',
+        message: 'm',
+        source: { file: 'a.moment', line: 0, column: 0 },
+      }),
+    ).toBe('warning: a.moment — V38: m');
+  });
 });

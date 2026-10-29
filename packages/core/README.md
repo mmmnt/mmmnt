@@ -44,7 +44,7 @@ if (result.success && result.ir) {
   console.log(`Flows: ${result.ir.flows.length}`);
 }
 
-// Errors make success false; warnings (including V22–V37 advisories) leave it true
+// Errors make success false; warnings (including V22–V39 advisories) leave it true
 for (const d of result.diagnostics) {
   console.log(`[${d.severity}] ${d.ruleId ?? ''} ${d.message}`);
 }
@@ -55,7 +55,7 @@ for (const d of result.diagnostics) {
 - **Langium-based parser** -- full grammar definition with error recovery and precise diagnostic messages pointing to the exact line and column of issues.
 - **Typed Intermediate Representation** -- a normalized, strongly-typed IR that downstream packages consume without needing to understand the raw AST.
 - **Project mode** -- `ProjectLoader` parses many `.moment` files and merges them into one IR, resolving names across files and checking cross-file references.
-- **Model completeness and palette rules** -- V22–V37 check that projections, queries, rules, services, relationships, lanes, policies, orchestrations, aggregate states and gateways name things the model declares (see [Validation Rules](#validation-rules)).
+- **Model completeness, palette and reference rules** -- V22–V39 check that projections, queries, rules, services, relationships, lanes, policies, orchestrations, aggregate states, gateways, emitted events and `triggers` targets name things the model declares (see [Validation Rules](#validation-rules)).
 - **Sift specification import** -- converts Sift building blocks into `.moment` context and flow source, with an upstream fingerprint for drift tracking.
 - **Manifest scaffolding** -- initializes new Moment projects with a `.manifest.yaml` and the `.moment/contexts/` and `.moment/flows/` directories.
 - **File watching** -- monitors `.moment` and manifest files for changes and triggers debounced callbacks for live development workflows.
@@ -138,7 +138,7 @@ The grammar source is [`src/grammar/moment.langium`](src/grammar/moment.langium)
 
 ## Validation Rules
 
-V22–V37 compare names across declarations, so their severity depends on how much of the model the parser can see. `MomentParser.parseContent` reports them as **warnings** for a single file that declares contexts; `ProjectLoader.loadProject` reports them as **errors** over the merged project, where a missing name is genuinely missing. Each diagnostic carries its id in `ruleId`.
+V22–V39 compare names across declarations, so their severity depends on how much of the model the parser can see. `MomentParser.parseContent` reports them as **warnings** for a single file that declares contexts; `ProjectLoader.loadProject` reports them as **errors** over the merged project, where a missing name is genuinely missing. Each diagnostic carries its id in `ruleId`.
 
 | Rule | Checks |
 |------|--------|
@@ -158,6 +158,8 @@ V22–V37 compare names across declarations, so their severity depends on how mu
 | V35 | `compensation none` stands alone; every other compensation is on one of the orchestration's own commands and issues resolvable commands. |
 | V36 | An aggregate with states has exactly one initial state, transitions only on its own commands, and every state is reachable from the initial one. |
 | V37 | Every gateway `consumes` and `produces` a declared event or value object. |
+| V38 | Every aggregate command `emits` an event declared somewhere in the model. |
+| V39 | Every `triggers` target is a node placed in the same flow (`triggered-by` targets are checked by V5). |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
@@ -174,7 +176,7 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 
 | Export | Description |
 |--------|-------------|
-| `ProjectLoader` | `loadProject(filePaths, metadataOverride?)` parses each file, merges the IRs, runs cross-file validation and V22–V37, and resolves to a `ProjectLoadResult` (`success`, `ir`, `diagnostics`, `filesParsed`, `filesErrored`). |
+| `ProjectLoader` | `loadProject(filePaths, metadataOverride?)` parses each file, merges the IRs, runs cross-file validation and V22–V39, and resolves to a `ProjectLoadResult` (`success`, `ir`, `diagnostics`, `filesParsed`, `filesErrored`). |
 | `mergeIrs(irs, metadataOverride?)` | Concatenates IRs in the given order and reports duplicate context names. Returns a `MergeResult`. |
 | `validateCrossFileReferences(ir)` | Checks that flow lanes, crossings and relationships in a merged IR resolve. Returns a `CrossFileValidationResult`. |
 
