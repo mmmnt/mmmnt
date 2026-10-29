@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { spawnSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -47,6 +47,41 @@ describe.skipIf(!hasCli)('moment CLI bundle smoke', { timeout: SPAWN_TIMEOUT }, 
     expect(code).toBe(1);
   });
 
+  it("<command> --help prints that command's usage and runs nothing", () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'smoke-help-'));
+    for (const command of [
+      'init',
+      'parse',
+      'watch',
+      'derive',
+      'generate',
+      'emit-ts',
+      'test',
+      'simulate',
+      'viz',
+      'serve',
+      'cucumber-json',
+      'lint',
+      'sync',
+      'schema',
+      'import',
+      'reconcile',
+      'status',
+      'auth',
+      'quorum',
+    ]) {
+      const { code, out } = runCli([command, 'spec.moment', '--help'], cwd);
+      expect(code, command).toBe(0);
+      expect(out, command).toMatch(new RegExp(`^  ${command} `, 'm'));
+    }
+    // -h takes the same path; one command proves it.
+    const short = runCli(['init', '-h'], cwd);
+    expect(short.code).toBe(0);
+    expect(short.out).toMatch(/^ {2}init /m);
+    // Nothing ran: in particular, `init --help` used to initialise a project here.
+    expect(readdirSync(cwd)).toEqual([]);
+  }, 60_000);
+
   it('unknown command exits 1 and points at help', () => {
     const { code, err } = runCli(['nonsense']);
     expect(code).toBe(1);
@@ -63,6 +98,16 @@ describe.skipIf(!hasCli)('moment CLI bundle smoke', { timeout: SPAWN_TIMEOUT }, 
 
     const ok = runCli(['parse', good]);
     expect(ok.code).toBe(0);
+
+    // A file that parses with warnings still exits 0, and the warnings are printed.
+    const warned = join(dir, 'warned.moment');
+    writeFileSync(
+      warned,
+      'context "X" [Core]\n\n  aggregate "A"\n    identity id: UUID\n\n  projection P\n    sources Missing\n',
+    );
+    const warn = runCli(['parse', warned]);
+    expect(warn.code).toBe(0);
+    expect(warn.err).toMatch(/^warning: .*warned\.moment — V22: Projection 'P' reads 'Missing'/m);
 
     const fail = runCli(['parse', bad]);
     expect(fail.code).toBe(1);

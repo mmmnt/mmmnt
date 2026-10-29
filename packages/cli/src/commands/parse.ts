@@ -31,7 +31,9 @@ export function formatDiagnostic(d: Diagnostic, fallbackFile?: string): string {
   const loc = d.source
     ? `${d.source.file}:${d.source.line}:${d.source.column}`
     : (fallbackFile ?? '<unknown>');
-  return `${d.severity}: ${loc} — ${d.message}`;
+  // Name the rule (V22 …) unless the message already starts with it, as older rules' messages do.
+  const rule = d.ruleId && !d.message.startsWith(`${d.ruleId}:`) ? `${d.ruleId}: ` : '';
+  return `${d.severity}: ${loc} — ${rule}${d.message}`;
 }
 
 function readFile(path: string): string | ParseCommandResult {

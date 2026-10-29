@@ -88,4 +88,19 @@ describe('moment parse <directory> (ADR-037 §8)', () => {
     expect(result.success).toBe(false);
     expect(result.diagnostics.map((d) => d.ruleId)).toContain('V22');
   });
+
+  it('formatDiagnostic names the rule, once', () => {
+    expect(
+      formatDiagnostic(
+        { severity: 'warning', ruleId: 'V22', message: "Projection 'P' reads 'Missing'." },
+        'a.moment',
+      ),
+    ).toBe("warning: a.moment — V22: Projection 'P' reads 'Missing'.");
+    expect(
+      formatDiagnostic(
+        { severity: 'error', ruleId: 'V13', message: 'V13: Lane ID does not match.' },
+        'a.moment',
+      ),
+    ).toBe('error: a.moment — V13: Lane ID does not match.');
+  });
 });
