@@ -2,17 +2,25 @@
  * Shared helpers for MCP tool implementations.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { isDirectory, loadSpecification, type LoadedSpecification } from '@mmmnt/core';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-export function readMomentFile(filePath: string): string {
-  const resolved = resolve(filePath);
-  if (!existsSync(resolved)) {
-    throw new Error(`File not found: ${resolved}`);
+/**
+ * Load a model the way the CLI does: a `.moment` file, or every `.moment` file beneath a directory
+ * as one project (ADR-038 project mode). Diagnostics carry the file they come from.
+ */
+export async function loadModel(filePath: string): Promise<LoadedSpecification & { path: string }> {
+  const path = resolve(filePath);
+  if (!existsSync(path)) {
+    throw new Error(`File not found: ${path}`);
   }
-  return readFileSync(resolved, 'utf-8');
+  return { ...(await loadSpecification(path)), path };
 }
+
+/** The directory a model's `.domain/` and project files sit in: the model directory, or a file's parent. */
+export const projectDirOf = (path: string): string => (isDirectory(path) ? path : dirname(path));
 
 export function okResult(data: unknown): CallToolResult {
   return {

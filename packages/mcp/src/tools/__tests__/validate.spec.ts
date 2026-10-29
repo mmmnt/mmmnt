@@ -16,7 +16,7 @@ describe('validate', () => {
     const data = parseContent(result);
     expect(data.success).toBe(true);
     expect(typeof data.contextCount).toBe('number');
-    expect((data.contextCount as number)).toBeGreaterThan(0);
+    expect(data.contextCount as number).toBeGreaterThan(0);
     expect(typeof data.flowCount).toBe('number');
   });
 
@@ -35,5 +35,19 @@ describe('validate', () => {
     const data = parseContent(result);
     expect(data.errorCode).toBe('TOOL_ERROR');
     expect(data.message).toContain('File not found');
+  });
+
+  it('validates a model directory as one project, naming each rule and file', async () => {
+    const dir = resolve(__dirname, '../../../../../fixtures/valid/model-completeness');
+    const data = parseContent(await validate({ filePath: dir }));
+    expect(data.success).toBe(true);
+    expect(data.files as number).toBeGreaterThan(1);
+
+    const bad = resolve(__dirname, '../../../../../fixtures/invalid/reference-v38');
+    const failed = parseContent(await validate({ filePath: bad }));
+    expect(failed.success).toBe(false);
+    expect(failed.diagnostics).toContainEqual(
+      expect.objectContaining({ severity: 'error', ruleId: 'V38' }),
+    );
   });
 });

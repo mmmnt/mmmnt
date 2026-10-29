@@ -3,10 +3,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
-import { MomentParser } from '@mmmnt/core';
+import { resolve, join } from 'node:path';
 import { SiftEventStreamReader } from '@mmmnt/sync';
-import { readMomentFile, okResult, errorResult, wrapTool } from './shared.js';
+import { loadModel, okResult, errorResult, projectDirOf, wrapTool } from './shared.js';
 import type { IntermediateRepresentation } from '@mmmnt/core';
 import type { CascadeCategory } from '@mmmnt/sync';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -26,7 +25,7 @@ function categoryToOutcome(category: CascadeCategory): ReconcileOutcome {
 }
 
 function classifyLocalDrift(ir: IntermediateRepresentation, specPath: string): CascadeCategory {
-  const domainDir = join(dirname(specPath), '.domain');
+  const domainDir = join(projectDirOf(specPath), '.domain');
   const reader = new SiftEventStreamReader();
   const readResult = reader.read(domainDir);
 
@@ -66,7 +65,11 @@ function classifyFromEvent(ir: IntermediateRepresentation, elements: string[]): 
   return 1;
 }
 
-function writeReconcileEvent(projectDir: string, outcome: ReconcileOutcome, category: CascadeCategory): void {
+function writeReconcileEvent(
+  projectDir: string,
+  outcome: ReconcileOutcome,
+  category: CascadeCategory,
+): void {
   const eventDir = join(projectDir, '.complai', 'events', 'moment');
   mkdirSync(eventDir, { recursive: true });
 
@@ -87,21 +90,34 @@ function writeReconcileEvent(projectDir: string, outcome: ReconcileOutcome, cate
 }
 
 function reconcileLocal(ir: IntermediateRepresentation, specPath: string): CallToolResult {
-  const projectDir = dirname(specPath);
+  const projectDir = projectDirOf(specPath);
   const domainDir = join(projectDir, '.domain');
 
   if (!existsSync(domainDir)) {
-    return okResult({ success: true, outcome: 'NO_CHANGES', message: 'No upstream source configured' });
+    return okResult({
+      success: true,
+      outcome: 'NO_CHANGES',
+      message: 'No upstream source configured',
+    });
   }
 
   const category = classifyLocalDrift(ir, specPath);
   const outcome = categoryToOutcome(category);
   writeReconcileEvent(projectDir, outcome, category);
 
-  return okResult({ success: outcome !== 'BREAKING', outcome, category, message: `${outcome} — Category ${category}` });
+  return okResult({
+    success: outcome !== 'BREAKING',
+    outcome,
+    category,
+    message: `${outcome} — Category ${category}`,
+  });
 }
 
-function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, eventPath: string): CallToolResult {
+function reconcileFromEvent(
+  ir: IntermediateRepresentation,
+  specPath: string,
+  eventPath: string,
+): CallToolResult {
   const resolvedEventPath = resolve(eventPath);
   if (!existsSync(resolvedEventPath)) {
     return errorResult('EVENT_NOT_FOUND', `Event file not found: ${resolvedEventPath}`);
@@ -115,20 +131,26 @@ function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, ev
   }
 
   const payload = raw as Record<string, unknown>;
-  const elements = Array.isArray(payload.affectedElements) ? (payload.affectedElements as string[]) : [];
+  const elements = Array.isArray(payload.affectedElements)
+    ? (payload.affectedElements as string[])
+    : [];
 
-  const projectDir = dirname(specPath);
+  const projectDir = projectDirOf(specPath);
   const category = classifyFromEvent(ir, elements);
   const outcome = categoryToOutcome(category);
   writeReconcileEvent(projectDir, outcome, category);
 
-  return okResult({ success: outcome !== 'BREAKING', outcome, category, message: `${outcome} — Category ${category}` });
+  return okResult({
+    success: outcome !== 'BREAKING',
+    outcome,
+    category,
+    message: `${outcome} — Category ${category}`,
+  });
 }
 
 async function reconcileImpl(params: ReconcileParams): Promise<CallToolResult> {
-  const resolvedPath = resolve(params.filePath);
-  const content = readMomentFile(params.filePath);
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await loadModel(params.filePath);
+  const resolvedPath = parseResult.path;
 
   if (!parseResult.success) {
     return errorResult('PARSE_FAILED', 'Spec has parse errors — fix before reconciling');
