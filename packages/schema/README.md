@@ -1,19 +1,21 @@
 # @mmmnt/schema
 
-Schema registry with four-phase lifecycle governance and consumption manifest tracking.
+Schema registry with four-phase field lifecycle governance and consumption manifest tracking.
 
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
 [![npm version](https://img.shields.io/npm/v/@mmmnt/schema.svg)](https://www.npmjs.com/package/@mmmnt/schema)
 
 ## Overview
 
-`@mmmnt/schema` provides schema governance for event-driven systems built with the Moment toolchain. It tracks every event and command schema through a structured four-phase lifecycle -- Active, Deprecated, EndOfLife, and Removed -- ensuring that schema changes are communicated, planned, and enforced across teams and services.
+`@mmmnt/schema` provides schema governance for event-driven systems built with the Moment toolchain. It tracks every field of every registered event schema through a structured four-phase lifecycle -- active, deprecated, end-of-life, and removed -- so that schema changes are announced, planned, and enforced rather than breaking consumers without notice.
 
-The schema registry maintains a versioned catalog of all schemas in your domain. When a field is deprecated, consumers are warned. When a schema reaches end-of-life, downstream code generation and test derivation reflect the change. When a schema is removed, the registry prevents any code from referencing it. This lifecycle model prevents the common problem of schema evolution breaking consumers without notice.
+The schema registry is an event-sourced aggregate. Registered schema versions are immutable, pre-GA versions (major version below 1) may only add fields, a deprecation must give a reason and replacement guidance, and a field can only reach end-of-life or be removed once it has no active consumers. Every command returns the domain event it applied, and `apply()` replays recorded events with the same invariants enforced, so a corrupted event stream is refused.
 
-The codex rule evaluator enforces governance policies defined alongside your `.moment` specifications. Rules can require deprecation notices before removal, mandate minimum deprecation periods, or enforce naming conventions on new schema versions. The consumption manifest tracks which services consume which schemas, enabling targeted impact notifications when schemas change phase. Together, these capabilities give teams a structured, auditable process for evolving their event schemas over time.
+The consumption manifest records which projections consume which event fields and answers the zero-consumer question the registry needs before end-of-life and removal. The Codex rule evaluator is an anti-corruption layer that translates an externally fetched Codex rule pack into schema constraints; its violations are advisory and never block a schema operation, and with no rule pack configured it returns empty results.
 
 ## Installation
+
+Requires Node.js 22 or newer.
 
 ```bash
 npm install @mmmnt/schema
@@ -29,48 +31,49 @@ yarn add @mmmnt/schema
 ## Quick Start
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { SchemaRegistry } from '@mmmnt/schema';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('path/to/spec.moment');
-const ir = astToIr(ast);
-
-// Build the schema registry from the IR
 const registry = new SchemaRegistry();
-registry.load(ir);
 
-// Query schema lifecycle status
-for (const schema of registry.schemas()) {
-  console.log(`${schema.name}: ${schema.phase}`);
-}
+registry.registerEventSchema({
+  eventType: 'AppointmentScheduled',
+  version: '1.0.0',
+  fieldDefinitions: [
+    { fieldName: 'patientId', fieldType: 'UUID', required: true },
+    { fieldName: 'vetName', fieldType: 'string', required: false },
+  ],
+  registeredBy: 'scheduling',
+});
 
-// Check for deprecated fields
-const deprecated = registry.findByPhase('Deprecated');
-for (const schema of deprecated) {
-  console.log(`WARNING: ${schema.name} is deprecated -- migrate by ${schema.endOfLifeDate}`);
-}
+registry.deprecateField({
+  eventType: 'AppointmentScheduled',
+  fieldName: 'vetName',
+  deprecatedSince: '1.0.0',
+  reason: 'vets are referenced by id',
+  replacement: 'vetId',
+});
+
+console.log(registry.getFieldPhase('AppointmentScheduled', 'vetName')); // 'deprecated'
 ```
 
 ## Key Features
 
-- **Four-phase schema lifecycle** -- schemas progress through Active, Deprecated, EndOfLife, and Removed phases, with each transition enforced by governance rules.
-- **Versioned schema registry** -- maintains a catalog of all event and command schemas with version history, field definitions, and lifecycle dates.
-- **Consumption manifest tracking** -- records which services consume which schemas, enabling targeted impact notifications and migration planning.
-- **Codex rule evaluation** -- evaluates governance rules against the registry, catching violations like missing deprecation notices or premature removals.
-- **Field-level deprecation** -- supports deprecating individual fields within a schema, not just entire schemas, for fine-grained evolution.
-- **Event-sourced state** -- the registry and consumption manifest use event-sourced aggregates (`SchemaRegistryEvent`, `ConsumptionManifestEvent`) for full audit trails.
-- **Schema evolution validation** -- the `validateOnSchemaEvolution` policy automatically checks governance rules when schemas change.
-- **Configurable rule packs** -- load governance rules from built-in packs, external sources, or custom definitions.
+- **Four-phase field lifecycle** -- each field moves active → deprecated → end-of-life → removed, and only one step at a time (SR-04).
+- **Immutable, versioned schemas** -- a schema is registered once per event type and version (SR-01); pre-GA versions are additive-only (SR-05).
+- **Guarded deprecation and removal** -- deprecation requires a reason and replacement guidance (SR-03); end-of-life and removal require zero active consumers (SR-02).
+- **Consumption manifest tracking** -- records which projections consume which event fields, validated against the registry, with a later declaration for the same projection superseding the earlier one.
+- **Event-sourced state** -- the registry and consumption manifest emit and replay `SchemaRegistryEvent` and `ConsumptionManifestEvent`, with record shapes (`SchemaRegistryRecord`, `ConsumptionManifestRecord`) for `.domain/` JSONL logs.
+- **Codex rule evaluation** -- evaluates naming-convention and field-sensitivity-classification rules from a fetched rule pack; the pack is fetched lazily once per session and cached.
+- **Schema evolution validation** -- the `validateOnSchemaEvolution` policy replays registry events and evaluates every registered schema against the rule pack.
 
 ## Schema Lifecycle
 
 | Phase | Description |
 |-------|-------------|
-| **Active** | Schema is current and fully supported. All code generation targets this version. |
-| **Deprecated** | Schema is scheduled for removal. Consumers receive warnings. A migration path should be documented. |
-| **EndOfLife** | Schema is no longer supported. New consumers cannot subscribe. Existing consumers must migrate. |
-| **Removed** | Schema is purged from the registry. References in code or specifications produce errors. |
+| **active** | The field is current. Every field of a newly registered schema starts here. |
+| **deprecated** | The field is scheduled for removal. Deprecation records a reason, replacement guidance, and an optional removal target. |
+| **end-of-life** | Confirmed only when the field has no active consumers. |
+| **removed** | Removed only from end-of-life, with no active consumers and a recorded rationale. |
 
 ## API Reference
 
@@ -78,131 +81,137 @@ for (const schema of deprecated) {
 
 | Export | Description |
 |--------|-------------|
-| `SchemaRegistry` | Versioned catalog of all event and command schemas with lifecycle tracking. Supports querying by name, phase, context, and version. Accepts `RegisterEventSchemaInput`, `DeprecateFieldInput`, `ConfirmEndOfLifeInput`, and `RemoveFieldInput` commands. |
+| `SchemaRegistry` | Event-sourced catalog of event schemas and per-field lifecycle. Commands: `registerEventSchema(RegisterEventSchemaInput)`, `deprecateField(DeprecateFieldInput)`, `confirmEndOfLife(ConfirmEndOfLifeInput)`, `removeField(RemoveFieldInput)`. Queries: `getFieldPhase`, `hasSchema`, `getRegisteredEventTypes`. Replay with `apply()`. |
 
 ### Governance
 
 | Export | Description |
 |--------|-------------|
-| `ConsumptionManifest` | Tracks which services consume which schemas, enabling targeted notifications and impact analysis when schemas change lifecycle phase. Accepts `DeclareConsumptionInput`. |
-| `CodexRuleEvaluator` | Evaluates governance rules against the registry, producing violations for policies like minimum deprecation periods, naming conventions, or required documentation. Configurable via `CodexRuleEvaluatorConfig`. |
+| `ConsumptionManifest` | Tracks which projections consume which event fields. `declareConsumption(DeclareConsumptionInput, registry)` rejects unregistered event types (CM-01). Queries: `hasZeroConsumers`, `getConsumers`, `getDeclaration`. |
+| `CodexRuleEvaluator` | Evaluates a schema (`SchemaEvaluationInput`: event type, version, field names) against a Codex rule pack fetched through an optional `RulePackFetcher`. Configured with `CodexRuleEvaluatorConfig` (`strategy`, `fetcher`). `evaluate()` returns a `RuleEvaluationResult`. |
 
 ### Policies
 
 | Export | Description |
 |--------|-------------|
-| `validateOnSchemaEvolution` | Policy that automatically evaluates governance rules when schemas change phase. Returns `SchemaEvolutionPolicyResult` with diagnostics. |
+| `validateOnSchemaEvolution` | Replays `SchemaRegistryEvent`s and evaluates each registered schema with a `CodexRuleEvaluator`. Returns `SchemaEvolutionPolicyResult` with per-schema diagnostics and the total violation count. |
 
 ### Key Types
 
 | Type | Description |
 |------|-------------|
-| `FieldPhase` | Lifecycle phase for an individual field: Active, Deprecated, EndOfLife, Removed. |
-| `FieldDefinition` | A field within a schema with name, type, phase, and deprecation metadata. |
-| `EventSchemaRegistered` | Event emitted when a new schema is registered. |
+| `FieldPhase` | `'active' \| 'deprecated' \| 'end-of-life' \| 'removed'`. |
+| `FieldDefinition` | A field within a schema: `fieldName`, `fieldType`, `required`. |
+| `EventSchemaRegistered` | Event emitted when a schema version is registered. |
 | `EventFieldDeprecated` | Event emitted when a field is deprecated. |
-| `EventFieldEndOfLife` | Event emitted when a field reaches end-of-life. |
+| `EventFieldEndOfLife` | Event emitted when a field's end-of-life is confirmed. |
 | `EventFieldRemoved` | Event emitted when a field is removed. |
 | `SchemaRegistryEvent` | Union of all schema registry events. |
-| `ConsumptionEntry` | A record of a service consuming a specific schema version. |
-| `CodexRule` | A governance rule definition with name, severity, and evaluation logic. |
-| `CodexRulePack` | A collection of related governance rules loaded as a unit. |
-| `CodexViolation` / `SchemaConstraintViolation` | A governance rule violation with severity, rule name, message, and affected schema. |
-| `SchemaEvolutionDiagnostic` | A diagnostic produced during schema evolution validation. |
-| `RuleEvaluationResult` | Result of evaluating a single rule against the registry. |
+| `ConsumptionEntry` | A projection's declaration: projection id and name, product, and consumed events with their fields. |
+| `CodexRule` | A rule in a pack: `ruleId`, `ruleType`, `parameters`, `severity` (`error` or `warning`). |
+| `CodexRulePack` | A versioned collection of rules with framework and effective date. |
+| `LazyFetchStrategy` | How and where to fetch the rule pack: `mode` (`lazy` or `signal`) and optional `cdnEndpoint`. |
+| `SchemaConstraintViolation` | A violation with constraint type, rule id, target, description, and severity. |
+| `RuleEvaluationResult` | Pack version, constraints evaluated, violations, and `passedAll`. |
+| `SchemaEvolutionDiagnostic` | The evaluation result for one registered schema version. |
 
 ## Examples
 
-### Querying the Schema Registry
+### Walking a Field Through Its Lifecycle
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
-import { SchemaRegistry } from '@mmmnt/schema';
-
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
+import { SchemaRegistry, ConsumptionManifest } from '@mmmnt/schema';
 
 const registry = new SchemaRegistry();
-registry.load(ir);
-
-// List all schemas by phase
-for (const phase of ['Active', 'Deprecated', 'EndOfLife', 'Removed'] as const) {
-  const schemas = registry.findByPhase(phase);
-  console.log(`\n${phase} (${schemas.length}):`);
-  for (const schema of schemas) {
-    console.log(`  ${schema.name} v${schema.version}`);
-  }
-}
-```
-
-### Tracking Consumption and Impact
-
-```typescript
-import { ConsumptionManifest } from '@mmmnt/schema';
-
 const manifest = new ConsumptionManifest();
-manifest.load('path/to/consumption-manifest.json');
 
-// Find all consumers of a specific event schema
-const consumers = manifest.consumersOf('AppointmentScheduled');
-console.log(`AppointmentScheduled is consumed by: ${consumers.join(', ')}`);
-
-// Check impact of deprecating a schema
-const impacted = manifest.impactOf('LegacyAdmission');
-for (const service of impacted) {
-  console.log(`Service ${service.name} uses ${service.usageCount} deprecated fields`);
-}
-
-// Declare a new consumption relationship
-manifest.declare({
-  serviceName: 'billing-service',
-  eventName: 'AppointmentCompleted',
-  fields: ['patientId', 'date', 'cost'],
+registry.registerEventSchema({
+  eventType: 'AppointmentCompleted',
+  version: '1.0.0',
+  fieldDefinitions: [
+    { fieldName: 'patientId', fieldType: 'UUID', required: true },
+    { fieldName: 'cost', fieldType: 'Money', required: true },
+  ],
+  registeredBy: 'clinic',
 });
+
+manifest.declareConsumption(
+  {
+    projectionId: 'billing-ledger',
+    projectionName: 'BillingLedger',
+    product: 'billing-service',
+    consumedEvents: [{ eventType: 'AppointmentCompleted', fields: ['patientId', 'cost'] }],
+  },
+  registry,
+);
+
+registry.deprecateField({
+  eventType: 'AppointmentCompleted',
+  fieldName: 'cost',
+  deprecatedSince: '1.0.0',
+  reason: 'split into fee and tax',
+  replacement: 'fee',
+});
+
+// SR-02: end-of-life is refused while any projection still consumes the field.
+const consumers = manifest.getConsumers('AppointmentCompleted', 'cost');
+console.log(consumers.map((c) => c.projectionName)); // ['BillingLedger']
+
+registry.confirmEndOfLife({
+  eventType: 'AppointmentCompleted',
+  fieldName: 'cost',
+  confirmedBy: 'clinic',
+  hasActiveConsumers: !manifest.hasZeroConsumers('AppointmentCompleted', 'cost'),
+}); // throws: SR-02 ... active consumers exist
 ```
 
 ### Evaluating Governance Rules
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
-import { SchemaRegistry, CodexRuleEvaluator } from '@mmmnt/schema';
+import { CodexRuleEvaluator, SchemaRegistry, validateOnSchemaEvolution } from '@mmmnt/schema';
+import type { CodexRulePack, SchemaRegistryEvent } from '@mmmnt/schema';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
+const evaluator = new CodexRuleEvaluator({
+  strategy: { mode: 'lazy', cdnEndpoint: 'https://rules.example.com/pack.json' },
+  fetcher: {
+    fetch: async (endpoint) => (await (await fetch(endpoint)).json()) as CodexRulePack,
+  },
+});
 
-const registry = new SchemaRegistry();
-registry.load(ir);
+// Every registry command returns the event it applied; a stored log replays the same way.
+const events: SchemaRegistryEvent[] = [
+  new SchemaRegistry().registerEventSchema({
+    eventType: 'PatientRegistered',
+    version: '1.0.0',
+    fieldDefinitions: [{ fieldName: 'patient_id', fieldType: 'UUID', required: true }],
+    registeredBy: 'clinic',
+  }),
+];
+const result = await validateOnSchemaEvolution(events, evaluator);
 
-const evaluator = new CodexRuleEvaluator();
-const violations = evaluator.evaluate(registry);
-
-if (violations.length === 0) {
-  console.log('All governance rules satisfied.');
-} else {
-  for (const violation of violations) {
-    console.log(`[${violation.severity}] ${violation.rule}: ${violation.message}`);
+console.log(`${result.evaluatedSchemas} schema(s), ${result.totalViolations} violation(s)`);
+for (const { eventType, version, evaluationResult } of result.diagnostics) {
+  for (const v of evaluationResult.violations) {
+    console.log(`[${v.severity}] ${eventType}@${version} ${v.ruleId}: ${v.description}`);
   }
 }
 ```
 
+Without a `cdnEndpoint` and `fetcher`, or when the fetch fails, evaluation returns empty results rather than failing.
+
 ## Integration
 
-`@mmmnt/schema` depends on `@mmmnt/core` for the IR. It integrates with the broader ecosystem:
+`@mmmnt/schema` declares `@mmmnt/core` as its dependency and is used by the CLI:
 
 ```
 @mmmnt/core --> @mmmnt/schema
                      |
-                     +-- @mmmnt/sync      (lifecycle context for drift detection)
-                     +-- @mmmnt/derive    (excludes removed schemas from test generation)
-                     +-- @mmmnt/cli       (exposed via `moment schema` and `moment lint`)
-                     +-- @mmmnt/mcp       (exposed via `moment_status` tool)
+                     +-- @mmmnt/cli  (exposed via `moment schema status`)
 ```
 
 ## Contributing
 
-This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines, development setup, and the code of conduct.
+This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development setup and contribution guidelines.
 
 ```bash
 git clone https://github.com/mmmnt/mmmnt.git

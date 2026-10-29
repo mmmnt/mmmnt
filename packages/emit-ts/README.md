@@ -7,13 +7,15 @@ TypeScript type definitions and test scaffold generation from Moment domain spec
 
 ## Overview
 
-`@mmmnt/emit-ts` generates TypeScript source code from your `.moment` specification files. It produces strongly-typed interfaces for commands, events, and value objects, aggregate root classes annotated with JSDoc documentation, discriminated event union types, and ready-to-fill test scaffold files.
+`@mmmnt/emit-ts` generates TypeScript source code from your `.moment` specification files. It produces strongly-typed interfaces for commands, events, and value objects, aggregate root interfaces annotated with JSDoc, discriminated event union types, read-model types for each context's value objects, projections, and queries, and ready-to-fill test scaffold files.
 
 The generated code serves as the type-safe contract between your domain specification and its implementation. Instead of manually translating domain models into TypeScript types, this package keeps them in sync automatically. When your specification changes, regenerate to get updated types that reflect the current state of your domain model.
 
-Test scaffolds provide a starting point for each derived test case, pre-populated with the correct types, setup steps, and assertion signatures so you can focus on writing the actual test logic rather than boilerplate. The scaffold emitter respects existing test implementations -- it generates stubs only for new test cases and does not overwrite files you have already filled in.
+Test scaffolds provide a starting point for each derived test case, pre-populated with setup comments and assertion stubs so you can focus on writing the actual test logic rather than boilerplate. Both emitters are pure: they return file paths and contents in memory and write nothing to disk, so your code (or the `moment emit-ts` command) decides where the files go.
 
 ## Installation
+
+Requires Node.js 22 or newer.
 
 ```bash
 npm install @mmmnt/emit-ts
@@ -29,62 +31,103 @@ yarn add @mmmnt/emit-ts
 ## Quick Start
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
+import { readFileSync } from 'node:fs';
+import { MomentParser } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('path/to/spec.moment');
-const ir = astToIr(ast);
+const path = 'path/to/spec.moment';
+const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!result.success || !result.ir) throw new Error('The specification has errors');
+const ir = result.ir;
 const topology = deriveTopology(ir);
 
 // Generate TypeScript type definitions
 const emitter = new TypeScriptEmitter();
-const tsOutput = emitter.emit(ir);
+const tsOutput = emitter.emit(ir, { scope: { level: 'system' } });
 
-for (const file of tsOutput.files) {
-  console.log(`Generated: ${file.path} (${file.content.length} bytes)`);
+for (const [file, content] of tsOutput.files) {
+  console.log(`Generated: ${file} (${content.length} bytes)`);
 }
 
 // Generate test scaffolds
 const scaffoldEmitter = new TestScaffoldEmitter();
 const scaffoldOutput = scaffoldEmitter.emit(ir, topology);
 
-for (const file of scaffoldOutput.files) {
-  console.log(`Scaffold: ${file.path}`);
+for (const file of scaffoldOutput.files.keys()) {
+  console.log(`Scaffold: ${file}`);
 }
 ```
 
 ## Key Features
 
 - **TypeScript interface generation** -- produces strongly-typed interfaces for every command, event, and value object defined in your specification.
-- **Discriminated union types** -- generates union types for all events within a context, enabling exhaustive pattern matching in switch statements and reducers.
-- **Aggregate root classes** -- creates class stubs annotated with JSDoc documenting invariants and behavioral contracts from the specification.
-- **Test scaffold generation** -- produces ready-to-fill test files for each derived test case, with typed imports, setup blocks, and assertion stubs.
-- **Configurable conventions** -- control output directory structure, naming conventions (camelCase, PascalCase), and JSDoc verbosity through `EmitOptions`.
-- **Scoped generation** -- use `GenerationScope` to limit generation to specific contexts or flows, useful for incremental regeneration in large specifications.
-- **Policy-driven automation** -- the `EmitTypeScriptOnTopologyDerived` policy triggers emission automatically when a topology is derived, enabling watch-mode workflows.
+- **Read-model types** -- emits a `read-model.types.ts` per context for value objects declared at the context level, projections (one interface per projection), and queries (a `<Query>Query` input interface and a `<Query>Result` type naming the projections it reads).
+- **Discriminated union types** -- generates a `<Context>Event` union of all events within a context, enabling exhaustive pattern matching in switch statements and reducers.
+- **Aggregate root interfaces** -- creates an `<Aggregate>Aggregate` interface with one handler per command, annotated with JSDoc for preconditions (`@precondition`) and emitted events (`@emits`).
+- **Deprecated fields** -- fields the specification marks as deprecated carry a `@deprecated` JSDoc tag with the reason and replacement.
+- **Test scaffold generation** -- produces a spec file per flow and per aggregate, with setup comments and assertion stubs.
+- **Scoped generation** -- use `GenerationScope` to emit the whole system, selected contexts, or selected aggregates, useful for incremental regeneration in large specifications.
+- **Policy-driven automation** -- the `EmitTypeScriptOnTopologyDerived` policy runs both emitters for a derived topology and can be registered as a hook on `DeriveOnSpecificationParsed`.
 - **Idempotent output** -- the same specification always produces identical TypeScript output, making generated files safe to commit to version control.
 
 ## Generated Output
 
 ### Type Definitions
 
-For each bounded context, the emitter produces:
+Paths are relative to the output directory. For each bounded context (directory name in kebab case), the emitter produces:
 
-- **Command interfaces** with typed payload fields matching the specification schema
-- **Event interfaces** with typed payload fields and event name discriminators
-- **Discriminated union types** for all events within a context
-- **Value object interfaces** for shared domain types
-- **Aggregate root classes** with JSDoc documenting invariants and behavior
+- `src/<context>/<aggregate>.types.ts` -- **value object, command, and event interfaces** for the aggregate, with typed fields matching the specification schema
+- `src/<context>/<aggregate>.aggregate.ts` -- the **aggregate root interface** with JSDoc documenting preconditions and emitted events
+- `src/<context>/read-model.types.ts` -- **read-model types** for the context's own value objects, projections, and queries (only when the context declares any)
+- `src/<context>/index.ts` -- a barrel re-exporting the above, plus the **discriminated event union** for the context
+- `src/index.ts` -- a root barrel re-exporting every context
+
+For a context with a projection and a query such as:
+
+```
+context "Retrieval" [Core]
+  value-object TokenBudget
+    tokens: number
+
+  projection TrajectoryResult
+    sources DecisionMade
+    field entryId: UUID
+
+  query QueryContext
+    reads TrajectoryResult
+    input query: string, budget: TokenBudget
+```
+
+`read-model.types.ts` contains:
+
+```typescript
+/**
+ * Read side of the Retrieval context.
+ */
+
+export interface TokenBudget {
+  readonly tokens: number;
+}
+
+export interface TrajectoryResult {
+  readonly entryId: string;
+}
+
+export interface QueryContextQuery {
+  readonly query: string;
+  readonly budget: TokenBudget;
+}
+
+export type QueryContextResult = TrajectoryResult;
+```
 
 ### Test Scaffolds
 
-For each derived test case, the scaffold emitter produces:
+The scaffold emitter produces:
 
-- **Test file** with imports for the relevant types
-- **Setup block** pre-populated with the required preconditions from the derived topology
-- **Assertion stubs** matching the expected outcomes, ready for implementation
+- `__tests__/flows/<flow>.spec.ts` -- one spec file per flow whose derived test cases carry assertions, with setup comments from the derived topology and an assertion stub per assertion point
+- `__tests__/<context>/<aggregate>.spec.ts` -- one spec file per aggregate that declares commands or invariants
 
 ## API Reference
 
@@ -92,114 +135,112 @@ For each derived test case, the scaffold emitter produces:
 
 | Export | Description |
 |--------|-------------|
-| `TypeScriptEmitter` | Generates TypeScript interfaces, union types, and aggregate root classes from the IR. Accepts `EmitOptions` to control output directory, naming conventions, and JSDoc generation. |
-| `TestScaffoldEmitter` | Generates test scaffold files from the IR and derived topology. Each scaffold includes typed imports, setup steps, and assertion stubs. |
+| `TypeScriptEmitter` | `emit(ir, options)` generates TypeScript interfaces, union types, aggregate root interfaces, and read-model types from the IR. `EmitOptions` takes a required `scope` and an optional `dryRun` flag. Returns `TypeScriptEmitterOutput`. |
+| `TestScaffoldEmitter` | `emit(ir, topology)` generates test scaffold files from the IR and derived topology. Returns `TestScaffoldEmitterOutput`. |
 
 ### Policies
 
 | Export | Description |
 |--------|-------------|
-| `EmitTypeScriptOnTopologyDerived` | Policy that triggers TypeScript emission automatically when a topology is derived. Returns `EmitTypeScriptResult` with file counts and diagnostics. |
+| `EmitTypeScriptOnTopologyDerived` | Policy whose `execute(ir, topology)` runs both emitters at system scope and returns an `EmitTypeScriptResult`. Its `handle(topology, ir)` matches the `TopologyDerivedHook` signature. |
 
 ### Key Types
 
 | Type | Description |
 |------|-------------|
-| `EmitOptions` | Configuration for the TypeScript emitter: output path, naming conventions, JSDoc toggle. |
-| `TypeScriptEmitterOutput` | Result containing generated file paths and contents. |
-| `TestScaffoldEmitterOutput` | Result containing generated scaffold file paths and contents. |
-| `GenerationScope` | Controls which contexts and flows to include in generation. |
-| `GenerationResult` | Summary of a generation run with file counts and diagnostics. |
-| `TypeScriptConvention` | Naming and formatting conventions for generated code. |
-| `TestScaffoldResult` | Summary of scaffold generation with new and skipped file counts. |
-| `EmitTypeScriptResult` | Result from the automated emission policy. |
+| `EmitOptions` | Configuration for the TypeScript emitter: `scope` and optional `dryRun`. |
+| `TypeScriptEmitterOutput` | `result` (a `GenerationResult`) and `files`, a `Map` of file path to content. |
+| `TestScaffoldEmitterOutput` | `result` (a `TestScaffoldResult`) and `files`, a `Map` of file path to content. |
+| `GenerationScope` | `level` (`system`, `context`, or `aggregate`) and optional `targets` naming the contexts or aggregates to include. |
+| `GenerationResult` | Summary of a generation run: files written, unchanged, and removed, and whether it was a dry run. |
+| `TypeScriptConvention` | File naming, directory structure, and import style conventions. |
+| `TestScaffoldResult` | Spec files written and the number of scenarios scaffolded. |
+| `EmitTypeScriptResult` | Result from the automated emission policy: `typeScriptOutput` and `scaffoldOutput`. |
 
 ## Examples
+
+The examples below start from a parsed IR, obtained as in the Quick Start:
+
+```typescript
+import { readFileSync } from 'node:fs';
+import { MomentParser } from '@mmmnt/core';
+
+const path = 'specs/ticketing.moment';
+const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!result.success || !result.ir) throw new Error('The specification has errors');
+const ir = result.ir;
+```
 
 ### Generating Types for a Single Context
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
-
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
 
 const emitter = new TypeScriptEmitter();
 const output = emitter.emit(ir, {
-  outputDir: './generated/',
-  scope: { contexts: ['Scheduling'] },
+  scope: { level: 'context', targets: ['Checkout'] },
 });
 
-// Output files might include:
-//   generated/scheduling/commands.ts
-//   generated/scheduling/events.ts
-//   generated/scheduling/value-objects.ts
-//   generated/scheduling/aggregate.ts
-for (const file of output.files) {
-  console.log(`${file.path}`);
+// Output files include, per aggregate and context:
+//   src/checkout/<aggregate>.types.ts
+//   src/checkout/<aggregate>.aggregate.ts
+//   src/checkout/read-model.types.ts   (when the context declares a read side)
+//   src/checkout/index.ts
+//   src/index.ts
+for (const file of output.files.keys()) {
+  console.log(file);
 }
 ```
 
 ### Generating Test Scaffolds Alongside Types
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
 const topology = deriveTopology(ir);
+const outDir = './generated';
+
+const writeAll = (files: Map<string, string>): void => {
+  for (const [file, content] of files) {
+    const target = join(outDir, file);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, content);
+  }
+};
 
 // Generate types
-const typeEmitter = new TypeScriptEmitter();
-const types = typeEmitter.emit(ir);
-
-for (const file of types.files) {
-  mkdirSync(dirname(file.path), { recursive: true });
-  writeFileSync(file.path, file.content);
-}
+const types = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
+writeAll(types.files);
 
 // Generate test scaffolds
-const scaffoldEmitter = new TestScaffoldEmitter();
-const scaffolds = scaffoldEmitter.emit(ir, topology);
+const scaffolds = new TestScaffoldEmitter().emit(ir, topology);
+writeAll(scaffolds.files);
 
-for (const file of scaffolds.files) {
-  mkdirSync(dirname(file.path), { recursive: true });
-  writeFileSync(file.path, file.content);
-}
-
-console.log(`Generated ${types.files.length} type files and ${scaffolds.files.length} scaffold files`);
+console.log(`Generated ${types.files.size} type files and ${scaffolds.files.size} scaffold files`);
 ```
 
-### Automated Emission in Watch Mode
+### Automated Emission with Policies
 
 ```typescript
-import { MomentParser, astToIr, FileWatcher } from '@mmmnt/core';
-import { deriveTopology, DeriveOnSpecificationParsed } from '@mmmnt/derive';
+import { DeriveOnSpecificationParsed } from '@mmmnt/derive';
 import { EmitTypeScriptOnTopologyDerived } from '@mmmnt/emit-ts';
-
-const parser = new MomentParser();
-const watcher = new FileWatcher();
 
 const emitPolicy = new EmitTypeScriptOnTopologyDerived();
 const derivePolicy = new DeriveOnSpecificationParsed({
-  onTopologyDerived: async (topology) => {
-    const result = await emitPolicy.handle(topology);
-    console.log(`Emitted ${result.tsFileCount} type files, ${result.scaffoldFileCount} scaffolds`);
-  },
+  onTopologyDerived: [
+    (topology, derivedIr) => {
+      const { typeScriptOutput, scaffoldOutput } = emitPolicy.execute(derivedIr, topology);
+      console.log(
+        `Emitted ${typeScriptOutput.files.size} type files, ${scaffoldOutput.files.size} scaffolds`,
+      );
+    },
+  ],
 });
 
-watcher.watch('specs/', async (filePath) => {
-  const { ast } = parser.parse(filePath);
-  const ir = astToIr(ast);
-  await derivePolicy.handle(ir);
-});
+await derivePolicy.execute(ir);
 ```
 
 ## Integration
@@ -210,10 +251,11 @@ watcher.watch('specs/', async (filePath) => {
 @mmmnt/core --> @mmmnt/derive --> @mmmnt/emit-ts
                                        |
                                        +-- @mmmnt/sync      (baseline for drift detection)
-                                       +-- @mmmnt/harness   (type contracts for test execution)
-                                       +-- @mmmnt/cli       (exposed via `moment emit-ts`)
+                                       +-- @mmmnt/cli       (exposed via `moment emit-ts` and `moment generate`)
                                        +-- @mmmnt/mcp       (exposed via `moment_emit_ts` tool)
 ```
+
+The `moment emit-ts` command accepts a single file or a model directory, which it loads as one project, and supports `--dry-run` and `--out <dir>`.
 
 ## Contributing
 
