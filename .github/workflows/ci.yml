@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
@@ -160,7 +160,7 @@ jobs:
       - name: Resolve sprint from feature branch story
         id: sprint
         run: |
-          BRANCH="${{ github.head_ref || github.ref_name }}"
+          BRANCH="$HEAD_REF"
           STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
 
           if [ -z "$STORY_KEY" ]; then
@@ -194,6 +194,8 @@ jobs:
           fi
           echo "id=$SPRINT_ID" >> $GITHUB_OUTPUT
         env:
+          # Branch names are chosen by whoever opens the PR; reach the script only through env.
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
@@ -426,7 +428,7 @@ jobs:
       - name: Add Tests to Test Set and link to story
         if: steps.xray-import.outputs.ids != '' || steps.xray-cucumber-import.outputs.ids != ''
         run: |
-          BRANCH="${{ github.head_ref || github.ref_name }}"
+          BRANCH="$HEAD_REF"
           STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
 
           if [ -z "$STORY_KEY" ]; then
@@ -537,6 +539,8 @@ jobs:
             echo "Added $ADDED Tests to Test Set $TEST_SET_KEY."
           fi
         env:
+          # Branch names are chosen by whoever opens the PR; reach the script only through env.
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
@@ -546,7 +550,7 @@ jobs:
     steps:
       - name: Verify input gates
         run: |
-          BRANCH="${{ github.head_ref }}"
+          BRANCH="$HEAD_REF"
           STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
 
           if [ -z "$STORY_KEY" ]; then
@@ -591,6 +595,8 @@ jobs:
 
           echo "✅ Input gates verified: Context Review (Done), Test Specification (Done)."
         env:
+          # Branch names are chosen by whoever opens the PR; reach the script only through env.
+          HEAD_REF: ${{ github.head_ref }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
@@ -600,7 +606,7 @@ jobs:
     steps:
       - name: Verify test traceability
         run: |
-          BRANCH="${{ github.head_ref }}"
+          BRANCH="$HEAD_REF"
           STORY_KEY=$(echo "$BRANCH" | sed -n 's/^[a-z]*\/\(MMNT-[0-9]*\).*/\1/p')
 
           if [ -z "$STORY_KEY" ]; then
@@ -657,6 +663,8 @@ jobs:
             echo "✅ Test traceability verified: Subtask D (Done). Test links will be created by xray-import after build."
           fi
         env:
+          # Branch names are chosen by whoever opens the PR; reach the script only through env.
+          HEAD_REF: ${{ github.head_ref }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
@@ -668,7 +676,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -715,7 +723,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -743,7 +751,7 @@ jobs:
 
       - name: Comment E2E results on PR
         if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -791,7 +799,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -828,7 +836,7 @@ jobs:
 
       - name: Gitleaks
         if: github.actor != 'dependabot[bot]'
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
@@ -958,6 +966,9 @@ jobs:
           QUALITY: ${{ needs.quality.result }}
           E2E: ${{ needs.e2e.result }}
           SECURITY: ${{ needs.security.result }}
+          # Untrusted text (a PR title can come from a fork) reaches the script only through env.
+          COMMIT_TEXT: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           if [ "$BUILD" = "success" ] && [ "$QUALITY" = "success" ] && [ "$E2E" = "success" ] && [ "$SECURITY" = "success" ]; then
             COLOR=4318933  # green (#42E695)
@@ -969,22 +980,23 @@ jobs:
             EMOJI="❌"
           fi
 
-          BRANCH="${{ github.head_ref || github.ref_name }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          COMMIT_MSG=$(echo "${{ github.event.head_commit.message || github.event.pull_request.title }}" | head -c 80)
+          COMMIT_MSG=$(printf '%s' "$COMMIT_TEXT" | head -n 1 | head -c 80)
 
           if [ -z "$WEBHOOK_URL" ]; then
             echo "::notice::Discord webhook URL not available — skipping notification."
             exit 0
           fi
 
-          curl -s -H "Content-Type: application/json" -d "{
-            \"embeds\": [{
-              \"title\": \"$EMOJI CI $STATUS — #${{ github.run_number }}\",
-              \"description\": \"**Branch:** \`$BRANCH\`\n**Commit:** $COMMIT_MSG\n\n| Job | Status |\n|-----|--------|\n| Build | $BUILD |\n| Quality | $QUALITY |\n| E2E | $E2E |\n| Security | $SECURITY |\",
-              \"url\": \"$RUN_URL\",
-              \"color\": $COLOR,
-              \"footer\": {\"text\": \"${{ github.repository }}\"},
-              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-            }]
-          }" "$WEBHOOK_URL"
+          # jq builds the JSON, so quotes or newlines in the commit text cannot break it.
+          PAYLOAD=$(jq -n --arg title "$EMOJI CI $STATUS — #${{ github.run_number }}" \
+            --arg description "$(printf '**Branch:** `%s`\n**Commit:** %s\n\n| Job | Status |\n|-----|--------|\n| Build | %s |\n| Quality | %s |\n| E2E | %s |\n| Security | %s |' "$BRANCH" "$COMMIT_MSG" "$BUILD" "$QUALITY" "$E2E" "$SECURITY")" \
+            --arg url "$RUN_URL" --argjson color "$COLOR" --arg footer "${{ github.repository }}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{embeds: [{title: $title, description: $description, url: $url, color: $color, footer: {text: $footer}, timestamp: $timestamp}]}')
+          HTTP=$(curl -sS -o /tmp/discord-response.txt -w '%{http_code}' --connect-timeout 5 --max-time 15 \
+            -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK_URL") || HTTP=000
+          # A failed notification must not fail the run, but it must be visible (it was silent).
+          if [ "${HTTP:0:1}" != "2" ]; then
+            echo "::warning title=Discord notification failed::HTTP $HTTP: $(head -c 300 /tmp/discord-response.txt 2>/dev/null)"
+          fi
