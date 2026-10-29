@@ -50,13 +50,13 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.9.9",
     "langium-cli": "4.4.0"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
     "langium": "4.4.0",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.1"
   },
   "publishConfig": {
     "access": "public",
