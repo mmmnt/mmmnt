@@ -1,0 +1,170 @@
+import { describe, it, expect } from 'vitest';
+import { join, resolve } from 'node:path';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { ProjectLoader } from '../../src/project/index.js';
+
+const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
+const VALID = resolve(FIXTURES, 'valid/model-completeness');
+const INVALID = resolve(FIXTURES, 'invalid/model-completeness-unresolved');
+
+const project = [
+  resolve(VALID, 'contexts/memory.moment'),
+  resolve(VALID, 'contexts/retrieval.moment'),
+  resolve(VALID, 'flows/recall.moment'),
+];
+
+describe('ProjectLoader with ADR-037 constructs', () => {
+  it('loads a project whose new references resolve only across files, with no V22–V28 finding', async () => {
+    const result = await new ProjectLoader().loadProject(project);
+
+    expect(result.diagnostics.filter((d) => /^V2[2-8]$/.test(d.ruleId ?? ''))).toEqual([]);
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('ProjectLoader resolves names across files after the merge', () => {
+  it('gives flow nodes declared in another file their real kinds', async () => {
+    const result = await new ProjectLoader().loadProject(project);
+    const kinds = result.ir.flows[0].moments.flatMap((m) =>
+      m.contextEntries.map((e) => [e.nodeName, e.nodeKind]),
+    );
+
+    expect(kinds).toEqual([
+      ['RecordDecision', 'command'],
+      ['DecisionMade', 'event'],
+      ['QueryContext', 'query'],
+      ['TrajectoryResult', 'projection'],
+    ]);
+  });
+
+  it('keeps the externals and joins a relationship to an external declared in another file', async () => {
+    const result = await new ProjectLoader().loadProject([
+      ...project,
+      resolve(FIXTURES, 'valid/model-completeness-split/transfer.moment'),
+    ]);
+
+    expect(result.ir.externals?.map((e) => e.name)).toEqual(['HostedService']);
+    expect(result.ir.relationships.map((r) => r.sourceContextId)).toEqual([
+      'ext-HostedService',
+      'ext-HostedService',
+    ]);
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('ProjectLoader reports V22–V28 over the merged project', () => {
+  it('fails a project with an unresolvable projection source, once, as an error', async () => {
+    const result = await new ProjectLoader().loadProject([resolve(INVALID, 'retrieval.moment')]);
+    const completeness = result.diagnostics.filter((d) => /^V2[2-8]$/.test(d.ruleId ?? ''));
+
+    expect(completeness.map((d) => [d.severity, d.ruleId])).toEqual([['error', 'V22']]);
+    expect(result.success).toBe(false);
+  });
+});
+
+import { MomentParser } from '../../src/parser/moment-parser.js';
+import { readFileSync } from 'node:fs';
+
+describe('MomentParser reports V22–V28 for a single file as advisories', () => {
+  it('warns, without failing the parse, about a source the file does not declare', async () => {
+    const result = await new MomentParser().parseContent(
+      readFileSync(resolve(INVALID, 'retrieval.moment'), 'utf-8'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.diagnostics.filter((d) => d.ruleId === 'V22').map((d) => d.severity)).toEqual([
+      'warning',
+    ]);
+  });
+});
+
+describe('ADR-037 invalid corpus exemplars, one per rule', () => {
+  it.each(['V22', 'V23', 'V24', 'V25', 'V26', 'V27', 'V28'])(
+    '%s fails its exemplar project with that rule',
+    async (rule) => {
+      const dir =
+        rule === 'V22'
+          ? INVALID
+          : resolve(FIXTURES, `invalid/model-completeness-${rule.toLowerCase()}`);
+      const file =
+        rule === 'V22' ? resolve(dir, 'retrieval.moment') : resolve(dir, 'memory.moment');
+      const result = await new ProjectLoader().loadProject([file]);
+
+      expect(result.success).toBe(false);
+      expect(
+        result.diagnostics.filter((d) => /^V2[2-8]$/.test(d.ruleId ?? '')).map((d) => d.ruleId),
+      ).toEqual([rule]);
+    },
+  );
+});
+
+describe('ProjectLoader resolves flow node names across files (PM-07)', () => {
+  it('fails a flow file whose node names nothing its lane context declares, and accepts the valid project', async () => {
+    const bad = await new ProjectLoader().loadProject([
+      resolve(VALID, 'contexts/memory.moment'),
+      resolve(FIXTURES, 'invalid/model-completeness-unknown-node/flow.moment'),
+    ]);
+    const good = await new ProjectLoader().loadProject(project);
+
+    expect(bad.diagnostics.filter((d) => d.ruleId === 'PM-07').map((d) => d.message)).toEqual([
+      "Flow 'recall', moment 'A decision is recorded': node 'RecordDecisoin' is no building block of context 'Memory'.",
+    ]);
+    expect(good.diagnostics.filter((d) => d.ruleId === 'PM-07')).toEqual([]);
+  });
+});
+
+describe('ADR-038 invalid corpus exemplars, one per rule', () => {
+  it.each(['V29', 'V30', 'V31', 'V32', 'V33', 'V34', 'V35', 'V36', 'V37'])(
+    '%s fails its exemplar project with that rule, and warns for the file alone',
+    async (rule) => {
+      const file = resolve(FIXTURES, `invalid/palette-${rule.toLowerCase()}/memory.moment`);
+      const project = await new ProjectLoader().loadProject([file]);
+      const single = await new MomentParser().parseContent(readFileSync(file, 'utf-8'), file);
+      const palette = (d: { ruleId?: string }): boolean => /^V(29|3[0-7])$/.test(d.ruleId ?? '');
+
+      expect(project.success).toBe(false);
+      expect(project.diagnostics.filter(palette).map((d) => [d.severity, d.ruleId])).toEqual([
+        ['error', rule],
+      ]);
+      expect(single.success).toBe(true);
+      expect(single.diagnostics.filter(palette).map((d) => [d.severity, d.ruleId])).toEqual([
+        ['warning', rule],
+      ]);
+    },
+  );
+
+  it('loads the ADR-038 exemplar project with no V29–V37 finding', async () => {
+    const result = await new ProjectLoader().loadProject(project);
+
+    expect(result.diagnostics.filter((d) => /^V(29|3[0-7])$/.test(d.ruleId ?? ''))).toEqual([]);
+  });
+});
+
+describe('ProjectLoader reports a file that fails to parse', () => {
+  it('names the file and reports each parse error once', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'moment-parse-error-'));
+    const file = join(dir, 'broken.moment');
+    writeFileSync(file, 'context "Memory" [Core]\n  policy P\n    trigger E\n    action "a"\n');
+
+    const result = await new ProjectLoader().loadProject([file]);
+    const errors = result.diagnostics.filter((d) => d.severity === 'error');
+
+    expect(errors.map((d) => d.source?.file)).toEqual([file]);
+  });
+});
+
+describe('ProjectLoader counts an orchestration command as a block of its context (PM-07, ADR-038)', () => {
+  it('accepts a flow node that names an orchestration command of its lane context', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'moment-pm07-orchestration-'));
+    const flow = join(dir, 'recall-started.moment');
+    writeFileSync(
+      flow,
+      'flow "recall-started"\n  lane retrieval "Retrieval" [Core]\n  moment "A recall starts"\n    retrieval: StartRecall\n',
+    );
+
+    const result = await new ProjectLoader().loadProject([...project, flow]);
+
+    expect(result.diagnostics.filter((d) => d.ruleId === 'PM-07')).toEqual([]);
+  });
+});

@@ -217,7 +217,7 @@
         "command:Inventory:RequestHold"
       ],
       "triggers": [
-        "saga:Inventory:SeatHoldLifecycle",
+        "policy:Inventory:TrackHoldOnSeatsHeld",
         "policy:AntiFraud:EvaluateOnHoldRequest",
         "command:AntiFraud:EvaluateHoldRisk",
         "command:Checkout:CreateCart",
@@ -247,6 +247,7 @@
       "name": "ReleaseHold",
       "context": "Inventory",
       "dependsOn": [
+        "saga:Inventory:SeatHoldLifecycle",
         "policy:Checkout:ReleaseHoldOnPaymentFailure",
         "event:Catalog:EventCancelled"
       ],
@@ -271,6 +272,7 @@
       "name": "ConvertHoldToReservation",
       "context": "Inventory",
       "dependsOn": [
+        "saga:Inventory:SeatHoldLifecycle",
         "policy:Checkout:ConvertHoldOnPayment",
         "event:Checkout:PaymentConfirmed"
       ],
@@ -284,6 +286,90 @@
       "context": "Inventory",
       "dependsOn": [
         "command:Inventory:ConvertHoldToReservation"
+      ],
+      "triggers": [
+        "policy:Inventory:CloseHoldOnConversion"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "TrackHoldOnSeatsHeld",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:SeatsHeld"
+      ],
+      "triggers": [
+        "command:Inventory:TrackHold"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "TrackHold",
+      "context": "Inventory",
+      "dependsOn": [
+        "policy:Inventory:TrackHoldOnSeatsHeld"
+      ],
+      "triggers": [
+        "saga:Inventory:SeatHoldLifecycle"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "AwaitConversionOnPaymentConfirmed",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Checkout:PaymentConfirmed"
+      ],
+      "triggers": [
+        "command:Inventory:AwaitConversion"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PaymentConfirmed",
+      "context": "Checkout",
+      "dependsOn": [
+        "command:Checkout:ConfirmPayment"
+      ],
+      "triggers": [
+        "policy:Inventory:AwaitConversionOnPaymentConfirmed",
+        "policy:Checkout:ConvertHoldOnPayment",
+        "policy:Delivery:IssueOnPaymentConfirmed",
+        "policy:Notifications:ConfirmOnPayment",
+        "command:Inventory:ConvertHoldToReservation",
+        "command:Delivery:IssueTickets",
+        "command:Notifications:SendOrderConfirmation",
+        "crossing:Checkout:PaymentConfirmed->Inventory",
+        "crossing:Checkout:PaymentConfirmed->Delivery",
+        "crossing:Checkout:PaymentConfirmed->Notifications"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "AwaitConversion",
+      "context": "Inventory",
+      "dependsOn": [
+        "policy:Inventory:AwaitConversionOnPaymentConfirmed"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "CloseHoldOnConversion",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:HoldConvertedToReservation"
+      ],
+      "triggers": [
+        "command:Inventory:CloseHold"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "CloseHold",
+      "context": "Inventory",
+      "dependsOn": [
+        "policy:Inventory:CloseHoldOnConversion"
       ],
       "triggers": []
     },
@@ -325,9 +411,12 @@
       "name": "SeatHoldLifecycle",
       "context": "Inventory",
       "dependsOn": [
-        "event:Inventory:SeatsHeld"
+        "command:Inventory:TrackHold"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Inventory:ConvertHoldToReservation",
+        "command:Inventory:ReleaseHold"
+      ]
     },
     {
       "type": "command",
@@ -467,25 +556,6 @@
       ],
       "triggers": [
         "event:Checkout:PaymentConfirmed"
-      ]
-    },
-    {
-      "type": "event",
-      "name": "PaymentConfirmed",
-      "context": "Checkout",
-      "dependsOn": [
-        "command:Checkout:ConfirmPayment"
-      ],
-      "triggers": [
-        "policy:Checkout:ConvertHoldOnPayment",
-        "policy:Delivery:IssueOnPaymentConfirmed",
-        "policy:Notifications:ConfirmOnPayment",
-        "command:Inventory:ConvertHoldToReservation",
-        "command:Delivery:IssueTickets",
-        "command:Notifications:SendOrderConfirmation",
-        "crossing:Checkout:PaymentConfirmed->Inventory",
-        "crossing:Checkout:PaymentConfirmed->Delivery",
-        "crossing:Checkout:PaymentConfirmed->Notifications"
       ]
     },
     {
@@ -771,6 +841,7 @@
       "name": "GenerateMobilePass",
       "context": "Delivery",
       "dependsOn": [
+        "saga:Delivery:TransferLifecycle",
         "event:Delivery:TicketsIssued"
       ],
       "triggers": [
@@ -824,8 +895,8 @@
         "command:Delivery:InitiateTransfer"
       ],
       "triggers": [
+        "policy:Delivery:TrackTransferOnTransferInitiated",
         "policy:Delivery:NotifyOnTransferInitiated",
-        "saga:Delivery:TransferLifecycle",
         "command:Notifications:SendTransferNotification",
         "crossing:Delivery:TransferInitiated->Notifications"
       ]
@@ -847,6 +918,7 @@
         "command:Delivery:AcceptTransfer"
       ],
       "triggers": [
+        "policy:Delivery:CompleteTransferOnTransferAccepted",
         "command:Delivery:RevokeTicket",
         "command:Delivery:IssueTickets"
       ]
@@ -873,7 +945,9 @@
       "type": "command",
       "name": "CancelTransfer",
       "context": "Delivery",
-      "dependsOn": [],
+      "dependsOn": [
+        "saga:Delivery:TransferLifecycle"
+      ],
       "triggers": [
         "event:Delivery:TransferCancelled"
       ]
@@ -884,6 +958,48 @@
       "context": "Delivery",
       "dependsOn": [
         "command:Delivery:CancelTransfer"
+      ],
+      "triggers": []
+    },
+    {
+      "type": "policy",
+      "name": "TrackTransferOnTransferInitiated",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:TransferInitiated"
+      ],
+      "triggers": [
+        "command:Delivery:TrackTransfer"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "TrackTransfer",
+      "context": "Delivery",
+      "dependsOn": [
+        "policy:Delivery:TrackTransferOnTransferInitiated"
+      ],
+      "triggers": [
+        "saga:Delivery:TransferLifecycle"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "CompleteTransferOnTransferAccepted",
+      "context": "Delivery",
+      "dependsOn": [
+        "event:Delivery:TransferAccepted"
+      ],
+      "triggers": [
+        "command:Delivery:CompleteTransfer"
+      ]
+    },
+    {
+      "type": "command",
+      "name": "CompleteTransfer",
+      "context": "Delivery",
+      "dependsOn": [
+        "policy:Delivery:CompleteTransferOnTransferAccepted"
       ],
       "triggers": []
     },
@@ -926,9 +1042,12 @@
       "name": "TransferLifecycle",
       "context": "Delivery",
       "dependsOn": [
-        "event:Delivery:TransferInitiated"
+        "command:Delivery:TrackTransfer"
       ],
-      "triggers": []
+      "triggers": [
+        "command:Delivery:GenerateMobilePass",
+        "command:Delivery:CancelTransfer"
+      ]
     },
     {
       "type": "command",
@@ -1482,6 +1601,6 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-08-06T23:57:35.633Z"
+    "generatedAt": "2026-10-29T18:13:55.410Z"
   }
 }

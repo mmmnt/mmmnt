@@ -18,12 +18,12 @@ export const MomentTerminals = {
 export type MomentTerminalNames = keyof typeof MomentTerminals;
 
 export type MomentKeywordNames =
-    | "\"file-watcher\""
     | "\"none\""
     | "("
     | ")"
     | ","
     | "->"
+    | "."
     | ":"
     | "@"
     | "AnticorruptionLayer"
@@ -32,6 +32,7 @@ export type MomentKeywordNames =
     | "CustomerSupplier"
     | "Date"
     | "DateTime"
+    | "External"
     | "Generic"
     | "Money"
     | "OpenHostService"
@@ -60,26 +61,42 @@ export type MomentKeywordNames =
     | "deprecated"
     | "description"
     | "emits"
+    | "enforced-by"
     | "event"
+    | "external"
+    | "field"
     | "flow"
+    | "gateway"
     | "identity"
+    | "initial"
     | "input"
     | "invariant"
+    | "invoked-by"
+    | "issues"
     | "lane"
     | "moment"
+    | "none"
     | "number"
     | "on"
     | "optional"
+    | "orchestration"
     | "policy"
     | "precondition"
     | "produces"
+    | "projection"
+    | "query"
+    | "reads"
     | "relationship"
     | "returns-to"
+    | "rule"
     | "saga"
     | "scope"
     | "service"
+    | "sources"
+    | "state"
     | "states"
     | "string"
+    | "term"
     | "terminal"
     | "timeout"
     | "trigger"
@@ -99,13 +116,15 @@ export interface AggregateDeclaration extends langium.AstNode {
     identityField: FieldDeclaration;
     members: Array<AggregateMember>;
     name: string;
+    states: Array<AggregateStateDeclaration>;
 }
 
 export const AggregateDeclaration = {
     $type: 'AggregateDeclaration',
     identityField: 'identityField',
     members: 'members',
-    name: 'name'
+    name: 'name',
+    states: 'states'
 } as const;
 
 export function isAggregateDeclaration(item: unknown): item is AggregateDeclaration {
@@ -120,6 +139,29 @@ export const AggregateMember = {
 
 export function isAggregateMember(item: unknown): item is AggregateMember {
     return reflection.isInstance(item, AggregateMember.$type);
+}
+
+export interface AggregateStateDeclaration extends langium.AstNode {
+    readonly $container: AggregateDeclaration;
+    readonly $type: 'AggregateStateDeclaration';
+    command?: string;
+    from?: string;
+    initial: boolean;
+    name?: string;
+    to?: string;
+}
+
+export const AggregateStateDeclaration = {
+    $type: 'AggregateStateDeclaration',
+    command: 'command',
+    from: 'from',
+    initial: 'initial',
+    name: 'name',
+    to: 'to'
+} as const;
+
+export function isAggregateStateDeclaration(item: unknown): item is AggregateStateDeclaration {
+    return reflection.isInstance(item, AggregateStateDeclaration.$type);
 }
 
 export interface AnnotationDeclaration extends langium.AstNode {
@@ -160,10 +202,10 @@ export function isClassification(item: unknown): item is Classification {
     return reflection.isInstance(item, Classification.$type);
 }
 
-export type ClassificationValue = 'Core' | 'Generic' | 'Supporting' | 'Terminal';
+export type ClassificationValue = 'Core' | 'External' | 'Generic' | 'Supporting' | 'Terminal';
 
 export function isClassificationValue(item: unknown): item is ClassificationValue {
-    return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal';
+    return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal' || item === 'External';
 }
 
 export interface CommandDeclaration extends langium.AstNode {
@@ -185,6 +227,25 @@ export const CommandDeclaration = {
 
 export function isCommandDeclaration(item: unknown): item is CommandDeclaration {
     return reflection.isInstance(item, CommandDeclaration.$type);
+}
+
+export interface Compensation extends langium.AstNode {
+    readonly $container: SagaDeclaration;
+    readonly $type: 'Compensation';
+    command?: string;
+    none: boolean;
+    undo: Array<IssuedCommand>;
+}
+
+export const Compensation = {
+    $type: 'Compensation',
+    command: 'command',
+    none: 'none',
+    undo: 'undo'
+} as const;
+
+export function isCompensation(item: unknown): item is Compensation {
+    return reflection.isInstance(item, Compensation.$type);
 }
 
 export type Connection = ReturnsTo | TriggeredBy | Triggers;
@@ -237,7 +298,7 @@ export function isContextDeclaration(item: unknown): item is ContextDeclaration 
     return reflection.isInstance(item, ContextDeclaration.$type);
 }
 
-export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | SagaDeclaration;
+export type ContextMember = AggregateDeclaration | AnnotationDeclaration | ContextRelationshipDeclaration | DomainServiceDeclaration | PolicyDeclaration | ProjectionDeclaration | QueryDeclaration | RuleDeclaration | SagaDeclaration | TermDeclaration | ValueObjectDeclaration;
 
 export const ContextMember = {
     $type: 'ContextMember'
@@ -325,11 +386,30 @@ export function isDomainServiceDeclaration(item: unknown): item is DomainService
     return reflection.isInstance(item, DomainServiceDeclaration.$type);
 }
 
+export interface ExternalDeclaration extends langium.AstNode {
+    readonly $container: MomentFile;
+    readonly $type: 'ExternalDeclaration';
+    description: string;
+    gateways: Array<GatewayDeclaration>;
+    name: string;
+}
+
+export const ExternalDeclaration = {
+    $type: 'ExternalDeclaration',
+    description: 'description',
+    gateways: 'gateways',
+    name: 'name'
+} as const;
+
+export function isExternalDeclaration(item: unknown): item is ExternalDeclaration {
+    return reflection.isInstance(item, ExternalDeclaration.$type);
+}
+
 export interface FieldDeclaration extends langium.AstNode {
-    readonly $container: AggregateDeclaration | DomainEventDeclaration | ValueObjectDeclaration;
+    readonly $container: AggregateDeclaration | DomainEventDeclaration | ProjectionDeclaration | ValueObjectDeclaration;
     readonly $type: 'FieldDeclaration';
     deprecation?: FieldDeprecation;
-    name: string;
+    name: FieldName;
     type: TypeReference;
 }
 
@@ -361,6 +441,12 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
+export type FieldName = 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'reads' | 'sources' | 'state' | string;
+
+export function isFieldName(item: unknown): item is FieldName {
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+}
+
 export interface FlowDeclaration extends langium.AstNode {
     readonly $container: MomentFile;
     readonly $type: 'FlowDeclaration';
@@ -382,11 +468,32 @@ export function isFlowDeclaration(item: unknown): item is FlowDeclaration {
     return reflection.isInstance(item, FlowDeclaration.$type);
 }
 
+export interface GatewayDeclaration extends langium.AstNode {
+    readonly $container: ExternalDeclaration | PolicyDeclaration | ProjectionDeclaration | SagaDeclaration;
+    readonly $type: 'GatewayDeclaration';
+    consumes: string;
+    description?: string;
+    name: string;
+    produces: string;
+}
+
+export const GatewayDeclaration = {
+    $type: 'GatewayDeclaration',
+    consumes: 'consumes',
+    description: 'description',
+    name: 'name',
+    produces: 'produces'
+} as const;
+
+export function isGatewayDeclaration(item: unknown): item is GatewayDeclaration {
+    return reflection.isInstance(item, GatewayDeclaration.$type);
+}
+
 export interface InputField extends langium.AstNode {
-    readonly $container: CommandDeclaration;
+    readonly $container: CommandDeclaration | OrchestrationCommand | QueryDeclaration;
     readonly $type: 'InputField';
     deprecation?: FieldDeprecation;
-    name: string;
+    name: InputName;
     type: TypeReference;
 }
 
@@ -399,6 +506,12 @@ export const InputField = {
 
 export function isInputField(item: unknown): item is InputField {
     return reflection.isInstance(item, InputField.$type);
+}
+
+export type InputName = 'projection' | 'query' | 'rule' | 'term' | FieldName;
+
+export function isInputName(item: unknown): item is InputName {
+    return isFieldName(item) || item === 'projection' || item === 'query' || item === 'rule' || item === 'term';
 }
 
 export interface InvariantDeclaration extends langium.AstNode {
@@ -418,6 +531,23 @@ export const InvariantDeclaration = {
 
 export function isInvariantDeclaration(item: unknown): item is InvariantDeclaration {
     return reflection.isInstance(item, InvariantDeclaration.$type);
+}
+
+export interface IssuedCommand extends langium.AstNode {
+    readonly $container: Compensation | SagaDeclaration;
+    readonly $type: 'IssuedCommand';
+    operation?: string;
+    target: string;
+}
+
+export const IssuedCommand = {
+    $type: 'IssuedCommand',
+    operation: 'operation',
+    target: 'target'
+} as const;
+
+export function isIssuedCommand(item: unknown): item is IssuedCommand {
+    return reflection.isInstance(item, IssuedCommand.$type);
 }
 
 export interface LaneDeclaration extends langium.AstNode {
@@ -471,12 +601,14 @@ export function isMomentDeclaration(item: unknown): item is MomentDeclaration {
 export interface MomentFile extends langium.AstNode {
     readonly $type: 'MomentFile';
     contexts: Array<ContextDeclaration>;
+    externals: Array<ExternalDeclaration>;
     flows: Array<FlowDeclaration>;
 }
 
 export const MomentFile = {
     $type: 'MomentFile',
     contexts: 'contexts',
+    externals: 'externals',
     flows: 'flows'
 } as const;
 
@@ -541,19 +673,42 @@ export function isNodePlacement(item: unknown): item is NodePlacement {
     return reflection.isInstance(item, NodePlacement.$type);
 }
 
+export interface OrchestrationCommand extends langium.AstNode {
+    readonly $container: SagaDeclaration;
+    readonly $type: 'OrchestrationCommand';
+    emits?: string;
+    inputs: Array<InputField>;
+    name: string;
+    preconditions: Array<Precondition>;
+}
+
+export const OrchestrationCommand = {
+    $type: 'OrchestrationCommand',
+    emits: 'emits',
+    inputs: 'inputs',
+    name: 'name',
+    preconditions: 'preconditions'
+} as const;
+
+export function isOrchestrationCommand(item: unknown): item is OrchestrationCommand {
+    return reflection.isInstance(item, OrchestrationCommand.$type);
+}
+
 export interface PolicyDeclaration extends langium.AstNode {
     readonly $container: ContextDeclaration;
     readonly $type: 'PolicyDeclaration';
     action: string;
-    chainsTo?: string;
+    chainsTo: string;
+    gateways: Array<GatewayDeclaration>;
     name: string;
-    trigger: PolicyTrigger;
+    trigger: string;
 }
 
 export const PolicyDeclaration = {
     $type: 'PolicyDeclaration',
     action: 'action',
     chainsTo: 'chainsTo',
+    gateways: 'gateways',
     name: 'name',
     trigger: 'trigger'
 } as const;
@@ -562,25 +717,8 @@ export function isPolicyDeclaration(item: unknown): item is PolicyDeclaration {
     return reflection.isInstance(item, PolicyDeclaration.$type);
 }
 
-export interface PolicyTrigger extends langium.AstNode {
-    readonly $container: PolicyDeclaration;
-    readonly $type: 'PolicyTrigger';
-    eventName?: string;
-    fileWatcher?: '"file-watcher"';
-}
-
-export const PolicyTrigger = {
-    $type: 'PolicyTrigger',
-    eventName: 'eventName',
-    fileWatcher: 'fileWatcher'
-} as const;
-
-export function isPolicyTrigger(item: unknown): item is PolicyTrigger {
-    return reflection.isInstance(item, PolicyTrigger.$type);
-}
-
 export interface Precondition extends langium.AstNode {
-    readonly $container: CommandDeclaration;
+    readonly $container: CommandDeclaration | OrchestrationCommand;
     readonly $type: 'Precondition';
     description: string;
     name: string;
@@ -594,6 +732,50 @@ export const Precondition = {
 
 export function isPrecondition(item: unknown): item is Precondition {
     return reflection.isInstance(item, Precondition.$type);
+}
+
+export interface ProjectionDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'ProjectionDeclaration';
+    description?: string;
+    fields: Array<FieldDeclaration>;
+    gateways: Array<GatewayDeclaration>;
+    name: string;
+    sources: Array<string>;
+}
+
+export const ProjectionDeclaration = {
+    $type: 'ProjectionDeclaration',
+    description: 'description',
+    fields: 'fields',
+    gateways: 'gateways',
+    name: 'name',
+    sources: 'sources'
+} as const;
+
+export function isProjectionDeclaration(item: unknown): item is ProjectionDeclaration {
+    return reflection.isInstance(item, ProjectionDeclaration.$type);
+}
+
+export interface QueryDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'QueryDeclaration';
+    description?: string;
+    inputs: Array<InputField>;
+    name: string;
+    reads: Array<string>;
+}
+
+export const QueryDeclaration = {
+    $type: 'QueryDeclaration',
+    description: 'description',
+    inputs: 'inputs',
+    name: 'name',
+    reads: 'reads'
+} as const;
+
+export function isQueryDeclaration(item: unknown): item is QueryDeclaration {
+    return reflection.isInstance(item, QueryDeclaration.$type);
 }
 
 export type RelationshipType = 'AnticorruptionLayer' | 'Conformist' | 'CustomerSupplier' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' | 'SeparateWays' | string;
@@ -617,25 +799,54 @@ export function isReturnsTo(item: unknown): item is ReturnsTo {
     return reflection.isInstance(item, ReturnsTo.$type);
 }
 
+export interface RuleDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'RuleDeclaration';
+    description: string;
+    enforcer?: string;
+    enforcerText?: string;
+    id: string;
+}
+
+export const RuleDeclaration = {
+    $type: 'RuleDeclaration',
+    description: 'description',
+    enforcer: 'enforcer',
+    enforcerText: 'enforcerText',
+    id: 'id'
+} as const;
+
+export function isRuleDeclaration(item: unknown): item is RuleDeclaration {
+    return reflection.isInstance(item, RuleDeclaration.$type);
+}
+
 export interface SagaDeclaration extends langium.AstNode {
     readonly $container: ContextDeclaration;
     readonly $type: 'SagaDeclaration';
-    compensation: string;
+    commands: Array<OrchestrationCommand>;
+    compensations: Array<Compensation>;
+    gateways: Array<GatewayDeclaration>;
     initialState: string;
+    invokedBy: string;
+    issues: Array<IssuedCommand>;
+    keyword: 'orchestration' | 'saga';
     name: string;
     timeout: SagaTimeout;
     transitions: Array<SagaTransition>;
-    trigger: string;
 }
 
 export const SagaDeclaration = {
     $type: 'SagaDeclaration',
-    compensation: 'compensation',
+    commands: 'commands',
+    compensations: 'compensations',
+    gateways: 'gateways',
     initialState: 'initialState',
+    invokedBy: 'invokedBy',
+    issues: 'issues',
+    keyword: 'keyword',
     name: 'name',
     timeout: 'timeout',
-    transitions: 'transitions',
-    trigger: 'trigger'
+    transitions: 'transitions'
 } as const;
 
 export function isSagaDeclaration(item: unknown): item is SagaDeclaration {
@@ -662,18 +873,35 @@ export function isSagaTimeout(item: unknown): item is SagaTimeout {
 export interface SagaTransition extends langium.AstNode {
     readonly $container: SagaDeclaration;
     readonly $type: 'SagaTransition';
-    event?: string;
+    command?: string;
     target: string;
 }
 
 export const SagaTransition = {
     $type: 'SagaTransition',
-    event: 'event',
+    command: 'command',
     target: 'target'
 } as const;
 
 export function isSagaTransition(item: unknown): item is SagaTransition {
     return reflection.isInstance(item, SagaTransition.$type);
+}
+
+export interface TermDeclaration extends langium.AstNode {
+    readonly $container: ContextDeclaration;
+    readonly $type: 'TermDeclaration';
+    definition: string;
+    term: string;
+}
+
+export const TermDeclaration = {
+    $type: 'TermDeclaration',
+    definition: 'definition',
+    term: 'term'
+} as const;
+
+export function isTermDeclaration(item: unknown): item is TermDeclaration {
+    return reflection.isInstance(item, TermDeclaration.$type);
 }
 
 export interface TriggeredBy extends langium.AstNode {
@@ -730,7 +958,7 @@ export function isTypeReference(item: unknown): item is TypeReference {
 }
 
 export interface ValueObjectDeclaration extends langium.AstNode {
-    readonly $container: AggregateDeclaration;
+    readonly $container: AggregateDeclaration | ContextDeclaration;
     readonly $type: 'ValueObjectDeclaration';
     fields: Array<FieldDeclaration>;
     name: string;
@@ -768,9 +996,11 @@ export function isWhenBlock(item: unknown): item is WhenBlock {
 export type MomentAstType = {
     AggregateDeclaration: AggregateDeclaration
     AggregateMember: AggregateMember
+    AggregateStateDeclaration: AggregateStateDeclaration
     AnnotationDeclaration: AnnotationDeclaration
     Classification: Classification
     CommandDeclaration: CommandDeclaration
+    Compensation: Compensation
     Connection: Connection
     ContextCrossing: ContextCrossing
     ContextDeclaration: ContextDeclaration
@@ -779,24 +1009,31 @@ export type MomentAstType = {
     ContractField: ContractField
     DomainEventDeclaration: DomainEventDeclaration
     DomainServiceDeclaration: DomainServiceDeclaration
+    ExternalDeclaration: ExternalDeclaration
     FieldDeclaration: FieldDeclaration
     FieldDeprecation: FieldDeprecation
     FlowDeclaration: FlowDeclaration
+    GatewayDeclaration: GatewayDeclaration
     InputField: InputField
     InvariantDeclaration: InvariantDeclaration
+    IssuedCommand: IssuedCommand
     LaneDeclaration: LaneDeclaration
     MomentDeclaration: MomentDeclaration
     MomentFile: MomentFile
     Multiplicity: Multiplicity
     NodeModifier: NodeModifier
     NodePlacement: NodePlacement
+    OrchestrationCommand: OrchestrationCommand
     PolicyDeclaration: PolicyDeclaration
-    PolicyTrigger: PolicyTrigger
     Precondition: Precondition
+    ProjectionDeclaration: ProjectionDeclaration
+    QueryDeclaration: QueryDeclaration
     ReturnsTo: ReturnsTo
+    RuleDeclaration: RuleDeclaration
     SagaDeclaration: SagaDeclaration
     SagaTimeout: SagaTimeout
     SagaTransition: SagaTransition
+    TermDeclaration: TermDeclaration
     TriggeredBy: TriggeredBy
     Triggers: Triggers
     TypeReference: TypeReference
@@ -819,6 +1056,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 name: {
                     name: AggregateDeclaration.name
+                },
+                states: {
+                    name: AggregateDeclaration.states,
+                    defaultValue: [],
+                    optional: true
                 }
             },
             superTypes: [ContextMember.$type]
@@ -826,6 +1068,33 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         AggregateMember: {
             name: AggregateMember.$type,
             properties: {
+            },
+            superTypes: []
+        },
+        AggregateStateDeclaration: {
+            name: AggregateStateDeclaration.$type,
+            properties: {
+                command: {
+                    name: AggregateStateDeclaration.command,
+                    optional: true
+                },
+                from: {
+                    name: AggregateStateDeclaration.from,
+                    optional: true
+                },
+                initial: {
+                    name: AggregateStateDeclaration.initial,
+                    defaultValue: false,
+                    optional: true
+                },
+                name: {
+                    name: AggregateStateDeclaration.name,
+                    optional: true
+                },
+                to: {
+                    name: AggregateStateDeclaration.to,
+                    optional: true
+                }
             },
             superTypes: []
         },
@@ -871,6 +1140,26 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: [AggregateMember.$type]
+        },
+        Compensation: {
+            name: Compensation.$type,
+            properties: {
+                command: {
+                    name: Compensation.command,
+                    optional: true
+                },
+                none: {
+                    name: Compensation.none,
+                    defaultValue: false,
+                    optional: true
+                },
+                undo: {
+                    name: Compensation.undo,
+                    defaultValue: [],
+                    optional: true
+                }
+            },
+            superTypes: []
         },
         Connection: {
             name: Connection.$type,
@@ -990,6 +1279,23 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: [ContextMember.$type]
         },
+        ExternalDeclaration: {
+            name: ExternalDeclaration.$type,
+            properties: {
+                description: {
+                    name: ExternalDeclaration.description
+                },
+                gateways: {
+                    name: ExternalDeclaration.gateways,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: ExternalDeclaration.name
+                }
+            },
+            superTypes: []
+        },
         FieldDeclaration: {
             name: FieldDeclaration.$type,
             properties: {
@@ -1041,6 +1347,25 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: []
         },
+        GatewayDeclaration: {
+            name: GatewayDeclaration.$type,
+            properties: {
+                consumes: {
+                    name: GatewayDeclaration.consumes
+                },
+                description: {
+                    name: GatewayDeclaration.description,
+                    optional: true
+                },
+                name: {
+                    name: GatewayDeclaration.name
+                },
+                produces: {
+                    name: GatewayDeclaration.produces
+                }
+            },
+            superTypes: []
+        },
         InputField: {
             name: InputField.$type,
             properties: {
@@ -1071,6 +1396,19 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: [AggregateMember.$type]
+        },
+        IssuedCommand: {
+            name: IssuedCommand.$type,
+            properties: {
+                operation: {
+                    name: IssuedCommand.operation,
+                    optional: true
+                },
+                target: {
+                    name: IssuedCommand.target
+                }
+            },
+            superTypes: []
         },
         LaneDeclaration: {
             name: LaneDeclaration.$type,
@@ -1122,6 +1460,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             properties: {
                 contexts: {
                     name: MomentFile.contexts,
+                    defaultValue: [],
+                    optional: true
+                },
+                externals: {
+                    name: MomentFile.externals,
                     defaultValue: [],
                     optional: true
                 },
@@ -1185,6 +1528,29 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: []
         },
+        OrchestrationCommand: {
+            name: OrchestrationCommand.$type,
+            properties: {
+                emits: {
+                    name: OrchestrationCommand.emits,
+                    optional: true
+                },
+                inputs: {
+                    name: OrchestrationCommand.inputs,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: OrchestrationCommand.name
+                },
+                preconditions: {
+                    name: OrchestrationCommand.preconditions,
+                    defaultValue: [],
+                    optional: true
+                }
+            },
+            superTypes: []
+        },
         PolicyDeclaration: {
             name: PolicyDeclaration.$type,
             properties: {
@@ -1192,7 +1558,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     name: PolicyDeclaration.action
                 },
                 chainsTo: {
-                    name: PolicyDeclaration.chainsTo,
+                    name: PolicyDeclaration.chainsTo
+                },
+                gateways: {
+                    name: PolicyDeclaration.gateways,
+                    defaultValue: [],
                     optional: true
                 },
                 name: {
@@ -1203,20 +1573,6 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: [ContextMember.$type]
-        },
-        PolicyTrigger: {
-            name: PolicyTrigger.$type,
-            properties: {
-                eventName: {
-                    name: PolicyTrigger.eventName,
-                    optional: true
-                },
-                fileWatcher: {
-                    name: PolicyTrigger.fileWatcher,
-                    optional: true
-                }
-            },
-            superTypes: []
         },
         Precondition: {
             name: Precondition.$type,
@@ -1230,6 +1586,55 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: []
         },
+        ProjectionDeclaration: {
+            name: ProjectionDeclaration.$type,
+            properties: {
+                description: {
+                    name: ProjectionDeclaration.description,
+                    optional: true
+                },
+                fields: {
+                    name: ProjectionDeclaration.fields,
+                    defaultValue: [],
+                    optional: true
+                },
+                gateways: {
+                    name: ProjectionDeclaration.gateways,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: ProjectionDeclaration.name
+                },
+                sources: {
+                    name: ProjectionDeclaration.sources,
+                    defaultValue: []
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
+        QueryDeclaration: {
+            name: QueryDeclaration.$type,
+            properties: {
+                description: {
+                    name: QueryDeclaration.description,
+                    optional: true
+                },
+                inputs: {
+                    name: QueryDeclaration.inputs,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: QueryDeclaration.name
+                },
+                reads: {
+                    name: QueryDeclaration.reads,
+                    defaultValue: []
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
         ReturnsTo: {
             name: ReturnsTo.$type,
             properties: {
@@ -1239,14 +1644,55 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: [Connection.$type]
         },
+        RuleDeclaration: {
+            name: RuleDeclaration.$type,
+            properties: {
+                description: {
+                    name: RuleDeclaration.description
+                },
+                enforcer: {
+                    name: RuleDeclaration.enforcer,
+                    optional: true
+                },
+                enforcerText: {
+                    name: RuleDeclaration.enforcerText,
+                    optional: true
+                },
+                id: {
+                    name: RuleDeclaration.id
+                }
+            },
+            superTypes: [ContextMember.$type]
+        },
         SagaDeclaration: {
             name: SagaDeclaration.$type,
             properties: {
-                compensation: {
-                    name: SagaDeclaration.compensation
+                commands: {
+                    name: SagaDeclaration.commands,
+                    defaultValue: [],
+                    optional: true
+                },
+                compensations: {
+                    name: SagaDeclaration.compensations,
+                    defaultValue: []
+                },
+                gateways: {
+                    name: SagaDeclaration.gateways,
+                    defaultValue: [],
+                    optional: true
                 },
                 initialState: {
                     name: SagaDeclaration.initialState
+                },
+                invokedBy: {
+                    name: SagaDeclaration.invokedBy
+                },
+                issues: {
+                    name: SagaDeclaration.issues,
+                    defaultValue: []
+                },
+                keyword: {
+                    name: SagaDeclaration.keyword
                 },
                 name: {
                     name: SagaDeclaration.name
@@ -1258,9 +1704,6 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     name: SagaDeclaration.transitions,
                     defaultValue: [],
                     optional: true
-                },
-                trigger: {
-                    name: SagaDeclaration.trigger
                 }
             },
             superTypes: [ContextMember.$type]
@@ -1282,8 +1725,8 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         SagaTransition: {
             name: SagaTransition.$type,
             properties: {
-                event: {
-                    name: SagaTransition.event,
+                command: {
+                    name: SagaTransition.command,
                     optional: true
                 },
                 target: {
@@ -1291,6 +1734,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: []
+        },
+        TermDeclaration: {
+            name: TermDeclaration.$type,
+            properties: {
+                definition: {
+                    name: TermDeclaration.definition
+                },
+                term: {
+                    name: TermDeclaration.term
+                }
+            },
+            superTypes: [ContextMember.$type]
         },
         TriggeredBy: {
             name: TriggeredBy.$type,
@@ -1336,7 +1791,7 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     name: ValueObjectDeclaration.name
                 }
             },
-            superTypes: [AggregateMember.$type]
+            superTypes: [AggregateMember.$type, ContextMember.$type]
         },
         WhenBlock: {
             name: WhenBlock.$type,

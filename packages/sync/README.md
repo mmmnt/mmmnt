@@ -11,7 +11,9 @@ Implementation synchronization with AST diffing, drift detection, and cascade re
 
 The AST diff engine compares the generated TypeScript output from `@mmmnt/emit-ts` against the actual implementation files on disk, producing a structured diff that identifies added, removed, and modified types, fields, and methods. The sync state tracker maintains a persistent record of when specifications and implementations were last aligned, so drift can be detected incrementally rather than requiring a full comparison each time.
 
-For teams using Sift as an upstream domain modeling tool, the Sift event stream reader watches for new events in the `.complai/events/moment/` directory and feeds them into the reconciliation pipeline. The push flow saga orchestrates the end-to-end reconciliation process, classifying changes into categories -- clean applies (Category 1), manageable drift (Category 2), and breaking changes (Category 3) -- and producing actionable reconciliation plans. The local Git artifact store manages versioned snapshots of generated artifacts for comparison and rollback, while the implementation feedback journal records developer decisions about proposals for future learning.
+For teams using Sift as an upstream domain modeling tool, the Sift event stream reader watches for new events in the `.complai/events/moment/` directory and feeds them into the reconciliation pipeline. The push flow saga orchestrates the end-to-end reconciliation process, classifying changes into categories -- clean applies (Category 1), manageable drift (Category 2), and breaking changes (Category 3) -- and producing actionable reconciliation plans. The local Git artifact store manages versioned snapshots of generated artifacts for comparison and rollback.
+
+Implementation changes never modify the specification (IS-01): sync proposes specification updates and the architect makes them. Proposal state lives in three append-only JSONL logs in `.domain/` (ADR-039): `sync-state.jsonl` holds `SyncState` (proposals, decisions with their actor, and the cursor), `implementation-feedback.jsonl` holds the `ImplementationFeedbackJournal` (exactly one `ImplementationFeedbackRecorded` per accepted proposal, IS-04), and `push-flow-saga.jsonl` holds one `PushFlowSaga` per accept/reject run. `JsonlSyncLogStore` replays them through each aggregate's `apply()`, so a log that breaks an invariant is refused by file and line.
 
 ## Installation
 
@@ -29,28 +31,30 @@ yarn add @mmmnt/sync
 ## Quick Start
 
 ```typescript
-import { ASTDiffEngine, SyncState } from '@mmmnt/sync';
+import { ASTDiffEngine, JsonlSyncLogStore, planDecision } from '@mmmnt/sync';
 
-// Detect drift between specification output and implementation
-const differ = new ASTDiffEngine();
-const diff = await differ.diff({
-  generatedDir: './generated/',
-  implementationDir: './src/domain/',
+// Proposals for the drift between generated (expected) and on-disk (actual) TypeScript.
+// A proposal's id is derived from its drift, so the same drift keeps the same id.
+const proposals = new ASTDiffEngine().generateProposals({ expected, actual });
+
+// Replay the .domain/ logs; a corrupted line throws SyncLogCorruptedError (file + line).
+const store = new JsonlSyncLogStore('specs/.domain');
+const logs = store.load();
+const recorded = proposals
+  .filter((p) => logs.syncState.getProposalStatus(p.proposalId) === undefined)
+  .map((p) => logs.syncState.recordProposal(p));
+store.append({ syncState: recorded });
+
+// Accept: one saga, one feedback event per accepted proposal. The caller commits the logs,
+// then records saga.committed(oid) and saga.complete().
+const plan = planDecision(logs, {
+  kind: 'accept',
+  proposalIds: [recorded[0].proposalId],
+  actor: 'dev@example.com',
+  commitRef: headOid,
 });
-
-if (diff.hasDrift) {
-  console.log(`Drift detected: ${diff.changes.length} changes`);
-  for (const change of diff.changes) {
-    console.log(`  [${change.type}] ${change.path}: ${change.summary}`);
-  }
-} else {
-  console.log('Specification and implementation are in sync.');
-}
-
-// Check persistent sync state
-const state = new SyncState();
-await state.load('.moment/sync-state.json');
-console.log(`Last synced: ${state.lastSyncTimestamp}`);
+if ('refused' in plan) throw new Error(plan.refused);
+store.append(plan);
 ```
 
 ## Key Features
@@ -58,9 +62,11 @@ console.log(`Last synced: ${state.lastSyncTimestamp}`);
 - **AST-level diffing** -- compares generated TypeScript against implementation code at the AST level, not just text, catching structural changes that text diffs miss.
 - **Drift detection** -- identifies added, removed, and modified types, fields, and methods between specification and implementation.
 - **Cascade reconciliation** -- the push flow saga classifies changes into three categories: clean applies, manageable drift, and breaking changes requiring manual intervention.
-- **Persistent sync state** -- tracks specification-implementation alignment timestamps and fingerprints for incremental drift detection.
+- **Persistent sync state** -- proposals, decisions (with the deciding actor) and the sync cursor persist in `.domain/sync-state.jsonl`; drift-derived proposal ids make re-running idempotent.
 - **Sift event stream integration** -- reads JSONL event signals from `.complai/events/moment/` for upstream change detection and reconciliation triggering.
-- **Implementation feedback journal** -- records developer decisions (accept, reject, skip) about change proposals, building a history for future reconciliation improvements.
+- **Implementation feedback journal** -- records exactly one `ImplementationFeedbackRecorded` per accepted proposal in `.domain/implementation-feedback.jsonl`, caused by the proposal and correlated to its push-flow saga.
+- **Local decision commits** -- `commitPathsOnly` commits exactly the named files on top of HEAD (like `git commit --only`), leaving everything else the developer modified or staged alone. No push, no network.
+- **Implied spec edits** -- `impliedSpecEdit` describes the specification edit an accepted proposal implies and locates the declaring file and line; sync never writes it.
 - **Local Git artifact store** -- manages versioned snapshots of generated artifacts using the local Git repository for comparison and rollback.
 - **Git remote management** -- supports cloning, pushing, pulling, and branching through `LocalGitRemoteManager` with pluggable credential strategies.
 - **Credential resolution** -- layered credential resolver with strategies for environment variables, GitHub CLI, Git credential helpers, and OAuth device flow.
@@ -79,20 +85,23 @@ console.log(`Last synced: ${state.lastSyncTimestamp}`);
 
 | Export | Description |
 |--------|-------------|
-| `SyncState` | Persistent record of specification-implementation alignment timestamps and fingerprints. Event-sourced aggregate with `ProposalRecorded`, `ProposalAccepted`, `ProposalRejected`, `ProposalSkipped`, and `CursorAdvanced` events. |
+| `SyncState` | Event-sourced proposal lifecycle (pending → accepted \| rejected \| superseded) and sync cursor, persisted in `.domain/sync-state.jsonl`. Events: `ProposalRecorded`, `ProposalAccepted` and `ProposalRejected` (both carrying `actor`), `ProposalSkipped` (superseded: its drift is gone), and `CursorAdvanced`. |
+| `JsonlSyncLogStore` | Loads (replays) and appends the three `.domain/` logs. Throws `SyncLogCorruptedError` naming the file and line. |
+| `planDecision` | Plans one accept or reject run: refuses unless every named proposal is pending; returns the decision, feedback and saga events through `RecordingComplete`. |
 | `ReconciliationState` | Tracks upstream fingerprints and reconciliation progress. Accepts `DetectUpstreamDriftInput`, `StartReconciliationInput`, and `CompleteReconciliationInput`. |
 
 ### Feedback
 
 | Export | Description |
 |--------|-------------|
-| `ImplementationFeedbackJournal` | Records developer decisions about change proposals via `RecordImplementationFeedbackInput`. Produces `ImplementationFeedbackRecorded` events. |
+| `ImplementationFeedbackJournal` | Records feedback for accepted proposals via `RecordImplementationFeedbackInput` (IFJ-01..04), and replays recorded events through `apply()`. Produces `ImplementationFeedbackRecorded` events. |
+| `impliedSpecEdit` / `locateDeclarations` | The spec edit an accepted proposal implies, by feedback type, with every file and line declaring the construct (an exact-text search for `value-object Y`, `event Y`, `command Y`, `aggregate "Y"`). |
 
 ### Reconciliation
 
 | Export | Description |
 |--------|-------------|
-| `PushFlowSaga` | Orchestrates end-to-end reconciliation, classifying changes as Category 1 (applied), Category 2 (drift), or Category 3 (breaking). Produces a sequence of saga events tracking progress. |
+| `PushFlowSaga` | One accept/reject run: Diffing → Proposing → AwaitingConfirmation → Recording → Committing → Complete (or Aborted). Enforces IS-04: the recorded count equals the accepted count. |
 
 ### Event Stream
 
@@ -106,6 +115,8 @@ console.log(`Last synced: ${state.lastSyncTimestamp}`);
 |--------|-------------|
 | `LocalGitArtifactStore` | Manages versioned snapshots of generated artifacts using the local Git repository for comparison and rollback. |
 | `LocalGitArtifactWriter` | Writes artifact files to the local Git repository with commit metadata. |
+| `resolveRepoIdentity` | The repo holding a path, with its own `user.name`, `user.email` and HEAD; a refusal message when any is missing. |
+| `commitPathsOnly` | Commits exactly the named paths on top of HEAD, leaving the rest of the working tree and index alone. |
 | `LocalGitRemoteManager` | Manages Git remote operations (clone, push, pull, branch) with pluggable credential strategies. |
 | `EnvCredentialStrategy` | Resolves Git credentials from environment variables. |
 | `GhCliCredentialStrategy` | Resolves Git credentials from the GitHub CLI (`gh auth token`). |
@@ -154,36 +165,20 @@ if (drift.points.length === 0) {
 }
 ```
 
-### Running Cascade Reconciliation
+### Committing a Decision Locally
 
 ```typescript
-import { PushFlowSaga } from '@mmmnt/sync';
+import { commitPathsOnly, resolveRepoIdentity } from '@mmmnt/sync';
 
-const saga = new PushFlowSaga();
-const result = await saga.execute({
-  specPath: 'path/to/spec.moment',
-  implementationDir: './src/domain/',
+const identity = await resolveRepoIdentity('specs');
+if (typeof identity === 'string') throw new Error(identity);
+
+const oid = await commitPathsOnly({
+  root: identity.root,
+  paths: ['specs/.domain/sync-state.jsonl', 'specs/.domain/push-flow-saga.jsonl'],
+  message: 'chore(sync): accept 1 proposal(s)\n\nprop-4b1a1efced680463\n',
+  author: { name: identity.name, email: identity.email },
 });
-
-console.log(`Outcome: ${result.outcome}`);
-
-switch (result.outcome) {
-  case 'APPLIED':
-    console.log('All changes applied cleanly (Category 1).');
-    break;
-  case 'DRIFT':
-    console.log('Manageable drift detected (Category 2). Review proposed changes:');
-    for (const action of result.actions) {
-      console.log(`  ${action.description}`);
-    }
-    break;
-  case 'BREAKING':
-    console.log('Breaking changes require manual intervention (Category 3):');
-    for (const action of result.actions) {
-      console.log(`  ${action.description}`);
-    }
-    break;
-}
 ```
 
 ### Reading Sift Event Streams
@@ -213,7 +208,7 @@ for (const event of result.events) {
                                                           |
                                                           +-- @mmmnt/schema   (lifecycle context for drift decisions)
                                                           +-- @mmmnt/harness  (test results inform drift impact)
-                                                          +-- @mmmnt/cli      (exposed via `moment sync`, `moment reconcile`, `moment status`)
+                                                          +-- @mmmnt/cli      (exposed via `moment sync status|propose|accept|reject`, `moment reconcile`, `moment status`)
                                                           +-- @mmmnt/mcp      (exposed via `moment_status`, `moment_reconcile` tools)
 ```
 

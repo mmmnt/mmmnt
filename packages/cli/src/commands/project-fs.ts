@@ -8,14 +8,16 @@
  */
 
 import { dirname, join, parse as parsePath, resolve, isAbsolute, sep } from 'node:path';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 
 /**
  * Walk up from `filePath` until a `.manifest.yaml` is found. Returns the
- * directory containing the manifest, or undefined if none is found.
+ * directory containing the manifest, or undefined if none is found. A
+ * directory (project mode, ADR-037 §8) is searched from itself.
  */
 export function findProjectRoot(filePath: string): string | undefined {
-  let dir = dirname(resolve(filePath));
+  const start = resolve(filePath);
+  let dir = existsSync(start) && statSync(start).isDirectory() ? start : dirname(start);
   const { root } = parsePath(dir);
   while (dir !== root) {
     if (existsSync(join(dir, '.manifest.yaml'))) return dir;

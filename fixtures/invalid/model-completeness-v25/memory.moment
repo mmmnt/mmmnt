@@ -1,0 +1,12 @@
+// ADR-037 invalid exemplar: V25 — one value-object name declared twice in a context.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+    value-object Actor
+      sub: string
+  value-object Actor
+    sub: string

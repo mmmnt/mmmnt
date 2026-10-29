@@ -187,3 +187,40 @@ describe('ImplementationFeedbackJournal', () => {
     expect(event1.metadata.eventId).not.toBe(event2.metadata.eventId);
   });
 });
+
+describe('ImplementationFeedbackJournal.apply (replay)', () => {
+  it('replays a recorded event into the journal', () => {
+    const recorded = new ImplementationFeedbackJournal(
+      makeSyncStateWithAcceptedProposal(),
+    ).recordImplementationFeedback(makeValidInput());
+
+    const journal = new ImplementationFeedbackJournal(makeSyncStateWithAcceptedProposal());
+    journal.apply(recorded);
+
+    expect(journal.getEntries()).toEqual([recorded]);
+  });
+
+  it('IFJ-02: refuses to replay feedback whose proposal is not accepted', () => {
+    const recorded = new ImplementationFeedbackJournal(
+      makeSyncStateWithAcceptedProposal(),
+    ).recordImplementationFeedback(makeValidInput());
+    const pending = new SyncState();
+    pending.recordProposal(makeProposal());
+
+    expect(() => new ImplementationFeedbackJournal(pending).apply(recorded)).toThrow('IFJ-02');
+  });
+
+  it('IFJ-01: refuses to replay feedback from another source', () => {
+    const recorded = new ImplementationFeedbackJournal(
+      makeSyncStateWithAcceptedProposal(),
+    ).recordImplementationFeedback(makeValidInput());
+    const forged = {
+      ...recorded,
+      metadata: { ...recorded.metadata, source: { source: 'other:source' } },
+    };
+
+    expect(() =>
+      new ImplementationFeedbackJournal(makeSyncStateWithAcceptedProposal()).apply(forged),
+    ).toThrow('IFJ-01');
+  });
+});

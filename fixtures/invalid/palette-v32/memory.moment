@@ -1,0 +1,16 @@
+// ADR-038 invalid exemplar: V32 — an orchestration invoked by a command that is not its own.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  orchestration Recall
+    command StartRecall
+    invoked-by RecordDecision
+    issues RecordDecision
+    states Recalling
+    compensation none
+    timeout "none"

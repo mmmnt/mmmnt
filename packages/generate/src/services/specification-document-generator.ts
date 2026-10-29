@@ -402,7 +402,58 @@ export class SpecificationDocumentGenerator {
 
     for (const ctx of ir.contexts) {
       this.renderContextModel(lines, ctx);
+      this.renderReadSide(lines, ctx);
+      this.renderTerms(
+        lines,
+        ir.glossary.filter((g) => g.context === ctx.name),
+      );
     }
+    this.renderExternals(lines, ir);
+  }
+
+  /** ADR-037: a context's projections, queries and rules outside its aggregates. */
+  private renderReadSide(lines: string[], ctx: ContextDefinition): void {
+    const describe = (text?: string): string => (text ? `: ${text}` : '');
+    this.renderList(
+      lines,
+      'Projections',
+      (ctx.projections ?? []).map(
+        (p) => `- **${p.name}** ← ${p.sources.join(', ')}${describe(p.description)}`,
+      ),
+    );
+    this.renderList(
+      lines,
+      'Queries',
+      (ctx.queries ?? []).map(
+        (q) => `- **${q.name}** reads ${q.reads.join(', ')}${describe(q.description)}`,
+      ),
+    );
+    this.renderList(
+      lines,
+      'Rules',
+      (ctx.rules ?? []).map((r) => `- **${r.id}**: ${r.description} (enforced by ${r.enforcedBy})`),
+    );
+  }
+
+  private renderTerms(lines: string[], terms: IntermediateRepresentation['glossary']): void {
+    this.renderList(
+      lines,
+      'Terms',
+      terms.map((t) => `- **${t.term}**: ${t.definition}`),
+    );
+  }
+
+  private renderExternals(lines: string[], ir: IntermediateRepresentation): void {
+    this.renderList(
+      lines,
+      'External systems',
+      (ir.externals ?? []).map((e) => `- **${e.name}**: ${e.description}`),
+    );
+  }
+
+  private renderList(lines: string[], title: string, items: string[]): void {
+    if (items.length === 0) return;
+    lines.push(`**${title}:**`, '', ...items, '');
   }
 
   private renderContextModel(lines: string[], ctx: ContextDefinition): void {
@@ -424,7 +475,15 @@ export class SpecificationDocumentGenerator {
       lines.push('');
       for (const saga of ctx.sagas) {
         lines.push(`- **${saga.name}**: ${saga.states.join(' → ')}`);
-        lines.push(`  - Triggered by: ${saga.trigger}`);
+        lines.push(
+          saga.commands
+            ? `  - Invoked by: ${saga.trigger}${saga.startEvent ? ` (on ${saga.startEvent})` : ''}`
+            : `  - Triggered by: ${saga.trigger}`,
+        );
+        if (saga.issues && saga.issues.length > 0)
+          lines.push(
+            `  - Issues: ${saga.issues.map((i) => (i.external ? `${i.external}.${i.name}` : i.name)).join(', ')}`,
+          );
         lines.push(`  - Compensation: ${saga.compensation}`);
       }
       lines.push('');
@@ -780,7 +839,7 @@ export class SpecificationDocumentGenerator {
         const triggerStep = this.findSagaTriggerStep(saga, flow);
         if (triggerStep >= 1 && triggerStep <= step) {
           // Verify the trigger event is in the events we've seen
-          if (eventsUpTo.has(saga.trigger)) {
+          if (eventsUpTo.has(saga.startEvent ?? saga.trigger)) {
             return { saga, triggerStep };
           }
         }
@@ -793,7 +852,7 @@ export class SpecificationDocumentGenerator {
     for (let i = 0; i < flow.moments.length; i++) {
       const moment = flow.moments[i];
       const hasEvent = moment.contextEntries.some(
-        (e) => e.nodeKind === 'event' && e.nodeName === saga.trigger,
+        (e) => e.nodeKind === 'event' && e.nodeName === (saga.startEvent ?? saga.trigger),
       );
       if (hasEvent) return i + 1;
     }

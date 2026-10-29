@@ -346,7 +346,8 @@ function collectSagaTags(
 ): void {
   for (const ctx of ir.contexts) {
     for (const saga of ctx.sagas) {
-      if (entries.find((e) => e.nodeName === saga.trigger)) tags.push(`@saga:${saga.name}`);
+      const start = saga.startEvent ?? saga.trigger;
+      if (entries.find((e) => e.nodeName === start)) tags.push(`@saga:${saga.name}`);
     }
   }
 }
@@ -548,7 +549,8 @@ function collectOwnedSagaIds(flow: FlowDefinition, ir: IntermediateRepresentatio
   const owned = new Set<string>();
   for (const ctx of ir.contexts) {
     for (const saga of ctx.sagas) {
-      const owner = ir.flows.find((f) => flowContainsNode(f, saga.trigger)) ?? ir.flows[0];
+      const start = saga.startEvent ?? saga.trigger;
+      const owner = ir.flows.find((f) => flowContainsNode(f, start)) ?? ir.flows[0];
       if (owner && owner.id === flow.id) owned.add(saga.id);
     }
   }
@@ -601,18 +603,43 @@ function renderOrphanOwnedSagas(
 function renderSagaTransitionScenario(lines: string[], saga: SagaDefinition): void {
   lines.push(`    @saga:${saga.name}`);
   lines.push(`    Scenario: ${saga.name} state transitions`);
-  lines.push(`      Given the saga is triggered by ${saga.trigger}`);
+  lines.push(
+    saga.commands
+      ? `      Given the ${saga.keyword ?? 'orchestration'} is invoked by ${saga.trigger}`
+      : `      Given the saga is triggered by ${saga.trigger}`,
+  );
   const stateChain = saga.states.join(' \u2192 ');
   lines.push(`      Then states progress: ${stateChain}`);
   lines.push('');
 }
 
 function renderSagaCompensationScenario(lines: string[], saga: SagaDefinition): void {
+  if (saga.compensations) {
+    renderOrchestrationCompensations(lines, saga, saga.compensations);
+    return;
+  }
   lines.push(`    @saga:${saga.name} @compensation`);
   lines.push(`    Scenario: ${saga.name} compensation`);
   lines.push(`      When ${saga.timeout} is exceeded`);
   lines.push(`      Then ${saga.compensation} is executed`);
   lines.push('');
+}
+
+/** One scenario per named compensation command; `compensation none` has nothing to undo (ADR-038 §2). */
+function renderOrchestrationCompensations(
+  lines: string[],
+  saga: SagaDefinition,
+  compensations: NonNullable<SagaDefinition['compensations']>,
+): void {
+  for (const c of compensations) {
+    if (c.none) continue;
+    const undo = c.issues.map((i) => (i.external ? `${i.external}.${i.name}` : i.name)).join(', ');
+    lines.push(`    @saga:${saga.name} @compensation`);
+    lines.push(`    Scenario: ${saga.name} compensation on ${c.onCommand}`);
+    lines.push(`      When ${c.onCommand} is invoked on ${saga.name}`);
+    lines.push(`      Then ${saga.name} issues ${undo}`);
+    lines.push('');
+  }
 }
 
 /**
@@ -648,9 +675,10 @@ function findCompensationForMoment(
   if (!ctx || ctx.sagas.length === 0) return undefined;
 
   for (const saga of ctx.sagas) {
+    const start = saga.startEvent ?? saga.trigger;
     const hasTrigger =
-      moment.contextEntries.some((e) => e.nodeName === saga.trigger) ||
-      moment.branches?.some((b) => b.entries.some((e) => e.nodeName === saga.trigger));
+      moment.contextEntries.some((e) => e.nodeName === start) ||
+      moment.branches?.some((b) => b.entries.some((e) => e.nodeName === start));
     if (hasTrigger) {
       return { sagaName: saga.name, compensation: saga.compensation };
     }

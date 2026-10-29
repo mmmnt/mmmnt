@@ -10,7 +10,7 @@
     },
     {
       "name": "keyword.control.moment",
-      "match": "\\b(AnticorruptionLayer|PublishedLanguage|CustomerSupplier|OpenHostService|compensation|precondition|relationship|SeparateWays|triggered-by|value-object|branch-lane|description|Partnership|Conformist|crosses-to|deprecated|returns-to|Supporting|aggregate|chains-to|invariant|consumes|contract|DateTime|identity|optional|produces|terminal|Terminal|triggers|boolean|command|context|Generic|service|timeout|trigger|action|moment|number|policy|states|string|emits|event|input|Money|scope|Core|Date|flow|lane|saga|type|UUID|when|via|on)\\b|\\B(\"file-watcher\"|\\[required\\]|\\[branch\\]|\"none\")\\B"
+      "match": "\\b(AnticorruptionLayer|PublishedLanguage|CustomerSupplier|OpenHostService|orchestration|compensation|precondition|relationship|SeparateWays|triggered-by|value-object|branch-lane|description|enforced-by|Partnership|Conformist|crosses-to|deprecated|invoked-by|projection|returns-to|Supporting|aggregate|chains-to|invariant|consumes|contract|DateTime|external|External|identity|optional|produces|terminal|Terminal|triggers|boolean|command|context|gateway|Generic|initial|service|sources|timeout|trigger|action|issues|moment|number|policy|states|string|emits|event|field|input|Money|query|reads|scope|state|Core|Date|flow|lane|none|rule|saga|term|type|UUID|when|via|on)\\b|\\B(\\[required\\]|\\[branch\\]|\"none\")\\B"
     },
     {
       "name": "string.quoted.double.moment",

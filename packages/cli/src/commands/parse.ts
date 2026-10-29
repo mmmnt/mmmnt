@@ -10,6 +10,8 @@ import { resolve } from 'node:path';
 import { MomentParser } from '@mmmnt/core';
 import type { Diagnostic, ParseResult } from '@mmmnt/core';
 import { updateManifestFromIr } from './update-manifest.js';
+import { isDirectory, loadSpecification } from '../lib/load-specification.js';
+import type { LoadedSpecification } from '../lib/load-specification.js';
 
 export interface ParseCommandResult {
   readonly success: boolean;
@@ -64,10 +66,12 @@ function toResult(parseResult: ParseResult): ParseCommandResult {
 
 export async function runParse(argv: string[]): Promise<ParseCommandResult> {
   const filePath = argv[0];
-  if (!filePath) return fail('Usage: moment parse <file.moment>');
+  if (!filePath) return fail('Usage: moment parse <file.moment | directory>');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
+
+  if (isDirectory(resolvedPath)) return toProjectResult(await loadSpecification(resolvedPath));
 
   const content = readFile(resolvedPath);
   if (typeof content !== 'string') return content;
@@ -80,4 +84,23 @@ export async function runParse(argv: string[]): Promise<ParseCommandResult> {
   }
 
   return toResult(result);
+}
+
+function toProjectResult(project: LoadedSpecification): ParseCommandResult {
+  const contextCount = project.ir?.contexts.length ?? 0;
+  const flowCount = project.ir?.flows.length ?? 0;
+  if (!project.success) {
+    return {
+      success: false,
+      message: `Project failed with ${project.diagnostics.length} diagnostic(s)`,
+      diagnostics: project.diagnostics,
+    };
+  }
+  return {
+    success: true,
+    message: `Parsed project successfully: ${project.files.length} file(s), ${contextCount} context(s), ${flowCount} flow(s)`,
+    diagnostics: project.diagnostics,
+    contextCount,
+    flowCount,
+  };
 }

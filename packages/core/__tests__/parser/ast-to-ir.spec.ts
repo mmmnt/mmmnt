@@ -257,19 +257,27 @@ describe('AstToIr', () => {
     expect(pol.chainsTo).toBe('CheckInventory');
   });
 
-  it('transforms policy with file-watcher trigger', async () => {
+  it('binds an orchestration step to the trigger of the relay policy that invokes it (ADR-038 §2)', async () => {
     const ir = await toIr(`
       context "Test"
-        aggregate "Order"
-          identity orderId: UUID
-        policy RegenerateOnChange
-          trigger "file-watcher"
-          action "Regenerate on file change"
+        policy AwaitConversionOnPaymentConfirmed
+          trigger PaymentConfirmed
+          action "await the conversion"
+          chains-to AwaitConversion
+        saga HoldLifecycle
+          command TrackHold
+          command AwaitConversion
+          invoked-by TrackHold
+          issues ConvertHold
+          states Held -> Converting on AwaitConversion -> Expired
+          compensation none
+          timeout "none"
     `);
 
-    const pol = ir.contexts[0].policies[0];
-    expect(pol.trigger).toBe('file-watcher');
-    expect(pol.chainsTo).toBeUndefined();
+    expect(ir.contexts[0].sagas[0].transitions).toEqual([
+      { from: 'Held', to: 'Converting', onCommand: 'AwaitConversion', onEvent: 'PaymentConfirmed' },
+      { from: 'Converting', to: 'Expired' },
+    ]);
   });
 
   it('transforms context without classification', async () => {
@@ -283,90 +291,133 @@ describe('AstToIr', () => {
     expect(ir.contexts[0].classification).toBeUndefined();
   });
 
-  it('transforms saga declaration', async () => {
+  it('transforms an orchestration declaration (ADR-038 §2)', async () => {
     const ir = await toIr(`
       context "Test"
-        aggregate "Order"
-          identity orderId: UUID
-        saga OrderFulfillmentSaga
-          trigger OrderPlaced
+        orchestration OrderFulfillment
+          command StartFulfillment
+            input orderId: UUID
+          command CancelFulfillment
+          invoked-by StartFulfillment
+          issues ReserveStock, Carrier.ship
           states Pending -> Reserved -> Fulfilled
-          compensation "Cancel reservation and refund"
+          compensation on CancelFulfillment issues ReleaseStock, Carrier.recall
           timeout P30D
     `);
 
     const saga = ir.contexts[0].sagas[0];
-    expect(saga.id).toBe('saga-OrderFulfillmentSaga');
-    expect(saga.name).toBe('OrderFulfillmentSaga');
-    expect(saga.trigger).toBe('OrderPlaced');
+    expect(saga.id).toBe('saga-OrderFulfillment');
+    expect(saga.keyword).toBe('orchestration');
+    expect(saga.trigger).toBe('StartFulfillment');
+    expect(saga.commands?.map((c) => [c.name, c.inputs.map((i) => i.name)])).toEqual([
+      ['StartFulfillment', ['orderId']],
+      ['CancelFulfillment', []],
+    ]);
+    expect(saga.issues).toEqual([{ name: 'ReserveStock' }, { name: 'ship', external: 'Carrier' }]);
     expect(saga.states).toEqual(['Pending', 'Reserved', 'Fulfilled']);
-    expect(saga.compensation).toBe('Cancel reservation and refund');
-    expect(saga.timeout).toBe('P30D');
-    // Transitions derived from the state chain; no `on` mapping declared.
     expect(saga.transitions).toEqual([
       { from: 'Pending', to: 'Reserved' },
       { from: 'Reserved', to: 'Fulfilled' },
     ]);
-  });
-
-  it('derives saga transitions with `on` event mappings (M-S6)', async () => {
-    const ir = await toIr(`
-      context "Test"
-        aggregate "Hold"
-          identity holdId: UUID
-        saga HoldLifecycle
-          trigger PlaceHold
-          states Held -> Converting on PaymentConfirmed -> Converted on HoldConvertedToReservation
-          compensation "Release the hold"
-          timeout "none"
-    `);
-
-    const saga = ir.contexts[0].sagas[0];
-    expect(saga.states).toEqual(['Held', 'Converting', 'Converted']);
-    expect(saga.transitions).toEqual([
-      { from: 'Held', to: 'Converting', onEvent: 'PaymentConfirmed' },
-      { from: 'Converting', to: 'Converted', onEvent: 'HoldConvertedToReservation' },
+    expect(saga.compensations).toEqual([
+      {
+        onCommand: 'CancelFulfillment',
+        issues: [{ name: 'ReleaseStock' }, { name: 'recall', external: 'Carrier' }],
+      },
     ]);
+    expect(saga.compensation).toBe('on CancelFulfillment issues ReleaseStock, Carrier.recall');
+    expect(saga.timeout).toBe('P30D');
   });
 
-  it('derives mixed mapped/unmapped saga transitions without onEvent on unmapped ones', async () => {
+  it('records the saga alias and an explicit nothing-to-undo', async () => {
     const ir = await toIr(`
       context "Test"
-        aggregate "Order"
-          identity orderId: UUID
-        saga OrderFulfillment
-          trigger PlaceOrder
-          states Pending -> Reserved on InventoryReserved -> Shipped -> Complete on DeliveryConfirmed
-          compensation "Cancel reservation and refund"
-          timeout P30D
-    `);
-
-    const saga = ir.contexts[0].sagas[0];
-    expect(saga.states).toEqual(['Pending', 'Reserved', 'Shipped', 'Complete']);
-    expect(saga.transitions).toEqual([
-      { from: 'Pending', to: 'Reserved', onEvent: 'InventoryReserved' },
-      { from: 'Reserved', to: 'Shipped' },
-      { from: 'Shipped', to: 'Complete', onEvent: 'DeliveryConfirmed' },
-    ]);
-    // Unmapped transitions carry no onEvent key at all.
-    expect('onEvent' in saga.transitions![1]).toBe(false);
-  });
-
-  it('derives an empty transitions list for a single-state saga', async () => {
-    const ir = await toIr(`
-      context "Test"
-        aggregate "Order"
-          identity orderId: UUID
         saga SingleState
-          trigger Start
+          command Start
+          invoked-by Start
+          issues Finish
           states Done
-          compensation "n/a"
+          compensation none
           timeout "none"
     `);
 
     const saga = ir.contexts[0].sagas[0];
+    expect(saga.keyword).toBe('saga');
     expect(saga.states).toEqual(['Done']);
     expect(saga.transitions).toEqual([]);
+    expect(saga.compensations).toEqual([{ none: true }]);
+    expect(saga.compensation).toBe('none');
+  });
+
+  it('transforms aggregate internal state (ADR-038 §3)', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Node"
+          identity nodeId: UUID
+          state initial WritesOpen
+          state WritesOpen -> Paused on PauseWrites
+          state Paused -> WritesOpen on ResumeWrites
+          command PauseWrites
+            emits WritesPaused
+          command ResumeWrites
+            emits WritesResumed
+    `);
+
+    expect(ir.contexts[0].aggregates[0].states).toEqual({
+      initial: 'WritesOpen',
+      initials: ['WritesOpen'],
+      transitions: [
+        { from: 'WritesOpen', to: 'Paused', command: 'PauseWrites' },
+        { from: 'Paused', to: 'WritesOpen', command: 'ResumeWrites' },
+      ],
+    });
+  });
+
+  it('transforms gateways on an external, a projection, a policy and an orchestration (ADR-038 §4)', async () => {
+    const ir = await toIr(`
+      external Hosted "upstream"
+        gateway ReadEnvelope
+          consumes Envelope
+          produces Budget
+      context "Test"
+        projection ConnectionsList
+          sources ConnectionOpened
+          gateway ResolveConnection
+            consumes ConnectionToken
+            produces Actor
+            description "per request"
+        policy StartOnImported
+          trigger SnapshotImported
+          action "start"
+          chains-to Start
+          gateway PickEncoder
+            consumes SnapshotImported
+            produces Encoder
+        orchestration Import
+          command Start
+          invoked-by Start
+          issues Rebuild
+          states Importing
+          compensation none
+          timeout "none"
+          gateway Budgeted
+            consumes SnapshotImported
+            produces Budget
+    `);
+
+    const ctx = ir.contexts[0];
+    expect(ir.externals?.[0].gateways?.map((g) => g.id)).toEqual(['gw-ReadEnvelope']);
+    expect(ctx.projections?.[0].gateways).toEqual([
+      {
+        id: 'gw-ResolveConnection',
+        name: 'ResolveConnection',
+        consumes: 'ConnectionToken',
+        produces: 'Actor',
+        description: 'per request',
+      },
+    ]);
+    expect(ctx.policies[0].gateways?.map((g) => g.name)).toEqual(['PickEncoder']);
+    expect(ctx.sagas[0].gateways?.map((g) => g.name)).toEqual(['Budgeted']);
   });
 
   it('transforms flow declaration to FlowDefinition', async () => {
@@ -950,9 +1001,11 @@ describe('AstToIr', () => {
         aggregate "Order"
           identity orderId: UUID
         saga NoTimeoutSaga
-          trigger OrderPlaced
+          command Start
+          invoked-by Start
+          issues PlaceOrder
           states Pending -> Done
-          compensation "Undo"
+          compensation none
           timeout "none"
     `);
 
@@ -972,11 +1025,14 @@ describe('AstToIr', () => {
           policy NotifyOnPlacement
             trigger OrderPlaced
             action "Notify the warehouse"
+            chains-to NotifyWarehouse
           @retention(HIPAA)
           saga OrderLifecycle
-            trigger OrderPlaced
+            command StartLifecycle
+            invoked-by StartLifecycle
+            issues PlaceOrder
             states Pending -> Done
-            compensation "Undo"
+            compensation none
             timeout "none"
           @encryption("at-rest")
           service PricingService
@@ -1018,10 +1074,13 @@ describe('AstToIr', () => {
           policy NotifyOnPlacement
             trigger OrderPlaced
             action "Notify the warehouse"
+            chains-to NotifyWarehouse
           saga OrderLifecycle
-            trigger OrderPlaced
+            command StartLifecycle
+            invoked-by StartLifecycle
+            issues PlaceOrder
             states Pending -> Done
-            compensation "Undo"
+            compensation none
             timeout "none"
           service PricingService
             consumes PriceRequest

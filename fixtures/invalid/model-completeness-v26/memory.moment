@@ -1,0 +1,12 @@
+// ADR-037 invalid exemplar: V26 — one term defined twice in a context.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+    value-object Actor
+      sub: string
+  term "Revision" "a stream position"
+  term "Revision" "something else"

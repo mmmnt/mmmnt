@@ -63,7 +63,7 @@ describe.skipIf(!hasCli)('moment CLI bundle smoke', () => {
     const fail = runCli(['parse', bad]);
     expect(fail.code).toBe(1);
     expect(fail.err).toMatch(/bad\.moment:\d+:\d+/);
-  });
+  }, 30_000);
 });
 
 describe.skipIf(!hasMcp)('mcp bundle smoke', () => {

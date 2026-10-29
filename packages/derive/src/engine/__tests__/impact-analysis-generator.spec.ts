@@ -149,16 +149,19 @@ describe('ImpactAnalysisGenerator', () => {
     expect(cmdNode!.dependsOn).toContain('policy:Sales:AutoApprove');
   });
 
-  it('creates saga nodes with trigger edges', () => {
+  it('creates orchestration nodes that depend on their invoking command and trigger what they issue', () => {
     const ctx = makeContext('ctx-1', 'Sales', {
       sagas: [
         {
           id: 'saga-1',
           name: 'OrderFulfillment',
-          trigger: 'OrderPlaced',
+          trigger: 'StartFulfillment',
           states: ['Pending', 'Processing', 'Done'],
-          compensation: 'CancelOrder',
+          compensation: 'none',
           timeout: '30m',
+          commands: [{ id: 'cmd-s', name: 'StartFulfillment', inputs: [], preconditions: [] }],
+          issues: [{ name: 'ReserveStock' }, { name: 'ship', external: 'Carrier' }],
+          compensations: [{ none: true }],
         },
       ],
     });
@@ -167,12 +170,14 @@ describe('ImpactAnalysisGenerator', () => {
     const analysis = generateImpactAnalysis(ir);
 
     const sagaNode = analysis.nodes.find((n) => n.type === 'saga' && n.name === 'OrderFulfillment');
-    expect(sagaNode).toBeDefined();
-    expect(sagaNode!.dependsOn).toContain('event:Sales:OrderPlaced');
-
-    const evtNode = analysis.nodes.find((n) => n.type === 'event' && n.name === 'OrderPlaced');
-    expect(evtNode).toBeDefined();
-    expect(evtNode!.triggers).toContain('saga:Sales:OrderFulfillment');
+    expect(sagaNode).toMatchObject({
+      dependsOn: ['command:Sales:StartFulfillment'],
+      triggers: ['command:Sales:ReserveStock'],
+    });
+    const cmdNode = analysis.nodes.find(
+      (n) => n.type === 'command' && n.name === 'StartFulfillment',
+    );
+    expect(cmdNode!.triggers).toContain('saga:Sales:OrderFulfillment');
   });
 
   it('M-E7: cross-context policy trigger/chain attach to the declaring contexts, no phantom nodes', () => {
@@ -253,19 +258,37 @@ describe('ImpactAnalysisGenerator', () => {
     expect(ckPolicy.dependsOn).toContain('event:Checkout:PaymentConfirmed');
   });
 
-  it('M-E7: cross-context saga trigger attaches to the declaring context', () => {
+  it('M-E7: a command an orchestration issues across contexts attaches to the declaring context', () => {
     const inventory = makeContext('ctx-Inventory', 'Inventory', {
-      events: [{ id: 'evt-sh', name: 'SeatsHeld', fields: [] }],
+      aggregates: [
+        makeAggregate({
+          commands: [
+            {
+              id: 'cmd-rh',
+              name: 'ReleaseHold',
+              inputs: [],
+              preconditions: [],
+              emitsEvent: 'HoldReleased',
+            },
+          ],
+        }),
+      ],
     });
     const checkout = makeContext('ctx-Checkout', 'Checkout', {
       sagas: [
         {
           id: 'saga-1',
           name: 'HoldToReservationSaga',
-          trigger: 'SeatsHeld',
+          trigger: 'TrackHold',
           states: ['Held', 'Converted'],
-          compensation: 'ReleaseHold',
+          compensation: 'on ExpireHold issues ReleaseHold',
           timeout: '10m',
+          commands: [
+            { id: 'cmd-th', name: 'TrackHold', inputs: [], preconditions: [] },
+            { id: 'cmd-eh', name: 'ExpireHold', inputs: [], preconditions: [] },
+          ],
+          issues: [{ name: 'ReleaseHold' }],
+          compensations: [{ onCommand: 'ExpireHold', issues: [{ name: 'ReleaseHold' }] }],
         },
       ],
     });
@@ -274,11 +297,11 @@ describe('ImpactAnalysisGenerator', () => {
     const analysis = generateImpactAnalysis(ir);
     const keys = analysis.nodes.map((n) => `${n.type}:${n.context}:${n.name}`);
 
-    expect(keys).not.toContain('event:Checkout:SeatsHeld');
-    const seatsHeld = analysis.nodes.find(
-      (n) => n.type === 'event' && n.context === 'Inventory' && n.name === 'SeatsHeld',
+    expect(keys).not.toContain('command:Checkout:ReleaseHold');
+    const releaseHold = analysis.nodes.find(
+      (n) => n.type === 'command' && n.context === 'Inventory' && n.name === 'ReleaseHold',
     )!;
-    expect(seatsHeld.triggers).toContain('saga:Checkout:HoldToReservationSaga');
+    expect(releaseHold.dependsOn).toEqual(['saga:Checkout:HoldToReservationSaga']);
   });
 
   it('creates crossing nodes from flow connections', () => {

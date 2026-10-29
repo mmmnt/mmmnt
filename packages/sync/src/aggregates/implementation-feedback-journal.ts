@@ -41,11 +41,6 @@ export class ImplementationFeedbackJournal {
   recordImplementationFeedback(
     input: RecordImplementationFeedbackInput,
   ): ImplementationFeedbackRecorded {
-    this.assertValidSource(input.source);
-    this.assertAcceptedProposal(input.causationId);
-    this.assertKnownFeedbackType(input.feedbackEventType);
-    this.assertValidActor(input.actor);
-
     const event: ImplementationFeedbackRecorded = {
       type: 'ImplementationFeedbackRecorded',
       metadata: {
@@ -62,8 +57,20 @@ export class ImplementationFeedbackJournal {
       payload: input.payload,
     };
 
-    this.entries.push(event);
+    this.apply(event);
     return event;
+  }
+
+  /**
+   * Apply a recorded event (event sourcing replay). Enforces IFJ-01..04 so a
+   * corrupted journal is refused rather than replayed.
+   */
+  apply(event: ImplementationFeedbackRecorded): void {
+    this.assertValidSource(event.metadata.source);
+    this.assertAcceptedProposal(event.metadata.causationId);
+    this.assertKnownFeedbackType(event.metadata.eventType);
+    this.assertValidActor(event.metadata.actor);
+    this.entries.push(event);
   }
 
   getEntries(): readonly ImplementationFeedbackRecorded[] {

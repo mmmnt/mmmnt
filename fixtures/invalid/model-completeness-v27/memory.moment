@@ -1,0 +1,13 @@
+// ADR-037 invalid exemplar: V27 — a relationship end that is neither a context nor an external.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+    value-object Actor
+      sub: string
+  relationship Elsewhere -> Memory
+    type PublishedLanguage
+    contract "c"

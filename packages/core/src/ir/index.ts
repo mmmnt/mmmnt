@@ -3,6 +3,7 @@ export type {
   SpecificationMetadata,
   GlossaryEntry,
   ContextRelationship,
+  ExternalDefinition,
 } from './intermediate-representation.js';
 
 export type {
@@ -19,6 +20,14 @@ export type {
   SagaDefinition,
   SagaTransitionDefinition,
   AnnotationDefinition,
+  ProjectionDefinition,
+  QueryDefinition,
+  RuleDefinition,
+  GatewayDefinition,
+  AggregateStatesDefinition,
+  OrchestrationCommandDefinition,
+  IssuedCommandDefinition,
+  CompensationDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';

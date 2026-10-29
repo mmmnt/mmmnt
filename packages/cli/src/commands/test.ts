@@ -13,6 +13,7 @@ import { deriveTopology } from '@mmmnt/derive';
 import { TestRunner } from '@mmmnt/harness';
 import type { Diagnostic } from '@mmmnt/core';
 import type { TestRunResult } from '@mmmnt/harness';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface TestCommandResult {
   readonly success: boolean;
@@ -51,11 +52,11 @@ export async function runTest(argv: string[]): Promise<TestCommandResult> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content, resolvedPath);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

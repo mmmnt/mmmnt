@@ -453,6 +453,88 @@ describe('renderFeatureFromIr', () => {
     expect(output).toContain('Then RefundPayment is executed');
   });
 
+  it('renders an orchestration started on its relay event, with a scenario per compensation command (ADR-038 §2)', () => {
+    const ir = makeIR({
+      contexts: [
+        {
+          id: 'ctx-Payments',
+          name: 'Payments',
+          aggregates: [
+            {
+              id: 'agg-Payment',
+              name: 'Payment',
+              identityField: { name: 'paymentId', type: 'UUID', isArray: false, required: true },
+              commands: [],
+              events: [{ id: 'evt-PaymentInitiated', name: 'PaymentInitiated', fields: [] }],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+          domainServices: [],
+          commands: [],
+          events: [{ id: 'evt-PaymentInitiated', name: 'PaymentInitiated', fields: [] }],
+          policies: [],
+          sagas: [
+            {
+              id: 'saga-PaymentProcess',
+              name: 'PaymentProcess',
+              keyword: 'orchestration',
+              trigger: 'StartPayment',
+              startEvent: 'PaymentInitiated',
+              states: ['Pending', 'Processing', 'Completed'],
+              compensation: 'on AbortPayment issues RefundPayment, Bank.reverse',
+              timeout: '30 minutes',
+              commands: [
+                { id: 'cmd-StartPayment', name: 'StartPayment', inputs: [], preconditions: [] },
+                { id: 'cmd-AbortPayment', name: 'AbortPayment', inputs: [], preconditions: [] },
+              ],
+              issues: [{ name: 'CapturePayment' }],
+              compensations: [
+                {
+                  onCommand: 'AbortPayment',
+                  issues: [{ name: 'RefundPayment' }, { name: 'reverse', external: 'Bank' }],
+                },
+                { none: true },
+              ],
+            },
+          ],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
+      flows: [
+        {
+          id: 'flow-pay',
+          name: 'payment-flow',
+          lanes: [],
+          moments: [
+            {
+              id: 'moment-0',
+              name: 'Payment step',
+              contextEntries: [
+                {
+                  contextId: 'ctx-Payments',
+                  nodeName: 'PaymentInitiated',
+                  nodeKind: 'event' as const,
+                },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('@saga:PaymentProcess');
+    expect(output).toContain('Given the orchestration is invoked by StartPayment');
+    expect(output).toContain('Scenario: PaymentProcess compensation on AbortPayment');
+    expect(output).toContain('When AbortPayment is invoked on PaymentProcess');
+    expect(output).toContain('Then PaymentProcess issues RefundPayment, Bank.reverse');
+    expect(output.match(/@compensation/g)).toHaveLength(1);
+    expect(output).not.toContain('is exceeded');
+  });
+
   it('renders terminal branch scenarios with @terminal @failure-path tags', () => {
     const ir = makeIR({
       contexts: [

@@ -1,0 +1,12 @@
+// ADR-037 invalid exemplar: V23 — a query that reads neither a projection nor a value object.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+    value-object Actor
+      sub: string
+  query Peek
+    reads Nowhere

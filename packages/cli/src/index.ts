@@ -11,6 +11,7 @@ import { runViz } from './commands/viz.js';
 import { runSyncStatus } from './commands/sync-status.js';
 import { runSyncPropose } from './commands/sync-propose.js';
 import { runSyncAccept } from './commands/sync-accept.js';
+import { runSyncReject } from './commands/sync-reject.js';
 import { runSchemaStatus } from './commands/schema-status.js';
 import { runLint } from './commands/lint.js';
 import { runImportFromSift } from './commands/import-from-sift.js';
@@ -41,14 +42,18 @@ Commands:
   test <file>              Run structural validation test suites
   simulate <file>          Generate simulation scenarios (--all, --json)
   viz <file>               Emit the visualization data envelope
-  serve <file>             Serve topology/scenarios over WebSocket (Facet bridge)
+  serve <file|facet-dir>   Serve topology/scenarios over WebSocket (Facet bridge)
+                           --project <dir> serves a model directory as one project
   cucumber-json <file>     Emit Cucumber JSON for Xray import
   lint <file>              Drift + schema lint
-  sync <status|propose|accept> <file>
-                           Implementation drift detection and proposals
+  sync <status|propose> <file|dir>
+                           Implementation drift detection; propose records proposals
+  sync accept <file|dir> (<proposal-id>... | --all)
+  sync reject <file|dir> <proposal-id>... --reason "<why>"
+                           Decide pending proposals; commits .domain/ logs locally
   schema <status> <file>   Schema governance report
   import --from-sift <dir> Import a Sift JSONL export
-  reconcile <file>         Reconcile upstream drift (--local | --event <path>)
+  reconcile <file|dir>     Reconcile upstream drift (--local | --event <path>)
   status <file>            Unified project status
   auth <login|status|logout|quorum>
                            Manage GitHub and quorum credentials
@@ -246,8 +251,8 @@ switch (command) {
           console.error('Error:', error instanceof Error ? error.message : String(error));
           process.exitCode = 1;
         });
-    } else if (subcommand === 'accept') {
-      runSyncAccept(subArgs)
+    } else if (subcommand === 'accept' || subcommand === 'reject') {
+      (subcommand === 'accept' ? runSyncAccept(subArgs) : runSyncReject(subArgs))
         .then((result) => {
           if (result.success) {
             console.log(result.message);
@@ -265,7 +270,7 @@ switch (command) {
         });
     } else {
       console.error(`Error: Unknown sync subcommand '${subcommand ?? ''}'`);
-      console.error('Subcommands: status, propose, accept');
+      console.error('Subcommands: status, propose, accept, reject');
       process.exitCode = 1;
     }
     break;

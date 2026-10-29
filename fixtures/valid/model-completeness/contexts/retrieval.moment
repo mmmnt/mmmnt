@@ -1,0 +1,77 @@
+// ADR-037 corpus exemplar: every construct the ADR adds, resolving across files.
+// ADR-038 exemplar: a policy is one event and one command; an orchestration is invoked by its own command,
+// issues aggregate and external commands, advances on relay policies and compensates with a named command;
+// gateways sit on an external, a projection, a policy and an orchestration.
+external HostedService "An upstream system publishing the shared envelope schema"
+  gateway ReadEnvelope
+    consumes DecisionMade
+    produces TokenBudget
+    description "per envelope: the budget it carries"
+
+context "Retrieval" [Core]
+  description "Query-driven reads over memory"
+
+  value-object TokenBudget
+    tokens: number
+
+  projection TrajectoryResult
+    sources DecisionMade
+    description "The shape of a retrieval's result"
+    field entryId: UUID
+    gateway RankEntries
+      consumes DecisionMade
+      produces TokenBudget
+
+  query QueryContext
+    reads TrajectoryResult
+    input query: string, budget: TokenBudget
+    description "Orient, traverse, rank, fit"
+
+  rule EmbeddingOrderIsRanking "Results are returned in embedding-similarity order"
+    enforced-by QueryContext
+
+  rule ModelRunsInProcess "The embedding model runs inside the engine"
+    enforced-by "the process that runs the system"
+
+  service FitBudget
+    consumes DecisionMade
+    produces TokenBudget
+    description "Fit candidates to the token budget"
+
+  policy RecallOnDecisionMade
+    trigger DecisionMade
+    action "recall what the decision touches"
+    chains-to StartRecall
+    gateway BudgetForDecision
+      consumes DecisionMade
+      produces TokenBudget
+
+  policy FinishRecallOnDecisionRecalled
+    trigger DecisionRecalled
+    action "the decision is recalled"
+    chains-to FinishRecall
+
+  policy AbortRecallOnRecallRejected
+    trigger RecallRejected
+    action "the recall was rejected; undo it"
+    chains-to AbortRecall
+
+  relationship HostedService -> Retrieval
+    type PublishedLanguage
+    contract "envelope schema, versioned"
+
+  term "Budget" "the tokens a retrieval may fill"
+
+  orchestration RecallFlow
+    command StartRecall
+      input entryId: UUID
+    command FinishRecall
+    command AbortRecall
+    invoked-by StartRecall
+    issues MarkRecalled, HostedService.memoryImport
+    states Waiting -> Recalled on FinishRecall
+    compensation on AbortRecall issues ClearRecall
+    timeout "none"
+    gateway RecallBudget
+      consumes DecisionRecalled
+      produces TokenBudget

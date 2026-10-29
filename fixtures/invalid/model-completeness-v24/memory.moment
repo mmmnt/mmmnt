@@ -1,0 +1,12 @@
+// ADR-037 invalid exemplar: V24 — a rule enforced by nothing its context declares.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+    value-object Actor
+      sub: string
+  rule ReadsAreOrdered "Entries come back in stream order"
+    enforced-by Nobody
