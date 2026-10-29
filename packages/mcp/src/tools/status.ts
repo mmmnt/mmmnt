@@ -4,10 +4,9 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
-import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
-import { readMomentFile, okResult, wrapTool } from './shared.js';
+import { loadModel, okResult, projectDirOf, wrapTool } from './shared.js';
 import type { IntermediateRepresentation } from '@mmmnt/core';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
@@ -23,11 +22,10 @@ interface StatusSection {
 }
 
 async function statusImpl(params: StatusParams): Promise<CallToolResult> {
-  const resolvedPath = resolve(params.filePath);
-  const content = readMomentFile(params.filePath);
+  const parseResult = await loadModel(params.filePath);
+  const resolvedPath = parseResult.path;
   const sections: StatusSection[] = [];
 
-  const parseResult = await new MomentParser().parseContent(content);
   sections.push(buildParseSection(parseResult));
 
   if (parseResult.success && parseResult.ir) {
@@ -61,7 +59,7 @@ async function buildDriftSection(
   ir: IntermediateRepresentation,
   resolvedPath: string,
 ): Promise<StatusSection> {
-  const gitRoot = findGitRoot(dirname(resolvedPath));
+  const gitRoot = findGitRoot(projectDirOf(resolvedPath));
   if (!gitRoot) {
     return {
       label: 'Implementation Sync',
@@ -144,7 +142,7 @@ function buildSchemaSection(ir: IntermediateRepresentation): StatusSection {
 }
 
 function buildUpstreamSection(resolvedPath: string): StatusSection {
-  const projectDir = dirname(resolvedPath);
+  const projectDir = projectDirOf(resolvedPath);
   const domainDir = join(projectDir, '.domain');
   const fpPath = join(projectDir, '.moment', '.upstream-fingerprint.json');
 

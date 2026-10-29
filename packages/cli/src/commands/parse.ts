@@ -28,8 +28,11 @@ function fail(message: string): ParseCommandResult {
 }
 
 export function formatDiagnostic(d: Diagnostic, fallbackFile?: string): string {
+  // Cross-reference rules have no position (some report line 0): name the file or path alone.
   const loc = d.source
-    ? `${d.source.file}:${d.source.line}:${d.source.column}`
+    ? d.source.line > 0
+      ? `${d.source.file}:${d.source.line}:${d.source.column}`
+      : d.source.file
     : (fallbackFile ?? '<unknown>');
   // Name the rule (V22 …) unless the message already starts with it, as older rules' messages do.
   const rule = d.ruleId && !d.message.startsWith(`${d.ruleId}:`) ? `${d.ruleId}: ` : '';

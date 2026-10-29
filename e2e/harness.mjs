@@ -268,7 +268,7 @@ test('sync status: clean emit aligns, removed artifact drifts', (assert) => {
 
     removeOneEmittedFile(tmpDir);
     const drifted = run('sync', ['status', spec], { cwd: tmpDir });
-    assert(drifted.exitCode === 0, 'exit code 0 when drifted');
+    assert(drifted.exitCode === 1, 'exit code 1 when drifted');
     assert(drifted.stdout.includes('drifted'), 'reports drift after artifact removal');
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
@@ -280,7 +280,7 @@ test('sync status: --json outputs DriftReport', (assert) => {
   try {
     removeOneEmittedFile(tmpDir);
     const r = run('sync', ['status', '--json', spec], { cwd: tmpDir });
-    assert(r.exitCode === 0, 'exit code 0');
+    assert(r.exitCode === 1, 'exit code 1 when drifted, JSON still on stdout');
     let parsed;
     try {
       parsed = JSON.parse(r.stdout);

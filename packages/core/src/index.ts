@@ -12,7 +12,15 @@ export {
   type SiftTimelineEvent,
   type SiftImportInput,
 } from './import/index.js';
-export { ProjectLoader, mergeIrs, validateCrossFileReferences } from './project/index.js';
+export {
+  ProjectLoader,
+  mergeIrs,
+  validateCrossFileReferences,
+  loadSpecification,
+  specificationFiles,
+  isDirectory,
+  type LoadedSpecification,
+} from './project/index.js';
 export type { ProjectLoadResult, MergeResult, CrossFileValidationResult } from './project/index.js';
 export { GeneratorRegistry } from './generators/index.js';
 export type {

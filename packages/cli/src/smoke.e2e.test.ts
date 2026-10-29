@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { spawnSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -138,6 +138,7 @@ describe.skipIf(!hasMcp)('mcp bundle smoke', () => {
     send({ jsonrpc: '2.0', method: 'notifications/initialized' });
     send({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} });
 
+    let serverVersion: string | undefined;
     const toolNames = await new Promise<string[]>((resolvePromise, reject) => {
       const timer = setTimeout(() => reject(new Error('mcp tools/list timeout')), 20_000);
       const tryParse = (): void => {
@@ -146,8 +147,9 @@ describe.skipIf(!hasMcp)('mcp bundle smoke', () => {
           try {
             const parsed = JSON.parse(chunk) as {
               id?: number;
-              result?: { tools?: { name: string }[] };
+              result?: { tools?: { name: string }[]; serverInfo?: { version?: string } };
             };
+            if (parsed.id === 1) serverVersion = parsed.result?.serverInfo?.version;
             if (parsed.id === 2 && parsed.result?.tools) {
               clearTimeout(timer);
               resolvePromise(parsed.result.tools.map((t) => t.name));
@@ -169,5 +171,10 @@ describe.skipIf(!hasMcp)('mcp bundle smoke', () => {
 
     expect(toolNames).toContain('moment_validate');
     expect(toolNames.length).toBeGreaterThanOrEqual(7);
+    // The server reports its package's version (it reported a hard-coded 0.0.0).
+    const mcpPackage = JSON.parse(readFileSync(join(MCP, '..', '..', 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    expect(serverVersion).toBe(mcpPackage.version);
   }, 30_000);
 });

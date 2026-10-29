@@ -1,0 +1,10 @@
+// Invalid exemplar: V38 — a command emits an event no context declares.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    command ForgetDecision
+      emits DecisionForgotten
+    event DecisionMade
+      entryId: UUID

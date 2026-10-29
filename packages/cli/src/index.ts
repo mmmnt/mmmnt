@@ -85,7 +85,7 @@ switch (command) {
         } else {
           console.error(result.message);
           for (const d of result.diagnostics) {
-            console.error(formatDiagnostic(d));
+            console.error(formatDiagnostic(d, args[0]));
           }
           process.exitCode = 1;
         }
@@ -205,7 +205,10 @@ switch (command) {
       runSyncStatus(subArgs)
         .then((result) => {
           if (result.success) {
+            // The report always prints; drift fails the command, like `moment status`, so CI can
+            // gate on it. A caller that only wants the report captures stdout and ignores the code.
             console.log(result.message);
+            if (result.hasDrift) process.exitCode = 1;
           } else {
             console.error(result.message);
             for (const d of result.diagnostics) {

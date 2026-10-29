@@ -2,10 +2,9 @@
  * moment_emit_ts — Generate TypeScript type definitions and test scaffolds.
  */
 
-import { MomentParser } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
-import { readMomentFile, okResult, errorResult, wrapTool } from './shared.js';
+import { loadModel, okResult, errorResult, wrapTool } from './shared.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 interface EmitTsParams {
@@ -14,12 +13,13 @@ interface EmitTsParams {
 }
 
 async function emitTsImpl(params: EmitTsParams): Promise<CallToolResult> {
-  const content = readMomentFile(params.filePath);
-  const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content);
+  const parseResult = await loadModel(params.filePath);
 
   if (!parseResult.success) {
-    return errorResult('PARSE_FAILED', `Parse failed with ${parseResult.diagnostics.length} diagnostic(s)`);
+    return errorResult(
+      'PARSE_FAILED',
+      `Parse failed with ${parseResult.diagnostics.length} diagnostic(s)`,
+    );
   }
 
   const ir = parseResult.ir!;
