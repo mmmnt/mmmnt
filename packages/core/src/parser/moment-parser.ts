@@ -15,6 +15,14 @@ import { SchemaValidator } from '../services/schema-validator.js';
 import type { MomentAddedServices } from '../validation/moment-validator.js';
 import type { LangiumCoreServices } from 'langium';
 
+/**
+ * LSP 3.18 (Langium 4.4) lets a diagnostic message be MarkupContent. Moment's validator emits plain
+ * strings; take the text of markup if one ever arrives so the IR's Diagnostic stays a string.
+ */
+function messageText(message: string | { value: string }): string {
+  return typeof message === 'string' ? message : message.value;
+}
+
 /** Spec name = file basename without its extension (M-P12). */
 function specNameFromPath(filePath: string): string {
   const segments = filePath.split(/[/\\]/);
@@ -96,7 +104,7 @@ export class MomentParser {
       // LSP validation diagnostics use 0-based positions; SourceLocation is 1-based.
       ...(doc.diagnostics ?? []).map((d) => ({
         severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
-        message: d.message,
+        message: messageText(d.message),
         source: d.range
           ? {
               file,
@@ -127,7 +135,7 @@ export class MomentParser {
         // specific text range — fabricating an offset would be untruthful.
         ...schemaResult.diagnostics.map((d) => ({
           severity: 'warning' as const,
-          message: d.message,
+          message: messageText(d.message),
           ruleId: d.ruleId,
         })),
       );
