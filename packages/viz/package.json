@@ -55,6 +55,7 @@
     "picomatch": "^4.0.4"
   },
   "devDependencies": {
+    "@types/node": "^25.9.9",
     "@types/picomatch": "^4.0.3"
   },
   "publishConfig": {

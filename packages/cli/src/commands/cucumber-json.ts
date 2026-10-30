@@ -1,8 +1,8 @@
 /**
- * moment cucumber-json — Produce Cucumber JSON for Xray import
+ * moment cucumber-json — Produce Cucumber JSON
  *
- * Chains parse → derive → gherkin → cucumber-json. Outputs Cucumber JSON
- * to stdout or a file, suitable for Xray's import/execution/cucumber endpoint.
+ * Chains parse → derive → gherkin → cucumber-json. Outputs standard Cucumber
+ * JSON to stdout or a file, for any tool that imports Cucumber results.
  */
 
 import { readFileSync, existsSync } from 'node:fs';

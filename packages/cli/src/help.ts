@@ -18,7 +18,7 @@ Commands:
   viz <file>               Emit the visualization data envelope
   serve <file|facet-dir>   Serve topology/scenarios over WebSocket (Facet bridge)
                            --project <dir> serves a model directory as one project
-  cucumber-json <file>     Emit Cucumber JSON for Xray import
+  cucumber-json <file>     Emit Cucumber JSON
   lint <file>              Drift + schema lint
   sync <status|propose> <file|dir>
                            Implementation drift detection; propose records proposals

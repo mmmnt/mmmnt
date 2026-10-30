@@ -58,7 +58,7 @@ for (const feature of manifest.featuresGenerated) {
 - **Read side and model completeness** -- the specification document lists each context's projections (with the events they fold), queries (with the projections they read), rules (with their enforcer), and glossary terms, plus the external systems the model declares.
 - **AsyncAPI specification generation** -- outputs AsyncAPI 3.0 YAML with a channel and message per context crossing, and payload schemas derived from the specification.
 - **Tagged scenarios** -- Gherkin features and scenarios are tagged with context, classification, aggregate, policy, saga, and invariant metadata, enabling selective execution with standard BDD runners.
-- **Cucumber JSON** -- `generateCucumberJson` converts generated features into Cucumber JSON for CI/QMS integration such as Xray import.
+- **Cucumber JSON** -- `generateCucumberJson` converts generated features into standard Cucumber JSON.
 - **Policy-driven automation** -- the `GenerateGherkinOnTopologyDerived` policy generates features and the specification document for a derived topology.
 - **Lower-level rendering** -- `renderFeatureFromIr` renders the feature for a single flow when the full generator is not needed.
 - **Deterministic output** -- the same specification always produces identical generated artifacts.
@@ -85,7 +85,7 @@ for (const feature of manifest.featuresGenerated) {
 
 ### Cucumber JSON
 
-- Cucumber JSON output is available via `generateCucumberJson` for CI/QMS integration, enabling direct import into tools like Xray for test management and traceability reporting. Nothing is executed at generation time, so steps backed by a derived test case are reported as `pending` and all other steps as `skipped`.
+- Cucumber JSON output is available via `generateCucumberJson` for tools that import Cucumber results. Nothing is executed at generation time, so steps backed by a derived test case are reported as `pending` and all other steps as `skipped`.
 
 ### AsyncAPI Specification
 
@@ -103,7 +103,7 @@ for (const feature of manifest.featuresGenerated) {
 | `renderFeatureFromIr(flow, ir)` | Lower-level function that renders the `.feature` content for a single flow, without requiring a topology. |
 | `SpecificationDocumentGenerator` | `generate(ir)` produces the Markdown specification document described above. Returns `GeneratedDocument[]` (empty when the IR has no contexts and no flows). |
 | `generateAsyncApiSpec(ir)` | Generates an AsyncAPI 3.0 YAML string from the IR, with a channel and message per context crossing. |
-| `generateCucumberJson(manifest, topology, ir)` | Converts the generated features and test topology into Cucumber JSON (`CucumberFeature[]`) for Xray import and CI/QMS integration. |
+| `generateCucumberJson(manifest, topology, ir)` | Converts the generated features and test topology into Cucumber JSON (`CucumberFeature[]`). |
 
 ### Policies
 

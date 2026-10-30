@@ -109,7 +109,6 @@ hygiene (ADR-035/036 restoration, ADR Index, ADR-032).
 | Reactive policy chain (parse → derive → generate on change) | HG-01, PRD §5.15 | 🔶 | Watch fires parse only; downstream chain not wired |
 | **MCP server (7 tools)** | ADR-022 | ❌ | Source exists; **bundle crashes at startup**: `Dynamic require of "util" is not supported` from `vscode-jsonrpc` (Langium LSP transitive dep) in the esbuild ESM bundle — the exact ESM/CJS bug class ADR-009's esbuild strategy was meant to eliminate. Entire AI-agent surface unusable |
 | `@complai/projection` (TOON format negotiation) | ADR-023 §7 | ❌ | Package never created |
-| Xray QMS CI import | ADR-014 | ✅ | Test Executions flowing through CI Run #631 (2026-07-09) |
 | CI quality gates | ADR-010 | ✅ | CI green on main |
 | Cloud (subgraph, Kafka, EDFS, sync rebinding) | ADR-018–021 | — | Explicitly future scope; not counted as a gap |
 

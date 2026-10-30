@@ -1,12 +1,10 @@
 /**
  * CucumberJsonFormatter — Converts Gherkin generation results + test topology
- * into Cucumber JSON format for Xray import.
- *
- * Xray expects the standard Cucumber JSON schema:
+ * into the standard Cucumber JSON schema:
  * https://github.com/cucumber/cucumber-json-schema
  *
  * This formatter bridges Moment's generated .feature files and derived test
- * results into the format Xray's import/execution/cucumber endpoint consumes.
+ * results into the format tools that import Cucumber results consume.
  */
 
 import type { IntermediateRepresentation, FlowDefinition } from '@mmmnt/core';
