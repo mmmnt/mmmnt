@@ -4,10 +4,9 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
-import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
-import { readMomentFile, okResult, wrapTool } from './shared.js';
+import { loadModel, okResult, projectDirOf, wrapTool } from './shared.js';
 import type { IntermediateRepresentation } from '@mmmnt/core';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
@@ -23,11 +22,10 @@ interface StatusSection {
 }
 
 async function statusImpl(params: StatusParams): Promise<CallToolResult> {
-  const resolvedPath = resolve(params.filePath);
-  const content = readMomentFile(params.filePath);
+  const parseResult = await loadModel(params.filePath);
+  const resolvedPath = parseResult.path;
   const sections: StatusSection[] = [];
 
-  const parseResult = await new MomentParser().parseContent(content);
   sections.push(buildParseSection(parseResult));
 
   if (parseResult.success && parseResult.ir) {
@@ -61,19 +59,30 @@ async function buildDriftSection(
   ir: IntermediateRepresentation,
   resolvedPath: string,
 ): Promise<StatusSection> {
-  const gitRoot = findGitRoot(dirname(resolvedPath));
+  const gitRoot = findGitRoot(projectDirOf(resolvedPath));
   if (!gitRoot) {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (no git repository)' };
+    return {
+      label: 'Implementation Sync',
+      state: 'ok',
+      summary: 'Not available (no git repository)',
+    };
   }
 
   try {
     return await detectDrift(ir, gitRoot);
   } catch {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (drift detection failed)' };
+    return {
+      label: 'Implementation Sync',
+      state: 'ok',
+      summary: 'Not available (drift detection failed)',
+    };
   }
 }
 
-async function detectDrift(ir: IntermediateRepresentation, gitRoot: string): Promise<StatusSection> {
+async function detectDrift(
+  ir: IntermediateRepresentation,
+  gitRoot: string,
+): Promise<StatusSection> {
   const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
   const store = new LocalGitArtifactStore(gitRoot);
   const actual = new Map<string, string>();
@@ -88,7 +97,11 @@ async function detectDrift(ir: IntermediateRepresentation, gitRoot: string): Pro
 
   const report = new ASTDiffEngine().detectDrift({ expected: tsOutput.files, actual });
   if (report.totalDrifted === 0) {
-    return { label: 'Implementation Sync', state: 'ok', summary: `${report.totalAligned} file(s) aligned` };
+    return {
+      label: 'Implementation Sync',
+      state: 'ok',
+      summary: `${report.totalAligned} file(s) aligned`,
+    };
   }
   return {
     label: 'Implementation Sync',
@@ -97,30 +110,39 @@ async function detectDrift(ir: IntermediateRepresentation, gitRoot: string): Pro
   };
 }
 
+const deprecated = (fields: readonly { deprecated?: unknown }[]): number =>
+  fields.filter((f) => f.deprecated).length;
+
+function deprecatedInContext(ctx: IntermediateRepresentation['contexts'][number]): number {
+  const write = ctx.aggregates.reduce(
+    (n, agg) =>
+      n +
+      agg.events.reduce((m, e) => m + deprecated(e.fields), 0) +
+      agg.commands.reduce((m, c) => m + deprecated(c.inputs), 0),
+    0,
+  );
+  // ctx.valueObjects holds the aggregates' value objects and the context's own (ADR-037 §4).
+  const valueObjects = ctx.valueObjects.reduce((n, vo) => n + deprecated(vo.fields), 0);
+  const projections = (ctx.projections ?? []).reduce((n, p) => n + deprecated(p.fields), 0);
+  const queries = (ctx.queries ?? []).reduce((n, q) => n + deprecated(q.inputs), 0);
+  return write + valueObjects + projections + queries;
+}
+
 function buildSchemaSection(ir: IntermediateRepresentation): StatusSection {
-  let deprecatedCount = 0;
-  for (const ctx of ir.contexts) {
-    for (const agg of ctx.aggregates) {
-      for (const evt of agg.events) {
-        deprecatedCount += evt.fields.filter((f) => f.deprecated).length;
-      }
-      for (const cmd of agg.commands) {
-        deprecatedCount += cmd.inputs.filter((f) => f.deprecated).length;
-      }
-      for (const vo of agg.valueObjects) {
-        deprecatedCount += vo.fields.filter((f) => f.deprecated).length;
-      }
-    }
-  }
+  const deprecatedCount = ir.contexts.reduce((n, ctx) => n + deprecatedInContext(ctx), 0);
 
   if (deprecatedCount === 0) {
     return { label: 'Schema Lifecycle', state: 'ok', summary: 'All fields active' };
   }
-  return { label: 'Schema Lifecycle', state: 'warning', summary: `${deprecatedCount} deprecated field(s)` };
+  return {
+    label: 'Schema Lifecycle',
+    state: 'warning',
+    summary: `${deprecatedCount} deprecated field(s)`,
+  };
 }
 
 function buildUpstreamSection(resolvedPath: string): StatusSection {
-  const projectDir = dirname(resolvedPath);
+  const projectDir = projectDirOf(resolvedPath);
   const domainDir = join(projectDir, '.domain');
   const fpPath = join(projectDir, '.moment', '.upstream-fingerprint.json');
 
@@ -128,7 +150,11 @@ function buildUpstreamSection(resolvedPath: string): StatusSection {
     return { label: 'Upstream Source', state: 'ok', summary: 'No upstream source configured' };
   }
   if (!existsSync(fpPath)) {
-    return { label: 'Upstream Source', state: 'drift', summary: '.domain/ exists but no fingerprint' };
+    return {
+      label: 'Upstream Source',
+      state: 'drift',
+      summary: '.domain/ exists but no fingerprint',
+    };
   }
 
   return readFingerprint(fpPath);

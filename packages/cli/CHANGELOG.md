@@ -1,5 +1,82 @@
 # @mmmnt/cli
 
+## 0.6.1
+
+### Patch Changes
+
+- [#191](https://github.com/mmmnt/mmmnt/pull/191) [`f2741d5`](https://github.com/mmmnt/mmmnt/commit/f2741d5858721c2bed74b6d99db0d80af1cebd9d) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Refresh dependencies within their existing ranges. `@mmmnt/cli` picks up `ws` 8.22, which clears its high-severity advisory.
+
+- Updated dependencies [[`f2741d5`](https://github.com/mmmnt/mmmnt/commit/f2741d5858721c2bed74b6d99db0d80af1cebd9d), [`a80df89`](https://github.com/mmmnt/mmmnt/commit/a80df89f2a773f1642fdc3781f88ab4580ea944b)]:
+  - @mmmnt/core@0.6.1
+  - @mmmnt/generate@0.6.1
+  - @mmmnt/sync@0.6.1
+  - @mmmnt/derive@0.6.1
+  - @mmmnt/emit-ts@0.6.1
+  - @mmmnt/harness@0.6.1
+  - @mmmnt/schema@0.6.1
+  - @mmmnt/viz@0.6.1
+
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies [[`e5b7fc1`](https://github.com/mmmnt/mmmnt/commit/e5b7fc194063043441f19c1ebbfa393f8112b52f), [`a06ff54`](https://github.com/mmmnt/mmmnt/commit/a06ff54321599311357388d513e372246e31ccad), [`e5b7fc1`](https://github.com/mmmnt/mmmnt/commit/e5b7fc194063043441f19c1ebbfa393f8112b52f), [`160323b`](https://github.com/mmmnt/mmmnt/commit/160323b7001dc079e8136703a516bc150a8541c0)]:
+  - @mmmnt/core@0.6.0
+  - @mmmnt/derive@0.6.0
+  - @mmmnt/emit-ts@0.6.0
+  - @mmmnt/generate@0.6.0
+  - @mmmnt/harness@0.6.0
+  - @mmmnt/schema@0.6.0
+  - @mmmnt/viz@0.6.0
+  - @mmmnt/sync@0.6.0
+
+## 0.5.0
+
+### Minor Changes
+
+- Truthfulness overhaul + saga transition event mapping.
+
+  Grammar: `states A -> B on Event` maps saga transitions to domain events
+  (`on` is now a reserved keyword); `MomentDefinition.sequence` preserves
+  textual child order.
+
+  Generators: `returns-to` loop-unroll, exact causation, branch-pruned
+  enumeration, walk-derived labels/kinds/activeBranches, SimSaga progression
+  through mapped transitions, saga timeout scenario synthesis, payloads
+  unioned with crossing contract fields, `policy-definitions.json` artifact,
+  frame→frame return edges with eventType on every connection, flow-only
+  catalog/impact/asyncapi fallbacks, pending-status cucumber, `it.todo`
+  scaffolds, truthful Gherkin branch tags and crossing contracts.
+
+  Validators: single-file wiring of the dormant cross-file/SP checks plus new
+  V19/V20/V21; V8 CST-offset terminal check; V12 crash fix.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.5.0
+  - @mmmnt/derive@0.5.0
+  - @mmmnt/generate@0.5.0
+  - @mmmnt/emit-ts@0.5.0
+  - @mmmnt/harness@0.5.0
+  - @mmmnt/schema@0.5.0
+  - @mmmnt/viz@0.5.0
+  - @mmmnt/sync@0.5.0
+
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [[`560b5dd`](https://github.com/mmmnt/mmmnt/commit/560b5ddbce4a9bcbdbb96bef5458ac90df60bc52), [`a3581a8`](https://github.com/mmmnt/mmmnt/commit/a3581a884974e546497750d95db745abf37f181e)]:
+  - @mmmnt/core@0.4.0
+  - @mmmnt/derive@0.4.0
+  - @mmmnt/emit-ts@0.4.0
+  - @mmmnt/generate@0.4.0
+  - @mmmnt/harness@0.4.0
+  - @mmmnt/schema@0.4.0
+  - @mmmnt/viz@0.4.0
+  - @mmmnt/sync@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes

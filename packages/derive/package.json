@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/derive",
   "description": "Test topology derivation, simulation scenarios, event catalogs, and impact analysis from Moment specifications",
-  "version": "0.3.1",
+  "version": "0.6.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/derive#readme",
@@ -25,7 +25,7 @@
     "topology"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -53,5 +53,8 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.9"
   }
 }

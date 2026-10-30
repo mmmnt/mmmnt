@@ -8,12 +8,14 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
+import { resolve, join } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 interface StatusSection {
   readonly label: string;
@@ -54,14 +56,16 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
 
   let content: string;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    content = specificationText(resolvedPath, (p) => readFileSync(p, 'utf-8'));
   } catch (err: unknown) {
-    return fail(`Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`);
+    return fail(
+      `Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   const sections: StatusSection[] = [];
 
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await parseSpecification(resolvedPath, content);
   sections.push(buildParseSection(parseResult));
 
   if (parseResult.success && parseResult.ir) {
@@ -77,7 +81,10 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
   return formatOutput(sections, hasDrift, values);
 }
 
-function buildParseSection(parseResult: { success: boolean; diagnostics: readonly Diagnostic[] }): StatusSection {
+function buildParseSection(parseResult: {
+  success: boolean;
+  diagnostics: readonly Diagnostic[];
+}): StatusSection {
   if (parseResult.success) {
     return { label: 'Specification', state: 'ok', summary: 'Valid — no parse errors' };
   }
@@ -90,24 +97,34 @@ function buildParseSection(parseResult: { success: boolean; diagnostics: readonl
   };
 }
 
-async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: string): Promise<StatusSection> {
-  const gitRoot = findGitRoot(dirname(resolvedPath));
-  if (!gitRoot) {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (no git repository)' };
-  }
+async function buildDriftSection(
+  ir: IntermediateRepresentation,
+  resolvedPath: string,
+): Promise<StatusSection> {
+  // Project root: nearest .manifest.yaml, else git root, else spec dir.
+  // The working-tree-first artifact store works in non-git directories too.
+  const repoRoot = resolveRepoRoot(resolvedPath);
 
   try {
     const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-    const store = new LocalGitArtifactStore(gitRoot);
+    const store = new LocalGitArtifactStore(repoRoot);
     const actual = new Map<string, string>();
 
     for (const path of tsOutput.files.keys()) {
-      try { actual.set(path, await store.readArtifact(path)); } catch { /* not found */ }
+      try {
+        actual.set(path, await store.readArtifact(path));
+      } catch {
+        /* not found */
+      }
     }
 
     const report = new ASTDiffEngine().detectDrift({ expected: tsOutput.files, actual });
     if (report.totalDrifted === 0) {
-      return { label: 'Implementation Sync', state: 'ok', summary: `${report.totalAligned} file(s) aligned` };
+      return {
+        label: 'Implementation Sync',
+        state: 'ok',
+        summary: `${report.totalAligned} file(s) aligned`,
+      };
     }
     return {
       label: 'Implementation Sync',
@@ -115,7 +132,11 @@ async function buildDriftSection(ir: IntermediateRepresentation, resolvedPath: s
       summary: `${report.totalDrifted} file(s) drifted, ${report.totalAligned} aligned`,
     };
   } catch {
-    return { label: 'Implementation Sync', state: 'ok', summary: 'Not available (drift detection failed)' };
+    return {
+      label: 'Implementation Sync',
+      state: 'ok',
+      summary: 'Not available (drift detection failed)',
+    };
   }
 }
 
@@ -146,7 +167,7 @@ function buildSchemaSection(ir: IntermediateRepresentation): StatusSection {
 }
 
 function buildUpstreamSection(resolvedPath: string): StatusSection {
-  const projectDir = dirname(resolvedPath);
+  const projectDir = resolveRepoRoot(resolvedPath);
   const domainDir = join(projectDir, '.domain');
   const fpPath = join(projectDir, '.moment', '.upstream-fingerprint.json');
 
@@ -155,7 +176,11 @@ function buildUpstreamSection(resolvedPath: string): StatusSection {
   }
 
   if (!existsSync(fpPath)) {
-    return { label: 'Upstream Source', state: 'drift', summary: '.domain/ exists but no fingerprint — run moment import --from-sift' };
+    return {
+      label: 'Upstream Source',
+      state: 'drift',
+      summary: '.domain/ exists but no fingerprint — run moment import --from-sift',
+    };
   }
 
   try {
@@ -169,15 +194,6 @@ function buildUpstreamSection(resolvedPath: string): StatusSection {
   } catch {
     return { label: 'Upstream Source', state: 'warning', summary: 'Fingerprint unreadable' };
   }
-}
-
-function findGitRoot(startDir: string): string | undefined {
-  let dir = resolve(startDir);
-  while (dir !== dirname(dir)) {
-    if (existsSync(join(dir, '.git'))) return dir;
-    dir = dirname(dir);
-  }
-  return undefined;
 }
 
 function formatOutput(

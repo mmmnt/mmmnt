@@ -1,0 +1,5 @@
+// ADR-037 corpus exemplar: a relationship to an external declared in another file of the project.
+context "Transfer" [Supporting]
+  relationship HostedService -> Transfer
+    type PublishedLanguage
+    contract "envelope schema, versioned"

@@ -11,12 +11,14 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 interface LintIssue {
   readonly source: 'parse' | 'drift' | 'schema' | 'codex';
@@ -53,13 +55,13 @@ export async function runLint(argv: string[]): Promise<LintResult> {
 
   let content: string;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    content = specificationText(resolvedPath, (p) => readFileSync(p, 'utf-8'));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return fail(`Error: Failed to read ${resolvedPath}: ${msg}`);
   }
 
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await parseSpecification(resolvedPath, content);
   const issues: LintIssue[] = [];
 
   // Source 1: Parse diagnostics
@@ -97,7 +99,7 @@ async function collectDriftWarnings(
 ): Promise<void> {
   try {
     const tsOutput = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } });
-    const repoRoot = findGitRoot(dirname(resolvedPath));
+    const repoRoot = resolveRepoRoot(resolvedPath);
     const store = new LocalGitArtifactStore(repoRoot);
     const actual = new Map<string, string>();
 
@@ -122,18 +124,12 @@ async function collectDriftWarnings(
   }
 }
 
-function findGitRoot(startDir: string): string {
-  let dir = resolve(startDir);
-  while (dir !== dirname(dir)) {
-    if (existsSync(resolve(dir, '.git'))) return dir;
-    dir = dirname(dir);
-  }
-  return startDir; // fallback to startDir if no .git found
-}
-
 function collectDeprecatedFieldWarning(
   ownerName: string,
-  field: { readonly name: string; readonly deprecated?: { readonly reason: string; readonly replacement: string } },
+  field: {
+    readonly name: string;
+    readonly deprecated?: { readonly reason: string; readonly replacement: string };
+  },
   issues: LintIssue[],
 ): void {
   if (!field.deprecated) return;
@@ -171,7 +167,11 @@ function buildResult(issues: LintIssue[], hasParseErrors: boolean, asJson: boole
   const warnings = issues.filter((i) => i.severity === 'warning');
 
   if (asJson) {
-    const json = JSON.stringify({ issues, errors: errors.length, warnings: warnings.length }, null, 2);
+    const json = JSON.stringify(
+      { issues, errors: errors.length, warnings: warnings.length },
+      null,
+      2,
+    );
     return { success: !hasParseErrors, message: json, issues, json };
   }
 

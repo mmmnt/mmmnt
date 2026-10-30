@@ -3,6 +3,7 @@
   "flowId": "flow-ticket-transfer",
   "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Ticket must not already be revoked not met",
+  "kind": "negative",
   "description": "Negative scenario: Ticket must not already be revoked precondition violation at RevokeTicket",
   "given": "A transfer initiation scenario is initiated",
   "when": "RevokeTicket is invoked without satisfying ticketNotRevoked",
@@ -16,7 +17,13 @@
     "moment-2-Transfer-resolution::delivery::TransferAccepted::br0",
     "moment-3-Original-ticket-revocation::delivery::RevokeTicket::main"
   ],
-  "activeBranches": [],
+  "activeBranches": [
+    {
+      "momentName": "Transfer resolution",
+      "condition": "accepted",
+      "routeChosen": "accepted"
+    }
+  ],
   "events": [
     {
       "eventId": "evt-001",
@@ -86,7 +93,7 @@
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-ticket-transfer",
       "causationEventIds": [
-        "evt-002"
+        "evt-003"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:03.000Z",
@@ -105,7 +112,7 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
       "causationEventIds": [
-        "evt-002"
+        "evt-004"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:04.000Z",
@@ -114,7 +121,8 @@
         "nodeId": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
         "processName": "AcceptTransfer",
         "transferId": "transferId-001",
-        "recipientCustomerId": "recipientCustomerId-001"
+        "recipientCustomerId": "recipientCustomerId-001",
+        "outcome": "accepted"
       }
     },
     {
@@ -123,7 +131,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-ticket-transfer",
       "causationEventIds": [
-        "evt-002"
+        "evt-005"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
       "timestamp": "2026-01-01T10:00:05.000Z",
@@ -134,7 +142,8 @@
         "ticketId": "ticketId-001",
         "recipientCustomerId": "recipientCustomerId-001",
         "newBarcode": {},
-        "acceptedAt": "2026-01-01T10:00:00.000Z"
+        "acceptedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "accepted"
       }
     },
     {
@@ -143,8 +152,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer",
       "causationEventIds": [
-        "evt-002",
-        "evt-006",
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer",
@@ -172,6 +179,40 @@
         "nodeId": "moment-3-Original-ticket-revocation::delivery::RevokeTicket::main",
         "failedPrecondition": "ticketNotRevoked",
         "description": "Ticket must not already be revoked"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "SimSaga.TransferLifecycle.Pending",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "TransferLifecycle",
+        "state": "Pending",
+        "triggeredBy": "TransferInitiated"
+      }
+    },
+    {
+      "eventId": "evt-010",
+      "eventType": "SimSaga.TransferLifecycle.Accepted",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer",
+      "timestamp": "2026-01-01T10:00:09.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "TransferLifecycle",
+        "state": "Accepted",
+        "triggeredBy": "TransferAccepted"
       }
     }
   ]

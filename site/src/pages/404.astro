@@ -4,80 +4,41 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<Base title="Page Not Found">
-  <Nav slot="nav" />
+<Base title="404 — Not found" noIndex>
+  <div style="position:relative; overflow:hidden; min-height:100vh; display:flex; flex-direction:column;">
+    <Nav />
 
-  <section class="not-found">
-    <div class="not-found__inner">
-      <div class="not-found__code">404</div>
-      <h1 class="not-found__title">Context not found</h1>
-      <p class="not-found__desc">
-        This bounded context doesn't exist yet. Maybe it needs a
-        <code>.moment</code> specification first.
+    <main
+      class="site-container"
+      style="position:relative; flex:1; max-width:1000px; margin:0 auto; padding:120px 40px 80px; text-align:center;"
+    >
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:20px;"
+      >
+        404 · not found
+      </div>
+      <h1
+        style="font-weight:600; font-size:64px; line-height:1.04; letter-spacing:-.025em; margin:0 0 18px; color:#F2FBFC;"
+      >
+        Nothing lives at this <span style="color:#7FE9F5;">moment</span>.
+      </h1>
+      <p style="font-size:18px; line-height:1.6; color:#90A2AA; max-width:500px; margin:0 auto 34px;">
+        The page you were looking for isn't here. It may have moved — or it may have never existed.
       </p>
-      <a href="/" class="not-found__link">Back to homepage</a>
-    </div>
-  </section>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+        <a
+          href="/"
+          class="btn-primary"
+          style="font-size:15px; font-weight:600; padding:13px 26px; border-radius:8px;">Home</a
+        >
+        <a
+          href="/docs"
+          class="btn-secondary"
+          style="font-size:15px; font-weight:500; padding:13px 24px; border-radius:8px;">Read the docs →</a
+        >
+      </div>
+    </main>
 
-  <Footer slot="footer" />
+    <Footer />
+  </div>
 </Base>
-
-<style>
-  .not-found {
-    padding: var(--space-24) var(--space-6);
-    text-align: center;
-    min-height: 60vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .not-found__code {
-    font-family: var(--font-mono);
-    font-size: 6rem;
-    font-weight: var(--weight-bold);
-    color: var(--color-accent-muted);
-    line-height: 1;
-    margin-bottom: var(--space-4);
-    background: linear-gradient(135deg, var(--color-accent), var(--color-derive));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .not-found__title {
-    font-size: var(--text-2xl);
-    font-weight: var(--weight-bold);
-    margin-bottom: var(--space-3);
-  }
-
-  .not-found__desc {
-    color: var(--color-text-secondary);
-    margin-bottom: var(--space-6);
-    max-width: 24rem;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .not-found__desc code {
-    color: var(--color-accent);
-    background: var(--color-accent-muted);
-    padding: 0.1em 0.4em;
-    border-radius: var(--radius-sm);
-  }
-
-  .not-found__link {
-    display: inline-block;
-    padding: var(--space-3) var(--space-6);
-    background: var(--color-accent);
-    color: #fff;
-    font-weight: var(--weight-medium);
-    border-radius: var(--radius-md);
-    transition: background var(--duration-fast) var(--ease-out);
-  }
-
-  .not-found__link:hover {
-    background: var(--color-accent-hover);
-    color: #fff;
-  }
-</style>

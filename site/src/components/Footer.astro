@@ -1,137 +1,67 @@
 ---
-const year = new Date().getFullYear();
+import Wordmark from './Wordmark.astro';
+import { GITHUB_URL, GITHUB_WIKI_URL, GITHUB_RELEASES_URL } from '../consts';
 ---
 
-<footer class="footer">
-  <div class="footer__inner">
-    <div class="footer__brand">
-      <img src="/logos/moment-wordmark.svg" alt="Moment" class="footer__logo-img" />
-      <span class="footer__text">
-        Domain architecture for the AI era.
-      </span>
+<footer style="position:relative; border-top:1px solid rgba(255,255,255,0.06); background:#060709;">
+  <div
+    class="site-container"
+    style="max-width:1200px; margin:0 auto; padding:56px 40px 40px; display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:40px;"
+  >
+    <div>
+      <Wordmark size={20} />
+      <p style="margin:14px 0 0; font-size:13.5px; line-height:1.6; color:#5b7077; max-width:240px;">
+        The open-source temporal dimension for domain-driven design. Part of the Complai ecosystem.
+      </p>
     </div>
-
-    <div class="footer__links">
-      <div class="footer__col">
-        <h4 class="footer__heading">Product</h4>
-        <ul role="list">
-          <li><a href="/why">Why Moment</a></li>
-          <li><a href="/examples">Examples</a></li>
-          <li><a href="/ecosystem">Ecosystem</a></li>
-          <li><a href="/get-started">Get Started</a></li>
-        </ul>
+    <div>
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#5b7077; margin-bottom:14px;"
+      >
+        Product
       </div>
-      <div class="footer__col">
-        <h4 class="footer__heading">Resources</h4>
-        <ul role="list">
-          <li><a href="https://github.com/mmmnt/mmmnt" target="_blank" rel="noopener noreferrer">GitHub</a></li>
-          <li><a href="https://discord.gg/YcRqsQUQuu" target="_blank" rel="noopener noreferrer">Discord</a></li>
-          <li><a href="https://github.com/mmmnt/mmmnt/wiki" target="_blank" rel="noopener noreferrer">Documentation</a></li>
-          <li><a href="https://github.com/mmmnt/mmmnt/releases" target="_blank" rel="noopener noreferrer">Releases</a></li>
-          <li><a href="https://github.com/mmmnt/mmmnt/wiki/Contributing" target="_blank" rel="noopener noreferrer">Contributing</a></li>
-        </ul>
-      </div>
-      <div class="footer__col">
-        <h4 class="footer__heading">Ecosystem</h4>
-        <ul role="list">
-          <li><a href="/ecosystem#sift">Sift</a></li>
-          <li><a href="/ecosystem#moment">Moment</a></li>
-          <li><a href="/ecosystem#facet">Facet</a></li>
-          <li><a href="/ecosystem#forge">Forge</a></li>
-        </ul>
-      </div>
-      <div class="footer__col">
-        <h4 class="footer__heading">Complai Tools</h4>
-        <ul role="list">
-          <li><a href="https://sdd.mmmnt.dev" target="_blank" rel="noopener noreferrer">SDD</a></li>
-          <li><a href="/">Moment</a></li>
-          <li><a href="/ecosystem#facet">Facet</a></li>
-          <li><a href="/ecosystem#forge">Forge</a></li>
-        </ul>
+      <div style="display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+        <a href="/why" class="link-footer">Why Moment</a>
+        <a href="/dsl" class="link-footer">The DSL</a>
+        <a href="/ecosystem" class="link-footer">Ecosystem</a>
+        <a href="/get-started" class="link-footer">Get started</a>
       </div>
     </div>
-
-    <div class="footer__bottom">
-      <p class="footer__copy">&copy; {year} Moment. Licensed under <a href="https://github.com/mmmnt/mmmnt/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">FSL-1.1-Apache-2.0</a>.</p>
+    <div>
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#5b7077; margin-bottom:14px;"
+      >
+        Resources
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+        <a href={GITHUB_URL} target="_blank" rel="noopener" class="link-footer">GitHub</a>
+        <a href={GITHUB_WIKI_URL} target="_blank" rel="noopener" class="link-footer">Repo wiki</a>
+        <a href="/docs" class="link-footer">Docs</a>
+        <a href={GITHUB_RELEASES_URL} target="_blank" rel="noopener" class="link-footer"
+          >Releases</a
+        >
+      </div>
+    </div>
+    <div>
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#5b7077; margin-bottom:14px;"
+      >
+        Complai
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; font-size:13.5px;">
+        <a href="/ecosystem" class="link-footer">Sift</a>
+        <a href="/ecosystem" class="link-footer">Facet</a>
+        <a href="/ecosystem" class="link-footer">Forge</a>
+        <a href="/ecosystem" class="link-footer">Codex</a>
+      </div>
+    </div>
+  </div>
+  <div class="site-container" style="max-width:1200px; margin:0 auto; padding:0 40px 40px;">
+    <div
+      style="border-top:1px solid rgba(255,255,255,0.06); padding-top:22px; display:flex; justify-content:space-between; font-size:12.5px; color:#5b7077; font-family:'JetBrains Mono',monospace;"
+    >
+      <span>© 2026 Complai · Moment</span>
+      <span>FSL-1.1-Apache-2.0</span>
     </div>
   </div>
 </footer>
-
-<style>
-  .footer {
-    border-top: 1px solid var(--color-border-subtle);
-    margin-top: var(--space-24);
-    padding: var(--space-16) var(--space-6) var(--space-8);
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
-  }
-
-  .footer__inner {
-    max-width: var(--max-width);
-    margin: 0 auto;
-  }
-
-  .footer__brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-10);
-  }
-
-  .footer__logo-img {
-    height: 28px;
-    width: auto;
-    flex-shrink: 0;
-  }
-
-  .footer__links {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-8);
-    margin-bottom: var(--space-10);
-  }
-
-  .footer__heading {
-    color: var(--color-text-primary);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    margin-bottom: var(--space-4);
-  }
-
-  .footer__col ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .footer__col a {
-    color: var(--color-text-secondary);
-    transition: color var(--duration-fast) var(--ease-out);
-  }
-
-  .footer__col a:hover {
-    color: var(--color-text-primary);
-  }
-
-  .footer__bottom {
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
-  }
-
-  .footer__copy {
-    color: var(--color-text-tertiary);
-    font-size: var(--text-xs);
-  }
-
-  .footer__copy a {
-    color: var(--color-text-secondary);
-  }
-
-  @media (max-width: 640px) {
-    .footer__links {
-      grid-template-columns: 1fr;
-      gap: var(--space-6);
-    }
-  }
-</style>

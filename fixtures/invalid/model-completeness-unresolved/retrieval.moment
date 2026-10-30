@@ -1,0 +1,4 @@
+// ADR-037 invalid exemplar: V22 — a projection source that names no event anywhere in the project.
+context "Retrieval" [Core]
+  projection TrajectoryResult
+    sources NothingHappened

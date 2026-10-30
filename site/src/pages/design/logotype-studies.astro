@@ -1,0 +1,197 @@
+---
+import DesignStudy from '../../layouts/DesignStudy.astro';
+
+const typefaces = [
+  { name: 'Geist', note: 'neutral, modern, engineered' },
+  { name: 'Space Grotesk', note: 'distinctive, mechanical' },
+  { name: 'Hanken Grotesk', note: 'warmer, humanist' },
+  { name: 'Familjen Grotesk', note: 'geometric with quirk' },
+  { name: 'Geist Mono', note: 'code-forward, signals SDL' },
+  { name: 'IBM Plex Mono', note: 'terminal heritage' },
+];
+
+const weights = [
+  { weight: 300, label: 'Light' },
+  { weight: 400, label: 'Regular' },
+  { weight: 500, label: 'Medium — recommended', accent: true },
+  { weight: 600, label: 'SemiBold' },
+  { weight: 700, label: 'Bold' },
+];
+
+const cases = [
+  { text: 'moment', style: 'font-weight:500; letter-spacing:-.03em;', note: 'lowercase, tight — calm and contemporary' },
+  { text: 'Moment', style: 'font-weight:500;', note: 'Title case — more corporate, product-name feel' },
+  { text: 'MOMENT', style: 'font-weight:500; letter-spacing:.14em;', note: 'all caps, wide tracking — editorial, confident' },
+  { text: 'm o m e n t', style: 'font-family:\'JetBrains Mono\',monospace; font-weight:500;', note: 'mono, spaced — reads like a CLI namespace' },
+];
+---
+
+<DesignStudy title="Logotype · Studies">
+  <div style="padding:60px 56px 100px;">
+    <div style="max-width:1180px; margin:0 auto 56px;">
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:18px;"
+      >
+        Moment · logotype · studies
+      </div>
+      <h1
+        style="font-weight:500; font-size:42px; line-height:1.08; letter-spacing:-.025em; margin:0 0 16px; color:#F2FBFC; max-width:780px;"
+      >
+        A wordmark, not a mark. Quiet, technical, precise.
+      </h1>
+      <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0;">
+        Six typefaces, five weights, four case treatments, and six letter treatments to arrive at a
+        wordmark that reads as calm as it is engineered.
+      </p>
+    </div>
+
+    <section style="max-width:1180px; margin:0 auto 56px;">
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; letter-spacing:.08em; margin-bottom:14px;"
+      >
+        01 · Typeface candidates
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;">
+        {
+          typefaces.map((t) => (
+            <div style="background:#0A0F14; padding:34px 40px; display:flex; align-items:center; justify-content:space-between; gap:20px;">
+              <div
+                style={`font-family:'${t.name}',sans-serif; font-weight:500; font-size:52px; color:#F2FBFC; letter-spacing:-.02em;`}
+              >
+                moment
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#E6F0F2; margin-bottom:5px;">
+                  {t.name}
+                </div>
+                <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#5b7077;">
+                  {t.note}
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section style="max-width:1180px; margin:0 auto 56px;">
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; letter-spacing:.08em; margin-bottom:14px;"
+      >
+        02 · Weight ladder (Space Grotesk)
+      </div>
+      <div style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:36px 40px; display:flex; flex-direction:column; gap:22px;">
+        {
+          weights.map((w) => (
+            <div style="display:flex; align-items:baseline; justify-content:space-between; gap:20px;">
+              <div
+                style={`font-family:'Space Grotesk',sans-serif; font-weight:${w.weight}; font-size:46px; color:${w.accent ? '#22D3EE' : '#F2FBFC'}; letter-spacing:-.02em;`}
+              >
+                moment
+              </div>
+              <div
+                style={`font-family:'JetBrains Mono',monospace; font-size:12px; color:${w.accent ? '#22D3EE' : '#7C8C92'};`}
+              >
+                {w.weight} · {w.label}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section style="max-width:1180px; margin:0 auto 56px;">
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; letter-spacing:.08em; margin-bottom:14px;"
+      >
+        03 · Case & tracking
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;">
+        {
+          cases.map((c) => (
+            <div style="background:#0A0F14; padding:36px 40px;">
+              <div style={`font-size:40px; color:#F2FBFC; ${c.style} margin-bottom:14px;`}>
+                {c.text}
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#7C8C92;">
+                {c.note}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section style="max-width:1180px; margin:0 auto 56px;">
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; letter-spacing:.08em; margin-bottom:14px;"
+      >
+        04 · Letter treatments (Space Grotesk 500)
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;">
+        <div style="background:#0A0F14; padding:30px; display:flex; flex-direction:column; align-items:center;">
+          <div style="font-size:44px; color:#F2FBFC; font-weight:500;">
+            moment<span style="color:#22D3EE;">.</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7C8C92; margin-top:16px;">
+            a · trailing point
+          </div>
+        </div>
+        <div style="background:#0A0F14; padding:30px; display:flex; flex-direction:column; align-items:center;">
+          <div style="font-size:44px; color:#F2FBFC; font-weight:500;">
+            m<span style="color:#22D3EE;">o̊</span>ment
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7C8C92; margin-top:16px;">
+            b · marked 'o'
+          </div>
+        </div>
+        <div style="background:#0A0F14; padding:30px; display:flex; flex-direction:column; align-items:center;">
+          <div style="font-size:44px; color:#F2FBFC; font-weight:500;">m<span style="color:#22D3EE;">o</span>ment</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7C8C92; margin-top:16px;">
+            c · cyan accent
+          </div>
+        </div>
+        <div style="background:#0A0F14; padding:30px; display:flex; flex-direction:column; align-items:center;">
+          <div style="font-size:44px; color:#F2FBFC; font-weight:500;">
+            momen<span style="color:#22D3EE;">t—</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7C8C92; margin-top:16px;">
+            d · extended crossbar
+          </div>
+        </div>
+        <div style="background:#0A0F14; padding:30px; display:flex; flex-direction:column; align-items:center;">
+          <div style="font-size:44px; color:#F2FBFC; font-weight:500;">
+            mo<span style="color:#22D3EE;">|</span>ment
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7C8C92; margin-top:16px;">
+            e · split marker
+          </div>
+        </div>
+        <div style="background:#0A0F14; padding:30px; display:flex; flex-direction:column; align-items:center;">
+          <div style="font-size:44px; color:#F2FBFC; font-weight:500;">
+            moment<span style="color:#22D3EE;">_</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#7C8C92; margin-top:16px;">
+            f · cursor underscore
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div
+      style="max-width:1180px; margin:0 auto; padding:24px 30px; background:linear-gradient(180deg, rgba(34,211,238,0.06), rgba(34,211,238,0.015)); border:1px solid rgba(34,211,238,0.22); border-radius:14px;"
+    >
+      <div
+        style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#22D3EE; letter-spacing:.08em; margin-bottom:10px;"
+      >
+        Recommendation
+      </div>
+      <p style="margin:0; font-size:15.5px; line-height:1.6; color:#C9CDD6;">
+        Space Grotesk 500, lowercase, with the trailing cyan point (04a). It reads as a calm
+        wordmark, nods at the captured instant, doubles as the <span
+          style="font-family:'JetBrains Mono',monospace; color:#C9E8ED;">.moment</span
+        > extension, and the single accent 'm' gives you a favicon without a separate symbol.
+      </p>
+    </div>
+  </div>
+</DesignStudy>

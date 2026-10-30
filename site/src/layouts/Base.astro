@@ -1,82 +1,89 @@
 ---
-import '../styles/tokens.css';
-import '../styles/critical.css';
-import '../styles/components.css';
+import '../styles/global.css';
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION, SITE_KEYWORDS, TWITTER_HANDLE } from '../consts';
 
 interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  noIndex?: boolean;
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
 const {
   title,
-  description = 'A DSL and toolchain for temporal DDD modeling. Transform .moment specifications into typed TypeScript, Gherkin tests, and living documentation.',
-  ogImage = '/og-image.png',
+  description = SITE_DESCRIPTION,
+  ogImage = '/logo/moment-icon-512.png',
+  noIndex = false,
+  jsonLd,
 } = Astro.props;
 
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const canonicalUrl = new URL(Astro.url.pathname, SITE_URL).toString();
+const fullTitle = title.startsWith(SITE_NAME) ? title : `${title} · ${SITE_NAME}`;
+const ogImageUrl = new URL(ogImage, SITE_URL).toString();
+
+const jsonLdArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="generator" content={Astro.generator} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <title>{title} | Moment</title>
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    <meta name="keywords" content={SITE_KEYWORDS} />
     <link rel="canonical" href={canonicalUrl} />
+    {noIndex && <meta name="robots" content="noindex, nofollow" />}
+    {!noIndex && <meta name="robots" content="index, follow, max-image-preview:large" />}
+
+    <meta name="theme-color" content="#07090D" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo/moment-icon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo/moment-icon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo/moment-icon-180.png" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content={`${title} | Moment`} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
-    <meta property="og:image" content={new URL(ogImage, Astro.site)} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content="Moment — the open-source temporal DSL" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={`${title} | Moment`} />
+    <meta name="twitter:site" content={TWITTER_HANDLE} />
+    <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
 
-    <!-- Structured Data -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Moment",
-        "description": "A DSL and toolchain for temporal DDD modeling",
-        "applicationCategory": "DeveloperApplication",
-        "url": "https://moment.mmmnt.dev",
-        "operatingSystem": "Cross-platform"
-      }
-    </script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
-    <!-- Theme initialization — prevent flash -->
-    <script is:inline>
-      (function () {
-        var stored = localStorage.getItem('moment-theme');
-        if (stored) {
-          document.documentElement.setAttribute('data-theme', stored);
-        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      })();
-    </script>
+    <link rel="sitemap" href="/sitemap-index.xml" />
 
-    <!-- Preload fonts -->
-    <link rel="preload" href="/fonts/Outfit-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/JetBrainsMono-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    {
+      jsonLdArray.map((data) => (
+        <script type="application/ld+json" set:html={JSON.stringify(data)} is:inline />
+      ))
+    }
+
+    <slot name="head" />
   </head>
-  <body>
-    <a href="#main" class="skip-nav">Skip to content</a>
-    <slot name="nav" />
-    <main id="main">
-      <slot />
-    </main>
-    <slot name="footer" />
+  <body
+    style="background:#07090D; color:#E6F0F2; font-family:'Geist',sans-serif; -webkit-font-smoothing:antialiased; margin:0; padding:0;"
+  >
+    <slot />
   </body>
 </html>

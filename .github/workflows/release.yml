@@ -27,6 +27,9 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      # true only when this run published packages; otherwise it opened or updated the version PR.
+      published: ${{ steps.changesets.outputs.published }}
     steps:
       # Generate a short-lived installation token for the mmmnt-release
       # GitHub App. We use this (instead of the default GITHUB_TOKEN) as the
@@ -37,7 +40,7 @@ jobs:
       # required status checks. See mmmnt/mmmnt#140.
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -56,7 +59,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js 24 (ships npm 11+ for OIDC trusted publishing)
         uses: actions/setup-node@v6
@@ -98,6 +101,13 @@ jobs:
           # Skip auto-changeset commits to avoid runaway loops.
           if [[ "$HEAD_SUBJECT" == "chore: auto-changeset"* ]]; then
             echo "Auto-changeset commit; skipping."
+            exit 0
+          fi
+
+          # A merge that already adds a hand-written changeset needs no generated one;
+          # generating it anyway would duplicate the changelog entry.
+          if git diff --name-only --diff-filter=A HEAD~1 HEAD -- '.changeset/*.md' | grep -q .; then
+            echo "The merge commit adds a changeset; nothing to generate."
             exit 0
           fi
 
@@ -143,35 +153,22 @@ jobs:
           echo "Wrote ${CHANGESET_FILE}:"
           cat "$CHANGESET_FILE"
 
-          # Best-effort: commit the changeset back to main so the next release
-          # run sees it even if the changesets action's version PR is delayed.
-          # `[skip ci]` prevents CI from re-running, which also means
-          # `workflow_run` will not retrigger this workflow.
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$CHANGESET_FILE"
-
-          # Guard against re-runs on the same SHA (or identical staged content):
-          # `git commit` exits non-zero on "nothing to commit", which would fail
-          # the whole job under `set -e`.
-          if git diff --cached --quiet; then
-            echo "No staged changes for ${CHANGESET_FILE}; skipping commit and push."
-          else
-            git commit -m "chore: auto-changeset for ${HEAD_SHA} [skip ci]"
-
-            TARGET_BRANCH="${{ github.event.workflow_run.head_branch || github.ref_name }}"
-            if git push origin "HEAD:${TARGET_BRANCH}"; then
-              echo "Pushed auto-changeset back to ${TARGET_BRANCH}."
-            else
-              echo "::warning::Could not push auto-changeset back to main (branch protection?). The changeset still exists in the working tree and will be consumed by changesets/action in this run."
-            fi
-          fi
+          # Left uncommitted on purpose. changesets/action switches to the version branch and
+          # hard-resets it to this commit; untracked files survive that reset, so `changeset
+          # version` consumes this file. (Committing it and pushing to main never worked: main
+          # requires signed commits through a pull request, and the reset discarded the commit.)
 
       - name: Create Release PR or Publish
+        id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm changeset:version
-          publish: pnpm -r publish --access public --no-git-checks
+          # `changeset publish` (not `pnpm -r publish`) so the action can
+          # detect published packages and create git tags + GitHub releases.
+          # v0.4.0 shipped untagged because raw pnpm publish output is not
+          # parsed by changesets/action.
+          publish: pnpm changeset publish
+          createGithubReleases: true
           title: 'chore: version packages'
           commit: 'chore: version packages'
         env:
@@ -194,11 +191,21 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.DISCORD_CI_WEBHOOK_URL }}
           RELEASE: ${{ needs.release.result }}
+          PUBLISHED: ${{ needs.release.outputs.published }}
         run: |
-          if [ "$RELEASE" = "success" ]; then
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::notice::Discord webhook URL not available — skipping notification."
+            exit 0
+          fi
+          if [ "$RELEASE" = "success" ] && [ "$PUBLISHED" = "true" ]; then
             COLOR=4318933
             EMOJI="🚀"
             STATUS="Published"
+          elif [ "$RELEASE" = "success" ]; then
+            # The run only opened or updated the version PR; nothing reached npm.
+            COLOR=5793266
+            EMOJI="📦"
+            STATUS="Version PR Updated"
           else
             COLOR=15548997
             EMOJI="❌"
@@ -207,13 +214,14 @@ jobs:
 
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          curl -s -H "Content-Type: application/json" -d "{
-            \"embeds\": [{
-              \"title\": \"$EMOJI Release $STATUS\",
-              \"description\": \"Release workflow completed with status: **$RELEASE**\",
-              \"url\": \"$RUN_URL\",
-              \"color\": $COLOR,
-              \"footer\": {\"text\": \"${{ github.repository }}\"},
-              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-            }]
-          }" "$WEBHOOK_URL"
+          PAYLOAD=$(jq -n --arg title "$EMOJI Release $STATUS" \
+            --arg description "Release workflow completed with status: **$RELEASE**" \
+            --arg url "$RUN_URL" --argjson color "$COLOR" --arg footer "${{ github.repository }}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{embeds: [{title: $title, description: $description, url: $url, color: $color, footer: {text: $footer}, timestamp: $timestamp}]}')
+          HTTP=$(curl -sS -o /tmp/discord-response.txt -w '%{http_code}' --connect-timeout 5 --max-time 15 \
+            -H "Content-Type: application/json" -d "$PAYLOAD" "$WEBHOOK_URL") || HTTP=000
+          # A failed notification must not fail the run, but it must be visible (it was silent).
+          if [ "${HTTP:0:1}" != "2" ]; then
+            echo "::warning title=Discord notification failed::HTTP $HTTP: $(head -c 300 /tmp/discord-response.txt 2>/dev/null)"
+          fi

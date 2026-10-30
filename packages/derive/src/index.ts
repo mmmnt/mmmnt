@@ -15,11 +15,18 @@ export {
   generateSimulationScenario,
   generateAllScenarios,
   deriveNegativeScenarios,
+  deriveTimeoutScenarios,
   type SimulationScenario,
   type SimulationEvent,
   type ActiveBranch,
   type SimulationOptions,
+  type ScenarioKind,
 } from './engine/simulation-scenario-generator.js';
+
+export {
+  generatePolicyDefinitions,
+  type PolicyDefinitionArtifact,
+} from './engine/policy-definitions-generator.js';
 
 export {
   DeriveOnSpecificationParsed,

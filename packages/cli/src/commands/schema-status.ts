@@ -9,12 +9,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
-import {
-  SchemaRegistry,
-  ConsumptionManifest,
-} from '@mmmnt/schema';
+import { SchemaRegistry, ConsumptionManifest } from '@mmmnt/schema';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import type { FieldPhase } from '@mmmnt/schema';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 interface SchemaStatusEntry {
   readonly eventType: string;
@@ -128,7 +126,9 @@ function collectFieldEntries(
   const fields = findEventFields(eventType, ir);
 
   for (const field of fields) {
-    const phase = field.deprecated ? 'deprecated' : (registry.getFieldPhase(eventType, field.name) ?? 'active');
+    const phase = field.deprecated
+      ? 'deprecated'
+      : (registry.getFieldPhase(eventType, field.name) ?? 'active');
     const consumers = manifest.getConsumers(eventType, field.name);
 
     entries.push({
@@ -145,7 +145,12 @@ function collectFieldEntries(
 function findEventFields(
   eventType: string,
   ir: IntermediateRepresentation,
-): readonly { name: string; type: string; required: boolean; deprecated?: { reason: string; replacement: string } }[] {
+): readonly {
+  name: string;
+  type: string;
+  required: boolean;
+  deprecated?: { reason: string; replacement: string };
+}[] {
   for (const ctx of ir.contexts) {
     for (const agg of ctx.aggregates) {
       const evt = agg.events.find((e) => e.name === eventType);
@@ -163,7 +168,9 @@ function formatSchemaTable(entries: SchemaStatusEntry[]): string {
   lines.push('|------------|-------|------|-------|-----------|');
 
   for (const e of entries) {
-    lines.push(`| ${e.eventType} | ${e.fieldName} | ${e.fieldType} | ${e.phase} | ${e.consumers} |`);
+    lines.push(
+      `| ${e.eventType} | ${e.fieldName} | ${e.fieldType} | ${e.phase} | ${e.consumers} |`,
+    );
   }
 
   lines.push('');
@@ -171,19 +178,21 @@ function formatSchemaTable(entries: SchemaStatusEntry[]): string {
   return lines.join('\n');
 }
 
-async function parseSpecFile(filePath: string): Promise<SchemaStatusResult | { ir: IntermediateRepresentation; resolvedPath: string }> {
+async function parseSpecFile(
+  filePath: string,
+): Promise<SchemaStatusResult | { ir: IntermediateRepresentation; resolvedPath: string }> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
   let content: string;
   try {
-    content = readFileSync(resolvedPath, 'utf-8');
+    content = specificationText(resolvedPath, (p) => readFileSync(p, 'utf-8'));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return fail(`Error: Failed to read ${resolvedPath}: ${msg}`);
   }
 
-  const parseResult = await new MomentParser().parseContent(content);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

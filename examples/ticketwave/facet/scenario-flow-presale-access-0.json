@@ -3,6 +3,7 @@
   "flowId": "flow-presale-access",
   "flowName": "presale-access",
   "scenarioLabel": "Happy Path: presale-access",
+  "kind": "happy",
   "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
   "given": "A presale window opens scenario is initiated",
   "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome, Presale cart creation, Presale cart population, Presale fee calculation, Presale payment, Presale payment confirmation, Presale delivery trigger, Presale hold conversion, Presale ticket issuance, Presale confirmation, Presale ticket delivery",
@@ -134,7 +135,8 @@
         "sectionId": "sectionId-001",
         "quantity": 0,
         "customerId": "customerId-001",
-        "sessionId": "sessionId-001"
+        "sessionId": "sessionId-001",
+        "outcome": "valid"
       }
     },
     {
@@ -143,7 +145,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004"
+        "evt-005"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:05.000Z",
@@ -158,24 +160,8 @@
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
         "expiresAt": "2026-01-01T10:00:00.000Z",
-        "heldAt": "2026-01-01T10:00:00.000Z"
-      }
-    },
-    {
-      "eventId": "evt-026",
-      "eventType": "SimSaga.SeatHoldLifecycle.Held",
-      "productSource": "moment:simulation",
-      "sessionId": "sess-scenario-flow-presale-access-0",
-      "causationEventIds": [
-        "evt-006"
-      ],
-      "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:05.000Z",
-      "version": 1,
-      "payload": {
-        "sagaName": "SeatHoldLifecycle",
-        "state": "Held",
-        "triggeredBy": "SeatsHeld"
+        "heldAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "valid"
       }
     },
     {
@@ -184,7 +170,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -203,8 +188,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006"
+        "evt-007"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:07.000Z",
@@ -223,8 +207,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
         "evt-008"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -247,9 +229,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008"
+        "evt-009"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:09.000Z",
@@ -273,9 +253,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
         "evt-010"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -293,10 +270,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010"
+        "evt-011"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:11.000Z",
@@ -317,10 +291,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
         "evt-012"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -341,11 +311,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012"
+        "evt-013"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:13.000Z",
@@ -368,11 +334,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
         "evt-014"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -391,12 +352,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014"
+        "evt-015"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:15.000Z",
@@ -405,7 +361,12 @@
         "nodeId": "moment-7-Presale-payment-confirmation::checkout::PaymentConfirmed::main",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z"
+        "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "orderId": "orderId-001",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001"
       }
     },
     {
@@ -414,12 +375,7 @@
       "productSource": "checkout",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014"
+        "evt-016"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:16.000Z",
@@ -428,7 +384,12 @@
         "nodeId": "moment-8-Presale-delivery-trigger::checkout::PaymentConfirmed::main",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z"
+        "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "orderId": "orderId-001",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001"
       }
     },
     {
@@ -437,14 +398,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
         "evt-017"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -463,15 +416,7 @@
       "productSource": "inventory",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
-        "evt-017"
+        "evt-018"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:18.000Z",
@@ -489,14 +434,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
         "evt-017"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -518,15 +455,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
-        "evt-017"
+        "evt-020"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:20.000Z",
@@ -548,16 +477,7 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
-        "evt-017",
-        "evt-021"
+        "evt-017"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:21.000Z",
@@ -579,16 +499,7 @@
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
-        "evt-017",
-        "evt-021"
+        "evt-022"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:22.000Z",
@@ -608,15 +519,6 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
-        "evt-017",
         "evt-021"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
@@ -637,16 +539,7 @@
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-004",
-        "evt-006",
-        "evt-008",
-        "evt-010",
-        "evt-012",
-        "evt-014",
-        "evt-017",
-        "evt-017",
-        "evt-017",
-        "evt-021"
+        "evt-024"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
       "timestamp": "2026-01-01T10:00:24.000Z",
@@ -658,6 +551,57 @@
         "customerId": "customerId-001",
         "channel": "sample-channel",
         "sentAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-026",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-0",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-0",
+      "timestamp": "2026-01-01T10:00:25.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
+      }
+    },
+    {
+      "eventId": "evt-027",
+      "eventType": "SimSaga.SeatHoldLifecycle.Converting",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-0",
+      "causationEventIds": [
+        "evt-016"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-0",
+      "timestamp": "2026-01-01T10:00:26.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Converting",
+        "triggeredBy": "PaymentConfirmed"
+      }
+    },
+    {
+      "eventId": "evt-028",
+      "eventType": "SimSaga.SeatHoldLifecycle.Converted",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-0",
+      "causationEventIds": [
+        "evt-019"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-0",
+      "timestamp": "2026-01-01T10:00:27.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Converted",
+        "triggeredBy": "HoldConvertedToReservation"
       }
     }
   ]

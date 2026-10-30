@@ -241,11 +241,32 @@ context "Inventory" [Core]
   invariant INV-04 "Customer cannot hold more than 8 tickets per event"
     scope SeatHold
 
-  saga SeatHoldLifecycle
-    trigger SeatsHeld
-    states Held -> Converting -> Converted -> Expired
-    compensation "Release held seats back to the pool and notify customer"
+  orchestration SeatHoldLifecycle
+    command TrackHold
+      input holdId: UUID
+    command AwaitConversion
+    command CloseHold
+    command ExpireHold
+    invoked-by TrackHold
+    issues ConvertHoldToReservation, ReleaseHold
+    states Held -> Converting on AwaitConversion -> Converted on CloseHold -> Expired
+    compensation on ExpireHold issues ReleaseHold
     timeout holdExpiry
+
+  policy TrackHoldOnSeatsHeld
+    trigger SeatsHeld
+    action "Track the hold until it converts or expires"
+    chains-to TrackHold
+
+  policy AwaitConversionOnPaymentConfirmed
+    trigger PaymentConfirmed
+    action "The hold's payment is confirmed; await its conversion"
+    chains-to AwaitConversion
+
+  policy CloseHoldOnConversion
+    trigger HoldConvertedToReservation
+    action "The hold became a reservation"
+    chains-to CloseHold
 
   policy ReplenishOnHoldRelease
     trigger HoldReleased
@@ -681,11 +702,26 @@ context "Delivery" [Supporting]
   invariant DEL-03 "Revoked tickets must not be transferable"
     scope DigitalTicket
 
-  saga TransferLifecycle
-    trigger TransferInitiated
-    states Pending -> Accepted -> Declined -> Cancelled -> Expired
-    compensation "Return ticket ownership to original holder"
+  orchestration TransferLifecycle
+    command TrackTransfer
+      input transferId: UUID
+    command CompleteTransfer
+    command RevertTransfer
+    invoked-by TrackTransfer
+    issues GenerateMobilePass, CancelTransfer
+    states Pending -> Accepted on CompleteTransfer -> Declined -> Cancelled -> Expired
+    compensation on RevertTransfer issues CancelTransfer
     timeout transferExpiry
+
+  policy TrackTransferOnTransferInitiated
+    trigger TransferInitiated
+    action "Track the transfer until it is accepted, declined, cancelled or expires"
+    chains-to TrackTransfer
+
+  policy CompleteTransferOnTransferAccepted
+    trigger TransferAccepted
+    action "The recipient accepted; complete the transfer"
+    chains-to CompleteTransfer
 
   policy IssueOnPaymentConfirmed
     trigger PaymentConfirmed
@@ -1107,7 +1143,7 @@ flow "general-admission-purchase"
   moment "Ticket delivery notification"
     notifications: SendTicketDelivery
       triggered-by TicketsIssued
-    notifications: TicketDeliverySent
+    notifications: TicketDeliverySent [terminal]
 // TicketWave — Presale Access Flow
 // Verified fan presale: code validation → early-window purchase → delivery
 
@@ -1205,7 +1241,7 @@ flow "presale-access"
   moment "Presale ticket delivery"
     notifications: SendTicketDelivery
       triggered-by TicketsIssued
-    notifications: TicketDeliverySent
+    notifications: TicketDeliverySent [terminal]
 // TicketWave — Ticket Transfer Flow
 // Peer-to-peer transfer: initiate → notify recipient → accept/decline → re-issue
 
@@ -1257,7 +1293,7 @@ flow "ticket-transfer"
   moment "Transfer completion notification"
     notifications: SendTicketDelivery
       triggered-by TicketsIssued
-    notifications: TicketDeliverySent
+    notifications: TicketDeliverySent [terminal]
 // TicketWave — Event Cancellation Flow
 // Cancel event → revoke all tickets → refund all payments → notify all holders
 
@@ -1321,4 +1357,4 @@ flow "event-cancellation"
   moment "Cancellation notifications"
     notifications: SendEventCancellationNotice
       triggered-by EventCancelled
-    notifications: EventCancellationNoticeSent (×N)
+    notifications: EventCancellationNoticeSent (×N) [terminal]

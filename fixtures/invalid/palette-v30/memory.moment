@@ -1,0 +1,13 @@
+// ADR-038 invalid exemplar: V30 — a policy triggered by no declared domain event.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  policy RecordOnNothing
+    trigger NeverHappens
+    action "record"
+    chains-to RecordDecision

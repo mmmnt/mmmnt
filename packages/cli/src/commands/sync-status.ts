@@ -7,13 +7,15 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve } from 'node:path';
+import { resolveRepoRoot } from '../lib/repo-root.js';
 import { parseArgs } from 'node:util';
 import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { DriftReport } from '@mmmnt/sync';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface SyncStatusResult {
   readonly success: boolean;
@@ -22,6 +24,8 @@ export interface SyncStatusResult {
   readonly filePath?: string;
   readonly report?: DriftReport;
   readonly json?: string;
+  /** True when the implementation has drifted from the spec; the command then exits non-zero. */
+  readonly hasDrift?: boolean;
 }
 
 const EMPTY: readonly Diagnostic[] = [];
@@ -48,16 +52,16 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   });
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment sync status <file.moment>');
+  if (!filePath) return fail('Usage: moment sync status <file.moment | directory> [--json]');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {
@@ -74,9 +78,9 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   const emitter = new TypeScriptEmitter();
   const tsOutput = emitter.emit(ir, { scope: { level: 'system' } });
 
-  // Read actual implementation files via GitArtifactStore (ADR-024)
-  // Repo root defaults to the directory containing the .moment file
-  const repoRoot = dirname(resolvedPath);
+  // Read actual implementation files via GitArtifactStore (ADR-024).
+  // Project root: nearest .manifest.yaml, else git root, else spec dir.
+  const repoRoot = resolveRepoRoot(resolvedPath);
   const store = new LocalGitArtifactStore(repoRoot);
   const expectedPaths = [...tsOutput.files.keys()];
   const actual = new Map<string, string>();
@@ -95,7 +99,14 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
 
   if (values.json === true) {
     const json = JSON.stringify(report, null, 2);
-    return { success: true, message: json, diagnostics: EMPTY, report, json };
+    return {
+      success: true,
+      message: json,
+      diagnostics: EMPTY,
+      report,
+      json,
+      hasDrift: report.totalDrifted > 0,
+    };
   }
 
   if (report.totalDrifted === 0) {
@@ -104,6 +115,7 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
       message: `No drift detected. ${report.totalAligned} file(s) aligned.`,
       diagnostics: EMPTY,
       report,
+      hasDrift: false,
     };
   }
 
@@ -112,5 +124,6 @@ export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
     message: `Drift detected: ${report.totalDrifted} drifted, ${report.totalAligned} aligned`,
     diagnostics: EMPTY,
     report,
+    hasDrift: true,
   };
 }

@@ -3,6 +3,7 @@ export type {
   SpecificationMetadata,
   GlossaryEntry,
   ContextRelationship,
+  ExternalDefinition,
 } from './intermediate-representation.js';
 
 export type {
@@ -17,11 +18,26 @@ export type {
   DomainServiceDefinition,
   PolicyDefinition,
   SagaDefinition,
+  SagaTransitionDefinition,
+  AnnotationDefinition,
+  ProjectionDefinition,
+  QueryDefinition,
+  RuleDefinition,
+  GatewayDefinition,
+  AggregateStatesDefinition,
+  OrchestrationCommandDefinition,
+  IssuedCommandDefinition,
+  CompensationDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';
 
-export type { MomentDefinition, MomentEntry, BranchDefinition } from './frame-definition.js';
+export type {
+  MomentDefinition,
+  MomentEntry,
+  BranchDefinition,
+  MomentSequenceItem,
+} from './frame-definition.js';
 
 export type { ConnectionDefinition, ConnectionType } from './connection-definition.js';
 

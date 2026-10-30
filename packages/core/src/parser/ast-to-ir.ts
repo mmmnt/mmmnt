@@ -17,6 +17,14 @@ import type {
   SagaDeclaration,
   ValueObjectDeclaration,
   WhenBlock,
+  AnnotationDeclaration,
+  ProjectionDeclaration,
+  QueryDeclaration,
+  RuleDeclaration,
+  GatewayDeclaration,
+  IssuedCommand,
+  OrchestrationCommand,
+  AggregateStateDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
@@ -28,12 +36,18 @@ import {
   isDomainEventDeclaration,
   isValueObjectDeclaration,
   isInvariantDeclaration,
+  isAnnotationDeclaration,
+  isProjectionDeclaration,
+  isQueryDeclaration,
+  isRuleDeclaration,
+  isTermDeclaration,
   isReturnsTo,
   isTriggeredBy,
   isTriggers,
 } from '../generated/ast.js';
 import type {
   IntermediateRepresentation,
+  SpecificationMetadata,
   ContextDefinition,
   AggregateDefinition,
   CommandDefinition,
@@ -45,6 +59,8 @@ import type {
   DomainServiceDefinition,
   PolicyDefinition,
   SagaDefinition,
+  SagaTransitionDefinition,
+  AnnotationDefinition,
   FlowDefinition,
   LaneDefinition,
   MomentDefinition,
@@ -54,7 +70,19 @@ import type {
   SchemaContract,
   SchemaFieldDefinition,
   ContextRelationship,
+  ExternalDefinition,
+  GlossaryEntry,
+  ProjectionDefinition,
+  QueryDefinition,
+  RuleDefinition,
+  GatewayDefinition,
+  AggregateStatesDefinition,
+  OrchestrationCommandDefinition,
+  IssuedCommandDefinition,
+  CompensationDefinition,
 } from '../ir/index.js';
+import { buildMomentSequence } from './moment-sequence.js';
+import { bindRelayEvents } from './relay-events.js';
 
 /**
  * Strip surrounding double-quotes from a Langium STRING token value.
@@ -69,51 +97,123 @@ function unquote(s: string): string {
 /**
  * Pure transformation: Langium AST -> IntermediateRepresentation.
  * No I/O, no side effects.
+ *
+ * `metadata` lets callers that know the spec's identity (parser/CLI: file
+ * basename, manifest version) stamp it onto the IR instead of the historical
+ * hardcoded placeholder (M-P12). Omitted fields keep the old defaults.
  */
-export function astToIr(file: MomentFile): IntermediateRepresentation {
-  const contexts: ContextDefinition[] = file.contexts.map(transformContext);
-  const flows: FlowDefinition[] = file.flows.map(transformFlow);
+export function astToIr(
+  file: MomentFile,
+  metadata?: Partial<SpecificationMetadata>,
+): IntermediateRepresentation {
+  const contexts: ContextDefinition[] = bindRelayEvents(file.contexts.map(transformContext));
+  const nodeKindMap = buildNodeKindMap(contexts);
+  const flows: FlowDefinition[] = file.flows.map((flow) => transformFlow(flow, nodeKindMap));
 
-  const relationships: ContextRelationship[] = file.contexts.flatMap(extractRelationships);
+  // Hand-constructed ASTs (no parser) may predate ADR-037 and carry no externals.
+  const externals: ExternalDefinition[] = (file.externals ?? []).map((e) => ({
+    id: `ext-${e.name}`,
+    name: e.name,
+    description: unquote(e.description),
+    ...gatewaysOf(e.gateways ?? []),
+  }));
+  const externalNames = new Set(externals.map((e) => e.name));
+  const relationships: ContextRelationship[] = file.contexts.flatMap((ctx) =>
+    extractRelationships(ctx, externalNames),
+  );
 
   return {
     contexts,
     flows,
-    glossary: [],
+    glossary: file.contexts.flatMap(extractGlossary),
     relationships,
-    metadata: { name: '', version: '0.0.0' },
+    externals,
+    metadata: {
+      name: metadata?.name ?? '',
+      version: metadata?.version ?? '0.0.0',
+      ...(metadata?.description !== undefined ? { description: metadata.description } : {}),
+    },
   };
+}
+
+interface ContextMembers {
+  aggregates: AggregateDefinition[];
+  domainServices: DomainServiceDefinition[];
+  policies: PolicyDefinition[];
+  sagas: SagaDefinition[];
+  projections: ProjectionDefinition[];
+  queries: QueryDefinition[];
+  rules: RuleDefinition[];
+  commands: CommandDefinition[];
+  events: EventDefinition[];
+  valueObjects: ValueObjectDefinition[];
+  invariants: InvariantDefinition[];
+}
+
+function emptyContextMembers(): ContextMembers {
+  return {
+    aggregates: [],
+    domainServices: [],
+    policies: [],
+    sagas: [],
+    projections: [],
+    queries: [],
+    rules: [],
+    commands: [],
+    events: [],
+    valueObjects: [],
+    invariants: [],
+  };
+}
+
+/** Add one context member to the collected members. Relationships are read by extractRelationships. */
+function collectContextMember(
+  member: ContextDeclaration['members'][number],
+  annotations: AnnotationDefinition[] | undefined,
+  out: ContextMembers,
+): void {
+  if (isAggregateDeclaration(member)) {
+    const aggDef = transformAggregate(member, annotations);
+    out.aggregates.push(aggDef);
+    out.commands.push(...aggDef.commands);
+    out.events.push(...aggDef.events);
+    out.valueObjects.push(...aggDef.valueObjects);
+    out.invariants.push(...aggDef.invariants);
+  } else if (isDomainServiceDeclaration(member)) {
+    out.domainServices.push(transformService(member, annotations));
+  } else if (isPolicyDeclaration(member)) {
+    out.policies.push(transformPolicy(member, annotations));
+  } else if (isSagaDeclaration(member)) {
+    out.sagas.push(transformSaga(member, annotations));
+  } else if (isProjectionDeclaration(member)) {
+    out.projections.push(transformProjection(member));
+  } else if (isQueryDeclaration(member)) {
+    out.queries.push(transformQuery(member));
+  } else if (isRuleDeclaration(member)) {
+    out.rules.push(transformRule(member));
+  } else if (isValueObjectDeclaration(member)) {
+    out.valueObjects.push(transformValueObject(member, annotations));
+  }
 }
 
 function transformContext(ctx: ContextDeclaration): ContextDefinition {
   const name = unquote(ctx.name);
-  const aggregates: AggregateDefinition[] = [];
-  const domainServices: DomainServiceDefinition[] = [];
-  const policies: PolicyDefinition[] = [];
-  const sagas: SagaDefinition[] = [];
+  const members = emptyContextMembers();
 
-  // Collect all top-level commands, events, value objects, invariants from aggregates
-  const allCommands: CommandDefinition[] = [];
-  const allEvents: EventDefinition[] = [];
-  const allValueObjects: ValueObjectDefinition[] = [];
-  const allInvariants: InvariantDefinition[] = [];
+  // Annotations classify the NEXT declaration in the member list (§5.1.4).
+  let pendingAnnotations: AnnotationDefinition[] = [];
 
   for (const member of ctx.members) {
-    if (isAggregateDeclaration(member)) {
-      const aggDef = transformAggregate(member);
-      aggregates.push(aggDef);
-      allCommands.push(...aggDef.commands);
-      allEvents.push(...aggDef.events);
-      allValueObjects.push(...aggDef.valueObjects);
-      allInvariants.push(...aggDef.invariants);
-    } else if (isDomainServiceDeclaration(member)) {
-      domainServices.push(transformService(member));
-    } else if (isPolicyDeclaration(member)) {
-      policies.push(transformPolicy(member));
-    } else if (isSagaDeclaration(member)) {
-      sagas.push(transformSaga(member));
+    if (isAnnotationDeclaration(member)) {
+      pendingAnnotations.push(transformAnnotation(member));
+      continue;
     }
-    // ContextRelationshipDeclaration handled separately via extractRelationships
+    collectContextMember(
+      member,
+      pendingAnnotations.length > 0 ? pendingAnnotations : undefined,
+      members,
+    );
+    pendingAnnotations = [];
   }
 
   return {
@@ -126,51 +226,154 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
       | 'Terminal'
       | undefined,
     description: ctx.description ? unquote(ctx.description) : undefined,
-    aggregates,
-    domainServices,
-    commands: allCommands,
-    events: allEvents,
-    policies,
-    sagas,
-    valueObjects: allValueObjects,
-    invariants: allInvariants,
+    aggregates: members.aggregates,
+    domainServices: members.domainServices,
+    commands: members.commands,
+    events: members.events,
+    policies: members.policies,
+    sagas: members.sagas,
+    valueObjects: members.valueObjects,
+    invariants: members.invariants,
+    projections: members.projections,
+    queries: members.queries,
+    rules: members.rules,
   };
 }
 
-function transformAggregate(agg: AggregateDeclaration): AggregateDefinition {
+function transformProjection(proj: ProjectionDeclaration): ProjectionDefinition {
+  return {
+    id: `proj-${proj.name}`,
+    name: proj.name,
+    sources: [...proj.sources],
+    ...(proj.description ? { description: unquote(proj.description) } : {}),
+    fields: proj.fields.map(transformFieldDeclaration),
+    ...gatewaysOf(proj.gateways),
+  };
+}
+
+function transformGateway(gw: GatewayDeclaration): GatewayDefinition {
+  return {
+    id: `gw-${gw.name}`,
+    name: gw.name,
+    consumes: gw.consumes,
+    produces: gw.produces,
+    ...(gw.description ? { description: unquote(gw.description) } : {}),
+  };
+}
+
+function gatewaysOf(gateways: GatewayDeclaration[]): { gateways?: GatewayDefinition[] } {
+  return gateways.length > 0 ? { gateways: gateways.map(transformGateway) } : {};
+}
+
+function transformQuery(query: QueryDeclaration): QueryDefinition {
+  return {
+    id: `query-${query.name}`,
+    name: query.name,
+    reads: [...query.reads],
+    inputs: query.inputs.map(transformFieldDeclaration),
+    ...(query.description ? { description: unquote(query.description) } : {}),
+  };
+}
+
+function transformRule(rule: RuleDeclaration): RuleDefinition {
+  return rule.enforcer
+    ? {
+        id: rule.id,
+        description: unquote(rule.description),
+        enforcedBy: rule.enforcer,
+        enforcerKind: 'declared',
+      }
+    : {
+        id: rule.id,
+        description: unquote(rule.description),
+        enforcedBy: unquote(rule.enforcerText ?? ''),
+        enforcerKind: 'external',
+      };
+}
+
+function extractGlossary(ctx: ContextDeclaration): GlossaryEntry[] {
+  const context = unquote(ctx.name);
+  return ctx.members
+    .filter(isTermDeclaration)
+    .map((t) => ({ term: unquote(t.term), definition: unquote(t.definition), context }));
+}
+
+function transformAnnotation(ann: AnnotationDeclaration): AnnotationDefinition {
+  const raw = ann.value;
+  return {
+    name: ann.name as AnnotationDefinition['name'],
+    value: raw.startsWith('"') ? unquote(raw) : raw,
+  };
+}
+
+function transformAggregate(
+  agg: AggregateDeclaration,
+  annotations?: AnnotationDefinition[],
+): AggregateDefinition {
   const name = unquote(agg.name);
   const commands: CommandDefinition[] = [];
   const events: EventDefinition[] = [];
   const valueObjects: ValueObjectDefinition[] = [];
   const invariants: InvariantDefinition[] = [];
 
+  // Annotations classify the NEXT declaration in the member list (§5.1.4).
+  let pendingAnnotations: AnnotationDefinition[] = [];
+
   for (const member of agg.members) {
+    if (isAnnotationDeclaration(member)) {
+      pendingAnnotations.push(transformAnnotation(member));
+      continue;
+    }
+    const memberAnnotations = pendingAnnotations.length > 0 ? pendingAnnotations : undefined;
+    pendingAnnotations = [];
+
     if (isCommandDeclaration(member)) {
-      commands.push(transformCommand(member));
+      commands.push(transformCommand(member, memberAnnotations));
     } else if (isDomainEventDeclaration(member)) {
-      events.push(transformEvent(member));
+      events.push(transformEvent(member, memberAnnotations));
     } else if (isValueObjectDeclaration(member)) {
-      valueObjects.push(transformValueObject(member));
+      valueObjects.push(transformValueObject(member, memberAnnotations));
     } else if (isInvariantDeclaration(member)) {
-      invariants.push(transformInvariant(member));
+      invariants.push(transformInvariant(member, memberAnnotations));
     }
   }
 
   return {
     id: `agg-${name}`,
     name,
+    ...(annotations ? { annotations } : {}),
     identityField: transformFieldDeclaration(agg.identityField),
     commands,
     events,
     valueObjects,
     invariants,
+    ...statesOf(agg.states ?? []),
   };
 }
 
-function transformCommand(cmd: CommandDeclaration): CommandDefinition {
+function statesOf(decls: AggregateStateDeclaration[]): { states?: AggregateStatesDefinition } {
+  return decls.length > 0 ? { states: transformStates(decls) } : {};
+}
+
+function transformStates(decls: AggregateStateDeclaration[]): AggregateStatesDefinition {
+  const initials = decls.filter((d) => d.initial).map((d) => d.name ?? '');
+  return {
+    ...(initials.length > 0 ? { initial: initials[0] } : {}),
+    initials,
+    transitions: decls
+      .filter((d) => !d.initial)
+      .map((d) => ({ from: d.from ?? '', to: d.to ?? '', command: d.command ?? '' })),
+  };
+}
+
+function transformCommand(
+  cmd: CommandDeclaration,
+  annotations?: AnnotationDefinition[],
+): CommandDefinition {
   return {
     id: `cmd-${cmd.name}`,
     name: cmd.name,
+    ...(annotations ? { annotations } : {}),
     inputs: cmd.inputs.map(transformFieldDeclaration),
     preconditions: cmd.preconditions.map(transformPrecondition),
     emitsEvent: cmd.emits,
@@ -184,18 +387,26 @@ function transformPrecondition(pre: { name: string; description: string }): Prec
   };
 }
 
-function transformEvent(evt: DomainEventDeclaration): EventDefinition {
+function transformEvent(
+  evt: DomainEventDeclaration,
+  annotations?: AnnotationDefinition[],
+): EventDefinition {
   return {
     id: `evt-${evt.name}`,
     name: evt.name,
+    ...(annotations ? { annotations } : {}),
     fields: evt.fields.map(transformFieldDeclaration),
   };
 }
 
-function transformValueObject(vo: ValueObjectDeclaration): ValueObjectDefinition {
+function transformValueObject(
+  vo: ValueObjectDeclaration,
+  annotations?: AnnotationDefinition[],
+): ValueObjectDefinition {
   return {
     id: `vo-${vo.name}`,
     name: vo.name,
+    ...(annotations ? { annotations } : {}),
     fields: vo.fields.map(transformFieldDeclaration),
   };
 }
@@ -216,44 +427,108 @@ function transformFieldDeclaration(field: FieldDeclaration | InputField): FieldD
   return result;
 }
 
-function transformInvariant(inv: InvariantDeclaration): InvariantDefinition {
+function transformInvariant(
+  inv: InvariantDeclaration,
+  annotations?: AnnotationDefinition[],
+): InvariantDefinition {
   return {
     id: inv.id,
     description: unquote(inv.description),
     scope: inv.scope,
+    ...(annotations ? { annotations } : {}),
   };
 }
 
-function transformService(svc: DomainServiceDeclaration): DomainServiceDefinition {
+function transformService(
+  svc: DomainServiceDeclaration,
+  annotations?: AnnotationDefinition[],
+): DomainServiceDefinition {
   return {
     id: `svc-${svc.name}`,
     name: svc.name,
+    ...(annotations ? { annotations } : {}),
     consumes: svc.consumes,
     produces: svc.produces,
     description: unquote(svc.description),
   };
 }
 
-function transformPolicy(pol: PolicyDeclaration): PolicyDefinition {
-  const trigger = pol.trigger.eventName ?? 'file-watcher';
+function transformPolicy(
+  pol: PolicyDeclaration,
+  annotations?: AnnotationDefinition[],
+): PolicyDefinition {
   return {
     id: `pol-${pol.name}`,
     name: pol.name,
-    trigger,
+    ...(annotations ? { annotations } : {}),
+    trigger: pol.trigger,
     action: unquote(pol.action),
-    chainsTo: pol.chainsTo ?? undefined,
+    chainsTo: pol.chainsTo,
+    ...gatewaysOf(pol.gateways),
   };
 }
 
-function transformSaga(saga: SagaDeclaration): SagaDefinition {
+function transformIssued(cmd: IssuedCommand): IssuedCommandDefinition {
+  return cmd.operation ? { name: cmd.operation, external: cmd.target } : { name: cmd.target };
+}
+
+const issuedText = (cmd: IssuedCommandDefinition): string =>
+  cmd.external ? `${cmd.external}.${cmd.name}` : cmd.name;
+
+function transformOrchestrationCommand(cmd: OrchestrationCommand): OrchestrationCommandDefinition {
+  return {
+    id: `cmd-${cmd.name}`,
+    name: cmd.name,
+    inputs: cmd.inputs.map(transformFieldDeclaration),
+    preconditions: cmd.preconditions.map(transformPrecondition),
+    ...(cmd.emits ? { emitsEvent: cmd.emits } : {}),
+  };
+}
+
+function transformCompensation(
+  c: SagaDeclaration['compensations'][number],
+): CompensationDefinition {
+  return c.none
+    ? { none: true }
+    : { onCommand: c.command ?? '', issues: c.undo.map(transformIssued) };
+}
+
+/** The compensation lines as one text, for consumers that print a saga's compensation. */
+function compensationText(compensations: CompensationDefinition[]): string {
+  const lines = compensations.flatMap((c) =>
+    c.none ? [] : [`on ${c.onCommand} issues ${c.issues.map(issuedText).join(', ')}`],
+  );
+  return lines.length > 0 ? lines.join('; ') : 'none';
+}
+
+function transformSaga(
+  saga: SagaDeclaration,
+  annotations?: AnnotationDefinition[],
+): SagaDefinition {
   const timeout = saga.timeout.duration ?? 'none';
+  // The grammar's state chain is `initialState (-> target (on command)?)*`.
+  // `states` keeps the historical flat list; `transitions` carries each step's command (M-S6).
+  const states = [saga.initialState, ...saga.transitions.map((t) => t.target)];
+  const transitions: SagaTransitionDefinition[] = saga.transitions.map((t, i) => ({
+    from: states[i],
+    to: t.target,
+    ...(t.command !== undefined ? { onCommand: t.command } : {}),
+  }));
+  const compensations = saga.compensations.map(transformCompensation);
   return {
     id: `saga-${saga.name}`,
     name: saga.name,
-    trigger: saga.trigger,
-    states: saga.states,
-    compensation: unquote(saga.compensation),
+    ...(annotations ? { annotations } : {}),
+    keyword: saga.keyword === 'saga' ? 'saga' : 'orchestration',
+    trigger: saga.invokedBy,
+    states,
+    transitions,
+    compensation: compensationText(compensations),
     timeout,
+    commands: saga.commands.map(transformOrchestrationCommand),
+    issues: saga.issues.map(transformIssued),
+    compensations,
+    ...gatewaysOf(saga.gateways),
   };
 }
 
@@ -265,7 +540,50 @@ function buildLaneContextMap(flow: FlowDeclaration): Map<string, string> {
   return map;
 }
 
-function transformFlow(flow: FlowDeclaration): FlowDefinition {
+/**
+ * Resolve node kinds from same-file context declarations. Names not declared
+ * in any context (flow-only specs) keep the historical 'event' default.
+ */
+function buildNodeKindMap(contexts: ContextDefinition[]): Map<string, MomentEntry['nodeKind']> {
+  const map = new Map<string, MomentEntry['nodeKind']>();
+  for (const ctx of contexts) {
+    for (const cmd of ctx.commands) map.set(cmd.name, 'command');
+    for (const evt of ctx.events) map.set(evt.name, 'event');
+    for (const policy of ctx.policies) map.set(policy.name, 'policy');
+    for (const saga of ctx.sagas) setSagaKinds(map, saga);
+    for (const projection of ctx.projections ?? []) map.set(projection.name, 'projection');
+    for (const query of ctx.queries ?? []) map.set(query.name, 'query');
+  }
+  return map;
+}
+
+/** An orchestration is a `saga` node; the commands invoked on it are `command` nodes (ADR-038 §2). */
+function setSagaKinds(map: Map<string, MomentEntry['nodeKind']>, saga: SagaDefinition): void {
+  map.set(saga.name, 'saga');
+  for (const cmd of saga.commands ?? []) map.set(cmd.name, 'command');
+}
+
+/** Map every node name placed in the flow to the lane it is declared in. */
+function buildNodeLaneMap(flow: FlowDeclaration): Map<string, string> {
+  const map = new Map<string, string>();
+  const record = (node: NodePlacement): void => {
+    if (!map.has(node.nodeName)) {
+      map.set(node.nodeName, node.laneId);
+    }
+  };
+  for (const moment of flow.moments) {
+    for (const node of moment.nodes) record(node);
+    for (const when of moment.whenBlocks) {
+      for (const node of when.nodes) record(node);
+    }
+  }
+  return map;
+}
+
+function transformFlow(
+  flow: FlowDeclaration,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
+): FlowDefinition {
   const name = unquote(flow.name);
   const laneContextMap = buildLaneContextMap(flow);
   const lanes: LaneDefinition[] = flow.lanes.map((lane) => ({
@@ -280,7 +598,9 @@ function transformFlow(flow: FlowDeclaration): FlowDefinition {
     name,
     description: flow.description ? unquote(flow.description) : undefined,
     lanes,
-    moments: flow.moments.map((moment, idx) => transformMoment(moment, idx, laneContextMap)),
+    moments: flow.moments.map((moment, idx) =>
+      transformMoment(moment, idx, laneContextMap, nodeKindMap),
+    ),
     connections: extractConnections(flow, laneContextMap),
   };
 }
@@ -289,18 +609,23 @@ function transformMoment(
   moment: MomentDeclaration,
   index: number,
   laneContextMap?: Map<string, string>,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): MomentDefinition {
   const name = unquote(moment.label);
   const contextEntries: MomentEntry[] = moment.nodes.map((n) =>
-    transformNodeToEntry(n, laneContextMap),
+    transformNodeToEntry(n, laneContextMap, nodeKindMap),
   );
 
   const branches: BranchDefinition[] | undefined =
     moment.whenBlocks.length > 0
-      ? moment.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap))
+      ? moment.whenBlocks.map((wb) => transformWhenBlock(wb, laneContextMap, nodeKindMap))
       : undefined;
 
-  const hasTerminal = contextEntries.some((e) => e.terminal === true);
+  // A moment terminates the flow if any entry is terminal — whether it sits in
+  // the main node list or inside a `when` branch.
+  const hasTerminal =
+    contextEntries.some((e) => e.terminal === true) ||
+    (branches?.some((b) => b.entries.some((e) => e.terminal === true)) ?? false);
 
   return {
     id: `moment-${index}-${name.replace(/\s+/g, '-')}`,
@@ -308,39 +633,53 @@ function transformMoment(
     contextEntries,
     branches,
     terminal: hasTerminal || undefined,
+    isBranch: moment.isBranch || undefined,
+    // Textual order of entries/branches from CST offsets (M-P13); falls back
+    // to entries-then-branches when the AST carries no CST.
+    sequence: buildMomentSequence(moment).sequence,
   };
 }
 
 function transformWhenBlock(
   when: WhenBlock,
   laneContextMap?: Map<string, string>,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): BranchDefinition {
   return {
     condition: when.condition,
-    entries: when.nodes.map((n) => transformNodeToEntry(n, laneContextMap)),
+    ...(when.lane ? { lane: when.lane } : {}),
+    entries: when.nodes.map((n) => transformNodeToEntry(n, laneContextMap, nodeKindMap)),
   };
+}
+
+function multiplicityOf(node: NodePlacement): number | string | undefined {
+  if (!node.multiplicity) return undefined;
+  return node.multiplicity.count ?? node.multiplicity.countVar;
 }
 
 function transformNodeToEntry(
   node: NodePlacement,
   laneContextMap?: Map<string, string>,
+  nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): MomentEntry {
   const contextId = laneContextMap?.get(node.laneId) ?? node.laneId;
   const entry: MomentEntry = {
     contextId,
     nodeName: node.nodeName,
-    nodeKind: 'event', // Default — kind resolution requires cross-file context (MMNT-27)
+    // Resolved from same-file context declarations; 'event' when the spec is
+    // flow-only and the kind is genuinely unknown (MMNT-27).
+    nodeKind: nodeKindMap?.get(node.nodeName) ?? 'event',
   };
 
-  if (node.multiplicity) {
-    entry.multiplicity = node.multiplicity.count ?? node.multiplicity.countVar;
+  const multiplicity = multiplicityOf(node);
+  if (multiplicity !== undefined) {
+    entry.multiplicity = multiplicity;
   }
 
-  if (node.modifier?.type === 'optional') {
+  const modifierType = node.modifier?.type;
+  if (modifierType === 'optional') {
     entry.optional = true;
-  }
-
-  if (node.modifier?.type === 'terminal') {
+  } else if (modifierType === 'terminal') {
     entry.terminal = true;
   }
 
@@ -355,12 +694,25 @@ function extractConnections(
   let connectionCounter = 0;
 
   const resolveCtx = (laneId: string): string => laneContextMap?.get(laneId) ?? laneId;
+  const nodeLaneMap = buildNodeLaneMap(flow);
+  // Context of a node referenced by name (e.g. the target of `triggers X`),
+  // falling back to the declaring node's own lane when X is not placed anywhere.
+  const resolveNodeCtx = (nodeName: string, fallbackLaneId: string): string => {
+    const laneId = nodeLaneMap.get(nodeName) ?? fallbackLaneId;
+    return resolveCtx(laneId);
+  };
+  const momentLabelToId = new Map<string, string>();
+  for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
+    const label = unquote(flow.moments[momentIdx].label);
+    momentLabelToId.set(label, `moment-${momentIdx}-${label.replace(/\s+/g, '-')}`);
+  }
 
   for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
     const moment = flow.moments[momentIdx];
     const momentId = `moment-${momentIdx}-${unquote(moment.label).replace(/\s+/g, '-')}`;
 
-    const processNode = (node: NodePlacement): void => {
+    const processNode = (node: NodePlacement, branchCondition?: string): void => {
+      const branchFields = branchCondition ? { branchCondition } : {};
       // Context crossing -> crosses-to connection
       if (node.crossing) {
         const contract = transformCrossingToContract(node);
@@ -369,37 +721,54 @@ function extractConnections(
           sourceMomentId: momentId,
           targetContextId: resolveCtx(node.crossing.targetLaneId),
           eventId: `evt-${node.nodeName}`,
+          sourceNodeName: node.nodeName,
           connectionType: 'crosses-to',
           schemaContract: contract,
+          ...branchFields,
         });
       }
 
       // Connection annotations
       for (const conn of node.connections) {
         if (isTriggeredBy(conn)) {
+          // `N triggered-by X`: X is the cause, the declaring node N is the target.
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${conn.nodeName}`,
+            sourceNodeName: conn.nodeName,
+            targetNodeName: node.nodeName,
             connectionType: 'triggered-by',
+            ...branchFields,
           });
         } else if (isTriggers(conn)) {
+          // `N triggers X`: the declaring node N is the cause, X is the target —
+          // resolve the target's context from where X is actually placed.
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
-            targetContextId: resolveCtx(node.laneId),
+            targetContextId: resolveNodeCtx(conn.nodeName, node.laneId),
             eventId: `evt-${conn.nodeName}`,
+            sourceNodeName: node.nodeName,
+            targetNodeName: conn.nodeName,
             connectionType: 'triggers',
+            ...branchFields,
           });
         } else if (isReturnsTo(conn)) {
+          const targetLabel = unquote(conn.frameLabel);
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
             targetContextId: resolveCtx(node.laneId),
             eventId: `evt-${node.nodeName}`,
+            sourceNodeName: node.nodeName,
             connectionType: 'returns-to',
-            targetMomentLabel: unquote(conn.frameLabel),
+            targetMomentLabel: targetLabel,
+            ...(momentLabelToId.has(targetLabel)
+              ? { targetMomentId: momentLabelToId.get(targetLabel) }
+              : {}),
+            ...branchFields,
           });
         }
       }
@@ -411,7 +780,7 @@ function extractConnections(
 
     for (const when of moment.whenBlocks) {
       for (const node of when.nodes) {
-        processNode(node);
+        processNode(node, when.condition);
       }
     }
   }
@@ -434,15 +803,24 @@ function transformCrossingToContract(node: NodePlacement): SchemaContract {
   };
 }
 
-function extractRelationships(ctx: ContextDeclaration): ContextRelationship[] {
+/** A relationship end is an external's id when it names a declared external, else a context's. */
+function endId(name: string, externalNames: ReadonlySet<string>): string {
+  return externalNames.has(name) ? `ext-${name}` : `ctx-${name}`;
+}
+
+function extractRelationships(
+  ctx: ContextDeclaration,
+  externalNames: ReadonlySet<string> = new Set(),
+): ContextRelationship[] {
   const relationships: ContextRelationship[] = [];
 
   for (const member of ctx.members) {
     if (isContextRelationshipDeclaration(member)) {
       const rel = member as ContextRelationshipDeclaration;
       relationships.push({
-        sourceContextId: rel.source,
-        targetContextId: rel.target,
+        // ctx- prefix matches ContextDefinition.id so consumers can join on id.
+        sourceContextId: endId(rel.source, externalNames),
+        targetContextId: endId(rel.target, externalNames),
         relationshipType: rel.type,
         contract: unquote(rel.contract),
       });

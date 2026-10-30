@@ -25,6 +25,11 @@ function buildKnownContextIds(ir: IntermediateRepresentation): Set<string> {
   return new Set(ir.contexts.map((c) => c.id));
 }
 
+/** Relationship ends may also be externals (ADR-037 §6). */
+function buildKnownEndIds(ir: IntermediateRepresentation): Set<string> {
+  return new Set([...buildKnownContextIds(ir), ...(ir.externals ?? []).map((e) => e.id)]);
+}
+
 /** Build event names per context for crossing validation. Uses the
  *  flattened ctx.events rather than walking aggregates — simpler and
  *  resilient if event modeling changes. */
@@ -56,7 +61,8 @@ function validateLanes(
   diagnostics: Diagnostic[],
 ): void {
   for (const lane of flow.lanes) {
-    if (lane.isBranch || lane.classification === 'Terminal') continue;
+    if (lane.isBranch || lane.classification === 'Terminal' || lane.classification === 'External')
+      continue;
     if (!knownContextIds.has(lane.contextId)) {
       diagnostics.push({
         severity: 'error',
@@ -113,6 +119,48 @@ function checkEntry(
       message: `Flow '${flowName}', moment '${momentName}': node '${entry.nodeName}' references context '${entry.contextId}' which is not defined in any loaded file.`,
       ruleId: 'PM-05',
     });
+  }
+}
+
+/** Every name a flow node may take in a context (V1 over the merged project, ADR-037 §8). */
+function buildBlocksByContext(ir: IntermediateRepresentation): Map<string, Set<string>> {
+  return new Map(
+    ir.contexts.map((c) => [
+      c.id,
+      new Set([
+        ...(c.commands ?? []).map((x) => x.name),
+        ...(c.events ?? []).map((x) => x.name),
+        ...(c.policies ?? []).map((x) => x.name),
+        ...(c.sagas ?? []).map((x) => x.name),
+        ...(c.sagas ?? []).flatMap((x) => (x.commands ?? []).map((cmd) => cmd.name)),
+        ...(c.valueObjects ?? []).map((x) => x.name),
+        ...(c.projections ?? []).map((x) => x.name),
+        ...(c.queries ?? []).map((x) => x.name),
+      ]),
+    ]),
+  );
+}
+
+/** PM-07: a node on a context's lane must name a building block of that context. */
+function validateNodeNames(
+  flow: FlowDefinition,
+  blocks: Map<string, Set<string>>,
+  diagnostics: Diagnostic[],
+): void {
+  for (const moment of flow.moments) {
+    const entries = [
+      ...moment.contextEntries,
+      ...(moment.branches ?? []).flatMap((b) => b.entries),
+    ];
+    for (const entry of entries) {
+      const known = blocks.get(entry.contextId);
+      if (!known || known.has(entry.nodeName)) continue;
+      diagnostics.push({
+        severity: 'error',
+        message: `Flow '${flow.name}', moment '${moment.name}': node '${entry.nodeName}' is no building block of context '${entry.contextId.replace(/^ctx-/, '')}'.`,
+        ruleId: 'PM-07',
+      });
+    }
   }
 }
 
@@ -182,12 +230,14 @@ export function validateCrossFileReferences(
   const eventsByContext = buildEventsByContext(ir);
   const branchLaneContextIds = buildBranchLaneContextIds(ir);
 
+  const blocksByContext = buildBlocksByContext(ir);
   for (const flow of ir.flows) {
     validateLanes(flow, knownContextIds, diagnostics);
+    validateNodeNames(flow, blocksByContext, diagnostics);
     validateConnections(flow, knownContextIds, eventsByContext, diagnostics);
     validateMomentEntries(flow, knownContextIds, branchLaneContextIds, diagnostics);
   }
-  validateRelationships(ir, knownContextIds, diagnostics);
+  validateRelationships(ir, buildKnownEndIds(ir), diagnostics);
 
   return {
     valid: diagnostics.filter((d) => d.severity === 'error').length === 0,

@@ -257,19 +257,27 @@ describe('AstToIr', () => {
     expect(pol.chainsTo).toBe('CheckInventory');
   });
 
-  it('transforms policy with file-watcher trigger', async () => {
+  it('binds an orchestration step to the trigger of the relay policy that invokes it (ADR-038 §2)', async () => {
     const ir = await toIr(`
       context "Test"
-        aggregate "Order"
-          identity orderId: UUID
-        policy RegenerateOnChange
-          trigger "file-watcher"
-          action "Regenerate on file change"
+        policy AwaitConversionOnPaymentConfirmed
+          trigger PaymentConfirmed
+          action "await the conversion"
+          chains-to AwaitConversion
+        saga HoldLifecycle
+          command TrackHold
+          command AwaitConversion
+          invoked-by TrackHold
+          issues ConvertHold
+          states Held -> Converting on AwaitConversion -> Expired
+          compensation none
+          timeout "none"
     `);
 
-    const pol = ir.contexts[0].policies[0];
-    expect(pol.trigger).toBe('file-watcher');
-    expect(pol.chainsTo).toBeUndefined();
+    expect(ir.contexts[0].sagas[0].transitions).toEqual([
+      { from: 'Held', to: 'Converting', onCommand: 'AwaitConversion', onEvent: 'PaymentConfirmed' },
+      { from: 'Converting', to: 'Expired' },
+    ]);
   });
 
   it('transforms context without classification', async () => {
@@ -283,25 +291,133 @@ describe('AstToIr', () => {
     expect(ir.contexts[0].classification).toBeUndefined();
   });
 
-  it('transforms saga declaration', async () => {
+  it('transforms an orchestration declaration (ADR-038 §2)', async () => {
     const ir = await toIr(`
       context "Test"
-        aggregate "Order"
-          identity orderId: UUID
-        saga OrderFulfillmentSaga
-          trigger OrderPlaced
+        orchestration OrderFulfillment
+          command StartFulfillment
+            input orderId: UUID
+          command CancelFulfillment
+          invoked-by StartFulfillment
+          issues ReserveStock, Carrier.ship
           states Pending -> Reserved -> Fulfilled
-          compensation "Cancel reservation and refund"
+          compensation on CancelFulfillment issues ReleaseStock, Carrier.recall
           timeout P30D
     `);
 
     const saga = ir.contexts[0].sagas[0];
-    expect(saga.id).toBe('saga-OrderFulfillmentSaga');
-    expect(saga.name).toBe('OrderFulfillmentSaga');
-    expect(saga.trigger).toBe('OrderPlaced');
+    expect(saga.id).toBe('saga-OrderFulfillment');
+    expect(saga.keyword).toBe('orchestration');
+    expect(saga.trigger).toBe('StartFulfillment');
+    expect(saga.commands?.map((c) => [c.name, c.inputs.map((i) => i.name)])).toEqual([
+      ['StartFulfillment', ['orderId']],
+      ['CancelFulfillment', []],
+    ]);
+    expect(saga.issues).toEqual([{ name: 'ReserveStock' }, { name: 'ship', external: 'Carrier' }]);
     expect(saga.states).toEqual(['Pending', 'Reserved', 'Fulfilled']);
-    expect(saga.compensation).toBe('Cancel reservation and refund');
+    expect(saga.transitions).toEqual([
+      { from: 'Pending', to: 'Reserved' },
+      { from: 'Reserved', to: 'Fulfilled' },
+    ]);
+    expect(saga.compensations).toEqual([
+      {
+        onCommand: 'CancelFulfillment',
+        issues: [{ name: 'ReleaseStock' }, { name: 'recall', external: 'Carrier' }],
+      },
+    ]);
+    expect(saga.compensation).toBe('on CancelFulfillment issues ReleaseStock, Carrier.recall');
     expect(saga.timeout).toBe('P30D');
+  });
+
+  it('records the saga alias and an explicit nothing-to-undo', async () => {
+    const ir = await toIr(`
+      context "Test"
+        saga SingleState
+          command Start
+          invoked-by Start
+          issues Finish
+          states Done
+          compensation none
+          timeout "none"
+    `);
+
+    const saga = ir.contexts[0].sagas[0];
+    expect(saga.keyword).toBe('saga');
+    expect(saga.states).toEqual(['Done']);
+    expect(saga.transitions).toEqual([]);
+    expect(saga.compensations).toEqual([{ none: true }]);
+    expect(saga.compensation).toBe('none');
+  });
+
+  it('transforms aggregate internal state (ADR-038 §3)', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Node"
+          identity nodeId: UUID
+          state initial WritesOpen
+          state WritesOpen -> Paused on PauseWrites
+          state Paused -> WritesOpen on ResumeWrites
+          command PauseWrites
+            emits WritesPaused
+          command ResumeWrites
+            emits WritesResumed
+    `);
+
+    expect(ir.contexts[0].aggregates[0].states).toEqual({
+      initial: 'WritesOpen',
+      initials: ['WritesOpen'],
+      transitions: [
+        { from: 'WritesOpen', to: 'Paused', command: 'PauseWrites' },
+        { from: 'Paused', to: 'WritesOpen', command: 'ResumeWrites' },
+      ],
+    });
+  });
+
+  it('transforms gateways on an external, a projection, a policy and an orchestration (ADR-038 §4)', async () => {
+    const ir = await toIr(`
+      external Hosted "upstream"
+        gateway ReadEnvelope
+          consumes Envelope
+          produces Budget
+      context "Test"
+        projection ConnectionsList
+          sources ConnectionOpened
+          gateway ResolveConnection
+            consumes ConnectionToken
+            produces Actor
+            description "per request"
+        policy StartOnImported
+          trigger SnapshotImported
+          action "start"
+          chains-to Start
+          gateway PickEncoder
+            consumes SnapshotImported
+            produces Encoder
+        orchestration Import
+          command Start
+          invoked-by Start
+          issues Rebuild
+          states Importing
+          compensation none
+          timeout "none"
+          gateway Budgeted
+            consumes SnapshotImported
+            produces Budget
+    `);
+
+    const ctx = ir.contexts[0];
+    expect(ir.externals?.[0].gateways?.map((g) => g.id)).toEqual(['gw-ReadEnvelope']);
+    expect(ctx.projections?.[0].gateways).toEqual([
+      {
+        id: 'gw-ResolveConnection',
+        name: 'ResolveConnection',
+        consumes: 'ConnectionToken',
+        produces: 'Actor',
+        description: 'per request',
+      },
+    ]);
+    expect(ctx.policies[0].gateways?.map((g) => g.name)).toEqual(['PickEncoder']);
+    expect(ctx.sagas[0].gateways?.map((g) => g.name)).toEqual(['Budgeted']);
   });
 
   it('transforms flow declaration to FlowDefinition', async () => {
@@ -419,6 +535,153 @@ describe('AstToIr', () => {
     expect(frame.branches![1].entries[0].terminal).toBe(true);
   });
 
+  describe('MomentDefinition.sequence — textual child order (M-P13)', () => {
+    it('records node/when order from CST offsets on a real parse', async () => {
+      // NOTE: the current grammar's `when` blocks greedily consume following
+      // node placements, so a parsed moment's main entries always textually
+      // precede its when blocks — the sequence reflects exactly that.
+      const ir = await toIr(`
+        flow "test"
+          lane a "A" [Core]
+          moment "Mixed"
+            a: FirstEvent
+            a: SecondEvent
+            when rejected
+              a: RejectionRecorded
+            when expired
+              a: ExpiryRecorded
+      `);
+
+      const frame = ir.flows[0].moments[0];
+      expect(frame.contextEntries.map((e) => e.nodeName)).toEqual(['FirstEvent', 'SecondEvent']);
+      expect(frame.branches!.map((b) => b.condition)).toEqual(['rejected', 'expired']);
+      expect(frame.sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'entry', index: 1 },
+        { kind: 'branch', index: 0 },
+        { kind: 'branch', index: 1 },
+      ]);
+    });
+
+    it('orders interleaved node/when/node children by textual offset', () => {
+      // The grammar cannot currently parse a main entry after a when block,
+      // but the sequence derivation is defined for any child interleaving —
+      // exercised here via explicit CST offsets on a hand-built AST.
+      const fakeFile = {
+        $type: 'MomentFile',
+        contexts: [],
+        flows: [
+          {
+            $type: 'FlowDeclaration',
+            name: '"synthetic"',
+            lanes: [],
+            moments: [
+              {
+                $type: 'MomentDeclaration',
+                label: '"Interleaved"',
+                nodes: [
+                  {
+                    $type: 'NodePlacement',
+                    laneId: 'a',
+                    nodeName: 'FirstEvent',
+                    connections: [],
+                    $cstNode: { offset: 0 },
+                  },
+                  {
+                    $type: 'NodePlacement',
+                    laneId: 'a',
+                    nodeName: 'SecondEvent',
+                    connections: [],
+                    $cstNode: { offset: 200 },
+                  },
+                ],
+                whenBlocks: [
+                  {
+                    $type: 'WhenBlock',
+                    condition: 'rejected',
+                    nodes: [],
+                    $cstNode: { offset: 100 },
+                  },
+                  {
+                    $type: 'WhenBlock',
+                    condition: 'expired',
+                    nodes: [],
+                    $cstNode: { offset: 300 },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      } as unknown as MomentFile;
+
+      const ir = astToIr(fakeFile);
+      expect(ir.flows[0].moments[0].sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'branch', index: 0 },
+        { kind: 'entry', index: 1 },
+        { kind: 'branch', index: 1 },
+      ]);
+    });
+
+    it('is emitted for every moment, including entries-only and branches-only ones', async () => {
+      const ir = await toIr(`
+        flow "test"
+          lane a "A" [Core]
+          moment "EntriesOnly"
+            a: EventA
+            a: EventB
+          moment "BranchesOnly"
+            when yes
+              a: YesEvent
+            when no
+              a: NoEvent
+      `);
+
+      expect(ir.flows[0].moments[0].sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'entry', index: 1 },
+      ]);
+      expect(ir.flows[0].moments[1].sequence).toEqual([
+        { kind: 'branch', index: 0 },
+        { kind: 'branch', index: 1 },
+      ]);
+    });
+
+    it('falls back to entries-then-branches order when the AST carries no CST nodes', () => {
+      // Hand-built AST (no $cstNode anywhere), e.g. synthetic test fixtures.
+      const fakeFile = {
+        $type: 'MomentFile',
+        contexts: [],
+        flows: [
+          {
+            $type: 'FlowDeclaration',
+            name: '"synthetic"',
+            lanes: [],
+            moments: [
+              {
+                $type: 'MomentDeclaration',
+                label: '"Synthetic"',
+                nodes: [
+                  { $type: 'NodePlacement', laneId: 'a', nodeName: 'E1', connections: [] },
+                  { $type: 'NodePlacement', laneId: 'a', nodeName: 'E2', connections: [] },
+                ],
+                whenBlocks: [{ $type: 'WhenBlock', condition: 'c', nodes: [] }],
+              },
+            ],
+          },
+        ],
+      } as unknown as MomentFile;
+
+      const ir = astToIr(fakeFile);
+      expect(ir.flows[0].moments[0].sequence).toEqual([
+        { kind: 'entry', index: 0 },
+        { kind: 'entry', index: 1 },
+        { kind: 'branch', index: 0 },
+      ]);
+    });
+  });
+
   it('transforms node modifiers (optional, terminal, multiplicity)', async () => {
     const ir = await toIr(`
       flow "test"
@@ -534,8 +797,8 @@ describe('AstToIr', () => {
 
     expect(ir.relationships).toHaveLength(1);
     expect(ir.relationships[0]).toEqual({
-      sourceContextId: 'Ordering',
-      targetContextId: 'Fulfillment',
+      sourceContextId: 'ctx-Ordering',
+      targetContextId: 'ctx-Fulfillment',
       relationshipType: 'CustomerSupplier',
       contract: 'OrderPlaced event contract',
     });
@@ -638,5 +901,227 @@ describe('AstToIr', () => {
 
     expect(ir.contexts[0].aggregates[0].commands).toHaveLength(1);
     expect(ir.contexts[0].aggregates[0].events).toHaveLength(1);
+  });
+
+  it('attaches annotations to aggregate, command, event, and value object (§5.1.4)', async () => {
+    const ir = await toIr(`
+      context "Records" [Core]
+        @classification(PHI)
+        @retention(HIPAA)
+        aggregate "PatientRecord"
+          identity recordId: UUID
+
+          @classification(PHI)
+          command CreateRecord
+            input ownerName: string
+            emits RecordCreated
+
+          @classification(PHI)
+          event RecordCreated
+            recordId: UUID
+
+          @encryption("at-rest")
+          value-object Chart
+            entries: string[]
+    `);
+
+    const agg = ir.contexts[0].aggregates[0];
+    expect(agg.annotations).toEqual([
+      { name: 'classification', value: 'PHI' },
+      { name: 'retention', value: 'HIPAA' },
+    ]);
+    // Quoted annotation values are unquoted; bare IDs pass through.
+    expect(agg.commands[0].annotations).toEqual([{ name: 'classification', value: 'PHI' }]);
+    expect(agg.events[0].annotations).toEqual([{ name: 'classification', value: 'PHI' }]);
+    expect(agg.valueObjects[0].annotations).toEqual([{ name: 'encryption', value: 'at-rest' }]);
+  });
+
+  it('omits annotations key on unannotated declarations', async () => {
+    const ir = await toIr(`
+      context "Plain" [Core]
+        aggregate "Order"
+          identity orderId: UUID
+          command PlaceOrder
+            input customerId: UUID
+            emits OrderPlaced
+          event OrderPlaced
+            orderId: UUID
+          value-object Address
+            street: string
+    `);
+
+    const agg = ir.contexts[0].aggregates[0];
+    expect(agg.annotations).toBeUndefined();
+    expect(agg.commands[0].annotations).toBeUndefined();
+    expect(agg.events[0].annotations).toBeUndefined();
+    expect(agg.valueObjects[0].annotations).toBeUndefined();
+  });
+
+  it('carries when-block lane routing onto BranchDefinition (V16)', async () => {
+    const ir = await toIr(`
+      flow "record-lifecycle"
+        lane records "Records" [Core]
+        branch-lane rejected "Rejected" [Terminal]
+        moment "Creation outcome" [branch]
+          when accepted
+            records: RecordCreated
+          when invalid [rejected]
+            rejected: RecordCreated [terminal]
+    `);
+
+    const branches = ir.flows[0].moments[0].branches!;
+    expect(branches[0].condition).toBe('accepted');
+    expect(branches[0].lane).toBeUndefined();
+    expect(branches[1].condition).toBe('invalid');
+    expect(branches[1].lane).toBe('rejected');
+  });
+
+  it('falls back to the raw lane id when a node references an undeclared lane', async () => {
+    // astToIr is validation-free; V16 flags this separately.
+    const ir = await toIr(`
+      flow "test"
+        lane a "A" [Core]
+        moment "Step"
+          ghost: EventA
+          a: EventB crosses-to ghost via Partnership
+            contract
+              orderId: UUID [required]
+    `);
+
+    const entry = ir.flows[0].moments[0].contextEntries[0];
+    expect(entry.contextId).toBe('ghost');
+
+    const conn = ir.flows[0].connections.find((c) => c.connectionType === 'crosses-to');
+    expect(conn!.targetContextId).toBe('ghost');
+  });
+
+  it('transforms saga with timeout "none"', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+        saga NoTimeoutSaga
+          command Start
+          invoked-by Start
+          issues PlaceOrder
+          states Pending -> Done
+          compensation none
+          timeout "none"
+    `);
+
+    expect(ir.contexts[0].sagas[0].timeout).toBe('none');
+  });
+
+  // -------------------------------------------------------------------------
+  // M-P4 — annotations reach policy/saga/service/invariant definitions
+  // -------------------------------------------------------------------------
+  describe('annotations on policy/saga/service/invariant (M-P4)', () => {
+    it('attaches annotations to policy, saga, and service definitions', async () => {
+      // Declarations precede the aggregate: the aggregate-member loop is
+      // greedy, so annotations written after an aggregate attach to it.
+      const ir = await toIr(`
+        context "Test"
+          @classification(PII)
+          policy NotifyOnPlacement
+            trigger OrderPlaced
+            action "Notify the warehouse"
+            chains-to NotifyWarehouse
+          @retention(HIPAA)
+          saga OrderLifecycle
+            command StartLifecycle
+            invoked-by StartLifecycle
+            issues PlaceOrder
+            states Pending -> Done
+            compensation none
+            timeout "none"
+          @encryption("at-rest")
+          service PricingService
+            consumes PriceRequest
+            produces PriceQuote
+            description "Computes prices"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+      `);
+
+      const ctx = ir.contexts[0];
+      expect(ctx.policies[0].annotations).toEqual([{ name: 'classification', value: 'PII' }]);
+      expect(ctx.sagas[0].annotations).toEqual([{ name: 'retention', value: 'HIPAA' }]);
+      expect(ctx.domainServices[0].annotations).toEqual([{ name: 'encryption', value: 'at-rest' }]);
+    });
+
+    it('attaches annotations to invariant definitions', async () => {
+      const ir = await toIr(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+            @classification(PII)
+            invariant ORD-01 "Order must contain at least one item"
+              scope Order
+      `);
+
+      expect(ir.contexts[0].invariants[0].annotations).toEqual([
+        { name: 'classification', value: 'PII' },
+      ]);
+    });
+
+    it('omits annotations key on unannotated policy/saga/service/invariant', async () => {
+      const ir = await toIr(`
+        context "Test"
+          policy NotifyOnPlacement
+            trigger OrderPlaced
+            action "Notify the warehouse"
+            chains-to NotifyWarehouse
+          saga OrderLifecycle
+            command StartLifecycle
+            invoked-by StartLifecycle
+            issues PlaceOrder
+            states Pending -> Done
+            compensation none
+            timeout "none"
+          service PricingService
+            consumes PriceRequest
+            produces PriceQuote
+            description "Computes prices"
+          aggregate "Order"
+            identity orderId: UUID
+            invariant ORD-01 "Order must contain at least one item"
+              scope Order
+      `);
+
+      const ctx = ir.contexts[0];
+      expect(ctx.policies[0].annotations).toBeUndefined();
+      expect(ctx.sagas[0].annotations).toBeUndefined();
+      expect(ctx.domainServices[0].annotations).toBeUndefined();
+      expect(ctx.invariants[0].annotations).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // M-P12 — metadata parameter
+  // -------------------------------------------------------------------------
+  describe('metadata parameter (M-P12)', () => {
+    it('stamps supplied name and version onto the IR', async () => {
+      const doc = await parse(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+      `);
+      const ir = astToIr(doc.parseResult.value, { name: 'my-spec', version: '1.2.3' });
+      expect(ir.metadata).toEqual({ name: 'my-spec', version: '1.2.3' });
+    });
+
+    it('keeps historical defaults for omitted fields', async () => {
+      const doc = await parse(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+      `);
+      const ir = astToIr(doc.parseResult.value, { name: 'named-only' });
+      expect(ir.metadata).toEqual({ name: 'named-only', version: '0.0.0' });
+    });
   });
 });

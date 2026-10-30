@@ -1,5 +1,35 @@
 # @mmmnt/sync
 
+## 0.6.1
+
+### Patch Changes
+
+- [#191](https://github.com/mmmnt/mmmnt/pull/191) [`f2741d5`](https://github.com/mmmnt/mmmnt/commit/f2741d5858721c2bed74b6d99db0d80af1cebd9d) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Refresh dependencies within their existing ranges. `@mmmnt/cli` picks up `ws` 8.22, which clears its high-severity advisory.
+
+- Updated dependencies []:
+  - @mmmnt/emit-ts@0.6.1
+
+## 0.6.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/emit-ts@0.6.0
+
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/emit-ts@0.5.0
+
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/emit-ts@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/generate",
   "description": "Gherkin BDD scenarios, specification documents, and AsyncAPI contracts from Moment specifications",
-  "version": "0.3.1",
+  "version": "0.6.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/generate#readme",
@@ -24,7 +24,7 @@
     "cucumber"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -51,8 +51,10 @@
     "@mmmnt/derive": "workspace:*"
   },
   "devDependencies": {
-    "@cucumber/gherkin": "^39.0.0",
-    "@cucumber/messages": "^32.2.0"
+    "@cucumber/gherkin": "^39.1.0",
+    "@cucumber/messages": "^32.3.1",
+    "@types/node": "^25.9.9",
+    "yaml": "^2.9.1"
   },
   "publishConfig": {
     "access": "public",

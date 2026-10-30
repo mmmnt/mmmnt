@@ -15,6 +15,7 @@ import { resolveOutputBaseDir, writeOutputFiles } from './project-fs.js';
 import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface EmitTsCommandResult {
   readonly success: boolean;
@@ -61,11 +62,11 @@ export async function runEmitTs(argv: string[]): Promise<EmitTsCommandResult> {
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {

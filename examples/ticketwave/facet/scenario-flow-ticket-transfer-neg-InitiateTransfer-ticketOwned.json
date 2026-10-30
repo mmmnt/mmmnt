@@ -3,6 +3,7 @@
   "flowId": "flow-ticket-transfer",
   "flowName": "ticket-transfer",
   "scenarioLabel": "Failure: Sender must own the ticket not met",
+  "kind": "negative",
   "description": "Negative scenario: Sender must own the ticket precondition violation at InitiateTransfer",
   "given": "A transfer initiation scenario is initiated",
   "when": "InitiateTransfer is invoked without satisfying ticketOwned",

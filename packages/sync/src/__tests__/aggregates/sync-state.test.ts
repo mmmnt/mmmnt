@@ -285,3 +285,29 @@ describe('SyncState', () => {
     });
   });
 });
+
+describe('SyncState decision actor (ADR-039 §1)', () => {
+  it('records the actor on an accepted proposal', () => {
+    const state = new SyncState();
+    state.recordProposal(makeProposal());
+
+    expect(state.acceptProposal('prop-001', 'dev@example.com').actor).toBe('dev@example.com');
+  });
+
+  it('records the actor on a rejected proposal', () => {
+    const state = new SyncState();
+    state.recordProposal(makeProposal());
+
+    expect(state.rejectProposal('prop-001', 'not needed', 'dev@example.com').actor).toBe(
+      'dev@example.com',
+    );
+  });
+
+  it('refuses a blank actor', () => {
+    const state = new SyncState();
+    state.recordProposal(makeProposal());
+
+    expect(() => state.acceptProposal('prop-001', '  ')).toThrow('actor');
+    expect(state.getProposalStatus('prop-001')).toBe('pending');
+  });
+});

@@ -1,0 +1,14 @@
+// ADR-038 invalid exemplar: V37 — a gateway that consumes no declared event or value object.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID
+
+  projection DecisionList
+    sources DecisionMade
+    gateway RankDecisions
+      consumes NoSuchInput
+      produces DecisionMade

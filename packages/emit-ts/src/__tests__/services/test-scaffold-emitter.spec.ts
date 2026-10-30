@@ -226,7 +226,9 @@ describe('TestScaffoldEmitter', () => {
     expect(flowSpec).toBeDefined();
     expect(flowSpec).toContain("describe('Order Fulfillment Flow', () => {");
     expect(flowSpec).toContain("describe('Order Placement', () => {");
-    expect(flowSpec).toContain("it('should verify");
+    expect(flowSpec).toContain("it.todo('should verify");
+    // A bare it() with a comment-only body would silently pass CI
+    expect(flowSpec).not.toContain("it('should verify");
   });
 
   // Test 4: per-crossing contract test scaffold with assertion point info
@@ -459,6 +461,123 @@ describe('TestScaffoldEmitter', () => {
     const aggSpec = output.files.get('__tests__/order-management/order.spec.ts');
     expect(aggSpec).toBeDefined();
     expect(aggSpec).toContain("import { describe, it, expect } from 'vitest';");
+  });
+
+  // Test 15a: all scaffolded assertions are it.todo — nothing can pass CI unimplemented
+  it('emits only it.todo for unimplemented assertions and aggregate scenarios', () => {
+    const topology = makeTopology();
+    const ir = makeIR([
+      makeContext({
+        aggregates: [makeAggregate({ invariants: [makeInvariant()] })],
+      }),
+    ]);
+    const output = emitter.emit(ir, topology);
+
+    for (const [, content] of output.files) {
+      // No it( that is not it.todo(
+      expect(content.replace(/it\.todo\(/g, '')).not.toMatch(/\bit\(/);
+      expect(content).toContain('it.todo(');
+    }
+  });
+
+  // Test 15b: saga and policy cases are not named with the crossing template
+  it('names saga and policy cases for what they verify, not as crossings', () => {
+    const sagaCase = makeTestCase({
+      momentId: 'saga-SeatHoldLifecycle-Held-to-Converting',
+      momentName: 'saga SeatHoldLifecycle transitions Held → Converting',
+      assertions: [
+        makeAssertionPoint({
+          crossingId: 'saga-transition-SeatHoldLifecycle-0',
+          sourceContext: 'ctx-inventory',
+          targetContext: 'ctx-inventory',
+          assertionType: 'saga',
+          schemaContract: makePayloadValidationStep({
+            eventType: 'SeatHoldLifecycle.Converting',
+            expectedFields: [],
+          }),
+        }),
+      ],
+      setupSteps: [],
+    });
+    const policyCase = makeTestCase({
+      momentId: 'policy-IssueOnPaymentConfirmed',
+      momentName: 'policy IssueOnPaymentConfirmed chains PaymentConfirmed → IssueTickets',
+      assertions: [
+        makeAssertionPoint({
+          crossingId: 'policy-chain-IssueOnPaymentConfirmed',
+          sourceContext: 'ctx-delivery',
+          targetContext: 'ctx-delivery',
+          assertionType: 'policy-chain',
+          schemaContract: makePayloadValidationStep({
+            eventType: 'IssueTickets',
+            expectedFields: [],
+          }),
+        }),
+      ],
+      setupSteps: [],
+    });
+    const topology = makeTopology([makeSuiteDefinition({ testCases: [sagaCase, policyCase] })]);
+    const output = emitter.emit(makeIR([]), topology);
+
+    const flowSpec = output.files.get('__tests__/flows/order-fulfillment-flow.spec.ts');
+    expect(flowSpec).toBeDefined();
+    expect(flowSpec).toContain(
+      "it.todo('should verify saga SeatHoldLifecycle transitions Held → Converting');",
+    );
+    expect(flowSpec).toContain(
+      "it.todo('should verify policy IssueOnPaymentConfirmed chains PaymentConfirmed → IssueTickets');",
+    );
+    // The false crossing template 'X crosses from ctx-A to ctx-A' must be gone
+    expect(flowSpec).not.toContain('crosses from ctx-inventory to ctx-inventory');
+    expect(flowSpec).not.toContain('crosses from ctx-delivery to ctx-delivery');
+  });
+
+  // Test 15c: moments with zero assertions produce no describe block
+  it('skips test cases with no assertions instead of emitting empty describes', () => {
+    const topology = makeTopology([
+      makeSuiteDefinition({
+        testCases: [
+          makeTestCase({ momentName: 'Empty Moment', assertions: [], setupSteps: [] }),
+          makeTestCase({ momentName: 'Real Moment', assertions: [makeAssertionPoint()] }),
+        ],
+      }),
+    ]);
+    const output = emitter.emit(makeIR([]), topology);
+
+    const flowSpec = output.files.get('__tests__/flows/order-fulfillment-flow.spec.ts');
+    expect(flowSpec).toBeDefined();
+    expect(flowSpec).not.toContain("describe('Empty Moment'");
+    expect(flowSpec).toContain("describe('Real Moment'");
+  });
+
+  // Test 15d: suites with only empty test cases produce no spec file at all
+  it('emits no flow spec file when every test case is empty', () => {
+    const topology = makeTopology([
+      makeSuiteDefinition({
+        testCases: [makeTestCase({ assertions: [], setupSteps: [] })],
+      }),
+    ]);
+    const output = emitter.emit(makeIR([]), topology);
+
+    expect(output.files.get('__tests__/flows/order-fulfillment-flow.spec.ts')).toBeUndefined();
+  });
+
+  // Test 15e: branch variants dedupe describe names
+  it('appends the branch variant so describe names stay unique per branch', () => {
+    const topology = makeTopology([
+      makeSuiteDefinition({
+        testCases: [
+          makeTestCase({ momentName: 'Payment processing', variant: 'approved' }),
+          makeTestCase({ momentName: 'Payment processing', variant: 'declined' }),
+        ],
+      }),
+    ]);
+    const output = emitter.emit(makeIR([]), topology);
+
+    const flowSpec = output.files.get('__tests__/flows/order-fulfillment-flow.spec.ts');
+    expect(flowSpec).toBeDefined();
+    expect(flowSpec).toContain("describe('Payment processing [approved]'");
+    expect(flowSpec).toContain("describe('Payment processing [declined]'");
   });
 
   // Test 15: test case without setup steps omits beforeEach

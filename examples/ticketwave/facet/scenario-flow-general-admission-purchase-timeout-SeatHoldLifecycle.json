@@ -1,0 +1,191 @@
+{
+  "scenarioId": "scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle",
+  "flowId": "flow-general-admission-purchase",
+  "flowName": "general-admission-purchase",
+  "scenarioLabel": "Timeout: general-admission-purchase [SeatHoldLifecycle.holdExpiry]",
+  "kind": "timeout",
+  "description": "Timeout scenario: saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld; the domain flow stops at Seat selection and hold",
+  "given": "A event discovery scenario is initiated",
+  "when": "Saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld",
+  "then": "Saga SeatHoldLifecycle times out and compensates: on ExpireHold issues ReleaseHold",
+  "expectedPath": [
+    "moment-0-Event-discovery::catalog::PublishEvent::main",
+    "moment-0-Event-discovery::catalog::EventPublished::main",
+    "moment-1-Pool-initialization::inventory::InitializePool::main",
+    "moment-1-Pool-initialization::inventory::PoolInitialized::main",
+    "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
+    "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.PublishEvent",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
+        "processName": "PublishEvent",
+        "eventId": "eventId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "EventPublished",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
+        "eventId": "eventId-001",
+        "publishedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.InitializePool",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
+        "processName": "InitializePool",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "totalTickets": 0,
+        "basePrice": 0
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "PoolInitialized",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
+        "poolId": "poolId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "totalTickets": 0,
+        "availableTickets": 0,
+        "basePrice": 0,
+        "initializedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-004"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SeatsHeld",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "heldAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "SimSaga.SeatHoldLifecycle.TimedOut",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-007"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "timeoutName": "holdExpiry"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "SimSaga.SeatHoldLifecycle.Compensated",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-008"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "description": "on ExpireHold issues ReleaseHold"
+      }
+    }
+  ]
+}

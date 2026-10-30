@@ -9,11 +9,13 @@ Gherkin BDD scenarios, specification documents, and AsyncAPI contracts from Mome
 
 `@mmmnt/generate` produces human-readable and machine-readable documentation artifacts from your `.moment` specification files. It bridges the gap between your domain specification and the formats that testing frameworks, documentation tools, and API consumers expect.
 
-The Gherkin generator transforms derived test topologies into `.feature` files that can be executed by Cucumber, SpecFlow, or any BDD runner. Each scenario maps to a derived test case, with Given/When/Then steps that reflect the domain flow. The specification document generator produces a comprehensive `specification.md` with Mermaid diagrams showing context maps, flow sequences, and event relationships. The AsyncAPI generator outputs a standards-compliant `asyncapi.yaml` describing your event-driven API.
+The Gherkin generator renders each flow in the IR as a `.feature` file for Cucumber, SpecFlow, or any BDD runner, with Given/When/Then steps that reflect the domain flow. The specification document generator produces a `specification.md` with Mermaid diagrams of the context map and flow sequences, a narrative of each flow, and the domain model, including projections, queries, rules, terms, and external systems. The AsyncAPI generator outputs an AsyncAPI 3.0 YAML document describing the events that cross context boundaries.
 
 Together, these generators ensure your living documentation stays synchronized with your domain specification, eliminating the drift between what the spec says and what the docs describe. This is especially valuable for teams where non-technical stakeholders need to review domain behavior -- the Gherkin scenarios serve as executable specifications written in natural language, and the specification document provides a visual overview without requiring access to the raw `.moment` files.
 
 ## Installation
+
+Requires Node.js 22 or newer.
 
 ```bash
 npm install @mmmnt/generate
@@ -29,63 +31,67 @@ yarn add @mmmnt/generate
 ## Quick Start
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
+import { readFileSync } from 'node:fs';
+import { MomentParser } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator } from '@mmmnt/generate';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('path/to/spec.moment');
-const ir = astToIr(ast);
+const path = 'path/to/spec.moment';
+const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!result.success || !result.ir) throw new Error('The specification has errors');
+const ir = result.ir;
 const topology = deriveTopology(ir);
 
 const generator = new GherkinGenerator();
-const features = generator.generate(ir, topology);
+const manifest = generator.generate(ir, topology);
 
-for (const feature of features) {
-  console.log(`Feature: ${feature.path}`);
+for (const feature of manifest.featuresGenerated) {
+  console.log(`Feature: ${feature.filePath} (${feature.scenarioCount} scenarios)`);
   // Write feature.content to disk as a .feature file
 }
 ```
 
 ## Key Features
 
-- **Gherkin BDD scenario generation** -- produces `.feature` files from derived test topologies with Given/When/Then steps that map directly to your domain flows.
-- **Specification document rendering** -- generates a comprehensive Markdown document with embedded Mermaid diagrams showing context maps, flow sequences, and event relationships.
-- **AsyncAPI specification generation** -- outputs standards-compliant AsyncAPI 3.0 YAML describing channels, messages, and payload schemas for your event-driven architecture.
-- **Tagged scenarios** -- each Gherkin scenario is tagged with context and flow metadata, enabling selective execution with standard BDD runners.
-- **Mermaid diagram embedding** -- specification documents include context map diagrams, sequence diagrams for flows, and event catalog tables.
-- **Policy-driven automation** -- the `GenerateGherkinOnTopologyDerived` policy triggers generation automatically when a topology is derived.
-- **Lower-level rendering** -- `renderFeatureFromIr` provides fine-grained control for rendering individual features when the full generator is not needed.
+- **Gherkin BDD scenario generation** -- produces one `.feature` file per flow, with Given/When/Then steps that map directly to your domain flows.
+- **Specification document rendering** -- generates a Markdown document with embedded Mermaid diagrams, a narrative of each flow, context boundaries, and the domain model.
+- **Read side and model completeness** -- the specification document lists each context's projections (with the events they fold), queries (with the projections they read), rules (with their enforcer), and glossary terms, plus the external systems the model declares.
+- **AsyncAPI specification generation** -- outputs AsyncAPI 3.0 YAML with a channel and message per context crossing, and payload schemas derived from the specification.
+- **Tagged scenarios** -- Gherkin features and scenarios are tagged with context, classification, aggregate, policy, saga, and invariant metadata, enabling selective execution with standard BDD runners.
+- **Cucumber JSON** -- `generateCucumberJson` converts generated features into standard Cucumber JSON.
+- **Policy-driven automation** -- the `GenerateGherkinOnTopologyDerived` policy generates features and the specification document for a derived topology.
+- **Lower-level rendering** -- `renderFeatureFromIr` renders the feature for a single flow when the full generator is not needed.
 - **Deterministic output** -- the same specification always produces identical generated artifacts.
 
 ## Generated Output
 
 ### Gherkin Features
 
-- One `.feature` file per flow or test suite
+- One `features/<flow>.feature` file per flow
 - `Given` steps for preconditions and setup state
 - `When` steps for commands and triggers
 - `Then` steps for expected events and state assertions
-- Tagged with `@context`, `@flow`, and `@aggregate` metadata for selective execution
+- Tagged with `@context`, `@classification`, `@aggregate`, `@policy`, `@saga`, and `@invariant` metadata, and path tags such as `@crossing`, `@alt-path`, and `@failure-path`, for selective execution
 
 ### Specification Document
 
-- **Context map** rendered as a Mermaid diagram showing bounded contexts and their relationships
-- **Per-context sections** listing aggregates, commands, events, and invariants
-- **Flow diagrams** as Mermaid sequence diagrams showing step-by-step cross-context interactions
-- **Event catalog** table with producers, consumers, and payload summaries
-- **Glossary** of domain terms extracted from the specification
+`SpecificationDocumentGenerator` returns a single `specification.md` with:
+
+- **At a Glance** -- a table of contexts with their classification, description, and counts, followed by a Mermaid **context map** and a Mermaid **sequence diagram** per flow
+- **What Happens** -- a step-by-step narrative of each flow, with branches, the policies a step triggers, and the business rules that apply
+- **Context Boundaries** -- the points where data crosses between contexts and the fields each crossing requires
+- **Domain Model** -- per context: aggregates with identity, commands, and event shapes; sagas; **projections**, **queries**, and **rules**; and glossary **terms**; followed by the **external systems** the model declares
+- **Data Glossary** -- every value object and its fields
 
 ### Cucumber JSON
 
-- Cucumber JSON output is available via `generateCucumberJson` for CI/QMS integration, enabling direct import into tools like Xray for test management and traceability reporting.
+- Cucumber JSON output is available via `generateCucumberJson` for tools that import Cucumber results. Nothing is executed at generation time, so steps backed by a derived test case are reported as `pending` and all other steps as `skipped`.
 
 ### AsyncAPI Specification
 
-- Standards-compliant AsyncAPI 3.0 YAML
-- Channels for each event with payload schemas derived from the specification
-- Server bindings and protocol metadata
-- Compatible with AsyncAPI Studio, code generators, and documentation tools
+- AsyncAPI 3.0 YAML
+- A channel and a message for each event that crosses a context boundary, with payload schemas derived from the specification and `required` fields taken from the crossing contract
+- Title and version taken from the specification metadata
 
 ## API Reference
 
@@ -93,100 +99,86 @@ for (const feature of features) {
 
 | Export | Description |
 |--------|-------------|
-| `GherkinGenerator` | Generates `.feature` files from the IR and derived topology. Produces one feature file per flow or test suite. |
-| `renderFeatureFromIr(ir)` | Lower-level function that renders a single feature from IR data without requiring a topology. |
-| `SpecificationDocumentGenerator` | Produces a Markdown specification document with embedded Mermaid diagrams covering context maps, flows, and event catalogs. |
-| `generateAsyncApiSpec(ir)` | Generates an AsyncAPI 3.0 YAML specification from the IR with channels, messages, and payload schemas. |
-| `generateCucumberJson(manifest, topology, ir)` | Converts Gherkin features and test topology into Cucumber JSON format for Xray import and CI/QMS integration. |
+| `GherkinGenerator` | `generate(ir, topology)` renders one feature file per flow in the IR. Returns a `GenerationManifest`. |
+| `renderFeatureFromIr(flow, ir)` | Lower-level function that renders the `.feature` content for a single flow, without requiring a topology. |
+| `SpecificationDocumentGenerator` | `generate(ir)` produces the Markdown specification document described above. Returns `GeneratedDocument[]` (empty when the IR has no contexts and no flows). |
+| `generateAsyncApiSpec(ir)` | Generates an AsyncAPI 3.0 YAML string from the IR, with a channel and message per context crossing. |
+| `generateCucumberJson(manifest, topology, ir)` | Converts the generated features and test topology into Cucumber JSON (`CucumberFeature[]`). |
 
 ### Policies
 
 | Export | Description |
 |--------|-------------|
-| `GenerateGherkinOnTopologyDerived` | Policy that triggers Gherkin generation when a topology is derived, enabling automated watch-mode workflows. |
+| `GenerateGherkinOnTopologyDerived` | Policy whose `execute(ir, topology)` runs the Gherkin and specification document generators and returns a `GenerationManifest`. Its `handle(topology, ir)` matches the `TopologyDerivedHook` signature. |
 
 ### Key Types
 
 | Type | Description |
 |------|-------------|
-| `GeneratedFeatureFile` | A generated `.feature` file with path and content. |
-| `GeneratedDocument` | A generated document with path, content, and format metadata. |
-| `GenerationManifest` | Summary of all generated artifacts from a single run, with file counts and paths. |
+| `GeneratedFeatureFile` | A generated `.feature` file with its flow id, file path, content, and scenario count. |
+| `GeneratedDocument` | A generated document with its document type, file path, and content. |
+| `GenerationManifest` | The features and documents generated by a single run. |
 | `CucumberFeature` | Represents a single Cucumber JSON feature object with scenarios and metadata. |
 | `CucumberScenario` | Represents a scenario within a Cucumber JSON feature, including steps and tags. |
 | `CucumberStep` | Represents an individual Given/When/Then step within a Cucumber JSON scenario. |
 
 ## Examples
 
+The examples below start from a parsed IR, obtained as in the Quick Start:
+
+```typescript
+import { readFileSync } from 'node:fs';
+import { MomentParser } from '@mmmnt/core';
+
+const path = 'specs/ticketing.moment';
+const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!result.success || !result.ir) throw new Error('The specification has errors');
+const ir = result.ir;
+```
+
 ### Generating Gherkin Scenarios
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator } from '@mmmnt/generate';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
 const topology = deriveTopology(ir);
 
 const generator = new GherkinGenerator();
-const features = generator.generate(ir, topology);
+const { featuresGenerated } = generator.generate(ir, topology);
 
-for (const feature of features) {
-  mkdirSync(dirname(feature.path), { recursive: true });
-  writeFileSync(feature.path, feature.content);
-  console.log(`Wrote: ${feature.path}`);
+for (const feature of featuresGenerated) {
+  mkdirSync(dirname(feature.filePath), { recursive: true });
+  writeFileSync(feature.filePath, feature.content);
+  console.log(`Wrote: ${feature.filePath}`);
 }
-
-// Example output in a .feature file:
-// @context:Scheduling @flow:ScheduleAppointment
-// Feature: Schedule Appointment
-//   Scenario: Successfully schedule an appointment
-//     Given a registered patient "Jane"
-//     When the receptionist schedules an appointment for "2026-04-10"
-//     Then an AppointmentScheduled event is emitted
-//     And the appointment appears in the schedule
 ```
 
 ### Building a Specification Document
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { SpecificationDocumentGenerator } from '@mmmnt/generate';
 import { writeFileSync } from 'node:fs';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
-
 const docGenerator = new SpecificationDocumentGenerator();
-const document = docGenerator.generate(ir);
+const [document] = docGenerator.generate(ir);
 
-writeFileSync('specification.md', document.content);
-console.log(`Generated specification: ${document.content.length} characters`);
+if (document) {
+  writeFileSync(document.filePath, document.content);
+  console.log(`Generated ${document.filePath}: ${document.content.length} characters`);
+}
 ```
 
 ### Generating an AsyncAPI Specification
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { writeFileSync } from 'node:fs';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
-
 const asyncApiYaml = generateAsyncApiSpec(ir);
 writeFileSync('asyncapi.yaml', asyncApiYaml);
-
-// The output is a valid AsyncAPI 3.0 YAML that can be used with:
-//   - AsyncAPI Studio for interactive exploration
-//   - AsyncAPI Generator for code generation in multiple languages
-//   - AsyncAPI documentation tools for publishing API docs
 ```
 
 ## Integration
@@ -196,11 +188,10 @@ writeFileSync('asyncapi.yaml', asyncApiYaml);
 ```
 @mmmnt/core --> @mmmnt/derive --> @mmmnt/generate
                                        |
-                                       +-- @mmmnt/harness   (executes generated Gherkin scenarios)
-                                       +-- @mmmnt/viz       (complementary interactive visualizations)
-                                       +-- @mmmnt/cli       (exposed via `moment generate`)
-                                       +-- @mmmnt/mcp       (exposed via MCP tools)
+                                       +-- @mmmnt/cli       (exposed via `moment generate` and `moment cucumber-json`)
 ```
+
+`moment generate` writes the feature files, the specification document, and the TypeScript output of `@mmmnt/emit-ts` in one pass (`--out <dir>`). Both commands accept a single file or a model directory, which they load as one project.
 
 ## Contributing
 

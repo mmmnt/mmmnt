@@ -352,6 +352,29 @@ describe('SpecificationDocumentGenerator', () => {
     expect(content).toContain('OrderProcess:');
   });
 
+  it('renders an orchestration as invoked by its command, on its relay event, with what it issues (ADR-038 §2)', () => {
+    const saga: SagaDefinition = {
+      id: 'saga-OrderProcess',
+      name: 'OrderProcess',
+      keyword: 'orchestration',
+      trigger: 'StartOrder',
+      startEvent: 'OrderPlaced',
+      states: ['Pending', 'Completed'],
+      compensation: 'none',
+      timeout: '30 minutes',
+      commands: [{ id: 'cmd-StartOrder', name: 'StartOrder', inputs: [], preconditions: [] }],
+      issues: [{ name: 'ReserveStock' }, { name: 'ship', external: 'Carrier' }],
+      compensations: [{ none: true }],
+    };
+    const ctx = makeContext('Ordering', { aggregates: [makeAggregate('Order')] });
+    ctx.sagas = [saga];
+
+    const content = generator.generate(makeIR({ contexts: [ctx] }))[0].content;
+    expect(content).toContain('Invoked by: StartOrder (on OrderPlaced)');
+    expect(content).toContain('Issues: ReserveStock, Carrier.ship');
+    expect(content).not.toContain('Triggered by:');
+  });
+
   it('renders data glossary from value objects', () => {
     const vo = makeValueObject('Money');
     const agg = makeAggregate('Order', { valueObjects: [vo] });

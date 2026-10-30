@@ -73,3 +73,45 @@ describe('moment parse', () => {
     expect(formatted).toContain('warning');
   });
 });
+
+describe('moment parse <directory> (ADR-037 §8)', () => {
+  it('loads every .moment file beneath the directory as one project', async () => {
+    const result = await runParse([resolve(FIXTURES, 'valid/model-completeness')]);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe('Parsed project successfully: 3 file(s), 2 context(s), 1 flow(s)');
+  });
+
+  it('fails a project whose references do not resolve across its files', async () => {
+    const result = await runParse([resolve(FIXTURES, 'invalid/model-completeness-unresolved')]);
+
+    expect(result.success).toBe(false);
+    expect(result.diagnostics.map((d) => d.ruleId)).toContain('V22');
+  });
+
+  it('formatDiagnostic names the rule, once', () => {
+    expect(
+      formatDiagnostic(
+        { severity: 'warning', ruleId: 'V22', message: "Projection 'P' reads 'Missing'." },
+        'a.moment',
+      ),
+    ).toBe("warning: a.moment — V22: Projection 'P' reads 'Missing'.");
+    expect(
+      formatDiagnostic(
+        { severity: 'error', ruleId: 'V13', message: 'V13: Lane ID does not match.' },
+        'a.moment',
+      ),
+    ).toBe('error: a.moment — V13: Lane ID does not match.');
+  });
+
+  it('formatDiagnostic omits a zero position', () => {
+    expect(
+      formatDiagnostic({
+        severity: 'warning',
+        ruleId: 'V38',
+        message: 'm',
+        source: { file: 'a.moment', line: 0, column: 0 },
+      }),
+    ).toBe('warning: a.moment — V38: m');
+  });
+});

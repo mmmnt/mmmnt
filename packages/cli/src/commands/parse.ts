@@ -10,6 +10,8 @@ import { resolve } from 'node:path';
 import { MomentParser } from '@mmmnt/core';
 import type { Diagnostic, ParseResult } from '@mmmnt/core';
 import { updateManifestFromIr } from './update-manifest.js';
+import { isDirectory, loadSpecification } from '../lib/load-specification.js';
+import type { LoadedSpecification } from '../lib/load-specification.js';
 
 export interface ParseCommandResult {
   readonly success: boolean;
@@ -26,10 +28,15 @@ function fail(message: string): ParseCommandResult {
 }
 
 export function formatDiagnostic(d: Diagnostic, fallbackFile?: string): string {
+  // Cross-reference rules have no position (some report line 0): name the file or path alone.
   const loc = d.source
-    ? `${d.source.file}:${d.source.line}:${d.source.column}`
+    ? d.source.line > 0
+      ? `${d.source.file}:${d.source.line}:${d.source.column}`
+      : d.source.file
     : (fallbackFile ?? '<unknown>');
-  return `${d.severity}: ${loc} — ${d.message}`;
+  // Name the rule (V22 …) unless the message already starts with it, as older rules' messages do.
+  const rule = d.ruleId && !d.message.startsWith(`${d.ruleId}:`) ? `${d.ruleId}: ` : '';
+  return `${d.severity}: ${loc} — ${rule}${d.message}`;
 }
 
 function readFile(path: string): string | ParseCommandResult {
@@ -64,20 +71,41 @@ function toResult(parseResult: ParseResult): ParseCommandResult {
 
 export async function runParse(argv: string[]): Promise<ParseCommandResult> {
   const filePath = argv[0];
-  if (!filePath) return fail('Usage: moment parse <file.moment>');
+  if (!filePath) return fail('Usage: moment parse <file.moment | directory>');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
+
+  if (isDirectory(resolvedPath)) return toProjectResult(await loadSpecification(resolvedPath));
 
   const content = readFile(resolvedPath);
   if (typeof content !== 'string') return content;
 
   const parser = new MomentParser();
-  const result = await parser.parseContent(content);
+  const result = await parser.parseContent(content, resolvedPath);
 
   if (result.success && result.ir) {
     updateManifestFromIr(resolvedPath, result.ir);
   }
 
   return toResult(result);
+}
+
+function toProjectResult(project: LoadedSpecification): ParseCommandResult {
+  const contextCount = project.ir?.contexts.length ?? 0;
+  const flowCount = project.ir?.flows.length ?? 0;
+  if (!project.success) {
+    return {
+      success: false,
+      message: `Project failed with ${project.diagnostics.length} diagnostic(s)`,
+      diagnostics: project.diagnostics,
+    };
+  }
+  return {
+    success: true,
+    message: `Parsed project successfully: ${project.files.length} file(s), ${contextCount} context(s), ${flowCount} flow(s)`,
+    diagnostics: project.diagnostics,
+    contextCount,
+    flowCount,
+  };
 }

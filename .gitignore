@@ -3,7 +3,8 @@ dist/
 coverage/
 .turbo/
 *.tsbuildinfo
-.env.local
+.env.*
+!.env.example
 test-results/
 .claude/
 

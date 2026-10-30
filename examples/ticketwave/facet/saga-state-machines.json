@@ -29,23 +29,21 @@
     "transitions": [
       {
         "from": "Held",
-        "to": "Converting"
+        "to": "Converting",
+        "onEvent": "PaymentConfirmed"
       },
       {
         "from": "Converting",
-        "to": "Converted"
+        "to": "Converted",
+        "onEvent": "HoldConvertedToReservation"
       },
       {
         "from": "Converted",
         "to": "Expired"
       }
     ],
-    "compensation": "Release held seats back to the pool and notify customer",
+    "compensation": "on ExpireHold issues ReleaseHold",
     "timeout": "holdExpiry",
-    "earlyExitStates": [
-      "Converting",
-      "Converted"
-    ],
     "reachability": {
       "allReachable": true,
       "unreachableStates": []
@@ -86,7 +84,8 @@
     "transitions": [
       {
         "from": "Pending",
-        "to": "Accepted"
+        "to": "Accepted",
+        "onEvent": "TransferAccepted"
       },
       {
         "from": "Accepted",
@@ -101,13 +100,8 @@
         "to": "Expired"
       }
     ],
-    "compensation": "Return ticket ownership to original holder",
+    "compensation": "on RevertTransfer issues CancelTransfer",
     "timeout": "transferExpiry",
-    "earlyExitStates": [
-      "Accepted",
-      "Declined",
-      "Cancelled"
-    ],
     "reachability": {
       "allReachable": true,
       "unreachableStates": []

@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/viz",
   "description": "Context map and flow timeline visualization from Moment domain specifications",
-  "version": "0.3.1",
+  "version": "0.6.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/viz#readme",
@@ -23,7 +23,7 @@
     "event-storming"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -55,6 +55,7 @@
     "picomatch": "^4.0.4"
   },
   "devDependencies": {
+    "@types/node": "^25.9.9",
     "@types/picomatch": "^4.0.3"
   },
   "publishConfig": {

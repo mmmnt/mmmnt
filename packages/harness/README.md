@@ -7,13 +7,15 @@ Test execution engine with event replay and contract assertion for Moment-derive
 
 ## Overview
 
-`@mmmnt/harness` closes the loop between specification and implementation. While `@mmmnt/derive` generates test topologies and `@mmmnt/emit-ts` produces type contracts, this package actually executes those tests against your running code and reports whether the implementation conforms to the specification.
+`@mmmnt/harness` runs the test suites that `@mmmnt/derive` produces from a `.moment` specification and reports whether the specification holds together. It is infrastructure-agnostic: it validates against the intermediate representation (IR) and against payloads you hand it, not against a running system.
 
-The test runner orchestrates test suite execution, managing setup, teardown, and result aggregation. The event replay engine replays recorded or simulated event sequences against aggregate implementations to verify state transitions. The contract assertion engine validates that your implementation's command handlers, event emitters, and projections conform to the type contracts and behavioral invariants defined in your `.moment` specification.
+The test runner walks every derived suite and evaluates each test case structurally against the IR: the contexts a case sets up and asserts across must exist, moment cases must name a moment in their flow, saga cases check their trigger, state adjacency, compensation and timeout, and policy-chain cases check their trigger event and the command they chain to. Every result is traceable to the specification element it came from.
 
-When tests fail, the harness produces structured divergence reports that pinpoint exactly where the implementation deviates from the specification, including the expected vs. actual payloads, missing events, and violated invariants. These reports are machine-readable and can be consumed by CI/CD pipelines, the `@mmmnt/sync` drift detection engine, or presented directly to developers through the CLI.
+The event replay engine replays a flow's moments in order and reports a divergence point wherever a moment names a context the IR does not define. The contract assertion engine validates an event payload against a crossing's schema contract, reporting missing required fields and type mismatches.
 
 ## Installation
+
+Requires Node.js 22 or newer.
 
 ```bash
 npm install @mmmnt/harness
@@ -29,36 +31,32 @@ yarn add @mmmnt/harness
 ## Quick Start
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
+import { readFileSync } from 'node:fs';
+import { MomentParser } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { TestRunner } from '@mmmnt/harness';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('path/to/spec.moment');
-const ir = astToIr(ast);
-const topology = deriveTopology(ir);
+const path = 'path/to/spec.moment';
+const { ir } = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!ir) throw new Error('parse failed');
 
-const runner = new TestRunner();
-const results = await runner.run(topology);
+const result = new TestRunner().run(deriveTopology(ir), ir);
 
-for (const result of results) {
-  const status = result.passed ? 'PASS' : 'FAIL';
-  console.log(`[${status}] ${result.testCase}`);
-}
+console.log(
+  `${result.suitesRun} suites: ${result.testsPassed} passed, ` +
+    `${result.testsFailed} failed, ${result.testsSkipped} skipped`,
+);
 ```
 
 ## Key Features
 
-- **Test suite execution** -- orchestrates running derived test suites against your domain implementation, managing setup steps, teardown, and result aggregation.
-- **Event replay engine** -- replays recorded or simulated event sequences against aggregate instances to verify that state transitions produce the correct final state.
-- **Contract assertion engine** -- validates that implementation code conforms to the type contracts and behavioral invariants defined in the specification.
-- **Structured divergence reports** -- when tests fail, produces machine-readable reports pinpointing exactly where the implementation deviates, with expected vs. actual payloads.
-- **Aggregate factory support** -- supply your own aggregate factory functions to replay events against real implementations rather than stubs.
-- **Severity-graded violations** -- contract violations are graded by severity (error, warning, info) so teams can prioritize fixes.
-- **Source location tracking** -- violations include the source location in your implementation code for quick navigation.
-- **Structural saga validation (TE-03)** -- dispatches on `assertionType: 'saga'` to validate that the trigger event exists in the IR, that states are adjacent in the saga chain, and that both the compensation string and timeout are defined.
+- **Test suite execution** -- runs every derived suite against the IR and aggregates passed, failed, and skipped counts; a suite whose flow is missing from the IR is skipped.
+- **Traceability (TE-01)** -- every test result maps to its originating specification element in `traceabilityMap`.
+- **Structural saga validation (TE-03)** -- dispatches on `assertionType: 'saga'` to validate that the trigger exists in the IR, that states are adjacent in the saga chain, and that both compensation and timeout are defined.
 - **Structural policy chain validation (TE-04)** -- dispatches on `assertionType: 'policy-chain'` to validate that the trigger event exists in the IR and that the `chainsTo` command exists in the IR.
-- **CI/CD integration** -- structured output and standard exit codes make the harness suitable for automated pipeline gates.
+- **Event replay** -- replays a flow's moments, including branch entries, and records a divergence point for each moment that names an undefined context.
+- **Contract assertion (TE-02)** -- validates a payload against a `SchemaContract`, reporting required fields that are missing and values whose type does not match the contract.
+- **CI/CD integration** -- exposed as `moment test`, which exits non-zero when any test fails.
 
 ## API Reference
 
@@ -66,133 +64,86 @@ for (const result of results) {
 
 | Export | Description |
 |--------|-------------|
-| `TestRunner` | Orchestrates test suite execution against implementations. Dispatches on `assertionType` from each test case's assertions, routing to separate evaluation paths for `'saga'`, `'policy-chain'`, and `'payload'` assertion types. Manages setup steps, runs assertions, and aggregates results into `TestRunResult`. |
+| `TestRunner` | `run(topology, ir)` evaluates every test case of a `TestSuiteTopology` against the IR. Dispatches on the `assertionType` of each test case's first assertion: `'saga'` and `'policy-chain'` take their structural paths; anything else checks that the moment exists in its flow. Returns `TestRunResult`. |
 
 ### Event Replay
 
 | Export | Description |
 |--------|-------------|
-| `EventReplayEngine` | Replays event sequences against aggregate instances to verify state transition correctness. Accepts an aggregate factory and a list of events, returns `ReplayResult`. |
+| `EventReplayEngine` | `replay(flow, ir)` replays a `FlowDefinition`'s moments against the IR's contexts. Returns `ReplayResult`. |
 
 ### Contract Validation
 
 | Export | Description |
 |--------|-------------|
-| `ContractAssertionEngine` | Validates implementation code against specification-defined type contracts and behavioral invariants. Scans implementation files and reports `ContractViolation` entries. |
+| `ContractAssertionEngine` | `validate(crossingId, payload, contract)` checks a payload against a `SchemaContract` and returns `ContractValidationResult`. `coversAllRequiredFields(payload, fields)` returns whether every required field is present. |
 
 ### Key Types
 
 | Type | Description |
 |------|-------------|
-| `TestRunResult` | Aggregated result of a test suite run, including pass/fail counts, duration, and per-case details. |
-| `DivergencePoint` | Location and details of where an implementation diverges from the specification, with expected and actual values. |
-| `ReplayResult` | Result of an event replay, including final aggregate state, validity flag, and any divergence points. |
-| `ContractViolation` | A specific contract violation with severity, message, rule name, and source location in the implementation. |
-| `ContractValidationResult` | Aggregated result of contract validation across an implementation, with violation counts by severity. |
+| `TestRunResult` | Suites run, tests passed, failed, and skipped, and the traceability map from test id to specification element. |
+| `DivergencePoint` | Where a replay diverged: moment index, expected and actual state, and the node that caused it. |
+| `ReplayResult` | Flow id, steps replayed, divergence points, and `finalStateMatch`. |
+| `ContractViolation` | A violation with field name, expected and actual type, and the constraint violated (`required field missing` or `type mismatch`). |
+| `ContractValidationResult` | Crossing id, `valid`, and the violations. |
 
 ## Examples
 
-### Running the Full Test Suite
-
-```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
-import { deriveTopology } from '@mmmnt/derive';
-import { TestRunner } from '@mmmnt/harness';
-
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
-const topology = deriveTopology(ir);
-
-const runner = new TestRunner();
-const results = await runner.run(topology);
-
-const passed = results.filter(r => r.passed).length;
-const failed = results.filter(r => !r.passed).length;
-
-console.log(`Results: ${passed} passed, ${failed} failed`);
-
-for (const result of results.filter(r => !r.passed)) {
-  console.log(`\nFAILED: ${result.testCase}`);
-  for (const divergence of result.divergences) {
-    console.log(`  Expected: ${divergence.expected}`);
-    console.log(`  Actual:   ${divergence.actual}`);
-    console.log(`  At:       ${divergence.location}`);
-  }
-}
-```
-
-### Replaying Events Against an Aggregate
+### Replaying Every Flow
 
 ```typescript
 import { EventReplayEngine } from '@mmmnt/harness';
 
 const engine = new EventReplayEngine();
 
-const replayResult = await engine.replay({
-  events: [
-    { type: 'PatientRegistered', payload: { patientId: 'p-1', name: 'Jane', species: 'canine' } },
-    { type: 'AppointmentScheduled', payload: { patientId: 'p-1', date: '2026-04-10', vetId: 'v-1' } },
-    { type: 'AppointmentCompleted', payload: { patientId: 'p-1', date: '2026-04-10', notes: 'Routine checkup' } },
-  ],
-  aggregateFactory: () => new PatientAggregate(),
-});
-
-console.log(`Final state valid: ${replayResult.valid}`);
-if (!replayResult.valid) {
-  for (const divergence of replayResult.divergences) {
-    console.log(`Divergence at event ${divergence.eventIndex}: ${divergence.message}`);
+for (const flow of ir.flows) {
+  const replay = engine.replay(flow, ir);
+  if (replay.finalStateMatch) continue;
+  console.log(`Flow ${replay.flowId}: ${replay.divergencePoints.length} divergence(s)`);
+  for (const d of replay.divergencePoints) {
+    console.log(`  moment ${d.momentIndex} (${d.eventThatCaused}): ${d.actualState}`);
   }
 }
 ```
 
-### Validating Implementation Contracts
+### Validating a Payload Against a Crossing Contract
 
 ```typescript
-import { MomentParser, astToIr } from '@mmmnt/core';
 import { ContractAssertionEngine } from '@mmmnt/harness';
 
-const parser = new MomentParser();
-const { ast } = parser.parse('specs/vet-clinic.moment');
-const ir = astToIr(ast);
-
 const contracts = new ContractAssertionEngine();
-const validation = await contracts.validate({
-  ir,
-  implementationPath: './src/domain/',
-});
 
-if (validation.violations.length === 0) {
-  console.log('All contracts satisfied.');
-} else {
-  const errors = validation.violations.filter(v => v.severity === 'error');
-  const warnings = validation.violations.filter(v => v.severity === 'warning');
+for (const flow of ir.flows) {
+  for (const connection of flow.connections) {
+    if (connection.connectionType !== 'crosses-to') continue;
 
-  console.log(`Violations: ${errors.length} errors, ${warnings.length} warnings`);
+    const payload = { holdId: 'h-1', amount: '12.00' }; // e.g. captured from your implementation
+    const result = contracts.validate(connection.id, payload, connection.schemaContract);
 
-  for (const violation of errors) {
-    console.log(`  [ERROR] ${violation.message}`);
-    console.log(`          at ${violation.location}`);
+    for (const v of result.violations) {
+      console.log(`${result.crossingId} ${v.fieldName}: ${v.constraintViolated} ` +
+        `(expected ${v.expected}, got ${v.actual})`);
+    }
   }
 }
 ```
+
+A field's type matches when the payload value's JavaScript type (`typeof`, or `array`) equals the contract type in lower case.
 
 ## Integration
 
-`@mmmnt/harness` depends on `@mmmnt/core` for the IR and `@mmmnt/derive` for test topologies. It works alongside several other packages:
+`@mmmnt/harness` depends on `@mmmnt/core` for the IR and `@mmmnt/derive` for test topologies:
 
 ```
 @mmmnt/core --> @mmmnt/derive --> @mmmnt/harness
                                        |
-                                       +-- @mmmnt/emit-ts   (provides generated type contracts)
-                                       +-- @mmmnt/generate  (produces complementary Gherkin scenarios)
-                                       +-- @mmmnt/sync      (uses harness results for drift decisions)
-                                       +-- @mmmnt/cli       (exposed via `moment test`)
+                                       +-- @mmmnt/cli  (exposed via `moment test`)
 ```
 
 ## Contributing
 
-This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines, development setup, and the code of conduct.
+This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development setup and contribution guidelines.
 
 ```bash
 git clone https://github.com/mmmnt/mmmnt.git

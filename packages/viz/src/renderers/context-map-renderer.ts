@@ -21,18 +21,30 @@ export function renderContextMap(ir: IntermediateRepresentation): ContextMapLayo
 }
 
 function buildNodes(ir: IntermediateRepresentation): ContextMapNode[] {
-  return ir.contexts.map((ctx, index) => {
-    const col = index % COLUMNS;
-    const row = Math.floor(index / COLUMNS);
-    return {
+  const parties = [
+    ...ir.contexts.map((ctx) => ({
       contextId: ctx.id,
       contextName: ctx.name,
       classification: ctx.classification ?? 'Supporting',
+      isExternal: false,
+    })),
+    // ADR-037 §6: externals are drawn after the contexts, so a relationship to one keeps its edge.
+    ...(ir.externals ?? []).map((ext) => ({
+      contextId: ext.id,
+      contextName: ext.name,
+      classification: 'External',
+      isExternal: true,
+    })),
+  ];
+  return parties.map((party, index) => {
+    const col = index % COLUMNS;
+    const row = Math.floor(index / COLUMNS);
+    return {
+      ...party,
       x: col * (NODE_WIDTH + NODE_SPACING) + NODE_SPACING,
       y: row * (NODE_HEIGHT + NODE_SPACING) + NODE_SPACING,
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
-      isExternal: false,
     };
   });
 }
@@ -44,12 +56,7 @@ function buildEdges(
   const seen = new Set<string>();
   const edges: ContextMapEdge[] = [];
 
-  const addEdge = (
-    sourceId: string,
-    targetId: string,
-    relType: string,
-    label: string,
-  ): void => {
+  const addEdge = (sourceId: string, targetId: string, relType: string, label: string): void => {
     const key = `${sourceId}|${targetId}|${relType}`;
     if (seen.has(key)) return;
     const sourceNode = nodeIndex.get(sourceId);
@@ -76,7 +83,12 @@ function buildEdges(
   for (const flow of ir.flows) {
     for (const conn of flow.connections) {
       if (conn.connectionType !== 'crosses-to') continue;
-      const sourceContextId = resolveSourceContextFromEvent(conn.eventId, conn.sourceMomentId, flow, ir);
+      const sourceContextId = resolveSourceContextFromEvent(
+        conn.eventId,
+        conn.sourceMomentId,
+        flow,
+        ir,
+      );
       if (sourceContextId) {
         addEdge(sourceContextId, conn.targetContextId, 'crosses-to', 'crosses-to');
       }

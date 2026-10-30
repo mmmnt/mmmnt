@@ -2,10 +2,7 @@
  * M1 Infrastructure Verification — Smoke Tests
  *
  * These tests verify that the monorepo infrastructure delivered in M1
- * is correctly configured and operational. They produce JUnit XML
- * evidence for Xray QMS traceability (Test Plan MMNT-585).
- *
- * Each `describe`/`it` path maps 1:1 to a pre-created Xray Test issue.
+ * is correctly configured and operational.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -38,7 +35,7 @@ describe('M1 Infrastructure > Repository Scaffold', () => {
 
   it('pnpm-workspace.yaml defines packages/* glob', () => {
     const content = readText('pnpm-workspace.yaml');
-    expect(content).toContain("packages/*");
+    expect(content).toContain('packages/*');
   });
 
   it('turbo.json defines build, test, lint, and typecheck tasks', () => {
@@ -109,8 +106,9 @@ describe('M1 Infrastructure > Shared Tooling', () => {
     }
   });
 
-  it('vitest.workspace.ts includes packages/* in the workspace', () => {
-    const content = readText('vitest.workspace.ts');
+  it('root vitest.config.ts includes packages/* as projects', () => {
+    const content = readText('vitest.config.ts');
+    expect(content).toContain('projects');
     expect(content).toContain('packages/*');
   });
 
@@ -129,9 +127,9 @@ describe('M1 Infrastructure > CI Pipeline', () => {
     expect(fileExists('.github/workflows/ci.yml')).toBe(true);
   });
 
-  it('ci.yml defines build job with Node 20 and 22 matrix', () => {
+  it('ci.yml defines build job with Node 22 and 24 matrix', () => {
     const ci = readText('.github/workflows/ci.yml');
-    expect(ci).toContain('node-version: [20, 22]');
+    expect(ci).toContain('node-version: [22, 24]');
   });
 
   it('ci.yml includes generate, typecheck, lint, build, and test steps', () => {
@@ -141,13 +139,6 @@ describe('M1 Infrastructure > CI Pipeline', () => {
     expect(ci).toContain('pnpm turbo lint');
     expect(ci).toContain('pnpm turbo build');
     expect(ci).toContain('pnpm turbo test');
-  });
-
-  it('ci.yml includes xray-import job for JUnit and Cucumber results', () => {
-    const ci = readText('.github/workflows/ci.yml');
-    expect(ci).toContain('xray-import');
-    expect(ci).toContain('import/execution/junit');
-    expect(ci).toContain('import/execution/cucumber');
   });
 
   it('ci.yml includes quality job with complexity and bundle size checks', () => {

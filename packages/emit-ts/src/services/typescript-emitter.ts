@@ -72,8 +72,12 @@ function generateJsDoc(description: string, indent: string): string {
 
 function generateDeprecatedJsDoc(field: FieldDefinition, indent: string): string {
   if (!field.deprecated) return '';
-  const reason = field.deprecated.reason.trim() ? sanitizeJsDoc(field.deprecated.reason.trim()) : '';
-  const replacement = field.deprecated.replacement.trim() ? sanitizeJsDoc(field.deprecated.replacement.trim()) : '';
+  const reason = field.deprecated.reason.trim()
+    ? sanitizeJsDoc(field.deprecated.reason.trim())
+    : '';
+  const replacement = field.deprecated.replacement.trim()
+    ? sanitizeJsDoc(field.deprecated.replacement.trim())
+    : '';
   let doc = `${indent}/**\n${indent} * @deprecated`;
   if (reason && replacement) {
     doc += ` ${reason} (use ${replacement} instead)`;
@@ -217,8 +221,55 @@ function generateEventUnionType(context: ContextDefinition): string {
   return `\nexport type ${contextName}Event = ${unique.join(' | ')};\n`;
 }
 
+/** Value objects the context declares outside every aggregate (ADR-037 §4). */
+function contextLevelValueObjects(context: ContextDefinition): ValueObjectDefinition[] {
+  const inAggregates = new Set(
+    context.aggregates.flatMap((a) => a.valueObjects.map((v) => v.name)),
+  );
+  return context.valueObjects.filter((v) => !inAggregates.has(v.name));
+}
+
+function hasReadSide(context: ContextDefinition): boolean {
+  return (
+    contextLevelValueObjects(context).length > 0 ||
+    (context.projections ?? []).length > 0 ||
+    (context.queries ?? []).length > 0
+  );
+}
+
+/** ADR-037: a context's value objects, projections and queries, outside its aggregates. */
+function generateReadModelFile(context: ContextDefinition): string {
+  const parts: string[] = [
+    generateJsDoc(`Read side of the ${context.name} context.`, '').trimEnd(),
+    '',
+  ];
+  for (const vo of contextLevelValueObjects(context)) {
+    parts.push(generateValueObjectInterface(vo));
+  }
+  for (const projection of context.projections ?? []) {
+    parts.push(
+      generateValueObjectInterface({
+        id: projection.id,
+        name: projection.name,
+        fields: projection.fields,
+      }),
+    );
+  }
+  for (const query of context.queries ?? []) {
+    const name = toPascalCase(query.name);
+    parts.push(
+      generateValueObjectInterface({ id: query.id, name: `${name}Query`, fields: query.inputs }),
+    );
+    parts.push(`export type ${name}Result = ${query.reads.map(toPascalCase).join(' | ')};\n`);
+  }
+  return parts.join('\n');
+}
+
 function generateContextIndexFile(context: ContextDefinition): string {
   const parts: string[] = [];
+  if (hasReadSide(context)) {
+    parts.push("export type * from './read-model.types.js';");
+  }
 
   // Collect event names for import statements
   const eventImports = collectEventImports(context);
@@ -245,9 +296,7 @@ function generateContextIndexFile(context: ContextDefinition): string {
   return parts.join('\n');
 }
 
-function collectEventImports(
-  context: ContextDefinition,
-): { module: string; names: string[] }[] {
+function collectEventImports(context: ContextDefinition): { module: string; names: string[] }[] {
   const imports: { module: string; names: string[] }[] = [];
   for (const aggregate of context.aggregates) {
     const names = aggregate.events.map((e) => toPascalCase(e.name));
@@ -282,61 +331,51 @@ function filterAggregates(
   return context.aggregates;
 }
 
+/** Emit one included context's files; returns its directory when it produced an index, for the root barrel. */
+function emitContext(
+  context: ContextDefinition,
+  scope: GenerationScope,
+  files: Map<string, string>,
+  filesWritten: string[],
+): string | undefined {
+  const dir = safePathSegment(toKebabCase(context.name));
+  const contextDir = `src/${dir}`;
+  const write = (path: string, content: string): void => {
+    files.set(path, content);
+    filesWritten.push(path);
+  };
+  const aggregates = filterAggregates(context, scope);
+
+  for (const aggregate of aggregates) {
+    const kebabAggregate = toKebabCase(aggregate.name);
+    write(`${contextDir}/${kebabAggregate}.types.ts`, generateTypesFile(aggregate));
+    write(`${contextDir}/${kebabAggregate}.aggregate.ts`, generateAggregateFile(aggregate));
+  }
+
+  const readSide = scope.level !== 'aggregate' && hasReadSide(context);
+  if (readSide) write(`${contextDir}/read-model.types.ts`, generateReadModelFile(context));
+
+  if (aggregates.length === 0 && !readSide) return undefined;
+  write(`${contextDir}/index.ts`, generateContextIndexFile({ ...context, aggregates }));
+  return dir;
+}
+
 export class TypeScriptEmitter {
   emit(ir: IntermediateRepresentation, options: EmitOptions): TypeScriptEmitterOutput {
     const files = new Map<string, string>();
     const filesWritten: string[] = [];
 
-    for (const context of ir.contexts) {
-      if (!shouldIncludeContext(context, options.scope)) {
-        continue;
-      }
+    const exported = ir.contexts
+      .filter((context) => shouldIncludeContext(context, options.scope))
+      .map((context) => emitContext(context, options.scope, files, filesWritten))
+      .filter((dir): dir is string => dir !== undefined);
 
-      const contextDir = `src/${safePathSegment(toKebabCase(context.name))}`;
-      const aggregates = filterAggregates(context, options.scope);
-
-      for (const aggregate of aggregates) {
-        const kebabAggregate = toKebabCase(aggregate.name);
-
-        const typesPath = `${contextDir}/${kebabAggregate}.types.ts`;
-        const typesContent = generateTypesFile(aggregate);
-        files.set(typesPath, typesContent);
-        filesWritten.push(typesPath);
-
-        const aggregatePath = `${contextDir}/${kebabAggregate}.aggregate.ts`;
-        const aggregateContent = generateAggregateFile(aggregate);
-        files.set(aggregatePath, aggregateContent);
-        filesWritten.push(aggregatePath);
-      }
-
-      if (aggregates.length > 0) {
-        const indexPath = `${contextDir}/index.ts`;
-        const indexContent = generateContextIndexFile({
-          ...context,
-          aggregates,
-        });
-        files.set(indexPath, indexContent);
-        filesWritten.push(indexPath);
-      }
-    }
-
-    // Generate root barrel file re-exporting all context index files
-    const rootBarrelParts: string[] = [];
-    for (const context of ir.contexts) {
-      if (!shouldIncludeContext(context, options.scope)) {
-        continue;
-      }
-      const aggregates = filterAggregates(context, options.scope);
-      if (aggregates.length > 0) {
-        const contextDir = safePathSegment(toKebabCase(context.name));
-        rootBarrelParts.push(`export * from './${contextDir}/index.js';`);
-      }
-    }
-
-    if (rootBarrelParts.length > 0) {
-      rootBarrelParts.push('');
+    if (exported.length > 0) {
       const rootIndexPath = 'src/index.ts';
-      files.set(rootIndexPath, rootBarrelParts.join('\n'));
+      files.set(
+        rootIndexPath,
+        [...exported.map((dir) => `export * from './${dir}/index.js';`), ''].join('\n'),
+      );
       filesWritten.push(rootIndexPath);
     }
 

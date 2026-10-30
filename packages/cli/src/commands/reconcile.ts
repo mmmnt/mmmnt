@@ -17,10 +17,10 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
-import { MomentParser } from '@mmmnt/core';
 import { SiftEventStreamReader } from '@mmmnt/sync';
-import type { IntermediateRepresentation } from '@mmmnt/core';
+import type { IntermediateRepresentation, ParseResult } from '@mmmnt/core';
 import type { CascadeCategory } from '@mmmnt/sync';
+import { isDirectory, loadSpecification } from '../lib/load-specification.js';
 
 type ReconcileOutcome = 'APPLIED' | 'DRIFT' | 'BREAKING';
 
@@ -67,28 +67,45 @@ function validateArgs(
   values: { local?: boolean; event?: string },
   positionals: string[],
 ): ReconcileResult | null {
-  if (!positionals[0]) return fail('Usage: moment reconcile [--local | --event <cascade.json>] <file.moment>');
+  if (!positionals[0])
+    return fail(
+      'Usage: moment reconcile [--local | --event <cascade.json>] <file.moment | model-dir>',
+    );
   if (!values.local && !values.event) return fail('Error: specify --local or --event <path>');
-  if (values.local && values.event) return fail('Error: --local and --event are mutually exclusive');
+  if (values.local && values.event)
+    return fail('Error: --local and --event are mutually exclusive');
   return null;
 }
 
-async function parseSpec(resolvedPath: string): Promise<ReconcileResult | { ir: IntermediateRepresentation }> {
+async function parseSpec(
+  resolvedPath: string,
+): Promise<ReconcileResult | { ir: IntermediateRepresentation }> {
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  let content: string;
-  try { content = readFileSync(resolvedPath, 'utf-8'); } catch (err: unknown) {
-    return fail(`Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`);
+  let parseResult: ParseResult;
+  try {
+    parseResult = await loadSpecification(resolvedPath);
+  } catch (err: unknown) {
+    return fail(
+      `Error: Failed to read ${resolvedPath}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
-
-  const parseResult = await new MomentParser().parseContent(content);
   if (!parseResult.success) return fail('Error: Spec has parse errors — fix before reconciling');
 
   return { ir: parseResult.ir! };
 }
 
-function reconcileLocal(ir: IntermediateRepresentation, specPath: string, asJson: boolean): ReconcileResult {
-  const projectDir = dirname(specPath);
+/** A project directory holds its own `.domain/`; a single file's sits beside it. */
+function projectDirOf(specPath: string): string {
+  return isDirectory(specPath) ? specPath : dirname(specPath);
+}
+
+function reconcileLocal(
+  ir: IntermediateRepresentation,
+  specPath: string,
+  asJson: boolean,
+): ReconcileResult {
+  const projectDir = projectDirOf(specPath);
   const domainDir = join(projectDir, '.domain');
 
   if (!existsSync(domainDir)) {
@@ -109,9 +126,15 @@ function reconcileLocal(ir: IntermediateRepresentation, specPath: string, asJson
   return buildResult(outcome, category, asJson);
 }
 
-function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, eventPath: string, asJson: boolean): ReconcileResult {
+function reconcileFromEvent(
+  ir: IntermediateRepresentation,
+  specPath: string,
+  eventPath: string,
+  asJson: boolean,
+): ReconcileResult {
   const resolvedEventPath = resolve(eventPath);
-  if (!existsSync(resolvedEventPath)) return fail(`Error: Event file not found: ${resolvedEventPath}`);
+  if (!existsSync(resolvedEventPath))
+    return fail(`Error: Event file not found: ${resolvedEventPath}`);
 
   let raw: unknown;
   try {
@@ -120,13 +143,14 @@ function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, ev
     return fail('Error: Invalid JSON in cascade event file');
   }
 
-  if (typeof raw !== 'object' || raw === null) return fail('Error: Cascade event must be a JSON object');
+  if (typeof raw !== 'object' || raw === null)
+    return fail('Error: Cascade event must be a JSON object');
 
   const eventPayload = raw as Record<string, unknown>;
   const elements = validateAffectedElements(eventPayload.affectedElements);
   if (typeof elements === 'string') return fail(elements);
 
-  const projectDir = dirname(specPath);
+  const projectDir = projectDirOf(specPath);
   const category = classifyAffectedElements(ir, elements);
   const outcome = categoryToOutcome(category);
 
@@ -138,13 +162,14 @@ function reconcileFromEvent(ir: IntermediateRepresentation, specPath: string, ev
 function validateAffectedElements(value: unknown): string[] | string {
   if (value === undefined) return [];
   if (!Array.isArray(value)) return 'Error: affectedElements must be an array';
-  if (!value.every((v) => typeof v === 'string')) return 'Error: affectedElements must contain only strings';
+  if (!value.every((v) => typeof v === 'string'))
+    return 'Error: affectedElements must contain only strings';
   return value as string[];
 }
 
 function classifyDrift(ir: IntermediateRepresentation, specPath: string): CascadeCategory {
   try {
-    const domainDir = join(dirname(specPath), '.domain');
+    const domainDir = join(projectDirOf(specPath), '.domain');
     const reader = new SiftEventStreamReader();
     const readResult = reader.read(domainDir);
 
@@ -171,7 +196,10 @@ function classifyDrift(ir: IntermediateRepresentation, specPath: string): Cascad
   }
 }
 
-function classifyAffectedElements(ir: IntermediateRepresentation, elements: string[]): CascadeCategory {
+function classifyAffectedElements(
+  ir: IntermediateRepresentation,
+  elements: string[],
+): CascadeCategory {
   if (elements.length === 0) return 1;
 
   const knownNames = new Set<string>();
@@ -201,7 +229,11 @@ function categoryToOutcome(category: CascadeCategory): ReconcileOutcome {
   return 'APPLIED';
 }
 
-function writeReconcileEvent(projectDir: string, outcome: ReconcileOutcome, category: CascadeCategory): void {
+function writeReconcileEvent(
+  projectDir: string,
+  outcome: ReconcileOutcome,
+  category: CascadeCategory,
+): void {
   const eventDir = join(projectDir, '.complai', 'events', 'moment');
   mkdirSync(eventDir, { recursive: true });
 
@@ -227,7 +259,9 @@ function updateFingerprint(domainDir: string, projectDir: string): void {
 
   const hash = createHash('sha256');
   const { readdirSync } = require('node:fs') as typeof import('node:fs');
-  const files = readdirSync(domainDir).filter((f: string) => f.endsWith('.jsonl')).sort();
+  const files = readdirSync(domainDir)
+    .filter((f: string) => f.endsWith('.jsonl'))
+    .sort();
   for (const file of files) {
     hash.update(readFileSync(join(domainDir, file), 'utf-8'));
   }
@@ -236,13 +270,22 @@ function updateFingerprint(domainDir: string, projectDir: string): void {
   // Idempotent: skip write if content unchanged
   if (existsSync(fpPath)) {
     try {
-      const existing = JSON.parse(readFileSync(fpPath, 'utf-8')) as { sift?: { contentHash?: string } };
+      const existing = JSON.parse(readFileSync(fpPath, 'utf-8')) as {
+        sift?: { contentHash?: string };
+      };
       if (existing.sift?.contentHash === contentHash) return;
-    } catch { /* overwrite */ }
+    } catch {
+      /* overwrite */
+    }
   }
 
   const fingerprint = {
-    sift: { specificationId: 'reconciled', contentHash, importedAt: new Date().toISOString(), boundedContextCount: files.length },
+    sift: {
+      specificationId: 'reconciled',
+      contentHash,
+      importedAt: new Date().toISOString(),
+      boundedContextCount: files.length,
+    },
   };
 
   mkdirSync(fpDir, { recursive: true });
@@ -258,7 +301,11 @@ function buildNoChangesResult(asJson: boolean): ReconcileResult {
   return { success: true, outcome: 'NO_CHANGES', message: msg };
 }
 
-function buildResult(outcome: ReconcileOutcome, category: CascadeCategory, asJson: boolean): ReconcileResult {
+function buildResult(
+  outcome: ReconcileOutcome,
+  category: CascadeCategory,
+  asJson: boolean,
+): ReconcileResult {
   const messages: Record<ReconcileOutcome, string> = {
     APPLIED: 'APPLIED — Category 1: deterministic updates applied',
     DRIFT: 'DRIFT — Category 2: structural drift detected, review required',

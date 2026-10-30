@@ -3,6 +3,7 @@
   "flowId": "flow-ticket-transfer",
   "flowName": "ticket-transfer",
   "scenarioLabel": "Failure Path: ticket-transfer [declined]",
+  "kind": "failure",
   "description": "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked.",
   "given": "A transfer initiation scenario is initiated",
   "when": "The flow progresses through Transfer initiation, Recipient notification, Transfer resolution",
@@ -65,23 +66,6 @@
       }
     },
     {
-      "eventId": "evt-008",
-      "eventType": "SimSaga.TransferLifecycle.Pending",
-      "productSource": "moment:simulation",
-      "sessionId": "sess-scenario-flow-ticket-transfer-1",
-      "causationEventIds": [
-        "evt-002"
-      ],
-      "correlationId": "corr-scenario-flow-ticket-transfer-1",
-      "timestamp": "2026-01-01T10:00:01.000Z",
-      "version": 1,
-      "payload": {
-        "sagaName": "TransferLifecycle",
-        "state": "Pending",
-        "triggeredBy": "TransferInitiated"
-      }
-    },
-    {
       "eventId": "evt-003",
       "eventType": "SimProcess.SendTransferNotification",
       "productSource": "moment:simulation",
@@ -109,7 +93,7 @@
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-ticket-transfer-1",
       "causationEventIds": [
-        "evt-002"
+        "evt-003"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer-1",
       "timestamp": "2026-01-01T10:00:03.000Z",
@@ -128,7 +112,7 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer-1",
       "causationEventIds": [
-        "evt-002"
+        "evt-004"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer-1",
       "timestamp": "2026-01-01T10:00:04.000Z",
@@ -137,7 +121,8 @@
         "nodeId": "moment-2-Transfer-resolution::delivery::DeclineTransfer::br1",
         "processName": "DeclineTransfer",
         "transferId": "transferId-001",
-        "reason": "sample-reason"
+        "reason": "sample-reason",
+        "outcome": "declined"
       }
     },
     {
@@ -146,7 +131,7 @@
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-ticket-transfer-1",
       "causationEventIds": [
-        "evt-002"
+        "evt-005"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer-1",
       "timestamp": "2026-01-01T10:00:05.000Z",
@@ -155,7 +140,8 @@
         "nodeId": "moment-2-Transfer-resolution::delivery::TransferDeclined::br1",
         "transferId": "transferId-001",
         "reason": "sample-reason",
-        "declinedAt": "2026-01-01T10:00:00.000Z"
+        "declinedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "declined"
       }
     },
     {
@@ -164,13 +150,31 @@
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-ticket-transfer-1",
       "causationEventIds": [
-        "evt-002"
+        "evt-006"
       ],
       "correlationId": "corr-scenario-flow-ticket-transfer-1",
       "timestamp": "2026-01-01T10:00:06.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-2-Transfer-resolution::transferDeclined::TransferDeclined::br1"
+        "nodeId": "moment-2-Transfer-resolution::transferDeclined::TransferDeclined::br1",
+        "outcome": "declined"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "SimSaga.TransferLifecycle.Pending",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-ticket-transfer-1",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-ticket-transfer-1",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "TransferLifecycle",
+        "state": "Pending",
+        "triggeredBy": "TransferInitiated"
       }
     }
   ]

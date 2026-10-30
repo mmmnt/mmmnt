@@ -16,6 +16,8 @@ import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator, SpecificationDocumentGenerator } from '@mmmnt/generate';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
+import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
+import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface GenerateCommandResult {
   readonly success: boolean;
@@ -45,27 +47,33 @@ function readFile(path: string): string | GenerateCommandResult {
 }
 
 export async function runGenerate(argv: string[]): Promise<GenerateCommandResult> {
-  const { values, positionals } = parseArgs({
+  const options = {
+    out: { type: 'string', short: 'o' },
+    // Alias for --out, symmetric with `moment simulate --out-dir`.
+    'out-dir': { type: 'string' },
+  } as const;
+  const { values, positionals, tokens } = parseArgs({
     args: argv,
-    options: {
-      out: { type: 'string', short: 'o' },
-    },
+    options,
     allowPositionals: true,
     strict: false,
+    tokens: true,
   });
+  warnUnknownFlags(tokens, Object.keys(options));
 
   const filePath = positionals[0];
-  if (!filePath) return fail('Usage: moment generate <file.moment> [--out <dir>]');
+  if (!filePath)
+    return fail('Usage: moment generate <file.moment> [--out <dir> | --out-dir <dir>]');
 
   const resolvedPath = resolve(filePath);
   if (!existsSync(resolvedPath)) return fail(`Error: File not found: ${resolvedPath}`);
 
-  const content = readFile(resolvedPath);
+  const content = specificationText(resolvedPath, readFile);
   if (typeof content !== 'string') return content;
 
   // Step 1: Parse
   const parser = new MomentParser();
-  const parseResult = await parser.parseContent(content);
+  const parseResult = await parseSpecification(resolvedPath, content);
 
   if (!parseResult.success) {
     return {
@@ -93,11 +101,10 @@ export async function runGenerate(argv: string[]): Promise<GenerateCommandResult
   const tsOutput = tsEmitter.emit(ir, { scope: { level: 'system' } });
   const scaffoldOutput = scaffoldEmitter.emit(ir, topology);
 
-  // Step 4: Write everything to disk
-  const outDir = resolveOutputBaseDir(
-    resolvedPath,
-    typeof values.out === 'string' ? values.out : undefined,
-  );
+  // Step 4: Write everything to disk. --out-dir and --out are aliases;
+  // resolution against cwd mirrors `moment simulate --out-dir`. Without
+  // either flag the base dir is the nearest .manifest.yaml root, else cwd.
+  const outDir = resolveOutputBaseDir(resolvedPath, resolveStringFlag(values, 'out-dir', 'out'));
 
   const allFiles = new Map<string, string>();
   for (const [path, content] of tsOutput.files) allFiles.set(path, content);

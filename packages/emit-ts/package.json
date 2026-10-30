@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/emit-ts",
   "description": "TypeScript type definitions and test scaffold generation from Moment domain specifications",
-  "version": "0.3.1",
+  "version": "0.6.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/emit-ts#readme",
@@ -24,7 +24,7 @@
     "event-driven"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -51,7 +51,8 @@
     "@mmmnt/derive": "workspace:*"
   },
   "devDependencies": {
-    "@mmmnt/generate": "workspace:*"
+    "@mmmnt/generate": "workspace:*",
+    "@types/node": "^25.9.9"
   },
   "publishConfig": {
     "access": "public",

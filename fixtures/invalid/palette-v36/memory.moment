@@ -1,0 +1,10 @@
+// ADR-038 invalid exemplar: V36 — an aggregate state that moves on a command the aggregate does not have.
+context "Memory" [Core]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    state initial Open
+    state Open -> Closed on NoSuchCommand
+    command RecordDecision
+      emits DecisionMade
+    event DecisionMade
+      entryId: UUID

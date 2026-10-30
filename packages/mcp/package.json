@@ -1,7 +1,7 @@
 {
   "name": "@mmmnt/mcp",
   "description": "Model Context Protocol server exposing Moment domain services as AI agent tools",
-  "version": "0.3.1",
+  "version": "0.6.1",
   "license": "FSL-1.1-Apache-2.0",
   "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
   "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/mcp#readme",
@@ -24,7 +24,7 @@
     "ddd"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "type": "module",
   "bin": {
@@ -43,15 +43,16 @@
     "@mmmnt/core": "workspace:*",
     "@mmmnt/derive": "workspace:*",
     "@mmmnt/emit-ts": "workspace:*",
-    "@mmmnt/generate": "workspace:*",
-    "@mmmnt/schema": "workspace:*",
     "@mmmnt/sync": "workspace:*",
     "@mmmnt/viz": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^4.0.0"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.9"
   }
 }
