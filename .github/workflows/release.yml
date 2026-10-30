@@ -162,22 +162,26 @@ jobs:
         id: changesets
         uses: changesets/action@v2
         with:
-          version: pnpm changeset:version
-          # `changeset publish` (not `pnpm -r publish`) so the action can
-          # detect published packages and create git tags + GitHub releases.
-          # v0.4.0 shipped untagged because raw pnpm publish output is not
-          # parsed by changesets/action.
-          publish: pnpm changeset publish
-          createGithubReleases: true
-          title: 'chore: version packages'
-          commit: 'chore: version packages'
-        env:
-          # App token (not secrets.GITHUB_TOKEN) so the version-packages PR
+          # App token (not the default GITHUB_TOKEN) so the version-packages PR
           # is authored by the mmmnt-release app. GitHub cascades workflow
           # runs for app-authored pushes; it suppresses cascades for pushes
           # authored via the default GITHUB_TOKEN. This is why the previous
-          # version PR (mmmnt/mmmnt#140) got stuck with no CI runs.
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          # version PR (mmmnt/mmmnt#140) got stuck with no CI runs. Action v2
+          # reads the token only from this input and pushes through the GitHub
+          # API, so the version commit is signed and attributed to the app.
+          github-token: ${{ steps.app-token.outputs.token }}
+          version-script: pnpm changeset:version
+          # `changeset publish` (not `pnpm -r publish`) so the action can
+          # detect published packages and create git tags + GitHub releases.
+          # v0.4.0 shipped untagged because raw pnpm publish output was not
+          # read by changesets/action. The action passes CHANGESETS_OUTPUT to
+          # this script; `changeset publish` writes the published list there.
+          publish-script: pnpm changeset publish
+          create-github-releases: true
+          pr-title: 'chore: version packages'
+          commit-message: 'chore: version packages'
+        env:
+          # npm authenticates through OIDC trusted publishing (id-token: write).
           NPM_CONFIG_PROVENANCE: true
 
   discord-notify:
