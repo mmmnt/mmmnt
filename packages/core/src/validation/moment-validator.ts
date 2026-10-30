@@ -491,14 +491,30 @@ export class MomentValidator {
 
   // =========================================================================
   // V17: returns-to depth capped at 1 -> warning
+  // A returns-to loops from its own moment back to the moment it names. Every
+  // returns-to from one moment to the same target is the same loop, so several
+  // branches retrying the same step are fine. Two different loops that overlap
+  // nest, and that is what this rule reports.
   // =========================================================================
   checkReturnsToDepth(flow: FlowDeclaration, accept: ValidationAcceptor): void {
-    let returnsToCount = 0;
-    for (const moment of flow.moments) {
-      returnsToCount += this.countReturnsToInMoment(moment);
-    }
-    if (returnsToCount > 1) {
-      accept('warning', 'V17: Flow contains more than one returns-to connection.', {
+    const indexByLabel = new Map<string, number>();
+    flow.moments.forEach((moment, index) => indexByLabel.set(moment.label, index));
+
+    const loops = new Map<string, { from: number; to: number }>();
+    flow.moments.forEach((moment, from) => {
+      for (const label of this.returnsToTargets(moment)) {
+        const to = indexByLabel.get(label);
+        if (to === undefined || to >= from) continue;
+        loops.set(`${to}:${from}`, { from, to });
+      }
+    });
+
+    const spans = [...loops.values()];
+    const nested = spans.some((a, i) =>
+      spans.some((b, j) => j > i && a.to < b.from && b.to < a.from),
+    );
+    if (nested) {
+      accept('warning', 'V17: Flow nests one returns-to loop inside another.', {
         node: flow,
         property: 'name',
       });
@@ -773,21 +789,15 @@ export class MomentValidator {
     return names;
   }
 
-  private countReturnsToInMoment(moment: MomentDeclaration): number {
-    let count = 0;
-    for (const node of moment.nodes) {
+  private returnsToTargets(moment: MomentDeclaration): string[] {
+    const targets: string[] = [];
+    const nodes = [...moment.nodes, ...moment.whenBlocks.flatMap((wb) => wb.nodes)];
+    for (const node of nodes) {
       for (const conn of node.connections) {
-        if (isReturnsTo(conn)) count++;
+        if (isReturnsTo(conn)) targets.push(conn.frameLabel);
       }
     }
-    for (const wb of moment.whenBlocks) {
-      for (const node of wb.nodes) {
-        for (const conn of node.connections) {
-          if (isReturnsTo(conn)) count++;
-        }
-      }
-    }
-    return count;
+    return targets;
   }
 
   private collectReferencedLaneIds(flow: FlowDeclaration): Set<string> {

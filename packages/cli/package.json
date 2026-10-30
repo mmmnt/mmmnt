@@ -54,6 +54,7 @@
     "provenance": true
   },
   "devDependencies": {
+    "@types/node": "^25.9.9",
     "@types/ws": "^8.18.2",
     "isomorphic-git": "^1.44.8",
     "ws": "^8.22.0"

@@ -335,7 +335,7 @@ describe('MomentValidator', () => {
     });
 
     describe('V17', () => {
-      it('warns when flow has more than one returns-to', async () => {
+      it('warns when one returns-to loop nests inside another', async () => {
         const result = await validate(`
           flow "test"
             lane a "A" [Core]
@@ -364,6 +364,63 @@ describe('MomentValidator', () => {
         `);
         const warnings = warningMessages(result);
         expect(warnings.some((m) => m.includes('V17'))).toBe(false);
+      });
+
+      it('does not warn when several branches of one moment retry the same step', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "A" [Core]
+            moment "Step 1"
+              a: First
+            moment "Step 2"
+              a: Second
+              when Wrong [a]
+                a: Refused
+                  returns-to "Step 1"
+              when Disabled [a]
+                a: Blocked
+                  returns-to "Step 1"
+        `);
+        const warnings = warningMessages(result);
+        expect(warnings.some((m) => m.includes('V17'))).toBe(false);
+      });
+
+      it('does not warn when loops follow one another', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "A" [Core]
+            moment "Step 1"
+              a: First
+            moment "Step 2"
+              a: Second
+                returns-to "Step 1"
+            moment "Step 3"
+              a: Third
+            moment "Step 4"
+              a: Fourth
+                returns-to "Step 3"
+        `);
+        const warnings = warningMessages(result);
+        expect(warnings.some((m) => m.includes('V17'))).toBe(false);
+      });
+
+      it('warns when two loops cross', async () => {
+        const result = await validate(`
+          flow "test"
+            lane a "A" [Core]
+            moment "Step 1"
+              a: First
+            moment "Step 2"
+              a: Second
+            moment "Step 3"
+              a: Third
+                returns-to "Step 1"
+            moment "Step 4"
+              a: Fourth
+                returns-to "Step 2"
+        `);
+        const warnings = warningMessages(result);
+        expect(warnings.some((m) => m.includes('V17'))).toBe(true);
       });
     });
   });
@@ -818,7 +875,7 @@ describe('MomentValidator', () => {
   // Branch coverage: when blocks with returns-to for V17 counting
   // ===========================================================================
   describe('V17 branch coverage', () => {
-    it('counts returns-to inside when blocks', async () => {
+    it('reads returns-to inside when blocks', async () => {
       const result = await validate(`
         flow "test"
           lane a "A" [Core]
@@ -828,6 +885,7 @@ describe('MomentValidator', () => {
             when optionA
               a: PathA
                 returns-to "Step 1"
+          moment "Step 3" [branch]
             when optionB
               a: PathB
                 returns-to "Step 1"
