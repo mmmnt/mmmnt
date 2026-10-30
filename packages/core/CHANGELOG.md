@@ -1,5 +1,16 @@
 # @mmmnt/core
 
+## 0.6.2
+
+### Patch Changes
+
+- [#196](https://github.com/mmmnt/mmmnt/pull/196) [`b4214eb`](https://github.com/mmmnt/mmmnt/commit/b4214eb1c21be33f0a5f41803891a0106ef9b1d3) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - String escapes, coverage restored, and the `@hono/node-server` advisory ([#195](https://github.com/mmmnt/mmmnt/issues/195)).
+
+  - core: strings accept backslash escapes, so `\"` can appear inside a string. Values keep quotes that begin or end their content, and the Sift importer escapes every string it writes, so its output parses.
+  - core: V12 no longer throws when parser recovery leaves a deprecation without its replacement.
+  - cli: `moment reconcile <spec> --event` with no path reports the missing flag instead of crashing.
+  - mcp: `@hono/node-server` resolves to 2.x, fixing GHSA-rmxm-3fg6-px4f.
+
 ## 0.6.1
 
 ### Patch Changes

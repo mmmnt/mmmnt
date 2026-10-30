@@ -1,5 +1,12 @@
 # @mmmnt/sync
 
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/emit-ts@0.6.2
+
 ## 0.6.1
 
 ### Patch Changes
