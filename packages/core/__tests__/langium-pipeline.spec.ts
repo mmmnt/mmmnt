@@ -2,10 +2,7 @@
  * MMNT-25 Langium Pipeline — Verification Tests
  *
  * These tests verify that Langium is correctly wired into the
- * @mmmnt/core build pipeline. They produce JUnit XML evidence
- * for Xray QMS traceability (Test Plan MMNT-586).
- *
- * Xray Test issues: MMNT-652, MMNT-653, MMNT-654, MMNT-655
+ * @mmmnt/core build pipeline.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

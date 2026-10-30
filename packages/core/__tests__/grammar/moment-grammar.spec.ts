@@ -3,8 +3,6 @@
  *
  * Tests verify that the moment.langium grammar correctly parses all 21
  * Langium constructs (10 spatial + 11 temporal) and rejects invalid syntax.
- *
- * Xray Test issues: MMNT-668–675
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import {

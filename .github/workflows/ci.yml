@@ -218,20 +218,7 @@ jobs:
             exit 1
           fi
 
-          # Check if the B subtask indicates zero behavioral assertions (type-only stories)
-          GATE_B_SUMMARY=$(echo "$RESPONSE" | jq -r '[.fields.subtasks[] | select(.fields.summary | test("-B — Test Specification"))][0].fields.summary // empty')
-          IS_ZERO_ASSERTION=$(echo "$GATE_B_SUMMARY" | grep -ci "zero" || true)
-
-          # Check for Test issue links (informational)
-          TEST_LINK_COUNT=$(echo "$RESPONSE" | jq '[.fields.issuelinks[] | select(.type.name == "Test")] | length')
-
-          if [ "$TEST_LINK_COUNT" -gt 0 ]; then
-            echo "✅ Test traceability verified: Subtask D (Done), $TEST_LINK_COUNT Test issue link(s) found."
-          elif [ "$IS_ZERO_ASSERTION" -gt 0 ]; then
-            echo "✅ Test traceability verified: Subtask D (Done), zero Test links expected (type-only story)."
-          else
-            echo "✅ Test traceability verified: Subtask D (Done), no Test issue links."
-          fi
+          echo "✅ Test traceability verified: Subtask D (Done)."
         env:
           # Branch names are chosen by whoever opens the PR; reach the script only through env.
           HEAD_REF: ${{ github.head_ref }}

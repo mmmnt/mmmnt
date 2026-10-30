@@ -141,11 +141,6 @@ describe('M1 Infrastructure > CI Pipeline', () => {
     expect(ci).toContain('pnpm turbo test');
   });
 
-  it('ci.yml does not import results into Xray', () => {
-    const ci = readText('.github/workflows/ci.yml');
-    expect(ci).not.toMatch(/xray/i);
-  });
-
   it('ci.yml includes quality job with complexity and bundle size checks', () => {
     const ci = readText('.github/workflows/ci.yml');
     expect(ci).toContain('quality:');

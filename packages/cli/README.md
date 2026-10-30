@@ -111,7 +111,7 @@ moment parse specs/
 
 | Command | Description |
 |---------|-------------|
-| `moment cucumber-json <file\|dir>` | Output Cucumber JSON to stdout for Xray import. Useful for integrating Moment-derived scenarios into Jira/Xray test management workflows. |
+| `moment cucumber-json <file\|dir>` | Output Cucumber JSON to stdout, for any tool that imports Cucumber results. |
 | `moment emit-ts <file\|dir>` | Generate TypeScript types, aggregate files, read-model types, and test scaffold files from the specification. `--dry-run` lists the files without writing them. |
 | `moment generate <file\|dir>` | Generate Gherkin `.feature` files, a `specification.md` document with Mermaid diagrams, TypeScript types, and test scaffolds. |
 
