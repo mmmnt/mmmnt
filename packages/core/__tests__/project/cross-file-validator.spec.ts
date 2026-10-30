@@ -185,6 +185,40 @@ describe('validateCrossFileReferences', () => {
     expect(result.diagnostics[0].severity).toBe('warning');
   });
 
+  it('does not warn when the crossing event is declared in the target context (PM-04)', () => {
+    const ir = makeIr({
+      contexts: [
+        {
+          id: 'ctx-Target',
+          name: 'Target',
+          aggregates: [{ events: [{ name: 'ExistingEvent' }] }],
+          events: [{ name: 'ExistingEvent' }],
+        } as any,
+      ],
+      flows: [
+        {
+          id: 'flow-test',
+          name: 'test',
+          lanes: [],
+          moments: [],
+          connections: [
+            {
+              id: 'conn-1',
+              sourceMomentId: 'm-1',
+              targetContextId: 'ctx-Target',
+              eventId: 'evt-ExistingEvent',
+              connectionType: 'crosses-to',
+              schemaContract: { eventType: 'ExistingEvent', fields: [], relationshipType: 'CS' },
+            },
+          ],
+        } as any,
+      ],
+    });
+    const result = validateCrossFileReferences(ir);
+    expect(result.valid).toBe(true);
+    expect(result.diagnostics.filter((d) => d.ruleId === 'PM-04')).toEqual([]);
+  });
+
   it('flags unresolved moment entry contextIds (PM-05)', () => {
     const ir = makeIr({
       flows: [

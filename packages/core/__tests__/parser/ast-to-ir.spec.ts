@@ -373,6 +373,24 @@ describe('AstToIr', () => {
     });
   });
 
+  it('omits the initial state when an aggregate declares only transitions', async () => {
+    const ir = await toIr(`
+      context "Test"
+        aggregate "Node"
+          identity nodeId: UUID
+          state WritesOpen -> Paused on PauseWrites
+          command PauseWrites
+            emits WritesPaused
+    `);
+
+    const states = ir.contexts[0].aggregates[0].states;
+    expect(states).toEqual({
+      initials: [],
+      transitions: [{ from: 'WritesOpen', to: 'Paused', command: 'PauseWrites' }],
+    });
+    expect(states).not.toHaveProperty('initial');
+  });
+
   it('transforms gateways on an external, a projection, a policy and an orchestration (ADR-038 §4)', async () => {
     const ir = await toIr(`
       external Hosted "upstream"
@@ -573,12 +591,12 @@ describe('AstToIr', () => {
         flows: [
           {
             $type: 'FlowDeclaration',
-            name: '"synthetic"',
+            name: 'synthetic',
             lanes: [],
             moments: [
               {
                 $type: 'MomentDeclaration',
-                label: '"Interleaved"',
+                label: 'Interleaved',
                 nodes: [
                   {
                     $type: 'NodePlacement',
@@ -656,12 +674,12 @@ describe('AstToIr', () => {
         flows: [
           {
             $type: 'FlowDeclaration',
-            name: '"synthetic"',
+            name: 'synthetic',
             lanes: [],
             moments: [
               {
                 $type: 'MomentDeclaration',
-                label: '"Synthetic"',
+                label: 'Synthetic',
                 nodes: [
                   { $type: 'NodePlacement', laneId: 'a', nodeName: 'E1', connections: [] },
                   { $type: 'NodePlacement', laneId: 'a', nodeName: 'E2', connections: [] },
@@ -751,6 +769,22 @@ describe('AstToIr', () => {
     expect(returnsTo!.sourceMomentId).toBe('moment-1-Step-2');
   });
 
+  it('leaves targetMomentId unset when returns-to names no moment in the flow', async () => {
+    const ir = await toIr(`
+      flow "test"
+        lane a "A" [Core]
+        moment "Step 1"
+          a: EventA
+        moment "Step 2"
+          a: EventB
+            returns-to "Nowhere"
+    `);
+
+    const returnsTo = ir.flows[0].connections.find((c) => c.connectionType === 'returns-to');
+    expect(returnsTo).toMatchObject({ targetMomentLabel: 'Nowhere' });
+    expect(returnsTo).not.toHaveProperty('targetMomentId');
+  });
+
   it('collects commands, events, value objects, invariants at context level', async () => {
     const ir = await toIr(`
       context "Test" [Core]
@@ -783,6 +817,25 @@ describe('AstToIr', () => {
 
     expect(ir.metadata).toEqual({ name: '', version: '0.0.0' });
     expect(ir.glossary).toEqual([]);
+  });
+
+  it('stamps caller-supplied metadata, including a description, onto the IR', async () => {
+    const doc = await parse(`
+      context "Test"
+        aggregate "Order"
+          identity orderId: UUID
+    `);
+    const ir = astToIr(doc.parseResult.value, {
+      name: 'orders',
+      version: '1.2.0',
+      description: 'Order management',
+    });
+
+    expect(ir.metadata).toEqual({
+      name: 'orders',
+      version: '1.2.0',
+      description: 'Order management',
+    });
   });
 
   it('extracts context relationships', async () => {

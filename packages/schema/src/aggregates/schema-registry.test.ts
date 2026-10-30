@@ -422,6 +422,70 @@ describe('SchemaRegistry', () => {
     expect(r2.getFieldPhase('UserCreated', 'userId')).toBe('active');
   });
 
+  it('rejects a replayed stream that registers the same schema twice (SR-01)', () => {
+    const registered = new SchemaRegistry().registerEventSchema({
+      eventType: 'UserCreated',
+      version: '1.0.0',
+      fieldDefinitions: makeFields(),
+      registeredBy: 'admin',
+    });
+
+    const replay = new SchemaRegistry();
+    replay.apply(registered);
+    expect(() => replay.apply(registered)).toThrow(
+      "SR-01: Duplicate schema 'UserCreated@1.0.0' in event stream",
+    );
+  });
+
+  it('rejects a replayed deprecation without a reason or replacement (SR-03)', () => {
+    const r1 = new SchemaRegistry();
+    const registered = r1.registerEventSchema({
+      eventType: 'UserCreated',
+      version: '1.0.0',
+      fieldDefinitions: makeFields(),
+      registeredBy: 'admin',
+    });
+    const deprecated = r1.deprecateField({
+      eventType: 'UserCreated',
+      fieldName: 'email',
+      deprecatedSince: '1.1.0',
+      reason: 'Moving',
+      replacement: 'contactInfo.email',
+    });
+
+    const replay = new SchemaRegistry();
+    replay.apply(registered);
+    expect(() => replay.apply({ ...deprecated, reason: '  ' })).toThrow(
+      "SR-03: Deprecation reason is required for field 'email'",
+    );
+    expect(() => replay.apply({ ...deprecated, replacement: '' })).toThrow(
+      "SR-03: Deprecation replacement is required for field 'email'",
+    );
+    expect(replay.getFieldPhase('UserCreated', 'email')).toBe('active');
+  });
+
+  it('rejects a replayed lifecycle event for a field that was never registered', () => {
+    const replay = new SchemaRegistry();
+    expect(() =>
+      replay.apply({
+        type: 'EventFieldEndOfLife',
+        eventType: 'UserCreated',
+        fieldName: 'email',
+        confirmedBy: 'admin',
+        timestamp: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow("Field 'email' not found in event type 'UserCreated'");
+  });
+
+  it('rejects an unknown event type during replay (SR-06)', () => {
+    const replay = new SchemaRegistry();
+    expect(() =>
+      replay.apply({ type: 'EventSchemaRenamed' } as unknown as Parameters<
+        SchemaRegistry['apply']
+      >[0]),
+    ).toThrow("SR-06: Unknown event type 'EventSchemaRenamed'");
+  });
+
   it('returns registered event types', () => {
     const registry = new SchemaRegistry();
     registry.registerEventSchema({

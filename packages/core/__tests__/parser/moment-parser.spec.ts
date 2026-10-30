@@ -336,4 +336,38 @@ describe('MomentParser', () => {
       expect(result.diagnostics).toHaveLength(0);
     });
   });
+
+  describe('string escapes', () => {
+    const source = String.raw`context "Records" [Core]
+  description "Says \"hi\" from C:\\depot"
+  aggregate "Patient"
+    identity patientId: UUID
+    event PatientAdmitted
+      patientId: UUID
+      ward: string [deprecated "Use \"unit\"" -> "patientId"]
+    event PatientNoted
+      note: string
+  term "\"Ward\"" "A unit
+spanning two lines"
+`;
+
+    it('unescapes \\" and \\\\ inside strings', async () => {
+      const result = await parser.parseContent(source);
+
+      expect(result.success).toBe(true);
+      const ctx = result.ir!.contexts[0];
+      expect(ctx.description).toBe('Says "hi" from C:\\depot');
+      const ward = ctx.events.find((e) => e.name === 'PatientAdmitted')!.fields[1];
+      expect(ward.deprecated).toEqual({ reason: 'Use "unit"', replacement: 'patientId' });
+    });
+
+    it('keeps quotes that begin and end the string content', async () => {
+      const result = await parser.parseContent(source);
+
+      expect(result.ir!.glossary[0]).toMatchObject({
+        term: '"Ward"',
+        definition: 'A unit\nspanning two lines',
+      });
+    });
+  });
 });

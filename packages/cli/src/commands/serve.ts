@@ -707,7 +707,7 @@ export function parseServeArgs(argv: string[]): ServeArgs | ServeCommandResult {
   );
   if ('success' in target) return target;
 
-  const rawPort = values.port ?? '4321';
+  const rawPort = values.port === undefined ? '4321' : String(values.port);
   const port = parseInt(rawPort, 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     return { success: false, message: `Error: Invalid port "${rawPort}". Expected 1-65535.` };

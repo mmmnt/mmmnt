@@ -166,6 +166,19 @@ describe('TopologyEmitter', () => {
       expect(returnEdge.label).toContain('Nonexistent Moment');
       expect(returnEdge.targetMomentLabel).toBe('Nonexistent Moment');
     });
+
+    it('labels an unresolved returns-to target as unknown when it carries no label', () => {
+      const flow = makeLoopFlow();
+      const conn = flow.connections[1];
+      if (conn.connectionType === 'crosses-to') throw new Error('unexpected connection type');
+      delete conn.targetMomentId;
+      delete conn.targetMomentLabel;
+
+      const topology = emit(flow);
+
+      const returnEdge = topology.connections.find((c) => c.style === 'return')!;
+      expect(returnEdge.label).toBe('unresolved returns-to target: (unknown)');
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -316,6 +329,45 @@ describe('TopologyEmitter', () => {
         expect(known.has(rel.sourceContextId)).toBe(true);
         expect(known.has(rel.targetContextId)).toBe(true);
       }
+    });
+  });
+  describe('context map relationships', () => {
+    function crossing(id: string, sourceMomentId: string, eventId: string): ConnectionDefinition {
+      return {
+        id,
+        sourceMomentId,
+        targetContextId: 'ctx-Refusals',
+        eventId,
+        connectionType: 'crosses-to',
+        schemaContract: { eventType: eventId, fields: [], relationshipType: 'Conformist' },
+      };
+    }
+
+    it('falls back to the first main entry context and skips crossings with no resolvable source', () => {
+      const flow = makeLoopFlow();
+      flow.lanes = flow.lanes.filter((l) => l.contextId !== 'ctx-Refusals');
+      flow.connections.push(
+        crossing('x-fallback', 'moment-0-M1', 'evt-NotProducedHere'),
+        crossing('x-unknown-moment', 'moment-missing', 'evt-InboundMessageRecorded'),
+        crossing('x-no-entries', 'moment-1-Cold-sender-throttled', 'evt-NotProducedHere'),
+      );
+      const refusals = makeContext('ctx-Refusals', 'Refusals');
+      delete refusals.classification;
+      const ir = makeIR({ contexts: [makeContext('ctx-Messaging', 'Messaging'), refusals] });
+
+      const topology = emit(flow, { ...ir, flows: [flow] });
+
+      expect(topology.contextMap.relationships).toEqual([
+        {
+          sourceContextId: 'ctx-Messaging',
+          targetContextId: 'ctx-Refusals',
+          relationshipType: 'Conformist',
+          contractIds: ['x-fallback'],
+        },
+      ]);
+      expect(
+        topology.contextMap.contexts.find((c) => c.contextId === 'ctx-Refusals'),
+      ).toMatchObject({ classification: 'Core', laneId: 'ctx-Refusals' });
     });
   });
 });

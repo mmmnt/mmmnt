@@ -48,7 +48,9 @@ export async function runReconcile(argv: string[]): Promise<ReconcileResult> {
     strict: false,
   });
 
-  const validation = validateArgs(values, positionals);
+  // With `strict: false`, a flag given without its value parses as `true`; treat that as absent.
+  const event = typeof values.event === 'string' ? values.event : undefined;
+  const validation = validateArgs({ local: Boolean(values.local), event }, positionals);
   if (validation) return validation;
 
   const resolvedPath = resolve(positionals[0]);
@@ -57,8 +59,8 @@ export async function runReconcile(argv: string[]): Promise<ReconcileResult> {
 
   const asJson = values.json === true;
 
-  if (values.event) {
-    return reconcileFromEvent(parsed.ir, resolvedPath, values.event, asJson);
+  if (event) {
+    return reconcileFromEvent(parsed.ir, resolvedPath, event, asJson);
   }
   return reconcileLocal(parsed.ir, resolvedPath, asJson);
 }

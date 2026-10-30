@@ -131,4 +131,15 @@ describe('planDecision', () => {
 
     expect(plan).toEqual({ refused: expect.stringContaining('reason') });
   });
+
+  it('refuses a rejection that omits the reason entirely', () => {
+    const plan = planDecision(logsWith('p1'), {
+      kind: 'reject',
+      proposalIds: ['p1'],
+      actor: ACTOR,
+      commitRef: 'head-oid',
+    });
+
+    expect(plan).toEqual({ refused: 'a rejection needs a reason' });
+  });
 });

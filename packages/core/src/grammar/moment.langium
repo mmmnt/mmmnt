@@ -261,7 +261,7 @@ RelationshipType returns string:
 // ============================================================================
 
 terminal ID: /[a-zA-Z_][a-zA-Z0-9_-]*/;
-terminal STRING: /"[^"]*"/;
+terminal STRING: /"(\\.|[^"\\])*"/;
 terminal INT returns number: /[0-9]+/;
 
 // Whitespace and comments

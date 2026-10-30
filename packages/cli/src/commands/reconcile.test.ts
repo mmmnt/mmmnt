@@ -185,6 +185,13 @@ describe('moment reconcile', () => {
     expect(result.message).toContain('--local');
   });
 
+  it('--event with no path is treated as missing', async () => {
+    const result = await runReconcile([UNIFIED_FIXTURE, '--event']);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('specify --local or --event');
+  });
+
   it('nonexistent spec returns file-not-found', async () => {
     const result = await runReconcile(['--local', join(tmpdir(), 'nonexistent.moment')]);
 

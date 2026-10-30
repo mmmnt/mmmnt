@@ -85,16 +85,6 @@ import { buildMomentSequence } from './moment-sequence.js';
 import { bindRelayEvents } from './relay-events.js';
 
 /**
- * Strip surrounding double-quotes from a Langium STRING token value.
- */
-function unquote(s: string): string {
-  if (s.startsWith('"') && s.endsWith('"')) {
-    return s.slice(1, -1);
-  }
-  return s;
-}
-
-/**
  * Pure transformation: Langium AST -> IntermediateRepresentation.
  * No I/O, no side effects.
  *
@@ -114,7 +104,7 @@ export function astToIr(
   const externals: ExternalDefinition[] = (file.externals ?? []).map((e) => ({
     id: `ext-${e.name}`,
     name: e.name,
-    description: unquote(e.description),
+    description: e.description,
     ...gatewaysOf(e.gateways ?? []),
   }));
   const externalNames = new Set(externals.map((e) => e.name));
@@ -197,7 +187,7 @@ function collectContextMember(
 }
 
 function transformContext(ctx: ContextDeclaration): ContextDefinition {
-  const name = unquote(ctx.name);
+  const name = ctx.name;
   const members = emptyContextMembers();
 
   // Annotations classify the NEXT declaration in the member list (§5.1.4).
@@ -220,12 +210,8 @@ function transformContext(ctx: ContextDeclaration): ContextDefinition {
     id: `ctx-${name}`,
     name,
     classification: ctx.classification?.value as
-      | 'Core'
-      | 'Supporting'
-      | 'Generic'
-      | 'Terminal'
-      | undefined,
-    description: ctx.description ? unquote(ctx.description) : undefined,
+      'Core' | 'Supporting' | 'Generic' | 'Terminal' | undefined,
+    description: ctx.description ? ctx.description : undefined,
     aggregates: members.aggregates,
     domainServices: members.domainServices,
     commands: members.commands,
@@ -245,7 +231,7 @@ function transformProjection(proj: ProjectionDeclaration): ProjectionDefinition 
     id: `proj-${proj.name}`,
     name: proj.name,
     sources: [...proj.sources],
-    ...(proj.description ? { description: unquote(proj.description) } : {}),
+    ...(proj.description ? { description: proj.description } : {}),
     fields: proj.fields.map(transformFieldDeclaration),
     ...gatewaysOf(proj.gateways),
   };
@@ -257,7 +243,7 @@ function transformGateway(gw: GatewayDeclaration): GatewayDefinition {
     name: gw.name,
     consumes: gw.consumes,
     produces: gw.produces,
-    ...(gw.description ? { description: unquote(gw.description) } : {}),
+    ...(gw.description ? { description: gw.description } : {}),
   };
 }
 
@@ -271,7 +257,7 @@ function transformQuery(query: QueryDeclaration): QueryDefinition {
     name: query.name,
     reads: [...query.reads],
     inputs: query.inputs.map(transformFieldDeclaration),
-    ...(query.description ? { description: unquote(query.description) } : {}),
+    ...(query.description ? { description: query.description } : {}),
   };
 }
 
@@ -279,30 +265,29 @@ function transformRule(rule: RuleDeclaration): RuleDefinition {
   return rule.enforcer
     ? {
         id: rule.id,
-        description: unquote(rule.description),
+        description: rule.description,
         enforcedBy: rule.enforcer,
         enforcerKind: 'declared',
       }
     : {
         id: rule.id,
-        description: unquote(rule.description),
-        enforcedBy: unquote(rule.enforcerText ?? ''),
+        description: rule.description,
+        enforcedBy: rule.enforcerText ?? '',
         enforcerKind: 'external',
       };
 }
 
 function extractGlossary(ctx: ContextDeclaration): GlossaryEntry[] {
-  const context = unquote(ctx.name);
+  const context = ctx.name;
   return ctx.members
     .filter(isTermDeclaration)
-    .map((t) => ({ term: unquote(t.term), definition: unquote(t.definition), context }));
+    .map((t) => ({ term: t.term, definition: t.definition, context }));
 }
 
 function transformAnnotation(ann: AnnotationDeclaration): AnnotationDefinition {
-  const raw = ann.value;
   return {
     name: ann.name as AnnotationDefinition['name'],
-    value: raw.startsWith('"') ? unquote(raw) : raw,
+    value: ann.value,
   };
 }
 
@@ -310,7 +295,7 @@ function transformAggregate(
   agg: AggregateDeclaration,
   annotations?: AnnotationDefinition[],
 ): AggregateDefinition {
-  const name = unquote(agg.name);
+  const name = agg.name;
   const commands: CommandDefinition[] = [];
   const events: EventDefinition[] = [];
   const valueObjects: ValueObjectDefinition[] = [];
@@ -383,7 +368,7 @@ function transformCommand(
 function transformPrecondition(pre: { name: string; description: string }): PreconditionDefinition {
   return {
     name: pre.name,
-    description: unquote(pre.description),
+    description: pre.description,
   };
 }
 
@@ -420,8 +405,8 @@ function transformFieldDeclaration(field: FieldDeclaration | InputField): FieldD
   };
   if ('deprecation' in field && field.deprecation) {
     result.deprecated = {
-      reason: unquote(field.deprecation.reason),
-      replacement: unquote(field.deprecation.replacement),
+      reason: field.deprecation.reason,
+      replacement: field.deprecation.replacement,
     };
   }
   return result;
@@ -433,7 +418,7 @@ function transformInvariant(
 ): InvariantDefinition {
   return {
     id: inv.id,
-    description: unquote(inv.description),
+    description: inv.description,
     scope: inv.scope,
     ...(annotations ? { annotations } : {}),
   };
@@ -449,7 +434,7 @@ function transformService(
     ...(annotations ? { annotations } : {}),
     consumes: svc.consumes,
     produces: svc.produces,
-    description: unquote(svc.description),
+    description: svc.description,
   };
 }
 
@@ -462,7 +447,7 @@ function transformPolicy(
     name: pol.name,
     ...(annotations ? { annotations } : {}),
     trigger: pol.trigger,
-    action: unquote(pol.action),
+    action: pol.action,
     chainsTo: pol.chainsTo,
     ...gatewaysOf(pol.gateways),
   };
@@ -535,7 +520,7 @@ function transformSaga(
 function buildLaneContextMap(flow: FlowDeclaration): Map<string, string> {
   const map = new Map<string, string>();
   for (const lane of flow.lanes) {
-    map.set(lane.id, `ctx-${unquote(lane.label)}`);
+    map.set(lane.id, `ctx-${lane.label}`);
   }
   return map;
 }
@@ -584,11 +569,11 @@ function transformFlow(
   flow: FlowDeclaration,
   nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): FlowDefinition {
-  const name = unquote(flow.name);
+  const name = flow.name;
   const laneContextMap = buildLaneContextMap(flow);
   const lanes: LaneDefinition[] = flow.lanes.map((lane) => ({
     id: lane.id,
-    label: unquote(lane.label),
+    label: lane.label,
     contextId: laneContextMap.get(lane.id) ?? lane.id,
     classification: lane.classification?.value,
     isBranch: lane.isBranch ?? false,
@@ -596,7 +581,7 @@ function transformFlow(
   return {
     id: `flow-${name}`,
     name,
-    description: flow.description ? unquote(flow.description) : undefined,
+    description: flow.description ? flow.description : undefined,
     lanes,
     moments: flow.moments.map((moment, idx) =>
       transformMoment(moment, idx, laneContextMap, nodeKindMap),
@@ -611,7 +596,7 @@ function transformMoment(
   laneContextMap?: Map<string, string>,
   nodeKindMap?: Map<string, MomentEntry['nodeKind']>,
 ): MomentDefinition {
-  const name = unquote(moment.label);
+  const name = moment.label;
   const contextEntries: MomentEntry[] = moment.nodes.map((n) =>
     transformNodeToEntry(n, laneContextMap, nodeKindMap),
   );
@@ -703,13 +688,13 @@ function extractConnections(
   };
   const momentLabelToId = new Map<string, string>();
   for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
-    const label = unquote(flow.moments[momentIdx].label);
+    const label = flow.moments[momentIdx].label;
     momentLabelToId.set(label, `moment-${momentIdx}-${label.replace(/\s+/g, '-')}`);
   }
 
   for (let momentIdx = 0; momentIdx < flow.moments.length; momentIdx++) {
     const moment = flow.moments[momentIdx];
-    const momentId = `moment-${momentIdx}-${unquote(moment.label).replace(/\s+/g, '-')}`;
+    const momentId = `moment-${momentIdx}-${moment.label.replace(/\s+/g, '-')}`;
 
     const processNode = (node: NodePlacement, branchCondition?: string): void => {
       const branchFields = branchCondition ? { branchCondition } : {};
@@ -756,7 +741,7 @@ function extractConnections(
             ...branchFields,
           });
         } else if (isReturnsTo(conn)) {
-          const targetLabel = unquote(conn.frameLabel);
+          const targetLabel = conn.frameLabel;
           connections.push({
             id: `conn-${connectionCounter++}`,
             sourceMomentId: momentId,
@@ -822,7 +807,7 @@ function extractRelationships(
         sourceContextId: endId(rel.source, externalNames),
         targetContextId: endId(rel.target, externalNames),
         relationshipType: rel.type,
-        contract: unquote(rel.contract),
+        contract: rel.contract,
       });
     }
   }

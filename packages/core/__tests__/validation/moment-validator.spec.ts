@@ -1062,7 +1062,7 @@ describe('MomentValidator', () => {
       const fakeFlow = {
         $type: 'FlowDeclaration',
         moments: [],
-        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
+        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: 'Other', isBranch: false }],
       };
       const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeNode = {
@@ -1090,7 +1090,7 @@ describe('MomentValidator', () => {
       const fakeFlow = {
         $type: 'FlowDeclaration',
         moments: [],
-        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
+        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: 'Other', isBranch: false }],
       };
       const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeCrossing = {
@@ -1281,8 +1281,8 @@ describe('MomentValidator', () => {
       const validator = services.validation.MomentValidator;
       const fakeFlow = {
         $type: 'FlowDeclaration',
-        name: '"test"',
-        lanes: [{ $type: 'LaneDeclaration', id: 'a', label: '"A"', isBranch: false }],
+        name: 'test',
+        lanes: [{ $type: 'LaneDeclaration', id: 'a', label: 'A', isBranch: false }],
         moments: [],
         whenBlocks: [],
       } as never;
@@ -1870,7 +1870,7 @@ describe('MomentValidator', () => {
       const fakeFlow = { $type: 'FlowDeclaration', moments: [], lanes: [] };
       const fakeMoment = {
         $type: 'MomentDeclaration',
-        label: '"Orphan"',
+        label: 'Orphan',
         nodes: [],
         whenBlocks: [],
         $container: fakeFlow,
@@ -1961,4 +1961,247 @@ describe('MomentValidator', () => {
       expect(diagnostics.some((m) => m.includes('SP-02'))).toBe(false);
     });
   });
+});
+
+// ===========================================================================
+// Remaining guard branches: annotation names, deprecated inputs/identity,
+// quoted lane labels and nodes detached from a flow
+// ===========================================================================
+describe('MomentValidator guard branches', () => {
+  const ctx: CrossFileContext = {
+    declaredContextNames: ['Ordering', 'Fulfillment'],
+    declaredEvents: new Map([
+      ['Ordering', ['OrderPlaced']],
+      ['Fulfillment', ['FulfillmentInitiated']],
+    ]),
+    declaredBuildingBlocks: new Map([
+      [
+        'Ordering',
+        [
+          { name: 'PlaceOrder', kind: 'command' },
+          { name: 'OrderPlaced', kind: 'event' },
+        ],
+      ],
+    ]),
+    declaredSagas: [],
+  };
+
+  function collect(): { diagnostics: string[]; accept: (s: unknown, m: unknown) => void } {
+    const diagnostics: string[] = [];
+    return { diagnostics, accept: (_s, m) => diagnostics.push(m as string) };
+  }
+
+  /** A NodePlacement whose $container chain never reaches a FlowDeclaration. */
+  function detachedNode(extra: Record<string, unknown> = {}): never {
+    return {
+      $type: 'NodePlacement',
+      laneId: 'a',
+      nodeName: 'OrderPlaced',
+      connections: [{ $type: 'TriggeredBy', nodeName: 'Nowhere' }],
+      $container: { $type: 'Moment' },
+      ...extra,
+    } as never;
+  }
+
+  describe('V18 — annotation names', () => {
+    it('rejects an annotation outside classification, retention and encryption', async () => {
+      const result = await validate(`
+        context "Test"
+          @sensitivity(High)
+          aggregate "Order"
+            identity orderId: UUID
+      `);
+      const errors = errorMessages(result);
+      expect(errors.some((m) => m.includes('V18') && m.includes('@sensitivity'))).toBe(true);
+    });
+
+    it('accepts the allowed annotation names', async () => {
+      const result = await validate(`
+        context "Test"
+          @encryption(AES)
+          aggregate "Order"
+            identity orderId: UUID
+      `);
+      expect(errorMessages(result).some((m) => m.includes('V18'))).toBe(false);
+    });
+  });
+
+  describe('V12 — deprecated command inputs and identity fields', () => {
+    it('warns when a deprecated command input names a missing sibling input', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            command PlaceOrder
+              input customerId: UUID, legacyId: string [deprecated "Use buyerId" -> "buyerId"]
+              emits OrderPlaced
+            event OrderPlaced
+              orderId: UUID
+      `);
+      const warnings = warningMessages(result);
+      expect(warnings.some((m) => m.includes('V12') && m.includes('buyerId'))).toBe(true);
+    });
+
+    it('does not warn when a deprecated command input names an existing sibling input', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            command PlaceOrder
+              input customerId: UUID, legacyId: string [deprecated "Use customerId" -> "customerId"]
+              emits OrderPlaced
+            event OrderPlaced
+              orderId: UUID
+      `);
+      expect(warningMessages(result).some((m) => m.includes('V12'))).toBe(false);
+    });
+
+    it('does not crash on a deprecation the parser recovered without a replacement', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID
+            event OrderPlaced
+              orderId: UUID
+              legacyId: string [deprecated "Use orderId" ]
+      `);
+      expect(result.document.parseResult.parserErrors.length).toBeGreaterThan(0);
+      const messages = result.diagnostics.map((d) =>
+        typeof d.message === 'string' ? d.message : d.message.value,
+      );
+      expect(messages.some((m) => m.includes('An error occurred during validation'))).toBe(false);
+    });
+
+    it('skips a deprecated identity field, which has no sibling list to check', async () => {
+      const result = await validate(`
+        context "Test"
+          aggregate "Order"
+            identity orderId: UUID [deprecated "Use id" -> "id"]
+            event OrderPlaced
+              orderId: UUID
+      `);
+      expect(result.document.parseResult.parserErrors).toHaveLength(0);
+      const context = result.document.parseResult.value.contexts[0];
+      const aggregate = context.members[0] as { identityField: { deprecation?: unknown } };
+      expect(aggregate.identityField.deprecation).toBeDefined();
+      expect(warningMessages(result).some((m) => m.includes('V12'))).toBe(false);
+    });
+  });
+
+  describe('SP-02 — lane labels and missing source lanes', () => {
+    function crossingIn(lanes: object[], sourceLaneId: string, nodeName: string): never {
+      const flow = { $type: 'FlowDeclaration', lanes, moments: [] };
+      const node = {
+        $type: 'NodePlacement',
+        laneId: sourceLaneId,
+        nodeName,
+        connections: [],
+        $container: { $type: 'Moment', $container: flow },
+      };
+      const crossing = {
+        $type: 'ContextCrossing',
+        targetLaneId: 'b',
+        fields: [],
+        $container: node,
+      };
+      return crossing as never;
+    }
+
+    it("looks up declared events by the source lane's label", () => {
+      const { diagnostics, accept } = collect();
+      const crossing = crossingIn(
+        [
+          { $type: 'LaneDeclaration', id: 'a', label: 'Ordering', isBranch: false },
+          { $type: 'LaneDeclaration', id: 'b', label: 'Fulfillment', isBranch: false },
+        ],
+        'a',
+        'OrderPlaced',
+      );
+      validator().checkSP02(crossing, accept, ctx);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it('falls back to the target lane when the source lane is not declared', () => {
+      const lanes = [{ $type: 'LaneDeclaration', id: 'b', label: 'Fulfillment', isBranch: false }];
+
+      const declared = collect();
+      validator().checkSP02(
+        crossingIn(lanes, 'ghost', 'FulfillmentInitiated'),
+        declared.accept,
+        ctx,
+      );
+      expect(declared.diagnostics).toEqual([]);
+
+      const undeclared = collect();
+      validator().checkSP02(crossingIn(lanes, 'ghost', 'OrderPlaced'), undeclared.accept, ctx);
+      expect(undeclared.diagnostics).toEqual([
+        'SP-02: Crossing event is not declared in the source or target context.',
+      ]);
+    });
+
+    it('returns without a diagnostic when the crossing is not inside a flow', () => {
+      const { diagnostics, accept } = collect();
+      const crossing = {
+        $type: 'ContextCrossing',
+        targetLaneId: 'b',
+        fields: [],
+        $container: detachedNode(),
+      } as never;
+      validator().checkSP02(crossing, accept, ctx);
+      expect(diagnostics).toEqual([]);
+    });
+  });
+
+  describe('nodes detached from a flow', () => {
+    it('V1 returns without a diagnostic', () => {
+      const { diagnostics, accept } = collect();
+      validator().checkV1(detachedNode({ nodeName: 'Undeclared' }), accept, ctx);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it('V5 returns without a diagnostic even for an unknown triggered-by reference', () => {
+      const { diagnostics, accept } = collect();
+      validator().checkV5(detachedNode(), accept);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it('V9 returns without a diagnostic', () => {
+      const { diagnostics, accept } = collect();
+      validator().checkV9(
+        detachedNode({ nodeName: 'PlaceOrder', crossing: { $type: 'ContextCrossing' } }),
+        accept,
+        ctx,
+      );
+      expect(diagnostics).toEqual([]);
+    });
+
+    it('V8 treats a terminal node whose container has no node list as last', () => {
+      const { diagnostics, accept } = collect();
+      validator().checkTerminalIsLast(
+        detachedNode({ modifier: { type: 'terminal' }, $container: { $type: 'Moment' } }),
+        accept,
+      );
+      expect(diagnostics).toEqual([]);
+    });
+  });
+
+  it('V9 does not flag a crossing whose lane context declares no building blocks', async () => {
+    const result = await validate(`
+      flow "test"
+        lane a "Fulfillment" [Core]
+        lane b "Ordering" [Supporting]
+        moment "Step"
+          a: PlaceOrder crosses-to b via CustomerSupplier
+            contract
+              id: UUID [required]
+    `);
+    const node = result.document.parseResult.value.flows[0].moments[0].nodes[0];
+    const { diagnostics, accept } = collect();
+    validator().checkV9(node, accept, ctx);
+    expect(diagnostics.some((m) => m.includes('V9'))).toBe(false);
+  });
+
+  function validator() {
+    return services.validation.MomentValidator;
+  }
 });

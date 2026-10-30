@@ -14,11 +14,19 @@ export interface SiftBuildingBlock {
     }>;
     events: Array<{
       name: string;
-      fields: Array<{ name: string; type: string; deprecated?: { reason: string; replacement: string } }>;
+      fields: Array<{
+        name: string;
+        type: string;
+        deprecated?: { reason: string; replacement: string };
+      }>;
     }>;
     valueObjects: Array<{
       name: string;
-      fields: Array<{ name: string; type: string; deprecated?: { reason: string; replacement: string } }>;
+      fields: Array<{
+        name: string;
+        type: string;
+        deprecated?: { reason: string; replacement: string };
+      }>;
     }>;
   }>;
 }
@@ -111,7 +119,7 @@ export class SiftSpecificationImporter {
   generateContextFile(block: SiftBuildingBlock): string {
     const lines: string[] = [];
     const classification = block.classification ? ` [${block.classification}]` : '';
-    lines.push(`context "${block.contextName}"${classification}`);
+    lines.push(`context "${escapeMomentString(block.contextName)}"${classification}`);
     lines.push('');
 
     for (const agg of block.aggregates) {
@@ -122,7 +130,7 @@ export class SiftSpecificationImporter {
   }
 
   private renderAggregate(lines: string[], agg: SiftBuildingBlock['aggregates'][number]): void {
-    lines.push(`  aggregate "${agg.name}"`);
+    lines.push(`  aggregate "${escapeMomentString(agg.name)}"`);
     lines.push(`    identity ${agg.identityField.name}: ${agg.identityField.type}`);
     lines.push('');
 
@@ -155,20 +163,20 @@ export class SiftSpecificationImporter {
 
   generateFlowFile(event: SiftTimelineEvent): string {
     const lines: string[] = [];
-    lines.push(`flow "${event.flowName}"`);
+    lines.push(`flow "${escapeMomentString(event.flowName)}"`);
     if (event.description) {
-      lines.push(`  description "${event.description}"`);
+      lines.push(`  description "${escapeMomentString(event.description)}"`);
     }
     lines.push('');
 
     for (const lane of event.lanes) {
       const classification = lane.classification ? ` [${lane.classification}]` : '';
-      lines.push(`  lane ${lane.id} "${lane.label}"${classification}`);
+      lines.push(`  lane ${lane.id} "${escapeMomentString(lane.label)}"${classification}`);
     }
     lines.push('');
 
     for (const frame of event.frames) {
-      lines.push(`  moment "${frame.label}"`);
+      lines.push(`  moment "${escapeMomentString(frame.label)}"`);
       for (const node of frame.nodes) {
         let nodeLine = `    ${node.laneId}: ${node.nodeName}`;
         if (node.crossing) {

@@ -185,6 +185,24 @@ describe('SiftSpecificationImporter', () => {
       expect(result.success).toBe(true);
       expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
     });
+
+    it('round-trips quotes and backslashes in flow names, descriptions and labels', async () => {
+      const quoted: SiftTimelineEvent = {
+        ...sampleTimelineEvent,
+        flowName: 'the "rush" order',
+        description: 'Ships from C:\\depot "fast"',
+        frames: sampleTimelineEvent.frames.map((f, i) =>
+          i === 0 ? { ...f, label: '"Submit" the order' } : f,
+        ),
+      };
+      const result = await parser.parseContent(importer.generateFlowFile(quoted));
+
+      expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+      const flow = result.ir!.flows[0];
+      expect(flow.name).toBe('the "rush" order');
+      expect(flow.description).toBe('Ships from C:\\depot "fast"');
+      expect(flow.moments[0].name).toBe('"Submit" the order');
+    });
   });
 
   describe('SI-02 idempotency', () => {
@@ -361,6 +379,64 @@ describe('SiftSpecificationImporter', () => {
     expect(content).toContain('command DoIt');
     expect(content).not.toContain('input');
     expect(content).toContain('emits ItDone');
+  });
+
+  it('emits deprecation markers with escaped reason and replacement strings', async () => {
+    const block: SiftBuildingBlock = {
+      contextName: 'Ordering',
+      classification: 'Core',
+      aggregates: [
+        {
+          name: 'Order',
+          identityField: { name: 'orderId', type: 'UUID' },
+          commands: [],
+          events: [
+            {
+              name: 'OrderPlaced',
+              fields: [
+                { name: 'orderId', type: 'UUID' },
+                {
+                  name: 'legacyId',
+                  type: 'string',
+                  deprecated: { reason: 'Use "orderId"\nC:\\legacy', replacement: 'orderId' },
+                },
+              ],
+            },
+          ],
+          valueObjects: [
+            {
+              name: 'Address',
+              fields: [
+                { name: 'line1', type: 'string' },
+                {
+                  name: 'street',
+                  type: 'string',
+                  deprecated: { reason: 'Renamed', replacement: 'line1' },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const content = importer.generateContextFile(block);
+
+    expect(content).toContain(
+      'legacyId: string [deprecated "Use \\"orderId\\"\\nC:\\\\legacy" -> "orderId"]',
+    );
+    expect(content).toContain('street: string [deprecated "Renamed" -> "line1"]');
+    expect(content).toContain('      orderId: UUID\n');
+
+    const parsed = await parser.parseContent(content);
+    expect(parsed.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+    expect(parsed.success).toBe(true);
+    // The escapes survive the round trip: the parsed reason is the original string.
+    const legacy = parsed.ir!.contexts[0].events[0].fields.find((f) => f.name === 'legacyId');
+    expect(legacy?.deprecated).toEqual({
+      reason: 'Use "orderId"\nC:\\legacy',
+      replacement: 'orderId',
+    });
   });
 
   it('includes all diagnostics in result', () => {

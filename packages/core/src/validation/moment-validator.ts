@@ -39,7 +39,6 @@ import {
   isTriggeredBy,
   isTriggers,
   isValueObjectDeclaration,
-  isMomentFile,
 } from '../generated/ast.js';
 import { buildMomentSequence } from '../parser/moment-sequence.js';
 
@@ -58,11 +57,6 @@ export interface CrossFileContext {
     }[]
   >;
   declaredSagas: string[];
-}
-
-/** Strip surrounding double-quotes from a Langium STRING token value. */
-function unquote(s: string): string {
-  return s.startsWith('"') && s.endsWith('"') ? s.slice(1, -1) : s;
 }
 
 /**
@@ -113,7 +107,7 @@ export function buildCrossFileContext(file: MomentFile): CrossFileContext {
   const declaredSagas: string[] = [];
 
   for (const ctx of file.contexts) {
-    const contextName = unquote(ctx.name);
+    const contextName = ctx.name;
     declaredContextNames.push(contextName);
     const events: string[] = [];
     const blocks: BuildingBlock[] = [];
@@ -211,19 +205,8 @@ function laneDeclaresEvent(
   ctx: CrossFileContext,
 ): boolean {
   if (!lane) return false;
-  const events = ctx.declaredEvents.get(unquote(lane.label)) ?? [];
+  const events = ctx.declaredEvents.get(lane.label) ?? [];
   return events.includes(eventName);
-}
-
-function getMomentFileFromNode(node: { $container?: unknown }): MomentFile | undefined {
-  let current: unknown = node;
-  while (current) {
-    if (isMomentFile(current as Record<string, unknown>)) {
-      return current as MomentFile;
-    }
-    current = (current as { $container?: unknown }).$container;
-  }
-  return undefined;
 }
 
 function getMomentFromNode(node: { $container?: unknown }): MomentDeclaration | undefined {
@@ -259,8 +242,9 @@ export class MomentValidator {
     field: FieldDeclaration | InputField,
     accept: ValidationAcceptor,
   ): void {
-    if (!field.deprecation) return;
-    const replacement = field.deprecation.replacement.replace(/^"|"$/g, '');
+    // Parser recovery can leave a deprecation without its replacement string.
+    if (field.deprecation?.replacement === undefined) return;
+    const replacement = field.deprecation.replacement;
     const siblings = collectSiblingNames(field);
     if (siblings === undefined) return;
     if (!siblings.has(replacement)) {
@@ -564,7 +548,7 @@ export class MomentValidator {
   checkSP01(flow: FlowDeclaration, accept: ValidationAcceptor, ctx: CrossFileContext): void {
     for (const lane of flow.lanes) {
       if (lane.isBranch || lane.classification?.value === 'External') continue;
-      if (!ctx.declaredContextNames.includes(lane.label.replace(/^"|"$/g, ''))) {
+      if (!ctx.declaredContextNames.includes(lane.label)) {
         accept('error', 'SP-01: Lane label does not match any declared context name.', {
           node: lane,
           property: 'label',
@@ -605,7 +589,7 @@ export class MomentValidator {
     if (!flow) return;
     const lane = flow.lanes.find((l: LaneDeclaration) => l.id === node.laneId);
     if (!lane || lane.isBranch) return;
-    const contextName = lane.label.replace(/^"|"$/g, '');
+    const contextName = lane.label;
     const blocks = ctx.declaredBuildingBlocks.get(contextName) ?? [];
     const blockNames = blocks.map((b) => b.name);
     if (!blockNames.includes(node.nodeName)) {
@@ -641,7 +625,7 @@ export class MomentValidator {
     if (!flow) return;
     const lane = flow.lanes.find((l: LaneDeclaration) => l.id === node.laneId);
     if (!lane || lane.isBranch) return;
-    const contextName = lane.label.replace(/^"|"$/g, '');
+    const contextName = lane.label;
     const blocks = ctx.declaredBuildingBlocks.get(contextName) ?? [];
     const block = blocks.find((b) => b.name === node.nodeName);
     if (block && block.kind !== 'event') {
@@ -659,7 +643,7 @@ export class MomentValidator {
     if (!flow) return;
     const lane = flow.lanes.find((l: LaneDeclaration) => l.id === node.laneId);
     if (!lane || lane.isBranch) return;
-    const contextName = lane.label.replace(/^"|"$/g, '');
+    const contextName = lane.label;
     const blocks = ctx.declaredBuildingBlocks.get(contextName) ?? [];
     const block = blocks.find((b) => b.name === node.nodeName);
     if (block && block.kind !== 'event') {
