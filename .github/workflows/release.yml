@@ -46,7 +46,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # workflow_run provides head_sha; workflow_dispatch uses the
           # default branch HEAD (github.sha). The || fallback keeps
@@ -62,7 +62,7 @@ jobs:
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js 24 (ships npm 11+ for OIDC trusted publishing)
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: 'pnpm'
@@ -160,7 +160,7 @@ jobs:
 
       - name: Create Release PR or Publish
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           version: pnpm changeset:version
           # `changeset publish` (not `pnpm -r publish`) so the action can
