@@ -325,4 +325,104 @@ describe('FlowTimelineRenderer', () => {
     // Fallback: source moment has no context entries → uses targetContextId
     expect(layout.connections).toHaveLength(1);
   });
+
+  it('resolves crossing source lanes from context and aggregate events, skipping unplaceable connections', () => {
+    const bareContext = (id: string, name: string) => ({
+      id,
+      name,
+      aggregates: [],
+      domainServices: [],
+      commands: [],
+      events: [],
+      policies: [],
+      sagas: [],
+      valueObjects: [],
+      invariants: [],
+    });
+    const schemaContract = { eventType: 'E', fields: [], relationshipType: 'customer-supplier' };
+    const ir = makeIR({
+      contexts: [
+        {
+          ...bareContext('ctx-ordering', 'Ordering'),
+          events: [{ id: 'evt-placed', name: 'OrderPlaced', fields: [] }],
+        },
+        {
+          ...bareContext('ctx-billing', 'Billing'),
+          aggregates: [
+            {
+              id: 'agg-invoice',
+              name: 'Invoice',
+              identityField: { name: 'id', type: 'uuid', isArray: false, required: true },
+              commands: [],
+              events: [{ id: 'evt-invoiced', name: 'Invoiced', fields: [] }],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+        },
+        bareContext('ctx-shipping', 'Shipping'),
+      ],
+      flows: [
+        {
+          id: 'flow-1',
+          name: 'Order to Cash',
+          lanes: [],
+          moments: [
+            {
+              id: 'moment-1',
+              name: 'Ship',
+              contextEntries: [
+                { contextId: 'ctx-shipping', nodeName: 'Ship', nodeKind: 'command' as const },
+              ],
+            },
+          ],
+          connections: [
+            {
+              id: 'c1',
+              sourceMomentId: 'moment-1',
+              targetContextId: 'ctx-billing',
+              eventId: 'evt-placed',
+              connectionType: 'crosses-to' as const,
+              schemaContract,
+            },
+            {
+              id: 'c2',
+              sourceMomentId: 'moment-1',
+              targetContextId: 'ctx-shipping',
+              eventId: 'evt-invoiced',
+              connectionType: 'crosses-to' as const,
+              schemaContract,
+            },
+            {
+              id: 'c3',
+              sourceMomentId: 'moment-1',
+              targetContextId: 'ctx-missing',
+              eventId: 'evt-placed',
+              connectionType: 'crosses-to' as const,
+              schemaContract,
+            },
+            {
+              id: 'c4',
+              sourceMomentId: 'moment-1',
+              targetContextId: 'ctx-billing',
+              eventId: 'evt-placed',
+              connectionType: 'triggers' as const,
+            },
+          ],
+        },
+      ],
+    });
+
+    const layout = renderTimeline(ir);
+    const laneY = (contextId: string) => {
+      const lane = layout.lanes.find((l) => l.contextId === contextId)!;
+      return lane.y + lane.height / 2;
+    };
+
+    expect(layout.connections.map((c) => c.connectionId)).toEqual(['c1', 'c2']);
+    expect(layout.connections[0].sourceLaneY).toBe(laneY('ctx-ordering'));
+    expect(layout.connections[0].targetLaneY).toBe(laneY('ctx-billing'));
+    expect(layout.connections[1].sourceLaneY).toBe(laneY('ctx-billing'));
+    expect(layout.connections[1].targetLaneY).toBe(laneY('ctx-shipping'));
+  });
 });

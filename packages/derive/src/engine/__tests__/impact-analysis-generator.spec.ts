@@ -66,6 +66,8 @@ function makeContext(
     sagas: overrides.sagas ?? [],
     valueObjects: [],
     invariants: [],
+    ...(overrides.projections ? { projections: overrides.projections } : {}),
+    ...(overrides.queries ? { queries: overrides.queries } : {}),
   };
 }
 
@@ -498,6 +500,227 @@ describe('ImpactAnalysisGenerator', () => {
       expect(crossing!.name).toBe('InboundMessageRecorded->Scheduling');
       expect(crossing!.context).toBe('Messaging');
       expect(crossing!.dependsOn).toContain('event:Messaging:InboundMessageRecorded');
+    });
+  });
+  // -------------------------------------------------------------------------
+  // Edge cases: optional fields, unresolved names, duplicate connections
+  // -------------------------------------------------------------------------
+  describe('edge cases', () => {
+    const keyOf = (n: { type: string; context: string; name: string }) =>
+      `${n.type}:${n.context}:${n.name}`;
+
+    function crossing(
+      id: string,
+      eventId: string,
+      eventType: string,
+      sourceMomentId = 'm1',
+    ): ConnectionDefinition {
+      return {
+        id,
+        sourceMomentId,
+        targetContextId: 'ctx-ship',
+        eventId,
+        connectionType: 'crosses-to',
+        schemaContract: { eventType, fields: [], relationshipType: 'Partnership' },
+      };
+    }
+
+    function flowWith(connections: ConnectionDefinition[], moments?: MomentDefinition[]) {
+      return {
+        id: 'f1',
+        name: 'Flow',
+        lanes: [],
+        moments: moments ?? [
+          {
+            id: 'm1',
+            name: 'M1',
+            contextEntries: [
+              { contextId: 'ctx-sales', nodeName: 'PlaceOrder', nodeKind: 'command' as const },
+              { contextId: 'ctx-sales', nodeName: 'OrderPlaced', nodeKind: 'event' as const },
+            ],
+          },
+        ],
+        connections,
+      } satisfies FlowDefinition;
+    }
+
+    it('a command that emits nothing gets no event edge', () => {
+      const ctx = makeContext('ctx-1', 'Sales', {
+        aggregates: [
+          makeAggregate({
+            commands: [{ id: 'c', name: 'Ping', inputs: [], preconditions: [], emitsEvent: '' }],
+          }),
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(makeIR({ contexts: [ctx] }));
+
+      expect(analysis.nodes).toEqual([
+        { type: 'command', name: 'Ping', context: 'Sales', dependsOn: [], triggers: [] },
+      ]);
+    });
+
+    it('policies and orchestrations without trigger, chain, issues or compensations stay isolated', () => {
+      const ctx = makeContext('ctx-1', 'Sales', {
+        policies: [{ id: 'p', name: 'Idle', trigger: '', action: 'nothing' }],
+        sagas: [
+          {
+            id: 's',
+            name: 'Dormant',
+            trigger: '',
+            states: [],
+            compensation: 'none',
+            timeout: '1m',
+          },
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(makeIR({ contexts: [ctx] }));
+
+      expect(analysis.nodes.map(keyOf)).toEqual(['policy:Sales:Idle', 'saga:Sales:Dormant']);
+      expect(analysis.nodes.every((n) => n.dependsOn.length === 0 && n.triggers.length === 0)).toBe(
+        true,
+      );
+    });
+
+    it('resolves a chained command past orchestrations without commands to its aggregate context', () => {
+      const ordering = makeContext('ctx-o', 'Ordering', {
+        sagas: [
+          {
+            id: 's',
+            name: 'Bare',
+            trigger: 'Go',
+            states: [],
+            compensation: 'none',
+            timeout: '1m',
+          },
+        ],
+      });
+      const billing = makeContext('ctx-b', 'Billing', {
+        aggregates: [
+          makeAggregate({
+            commands: [
+              { id: 'c', name: 'Charge', inputs: [], preconditions: [], emitsEvent: 'Charged' },
+            ],
+          }),
+        ],
+        policies: [
+          { id: 'p', name: 'ChargeOnGo', trigger: 'Went', action: 'x', chainsTo: 'Charge' },
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(makeIR({ contexts: [ordering, billing] }));
+
+      const policy = analysis.nodes.find((n) => n.name === 'ChargeOnGo')!;
+      expect(policy.triggers).toEqual(['command:Billing:Charge']);
+    });
+
+    it('a projection over an undeclared event and a query over an unknown projection fall back sensibly', () => {
+      const other = makeContext('ctx-x', 'Other');
+      const reporting = makeContext('ctx-r', 'Reporting', {
+        projections: [{ id: 'pr', name: 'Totals', sources: ['Ghost'], fields: [] }],
+        queries: [{ id: 'q', name: 'GetTotals', reads: ['Totals', 'Missing'], inputs: [] }],
+      });
+
+      const analysis = generateImpactAnalysis(makeIR({ contexts: [other, reporting] }));
+
+      const ghost = analysis.nodes.find((n) => n.name === 'Ghost')!;
+      expect(keyOf(ghost)).toBe('event:Reporting:Ghost');
+      expect(ghost.triggers).toEqual(['projection:Reporting:Totals']);
+      expect(analysis.nodes.find((n) => n.name === 'GetTotals')!.dependsOn).toEqual([
+        'projection:Reporting:Totals',
+      ]);
+    });
+
+    it('ignores incomplete or unresolvable trigger connections and de-duplicates repeated edges', () => {
+      const edge = (id: string, source?: string, target?: string): ConnectionDefinition => ({
+        id,
+        sourceMomentId: 'm1',
+        targetContextId: 'ctx-sales',
+        eventId: 'evt-x',
+        connectionType: 'triggers',
+        ...(source ? { sourceNodeName: source } : {}),
+        ...(target ? { targetNodeName: target } : {}),
+      });
+      const ir = makeIR({
+        flows: [
+          flowWith([
+            edge('a', 'PlaceOrder'),
+            edge('b', 'PlaceOrder', 'Nowhere'),
+            edge('c', 'PlaceOrder', 'OrderPlaced'),
+            edge('d', 'PlaceOrder', 'OrderPlaced'),
+          ]),
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(ir);
+
+      expect(analysis.nodes.find((n) => n.name === 'PlaceOrder')!.triggers).toEqual([
+        'event:sales:OrderPlaced',
+      ]);
+      expect(analysis.nodes.find((n) => n.name === 'OrderPlaced')!.dependsOn).toEqual([
+        'command:sales:PlaceOrder',
+      ]);
+    });
+
+    it('repeated crossings of the same event yield one crossing node with single edges', () => {
+      const sales = makeContext('ctx-sales', 'Sales', {
+        aggregates: [makeAggregate({ events: [{ id: 'evt-o', name: 'OrderPlaced', fields: [] }] })],
+      });
+      const ir = makeIR({
+        contexts: [sales],
+        flows: [
+          flowWith([
+            crossing('x1', 'evt-o', 'OrderPlaced'),
+            crossing('x2', 'evt-o', 'OrderPlaced'),
+          ]),
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(ir);
+
+      const crossings = analysis.nodes.filter((n) => n.type === 'crossing');
+      expect(crossings).toHaveLength(1);
+      expect(crossings[0]!.dependsOn).toEqual(['event:Sales:OrderPlaced']);
+      expect(analysis.nodes.find((n) => keyOf(n) === 'event:Sales:OrderPlaced')!.triggers).toEqual([
+        'crossing:Sales:OrderPlaced->ship',
+      ]);
+    });
+
+    it('resolves crossing events declared after non-matching contexts and aggregates', () => {
+      const first = makeContext('ctx-a', 'Alpha', {
+        events: [{ id: 'evt-a', name: 'AlphaHappened', fields: [] }],
+        aggregates: [
+          makeAggregate({ events: [{ id: 'evt-b', name: 'BetaHappened', fields: [] }] }),
+        ],
+      });
+      const second = makeContext('ctx-g', 'Gamma', {
+        aggregates: [
+          makeAggregate({ events: [{ id: 'evt-g', name: 'GammaHappened', fields: [] }] }),
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(
+        makeIR({ contexts: [first, second], flows: [flowWith([crossing('x', 'evt-g', 'Stale')])] }),
+      );
+
+      const node = analysis.nodes.find((n) => n.type === 'crossing')!;
+      expect(keyOf(node)).toBe('crossing:Gamma:GammaHappened->ship');
+    });
+
+    it('skips crossings with no resolvable event name or producing moment', () => {
+      const ir = makeIR({
+        flows: [
+          flowWith([
+            crossing('x1', 'evt-none', ''),
+            crossing('x2', 'evt-none', 'OrderPlaced', 'gone'),
+          ]),
+        ],
+      });
+
+      const analysis = generateImpactAnalysis(ir);
+
+      expect(analysis.nodes.filter((n) => n.type === 'crossing')).toEqual([]);
     });
   });
 });

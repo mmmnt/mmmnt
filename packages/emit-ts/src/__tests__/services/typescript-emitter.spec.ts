@@ -464,20 +464,32 @@ describe('TypeScriptEmitter', () => {
 
   it('emits @deprecated JSDoc for deprecated fields', () => {
     const ctx = makeContext({
-      aggregates: [{
-        id: 'agg-1', name: 'Order',
-        identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
-        commands: [],
-        events: [{
-          id: 'evt-1', name: 'OrderPlaced',
-          fields: [
-            { name: 'orderId', type: 'UUID', isArray: false, required: true },
-            { name: 'legacyId', type: 'string', isArray: false, required: true, deprecated: { reason: 'Use orderId', replacement: 'orderId' } },
+      aggregates: [
+        {
+          id: 'agg-1',
+          name: 'Order',
+          identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+          commands: [],
+          events: [
+            {
+              id: 'evt-1',
+              name: 'OrderPlaced',
+              fields: [
+                { name: 'orderId', type: 'UUID', isArray: false, required: true },
+                {
+                  name: 'legacyId',
+                  type: 'string',
+                  isArray: false,
+                  required: true,
+                  deprecated: { reason: 'Use orderId', replacement: 'orderId' },
+                },
+              ],
+            },
           ],
-        }],
-        valueObjects: [],
-        invariants: [],
-      }],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
     });
     const ir = makeIR([ctx]);
 
@@ -491,19 +503,31 @@ describe('TypeScriptEmitter', () => {
 
   it('emits @deprecated with empty reason/replacement gracefully', () => {
     const ctx = makeContext({
-      aggregates: [{
-        id: 'agg-1', name: 'Order',
-        identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
-        commands: [],
-        events: [{
-          id: 'evt-1', name: 'OrderPlaced',
-          fields: [
-            { name: 'old', type: 'string', isArray: false, required: true, deprecated: { reason: '', replacement: '' } },
+      aggregates: [
+        {
+          id: 'agg-1',
+          name: 'Order',
+          identityField: { name: 'id', type: 'UUID', isArray: false, required: true },
+          commands: [],
+          events: [
+            {
+              id: 'evt-1',
+              name: 'OrderPlaced',
+              fields: [
+                {
+                  name: 'old',
+                  type: 'string',
+                  isArray: false,
+                  required: true,
+                  deprecated: { reason: '', replacement: '' },
+                },
+              ],
+            },
           ],
-        }],
-        valueObjects: [],
-        invariants: [],
-      }],
+          valueObjects: [],
+          invariants: [],
+        },
+      ],
     });
     const ir = makeIR([ctx]);
 
@@ -512,5 +536,169 @@ describe('TypeScriptEmitter', () => {
     const content = typesFile![1];
     expect(content).toContain('@deprecated');
     expect(content).not.toContain('Use  instead.');
+  });
+
+  it('emits @deprecated with only a reason', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [
+          makeAggregate({
+            events: [
+              makeEvent({
+                fields: [
+                  makeField({
+                    name: 'legacy',
+                    deprecated: { reason: 'No longer tracked', replacement: '' },
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+
+    const content = emitter
+      .emit(ir, defaultOptions())
+      .files.get('src/order-management/order.types.ts')!;
+    expect(content).toContain(' * @deprecated No longer tracked\n');
+  });
+
+  it('emits @deprecated with only a replacement', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [
+          makeAggregate({
+            events: [
+              makeEvent({
+                fields: [
+                  makeField({
+                    name: 'legacy',
+                    deprecated: { reason: '  ', replacement: 'current' },
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]);
+
+    const content = emitter
+      .emit(ir, defaultOptions())
+      .files.get('src/order-management/order.types.ts')!;
+    expect(content).toContain(' * @deprecated Use current instead.\n');
+  });
+
+  it('converts separator-delimited names to PascalCase, dropping trailing separators', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [
+          makeAggregate({
+            commands: [makeCommand({ name: 'place_order-now', emitsEvent: 'order placed-' })],
+            events: [makeEvent({ name: 'order placed-' })],
+            valueObjects: [],
+          }),
+        ],
+      }),
+    ]);
+
+    const files = emitter.emit(ir, defaultOptions()).files;
+    const types = files.get('src/order-management/order.types.ts')!;
+    expect(types).toContain('export interface PlaceOrderNow {');
+    expect(types).toContain('export interface OrderPlaced {');
+    expect(files.get('src/order-management/order.aggregate.ts')).toContain(
+      '  place_ordernow(command: PlaceOrderNow): OrderPlaced;',
+    );
+  });
+
+  it('quotes field names that are not valid TypeScript identifiers', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [
+          makeAggregate({
+            valueObjects: [makeValueObject({ fields: [makeField({ name: "order-id's" })] })],
+          }),
+        ],
+      }),
+    ]);
+
+    const types = emitter
+      .emit(ir, defaultOptions())
+      .files.get('src/order-management/order.types.ts')!;
+    expect(types).toContain("  readonly 'order-id\\'s': string;");
+  });
+
+  it('marks optional event fields and command inputs with ?', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [
+          makeAggregate({
+            commands: [makeCommand({ inputs: [makeField({ name: 'note', required: false })] })],
+            events: [makeEvent({ fields: [makeField({ name: 'reason', required: false })] })],
+            valueObjects: [],
+          }),
+        ],
+      }),
+    ]);
+
+    const types = emitter
+      .emit(ir, defaultOptions())
+      .files.get('src/order-management/order.types.ts')!;
+    expect(types).toContain('export interface CreateOrder {\n  readonly note?: string;\n}');
+    expect(types).toContain('export interface OrderCreated {\n  readonly reason?: string;\n}');
+  });
+
+  it('commands without an emitted event return void and have no @emits tag', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [makeAggregate({ commands: [makeCommand({ emitsEvent: undefined })] })],
+      }),
+    ]);
+
+    const aggregate = emitter
+      .emit(ir, defaultOptions())
+      .files.get('src/order-management/order.aggregate.ts')!;
+    expect(aggregate).toContain('  createOrder(command: CreateOrder): void;');
+    expect(aggregate).not.toContain('@emits');
+  });
+
+  it('an aggregate with no commands, events or value objects emits no type import', () => {
+    const ir = makeIR([
+      makeContext({ aggregates: [makeAggregate({ commands: [], events: [], valueObjects: [] })] }),
+    ]);
+
+    const files = emitter.emit(ir, defaultOptions()).files;
+    const aggregate = files.get('src/order-management/order.aggregate.ts')!;
+    expect(aggregate).not.toContain('import type');
+    expect(aggregate.startsWith('/**')).toBe(true);
+    expect(files.get('src/order-management/index.ts')).not.toContain(
+      'export type OrderManagementEvent',
+    );
+  });
+
+  it('emits a read model from context-level value objects when projections and queries are absent', () => {
+    const ir = makeIR([
+      makeContext({
+        aggregates: [],
+        valueObjects: [makeValueObject({ name: 'Money' })],
+        projections: undefined,
+        queries: undefined,
+      }),
+    ]);
+
+    const files = emitter.emit(ir, defaultOptions()).files;
+    const readModel = files.get('src/order-management/read-model.types.ts')!;
+    expect(readModel).toContain('export interface Money {');
+    expect(readModel).not.toContain('Query');
+    expect(files.get('src/index.ts')).toBe("export * from './order-management/index.js';\n");
+  });
+
+  it('a context with neither aggregates nor a read side produces no files', () => {
+    const ir = makeIR([makeContext({ aggregates: [] })]);
+
+    const output = emitter.emit(ir, defaultOptions());
+    expect(output.files.size).toBe(0);
+    expect(output.result.filesWritten).toEqual([]);
   });
 });

@@ -170,4 +170,92 @@ describe('ContextMapRenderer', () => {
     expect(layout.dimensions.width).toBe(0);
     expect(layout.dimensions.height).toBe(0);
   });
+
+  it('derives crossing edges from flow connections, resolving the source context from the event', () => {
+    const schemaContract = { eventType: 'E', fields: [], relationshipType: 'customer-supplier' };
+    const crossing = (
+      id: string,
+      eventId: string,
+      sourceMomentId: string,
+      targetContextId: string,
+    ) => ({
+      id,
+      sourceMomentId,
+      targetContextId,
+      eventId,
+      connectionType: 'crosses-to' as const,
+      schemaContract,
+    });
+    const ir = makeIR({
+      contexts: [
+        {
+          ...makeContext('ctx-ordering', 'Ordering'),
+          events: [{ id: 'evt-placed', name: 'OrderPlaced', fields: [] }],
+        },
+        {
+          ...makeContext('ctx-billing', 'Billing'),
+          aggregates: [
+            {
+              id: 'agg-invoice',
+              name: 'Invoice',
+              identityField: { name: 'id', type: 'uuid', isArray: false, required: true },
+              commands: [],
+              events: [{ id: 'evt-invoiced', name: 'Invoiced', fields: [] }],
+              valueObjects: [],
+              invariants: [],
+            },
+          ],
+        },
+        makeContext('ctx-shipping', 'Shipping'),
+      ],
+      flows: [
+        {
+          id: 'flow-1',
+          name: 'Order to Cash',
+          lanes: [],
+          moments: [
+            {
+              id: 'moment-ship',
+              name: 'Ship',
+              contextEntries: [
+                { contextId: 'ctx-shipping', nodeName: 'Ship', nodeKind: 'command' as const },
+              ],
+            },
+          ],
+          connections: [
+            // context-level event → Ordering is the source
+            crossing('c1', 'evt-placed', 'moment-unknown', 'ctx-billing'),
+            // duplicate of c1: deduplicated
+            crossing('c2', 'evt-placed', 'moment-unknown', 'ctx-billing'),
+            // aggregate event → Billing is the source
+            crossing('c3', 'evt-invoiced', 'moment-unknown', 'ctx-shipping'),
+            // unknown event, falls back to the source moment's context
+            crossing('c4', 'evt-unknown', 'moment-ship', 'ctx-ordering'),
+            // unresolvable source: no edge
+            crossing('c5', 'evt-unknown', 'moment-unknown', 'ctx-ordering'),
+            // target is not a node: no edge
+            crossing('c6', 'evt-placed', 'moment-unknown', 'ctx-nowhere'),
+            // non-crossing connections never draw edges
+            {
+              id: 'c7',
+              sourceMomentId: 'moment-ship',
+              targetContextId: 'ctx-billing',
+              eventId: 'evt-placed',
+              connectionType: 'triggers' as const,
+            },
+          ],
+        },
+      ],
+    });
+
+    const layout = renderContextMap(ir);
+
+    expect(
+      layout.edges.map((e) => [e.sourceContextId, e.targetContextId, e.relationshipType]),
+    ).toEqual([
+      ['ctx-ordering', 'ctx-billing', 'crosses-to'],
+      ['ctx-billing', 'ctx-shipping', 'crosses-to'],
+      ['ctx-shipping', 'ctx-ordering', 'crosses-to'],
+    ]);
+  });
 });

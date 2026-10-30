@@ -49,7 +49,12 @@ export async function runImportFromSift(argv: string[]): Promise<ImportResult> {
   const resolvedDir = resolve(domainDir);
   if (!existsSync(resolvedDir)) return fail(`Error: Directory not found: ${resolvedDir}`);
 
-  return executeImport(resolvedDir, values['output-dir'], values.json === true);
+  const outputDir = values['output-dir'];
+  return executeImport(
+    resolvedDir,
+    typeof outputDir === 'string' ? outputDir : undefined,
+    values.json === true,
+  );
 }
 
 function executeImport(

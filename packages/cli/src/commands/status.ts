@@ -78,7 +78,11 @@ export async function runStatus(argv: string[]): Promise<StatusResult> {
 
   const hasDrift = sections.some((s) => s.state === 'drift' || s.state === 'error');
 
-  return formatOutput(sections, hasDrift, values);
+  return formatOutput(sections, hasDrift, {
+    verbose: Boolean(values.verbose),
+    quiet: Boolean(values.quiet),
+    json: Boolean(values.json),
+  });
 }
 
 function buildParseSection(parseResult: {

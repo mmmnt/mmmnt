@@ -65,4 +65,125 @@ describe('SiftEventStreamReader', () => {
     const result = new SiftEventStreamReader().read(domainDir({ [SYNC_STATE_LOG]: '{}\n' }));
     expect(result.errors).toEqual(['No .jsonl files found in .domain/']);
   });
+
+  it('accumulates every Sift building-block event into its context and aggregate', () => {
+    const lines = [
+      envelope('AggregateAdded', {
+        contextName: 'Orders',
+        aggregateName: 'Order',
+        identityField: { name: 'orderId', type: 'UUID' },
+      }),
+      envelope('BoundedContextDefined', { contextName: 'Billing' }),
+      envelope('CommandDefined', {
+        contextName: 'Orders',
+        aggregateName: 'Order',
+        commandName: 'PlaceOrder',
+        inputs: [{ name: 'sku', type: 'string' }],
+        emitsEvent: 'OrderPlaced',
+      }),
+      envelope('EventDefined', {
+        contextName: 'Orders',
+        aggregateName: 'Order',
+        eventName: 'OrderPlaced',
+        fields: [
+          { name: 'sku', type: 'string' },
+          { name: 'code', type: 'string', deprecated: { reason: 'renamed', replacement: 'sku' } },
+        ],
+      }),
+      envelope('ValueObjectDefined', {
+        contextName: 'Orders',
+        aggregateName: 'Order',
+        voName: 'Money',
+        fields: [{ name: 'amount', type: 'number' }],
+      }),
+      envelope('InvariantDefined', {
+        contextName: 'Ledger',
+        invariantId: 'inv-1',
+        description: 'balanced',
+        scope: 'context',
+      }),
+      envelope('PolicyDefined', {
+        contextName: 'Shipping',
+        policyName: 'ShipOnPay',
+        trigger: 'Paid',
+        action: 'Ship',
+      }),
+      envelope('SagaDefined', {
+        contextName: 'Fulfilment',
+        sagaName: 'Fulfil',
+        trigger: 'OrderPlaced',
+        states: ['started'],
+        compensation: 'Cancel',
+        timeout: '1h',
+      }),
+    ];
+
+    const result = new SiftEventStreamReader().read(
+      domainDir({ 'orders.jsonl': lines.join('\n') + '\n' }),
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.eventsProcessed).toBe(8);
+    const blocks = result.input.buildingBlocks;
+    expect(blocks.map((b) => b.contextName)).toEqual([
+      'Orders',
+      'Billing',
+      'Ledger',
+      'Shipping',
+      'Fulfilment',
+    ]);
+    expect(blocks[1].classification).toBeUndefined();
+    expect(blocks[0].aggregates).toEqual([
+      {
+        name: 'Order',
+        identityField: { name: 'orderId', type: 'UUID' },
+        commands: [
+          {
+            name: 'PlaceOrder',
+            inputs: [{ name: 'sku', type: 'string' }],
+            emitsEvent: 'OrderPlaced',
+          },
+        ],
+        events: [
+          {
+            name: 'OrderPlaced',
+            fields: [
+              { name: 'sku', type: 'string' },
+              {
+                name: 'code',
+                type: 'string',
+                deprecated: { reason: 'renamed', replacement: 'sku' },
+              },
+            ],
+          },
+        ],
+        valueObjects: [{ name: 'Money', fields: [{ name: 'amount', type: 'number' }] }],
+      },
+    ]);
+  });
+
+  it('reports a missing .domain directory', () => {
+    const missing = join(tmpdir(), 'sift-reader-does-not-exist-' + process.pid);
+    const result = new SiftEventStreamReader().read(missing);
+    expect(result.errors).toEqual([`Directory not found: ${missing}`]);
+    expect(result.filesRead).toBe(0);
+    expect(result.input.buildingBlocks).toEqual([]);
+  });
+
+  it('reports lines missing an eventType or payload, and invalid JSON', () => {
+    const result = new SiftEventStreamReader().read(
+      domainDir({
+        'orders.jsonl': [
+          JSON.stringify({ productSource: 'sift', eventType: 'BoundedContextDefined' }),
+          'not json',
+          contextLine,
+        ].join('\n'),
+      }),
+    );
+    expect(result.eventsProcessed).toBe(1);
+    expect(result.errors).toEqual([
+      expect.stringMatching(/orders\.jsonl:1: Missing eventType or payload$/),
+      expect.stringMatching(/orders\.jsonl:2: Invalid JSON$/),
+    ]);
+  });
 });

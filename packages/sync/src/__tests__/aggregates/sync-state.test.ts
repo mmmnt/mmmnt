@@ -158,6 +158,16 @@ describe('SyncState', () => {
       );
     });
 
+    it('rejects a cursor whose timestamp is not an ISO-8601 date', () => {
+      const state = new SyncState();
+      state.advanceCursor(makeCursor('2026-01-01T00:00:00Z'));
+
+      expect(() => state.advanceCursor(makeCursor('not-a-date', 'hash-2'))).toThrow(
+        "Invalid timestamp: 'not-a-date'",
+      );
+      expect(state.getCursor()?.timestamp).toBe('2026-01-01T00:00:00Z');
+    });
+
     it('allows advancing with a later timestamp', () => {
       const state = new SyncState();
       state.advanceCursor(makeCursor('2026-01-01T00:00:00Z'));

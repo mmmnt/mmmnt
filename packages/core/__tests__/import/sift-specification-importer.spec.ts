@@ -363,6 +363,64 @@ describe('SiftSpecificationImporter', () => {
     expect(content).toContain('emits ItDone');
   });
 
+  it('emits deprecation markers with escaped reason and replacement strings', async () => {
+    const block: SiftBuildingBlock = {
+      contextName: 'Ordering',
+      classification: 'Core',
+      aggregates: [
+        {
+          name: 'Order',
+          identityField: { name: 'orderId', type: 'UUID' },
+          commands: [],
+          events: [
+            {
+              name: 'OrderPlaced',
+              fields: [
+                { name: 'orderId', type: 'UUID' },
+                {
+                  name: 'legacyId',
+                  type: 'string',
+                  deprecated: { reason: 'Use orderId\nC:\\legacy', replacement: 'orderId' },
+                },
+              ],
+            },
+          ],
+          valueObjects: [
+            {
+              name: 'Address',
+              fields: [
+                { name: 'line1', type: 'string' },
+                {
+                  name: 'street',
+                  type: 'string',
+                  deprecated: { reason: 'Renamed', replacement: 'line1' },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const content = importer.generateContextFile(block);
+
+    expect(content).toContain(
+      'legacyId: string [deprecated "Use orderId\\nC:\\\\legacy" -> "orderId"]',
+    );
+    expect(content).toContain('street: string [deprecated "Renamed" -> "line1"]');
+    expect(content).toContain('      orderId: UUID\n');
+
+    const parsed = await parser.parseContent(content);
+    expect(parsed.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+    expect(parsed.success).toBe(true);
+    // The escapes survive the round trip: the parsed reason is the original string.
+    const legacy = parsed.ir!.contexts[0].events[0].fields.find((f) => f.name === 'legacyId');
+    expect(legacy?.deprecated).toEqual({
+      reason: 'Use orderId\nC:\\legacy',
+      replacement: 'orderId',
+    });
+  });
+
   it('includes all diagnostics in result', () => {
     const result = importer.import(sampleInput);
 

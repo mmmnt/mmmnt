@@ -939,4 +939,328 @@ describe('SpecificationDocumentGenerator', () => {
     const content = generator.generate(ir)[0].content;
     expect(content).not.toContain('## Context Boundaries');
   });
+  describe('returns, fallbacks and unresolved references', () => {
+    function makeLoopIR(): IntermediateRepresentation {
+      const flow: FlowDefinition = {
+        id: 'flow-loop',
+        name: 'loop-flow',
+        lanes: [],
+        moments: [
+          {
+            id: 'm-validate',
+            name: 'Validate Order',
+            contextEntries: [
+              { contextId: 'ctx-Ordering', nodeName: 'PlaceOrder', nodeKind: 'command' },
+              { contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' },
+              {
+                contextId: 'ctx-Ordering',
+                nodeName: 'OrderAbandoned',
+                nodeKind: 'event',
+                terminal: true,
+              },
+            ],
+          },
+          {
+            id: 'm-review',
+            name: 'Review Order',
+            contextEntries: [],
+            branches: [
+              {
+                condition: 'NeedsRetry',
+                entries: [
+                  { contextId: 'ctx-Shipping', nodeName: 'RetryRequested', nodeKind: 'event' },
+                ],
+              },
+              {
+                condition: 'NeedsEscalation',
+                entries: [{ contextId: 'ctx-Shipping', nodeName: 'Escalated', nodeKind: 'event' }],
+              },
+              {
+                condition: 'LostTrack',
+                entries: [{ contextId: 'ctx-Shipping', nodeName: 'TrackLost', nodeKind: 'event' }],
+              },
+            ],
+          },
+          {
+            id: 'm-reject',
+            name: 'Reject Order',
+            contextEntries: [],
+            branches: [
+              {
+                condition: 'Fraud',
+                entries: [
+                  { contextId: 'ctx-Ordering', nodeName: 'FraudNoted', nodeKind: 'event' },
+                  {
+                    contextId: 'ctx-Ordering',
+                    nodeName: 'OrderRejected',
+                    nodeKind: 'event',
+                    terminal: true,
+                  },
+                ],
+              },
+            ],
+          },
+          { id: 'm-empty', name: 'Quiet Period', contextEntries: [] },
+        ],
+        connections: [
+          {
+            id: 'ret-resolved',
+            sourceMomentId: 'm-review',
+            targetContextId: 'ctx-Ordering',
+            eventId: 'evt-RetryRequested',
+            connectionType: 'returns-to',
+            targetMomentId: 'm-validate',
+            branchCondition: 'NeedsRetry',
+          },
+          {
+            id: 'ret-label',
+            sourceMomentId: 'm-review',
+            targetContextId: 'ctx-Ordering',
+            eventId: 'evt-Escalated',
+            connectionType: 'returns-to',
+            targetMomentId: 'm-gone',
+            targetMomentLabel: 'Manual Desk',
+            branchCondition: 'NeedsEscalation',
+          },
+          {
+            id: 'ret-unlabelled',
+            sourceMomentId: 'm-review',
+            targetContextId: 'ctx-Ordering',
+            eventId: 'evt-TrackLost',
+            connectionType: 'returns-to',
+            branchCondition: 'LostTrack',
+          },
+          {
+            id: 'x-named',
+            sourceMomentId: 'm-validate',
+            targetContextId: 'ctx-Shipping',
+            eventId: 'evt-OrderPlaced',
+            sourceNodeName: 'OrderPlaced',
+            connectionType: 'crosses-to',
+            schemaContract: {
+              eventType: 'OrderPlaced',
+              fields: [],
+              relationshipType: 'Partnership',
+            },
+          },
+          {
+            id: 'x-duplicate',
+            sourceMomentId: 'm-validate',
+            targetContextId: 'ctx-Shipping',
+            eventId: 'evt-OrderPlaced',
+            sourceNodeName: 'Undeclared',
+            connectionType: 'crosses-to',
+            schemaContract: {
+              eventType: 'OrderPlacedAgain',
+              fields: [],
+              relationshipType: 'Partnership',
+            },
+          },
+          {
+            id: 'x-no-moment',
+            sourceMomentId: 'm-missing',
+            targetContextId: 'ctx-Shipping',
+            eventId: 'evt-Orphan',
+            connectionType: 'crosses-to',
+            schemaContract: { eventType: 'Orphaned', fields: [], relationshipType: 'Conformist' },
+          },
+          {
+            id: 'x-empty-moment',
+            sourceMomentId: 'm-empty',
+            targetContextId: 'ctx-Shipping',
+            eventId: 'evt-Silence',
+            connectionType: 'crosses-to',
+            schemaContract: { eventType: 'Silenced', fields: [], relationshipType: 'Conformist' },
+          },
+        ],
+      };
+      return makeIR({
+        contexts: [
+          makeContext('Ordering', {
+            aggregates: [makeAggregate('Order', { commands: [makeCommand('PlaceOrder')] })],
+          }),
+          makeContext('Shipping'),
+        ],
+        flows: [flow],
+      });
+    }
+
+    it('narrates returns-to targets by resolved moment, then by label, and omits unresolvable ones', () => {
+      const content = generator.generate(makeLoopIR())[0].content;
+
+      expect(content).toContain(
+        '    - Shipping emits **RetryRequested**\n    - ↩ *returns to "Validate Order"*',
+      );
+      expect(content).toContain('    - ↩ *returns to "Manual Desk"*');
+      expect(content).toContain(
+        '  - ✅ **If LostTrack:**\n    - Shipping emits **TrackLost**\n\n**3. Reject Order**',
+      );
+    });
+
+    it('labels branch-only moments by their first branch context and empty moments with none', () => {
+      const content = generator.generate(makeLoopIR())[0].content;
+
+      expect(content).toContain('**2. Review Order** *(Shipping)*');
+      expect(content).toContain('**3. Reject Order** *(Ordering)*');
+      expect(content).toContain('**4. Quiet Period**\n');
+      expect(content).not.toContain('**4. Quiet Period** *(');
+    });
+
+    it('narrates non-terminal entries of a terminal branch beneath the termination line', () => {
+      const content = generator.generate(makeLoopIR())[0].content;
+
+      expect(content).toContain(
+        '  - ❌ **If Fraud:** flow terminates at **OrderRejected**\n    - Ordering emits **FraudNoted**',
+      );
+    });
+
+    it('opens a terminal-only branch block with alt and skips terminal main entries in the sequence', () => {
+      const content = generator.generate(makeLoopIR())[0].content;
+
+      expect(content).toContain('  alt Fraud\n  Note over Ordering: Flow terminates\n  end');
+      expect(content).not.toContain('Ordering->>Ordering: OrderAbandoned');
+    });
+
+    it('resolves crossing sources by declared node, falls back to the first entry, and dashes the unknown', () => {
+      const content = generator.generate(makeLoopIR())[0].content;
+
+      expect(content).toContain(
+        '### OrderPlacedAgain\n\n**Ordering** → **Shipping** via Partnership\n*Occurs during: Validate Order*',
+      );
+      expect(content).toContain(
+        '### Orphaned\n\n**—** → **Shipping** via Conformist\n*Occurs during: —*',
+      );
+      expect(content).toContain(
+        '### Silenced\n\n**—** → **Shipping** via Conformist\n*Occurs during: Quiet Period*',
+      );
+    });
+
+    it('draws one context-map edge per source/target/relationship and none for unresolvable sources', () => {
+      const content = generator.generate(makeLoopIR())[0].content;
+
+      expect(content.match(/-->\|/g)).toEqual(['-->|']);
+      expect(content).toContain('  Ordering -->|Partnership| Shipping');
+    });
+  });
+
+  it('renders a flow-only specification without context map or domain model', () => {
+    const ir = makeIR({
+      flows: [
+        {
+          id: 'f',
+          name: 'f',
+          lanes: [],
+          moments: [
+            {
+              id: 'm',
+              name: 'Only',
+              contextEntries: [{ contextId: 'ctx-Ghost', nodeName: 'Boo', nodeKind: 'event' }],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const content = generator.generate(ir)[0].content;
+
+    expect(content).toContain('**1. Only** *(Ghost)*');
+    expect(content).toContain('  - Ghost emits **Boo**');
+    expect(content).not.toContain('graph LR');
+    expect(content).not.toContain('sequenceDiagram');
+    expect(content).not.toContain('## Domain Model');
+  });
+
+  it('omits the saga state when the orchestration declares no states', () => {
+    const ctx = makeContext('Ordering', {
+      aggregates: [makeAggregate('Order', { commands: [makeCommand('PlaceOrder')] })],
+    });
+    ctx.sagas = [
+      {
+        id: 'saga-1',
+        name: 'Stateless',
+        trigger: 'OrderPlaced',
+        states: [],
+        compensation: 'none',
+        timeout: '1m',
+      },
+    ];
+    const ir = makeIR({
+      contexts: [ctx],
+      flows: [
+        {
+          id: 'f',
+          name: 'f',
+          lanes: [],
+          moments: [
+            {
+              id: 'm',
+              name: 'Place',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'OrderPlaced', nodeKind: 'event' },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const content = generator.generate(ir)[0].content;
+
+    expect(content).toContain('**1. Place** *(Ordering)*\n');
+    expect(content).not.toContain('Stateless:');
+  });
+
+  it('describes projections, lists shared value objects once, and scopes rules to the command aggregate', () => {
+    const shared = makeValueObject('Money');
+    const order = makeAggregate('Order', {
+      commands: [makeCommand('PlaceOrder')],
+      valueObjects: [shared],
+    });
+    const invoice = makeAggregate('Invoice', { valueObjects: [makeValueObject('Money')] });
+    const ctx = makeContext('Ordering', { aggregates: [order, invoice] });
+    ctx.projections = [
+      {
+        id: 'p',
+        name: 'OrderTotals',
+        sources: ['OrderPlaced'],
+        description: 'running sum',
+        fields: [],
+      },
+    ];
+    ctx.invariants = [
+      { id: 'INV-1', description: 'Orders need lines', scope: 'Order' },
+      { id: 'INV-2', description: 'Invoices need totals', scope: 'Invoice' },
+    ];
+    const ir = makeIR({
+      contexts: [ctx],
+      flows: [
+        {
+          id: 'f',
+          name: 'f',
+          lanes: [],
+          moments: [
+            {
+              id: 'm',
+              name: 'Place',
+              contextEntries: [
+                { contextId: 'ctx-Ordering', nodeName: 'PlaceOrder', nodeKind: 'command' },
+                { contextId: 'ctx-Ordering', nodeName: 'PlaceOrder', nodeKind: 'command' },
+              ],
+            },
+          ],
+          connections: [],
+        },
+      ],
+    });
+
+    const content = generator.generate(ir)[0].content;
+
+    expect(content).toContain('- **OrderTotals** ← OrderPlaced: running sum');
+    const glossary = content.slice(content.indexOf('## Data Glossary'));
+    expect(glossary.match(/\*\*Money\*\*/g)).toHaveLength(1);
+    expect(content.match(/Rule INV-1/g)).toHaveLength(1);
+    expect(content).not.toContain('Rule INV-2');
+  });
 });

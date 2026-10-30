@@ -159,6 +159,29 @@ describe('ManifestUpdater', () => {
       expect(result.contextsAdded).toBe(1);
     });
 
+    it('does not re-add files the manifest already lists on a second scan', () => {
+      createManifest(tmpDir);
+      mkdirSync(join(tmpDir, '.moment', 'contexts'), { recursive: true });
+      mkdirSync(join(tmpDir, '.moment', 'flows'), { recursive: true });
+      writeFileSync(join(tmpDir, '.moment', 'contexts', 'ordering.moment'), 'context "Ordering"');
+      writeFileSync(join(tmpDir, '.moment', 'flows', 'order-placed.moment'), 'flow "order-placed"');
+
+      const updater = new ManifestUpdater();
+      expect(updater.updateFromDirectory(tmpDir).updated).toBe(true);
+
+      writeFileSync(join(tmpDir, '.moment', 'contexts', 'billing.moment'), 'context "Billing"');
+      const second = updater.updateFromDirectory(tmpDir);
+
+      expect(second).toEqual({ updated: true, contextsAdded: 1, flowsAdded: 0 });
+      const manifest = readManifest(tmpDir);
+      const contextPaths = (manifest.contexts as { path: string }[]).map((c) => c.path);
+      expect(contextPaths).toEqual([
+        join('.moment', 'contexts', 'ordering.moment'),
+        join('.moment', 'contexts', 'billing.moment'),
+      ]);
+      expect(manifest.flows).toHaveLength(1);
+    });
+
     it('handles non-array contexts/flows in manifest gracefully', () => {
       createManifest(tmpDir, { contexts: 'not-an-array', flows: null });
       mkdirSync(join(tmpDir, '.moment', 'contexts'), { recursive: true });

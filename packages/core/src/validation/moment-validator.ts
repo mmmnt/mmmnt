@@ -39,7 +39,6 @@ import {
   isTriggeredBy,
   isTriggers,
   isValueObjectDeclaration,
-  isMomentFile,
 } from '../generated/ast.js';
 import { buildMomentSequence } from '../parser/moment-sequence.js';
 
@@ -215,17 +214,6 @@ function laneDeclaresEvent(
   return events.includes(eventName);
 }
 
-function getMomentFileFromNode(node: { $container?: unknown }): MomentFile | undefined {
-  let current: unknown = node;
-  while (current) {
-    if (isMomentFile(current as Record<string, unknown>)) {
-      return current as MomentFile;
-    }
-    current = (current as { $container?: unknown }).$container;
-  }
-  return undefined;
-}
-
 function getMomentFromNode(node: { $container?: unknown }): MomentDeclaration | undefined {
   let current: unknown = node;
   while (current) {
@@ -259,7 +247,8 @@ export class MomentValidator {
     field: FieldDeclaration | InputField,
     accept: ValidationAcceptor,
   ): void {
-    if (!field.deprecation) return;
+    // Parser recovery can leave a deprecation without its replacement string.
+    if (field.deprecation?.replacement === undefined) return;
     const replacement = field.deprecation.replacement.replace(/^"|"$/g, '');
     const siblings = collectSiblingNames(field);
     if (siblings === undefined) return;
