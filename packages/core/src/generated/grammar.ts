@@ -3215,7 +3215,7 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
       "name": "STRING",
       "definition": {
         "$type": "RegexToken",
-        "regex": "/\\"[^\\"]*\\"/",
+        "regex": "/\\"(\\\\\\\\.|[^\\"\\\\\\\\])*\\"/",
         "parenthesized": false
       },
       "fragment": false,

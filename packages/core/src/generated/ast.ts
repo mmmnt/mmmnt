@@ -8,7 +8,7 @@ import * as langium from 'langium';
 
 export const MomentTerminals = {
     ID: /[a-zA-Z_][a-zA-Z0-9_-]*/,
-    STRING: /"[^"]*"/,
+    STRING: /"(\\.|[^"\\])*"/,
     INT: /[0-9]+/,
     WS: /\s+/,
     SL_COMMENT: /\/\/[^\n\r]*/,
@@ -184,7 +184,7 @@ export function isAnnotationDeclaration(item: unknown): item is AnnotationDeclar
 export type AnnotationValue = string;
 
 export function isAnnotationValue(item: unknown): item is AnnotationValue {
-    return (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item) || /"[^"]*"/.test(item)));
+    return (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item) || /"(\\.|[^"\\])*"/.test(item)));
 }
 
 export interface Classification extends langium.AstNode {

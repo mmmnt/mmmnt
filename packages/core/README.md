@@ -80,6 +80,8 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 | Aggregate states | aggregate | `state initial <Name>` and `state <From> -> <To> on <Command>`, written right after the identity. |
 | Gateway | projection, policy, orchestration, external | `gateway <Name> consumes <Event or ValueObject> produces <Event or ValueObject>`, with optional `description`. |
 
+Strings are double-quoted and may span lines. A backslash escapes the next character: `\"` for a double quote, `\\` for a backslash, `\n`, `\t` and `\r` for a newline, tab and carriage return. Parsed values arrive in the IR unquoted and unescaped.
+
 Flow nodes resolve to commands, events, policies, orchestrations, projections and queries. A minimal example using the newer constructs:
 
 ```

@@ -1062,7 +1062,7 @@ describe('MomentValidator', () => {
       const fakeFlow = {
         $type: 'FlowDeclaration',
         moments: [],
-        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
+        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: 'Other', isBranch: false }],
       };
       const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeNode = {
@@ -1090,7 +1090,7 @@ describe('MomentValidator', () => {
       const fakeFlow = {
         $type: 'FlowDeclaration',
         moments: [],
-        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: '"Other"', isBranch: false }],
+        lanes: [{ $type: 'LaneDeclaration', id: 'other', label: 'Other', isBranch: false }],
       };
       const fakeMoment = { $type: 'Moment', $container: fakeFlow };
       const fakeCrossing = {
@@ -1281,8 +1281,8 @@ describe('MomentValidator', () => {
       const validator = services.validation.MomentValidator;
       const fakeFlow = {
         $type: 'FlowDeclaration',
-        name: '"test"',
-        lanes: [{ $type: 'LaneDeclaration', id: 'a', label: '"A"', isBranch: false }],
+        name: 'test',
+        lanes: [{ $type: 'LaneDeclaration', id: 'a', label: 'A', isBranch: false }],
         moments: [],
         whenBlocks: [],
       } as never;
@@ -1870,7 +1870,7 @@ describe('MomentValidator', () => {
       const fakeFlow = { $type: 'FlowDeclaration', moments: [], lanes: [] };
       const fakeMoment = {
         $type: 'MomentDeclaration',
-        label: '"Orphan"',
+        label: 'Orphan',
         nodes: [],
         whenBlocks: [],
         $container: fakeFlow,
@@ -2107,12 +2107,12 @@ describe('MomentValidator guard branches', () => {
       return crossing as never;
     }
 
-    it('strips surrounding quotes from lane labels before looking up declared events', () => {
+    it("looks up declared events by the source lane's label", () => {
       const { diagnostics, accept } = collect();
       const crossing = crossingIn(
         [
-          { $type: 'LaneDeclaration', id: 'a', label: '"Ordering"', isBranch: false },
-          { $type: 'LaneDeclaration', id: 'b', label: '"Fulfillment"', isBranch: false },
+          { $type: 'LaneDeclaration', id: 'a', label: 'Ordering', isBranch: false },
+          { $type: 'LaneDeclaration', id: 'b', label: 'Fulfillment', isBranch: false },
         ],
         'a',
         'OrderPlaced',
@@ -2122,9 +2122,7 @@ describe('MomentValidator guard branches', () => {
     });
 
     it('falls back to the target lane when the source lane is not declared', () => {
-      const lanes = [
-        { $type: 'LaneDeclaration', id: 'b', label: '"Fulfillment"', isBranch: false },
-      ];
+      const lanes = [{ $type: 'LaneDeclaration', id: 'b', label: 'Fulfillment', isBranch: false }];
 
       const declared = collect();
       validator().checkSP02(

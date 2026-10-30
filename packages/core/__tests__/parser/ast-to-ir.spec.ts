@@ -591,12 +591,12 @@ describe('AstToIr', () => {
         flows: [
           {
             $type: 'FlowDeclaration',
-            name: '"synthetic"',
+            name: 'synthetic',
             lanes: [],
             moments: [
               {
                 $type: 'MomentDeclaration',
-                label: '"Interleaved"',
+                label: 'Interleaved',
                 nodes: [
                   {
                     $type: 'NodePlacement',
@@ -674,12 +674,12 @@ describe('AstToIr', () => {
         flows: [
           {
             $type: 'FlowDeclaration',
-            name: '"synthetic"',
+            name: 'synthetic',
             lanes: [],
             moments: [
               {
                 $type: 'MomentDeclaration',
-                label: '"Synthetic"',
+                label: 'Synthetic',
                 nodes: [
                   { $type: 'NodePlacement', laneId: 'a', nodeName: 'E1', connections: [] },
                   { $type: 'NodePlacement', laneId: 'a', nodeName: 'E2', connections: [] },

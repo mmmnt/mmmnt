@@ -185,6 +185,24 @@ describe('SiftSpecificationImporter', () => {
       expect(result.success).toBe(true);
       expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
     });
+
+    it('round-trips quotes and backslashes in flow names, descriptions and labels', async () => {
+      const quoted: SiftTimelineEvent = {
+        ...sampleTimelineEvent,
+        flowName: 'the "rush" order',
+        description: 'Ships from C:\\depot "fast"',
+        frames: sampleTimelineEvent.frames.map((f, i) =>
+          i === 0 ? { ...f, label: '"Submit" the order' } : f,
+        ),
+      };
+      const result = await parser.parseContent(importer.generateFlowFile(quoted));
+
+      expect(result.diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+      const flow = result.ir!.flows[0];
+      expect(flow.name).toBe('the "rush" order');
+      expect(flow.description).toBe('Ships from C:\\depot "fast"');
+      expect(flow.moments[0].name).toBe('"Submit" the order');
+    });
   });
 
   describe('SI-02 idempotency', () => {
@@ -380,7 +398,7 @@ describe('SiftSpecificationImporter', () => {
                 {
                   name: 'legacyId',
                   type: 'string',
-                  deprecated: { reason: 'Use orderId\nC:\\legacy', replacement: 'orderId' },
+                  deprecated: { reason: 'Use "orderId"\nC:\\legacy', replacement: 'orderId' },
                 },
               ],
             },
@@ -405,7 +423,7 @@ describe('SiftSpecificationImporter', () => {
     const content = importer.generateContextFile(block);
 
     expect(content).toContain(
-      'legacyId: string [deprecated "Use orderId\\nC:\\\\legacy" -> "orderId"]',
+      'legacyId: string [deprecated "Use \\"orderId\\"\\nC:\\\\legacy" -> "orderId"]',
     );
     expect(content).toContain('street: string [deprecated "Renamed" -> "line1"]');
     expect(content).toContain('      orderId: UUID\n');
@@ -416,7 +434,7 @@ describe('SiftSpecificationImporter', () => {
     // The escapes survive the round trip: the parsed reason is the original string.
     const legacy = parsed.ir!.contexts[0].events[0].fields.find((f) => f.name === 'legacyId');
     expect(legacy?.deprecated).toEqual({
-      reason: 'Use orderId\nC:\\legacy',
+      reason: 'Use "orderId"\nC:\\legacy',
       replacement: 'orderId',
     });
   });
