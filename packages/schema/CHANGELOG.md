@@ -1,5 +1,12 @@
 # @mmmnt/schema
 
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies [[`f2741d5`](https://github.com/mmmnt/mmmnt/commit/f2741d5858721c2bed74b6d99db0d80af1cebd9d), [`a80df89`](https://github.com/mmmnt/mmmnt/commit/a80df89f2a773f1642fdc3781f88ab4580ea944b)]:
+  - @mmmnt/core@0.6.1
+
 ## 0.6.0
 
 ### Patch Changes
