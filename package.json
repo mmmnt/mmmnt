@@ -31,7 +31,7 @@
     ]
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "^2.1.312",
+    "@anthropic-ai/claude-code": "^2.1.315",
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "^3.0.3",
     "@commitlint/cli": "^20.5.3",
@@ -42,7 +42,7 @@
     "@typescript-eslint/parser": "^8.72.1",
     "@vitest/coverage-v8": "^4.1.12",
     "esbuild": "^0.28.2",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.10",
