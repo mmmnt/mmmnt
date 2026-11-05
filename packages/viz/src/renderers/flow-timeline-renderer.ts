@@ -37,38 +37,104 @@ export function renderTimeline(ir: IntermediateRepresentation): TimelineLayout {
   };
 }
 
+interface TimelineMoment {
+  readonly id: string;
+  readonly name: string;
+  readonly contextEntries: readonly { contextId: string; nodeName: string; cause?: string }[];
+  readonly branches?: readonly { entries: readonly { nodeName: string; cause?: string }[] }[];
+  readonly notes?: readonly { text: string; laneId?: string }[];
+}
+
+interface TimelineFlow {
+  readonly lanes: readonly { id: string; contextId: string }[];
+  readonly moments: readonly TimelineMoment[];
+  readonly connections: readonly ConnectionDefinition[];
+}
+
+/**
+ * The lane a moment's column sits in: its first node's, else the lane its first note speaks for (ADR-040
+ * D3), else the lane of the moment before it, so a note-only moment keeps its place in the story.
+ */
+function laneOfMoment(
+  moment: TimelineMoment,
+  flow: TimelineFlow,
+  laneIndex: ReadonlyMap<string, TimelineLane>,
+  previous: TimelineLane | undefined,
+): TimelineLane | undefined {
+  const first = moment.contextEntries[0];
+  if (first) return laneIndex.get(first.contextId);
+  const noteLaneId = (moment.notes ?? []).find((n) => n.laneId !== undefined)?.laneId;
+  const noteLane = flow.lanes.find((l) => l.id === noteLaneId);
+  return (noteLane ? laneIndex.get(noteLane.contextId) : undefined) ?? previous;
+}
+
+/** The node names a moment places, main nodes and `when` arms alike. */
+function namesOfMoment(moment: TimelineMoment): string[] {
+  return [
+    ...moment.contextEntries.map((e) => e.nodeName),
+    ...(moment.branches ?? []).flatMap((b) => b.entries.map((e) => e.nodeName)),
+  ];
+}
+
+/** The ADR-040 parts of a column: notes, same-moment hops and causes. Absent parts are left out. */
+function momentDetails(
+  moment: TimelineMoment,
+  flow: TimelineFlow,
+  earlier: ReadonlySet<string>,
+): Pick<TimelineEntry, 'notes' | 'hops' | 'causes'> {
+  const here = new Set(namesOfMoment(moment).filter((n) => !earlier.has(n)));
+  const hops = flow.connections
+    .filter(
+      (c) =>
+        c.connectionType === 'triggered-by' &&
+        c.sourceMomentId === moment.id &&
+        c.sourceNodeName !== undefined &&
+        c.targetNodeName !== undefined &&
+        here.has(c.sourceNodeName),
+    )
+    .map((c) => ({ from: c.sourceNodeName ?? '', to: c.targetNodeName ?? '' }));
+  const causes = [
+    ...moment.contextEntries,
+    ...(moment.branches ?? []).flatMap((b) => b.entries),
+  ].flatMap((e) => (e.cause !== undefined ? [{ nodeName: e.nodeName, cause: e.cause }] : []));
+  const notes = (moment.notes ?? []).map((n) => ({
+    text: n.text,
+    ...(n.laneId !== undefined ? { laneId: n.laneId } : {}),
+  }));
+  return {
+    ...(notes.length > 0 ? { notes } : {}),
+    ...(hops.length > 0 ? { hops } : {}),
+    ...(causes.length > 0 ? { causes } : {}),
+  };
+}
+
 function processFlow(
-  flow: {
-    moments: readonly {
-      id: string;
-      name: string;
-      contextEntries: readonly { contextId: string; nodeName: string }[];
-    }[];
-    connections: readonly ConnectionDefinition[];
-  },
+  flow: TimelineFlow,
   ir: IntermediateRepresentation,
   laneIndex: ReadonlyMap<string, TimelineLane>,
   entries: TimelineEntry[],
   connections: TimelineConnection[],
   xOffset: number,
 ): number {
+  const earlier = new Set<string>();
+  let previous: TimelineLane | undefined;
   for (const moment of flow.moments) {
     // Deduplicate: one timeline entry per moment (pick first context entry for placement)
-    const firstEntry = moment.contextEntries[0];
-    if (firstEntry) {
-      const lane = laneIndex.get(firstEntry.contextId);
-      if (lane) {
-        entries.push({
-          momentId: moment.id,
-          momentName: moment.name,
-          contextId: firstEntry.contextId,
-          x: xOffset,
-          y: lane.y + LANE_PADDING,
-          width: ENTRY_WIDTH,
-          height: ENTRY_HEIGHT,
-        });
-      }
+    const lane = laneOfMoment(moment, flow, laneIndex, previous);
+    if (lane) {
+      previous = lane;
+      entries.push({
+        momentId: moment.id,
+        momentName: moment.name,
+        contextId: lane.contextId,
+        x: xOffset,
+        y: lane.y + LANE_PADDING,
+        width: ENTRY_WIDTH,
+        height: ENTRY_HEIGHT,
+        ...momentDetails(moment, flow, earlier),
+      });
     }
+    namesOfMoment(moment).forEach((n) => earlier.add(n));
     xOffset += ENTRY_SPACING;
   }
 
