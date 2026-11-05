@@ -1,0 +1,12 @@
+// ADR-040 invalid exemplar: V10 — a moment with no node, when block or note.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+
+flow "Order"
+  lane shop "Shop" [Core]
+  moment "Nothing happens"

@@ -1,0 +1,20 @@
+// ADR-040 invalid exemplar: V43 — a same-moment triggered-by that no policy declares.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      emits OrderPlaced
+    command ShipOrder
+      emits OrderShipped
+    event OrderPlaced
+      orderId: UUID
+    event OrderShipped
+      orderId: UUID
+
+flow "Ship"
+  lane shop "Shop" [Core]
+  moment "Placed and shipped"
+    shop: OrderPlaced
+    shop: ShipOrder
+      triggered-by OrderPlaced
+    shop: OrderShipped

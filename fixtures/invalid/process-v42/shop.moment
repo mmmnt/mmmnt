@@ -1,0 +1,16 @@
+// ADR-040 invalid exemplar: V42 — a command with a cause-scoped precondition is placed with no cause.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command CancelOrder
+      causes OwnerRequest, ShopClosure
+      precondition Window cause OwnerRequest: "Ahead of time"
+      emits OrderCancelled
+    event OrderCancelled
+      orderId: UUID
+
+flow "Cancel"
+  lane shop "Shop" [Core]
+  moment "Owner asks"
+    shop: CancelOrder
+    shop: OrderCancelled

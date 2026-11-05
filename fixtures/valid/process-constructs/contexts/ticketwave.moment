@@ -1,0 +1,30 @@
+// ADR-040 corpus exemplar (ticketwave): a step outside the model (the card network) and a reactive
+// column of event, policy and command that one moment shows whole.
+external CardNetwork "The network that authorises a card"
+
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      input orderId: UUID
+      emits OrderPlaced
+    command RecordPayment
+      input orderId: UUID
+      emits PaymentRecorded
+    event OrderPlaced
+      orderId: UUID
+    event PaymentRecorded
+      orderId: UUID
+
+  aggregate "Seats"
+    identity seatMapId: UUID
+    command ReserveSeats
+      input orderId: UUID
+      emits SeatsReserved
+    event SeatsReserved
+      orderId: UUID
+
+  policy ReserveSeatsOnOrderPlaced
+    trigger OrderPlaced
+    action "Reserve the seats of the order"
+    chains-to ReserveSeats

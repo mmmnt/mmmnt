@@ -1,0 +1,6 @@
+flow "Owner cancels"
+  lane clinic "Clinic" [Core]
+
+  moment "Owner asks to cancel"
+    clinic: CancelAppointment cause OwnerRequest
+    clinic: AppointmentCancelled

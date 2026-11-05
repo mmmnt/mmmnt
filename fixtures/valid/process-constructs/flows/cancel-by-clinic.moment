@@ -1,0 +1,6 @@
+flow "Clinic cancels"
+  lane clinic "Clinic" [Core]
+
+  moment "The vet is unavailable"
+    clinic: CancelAppointment cause ClinicClosure
+    clinic: AppointmentCancelled

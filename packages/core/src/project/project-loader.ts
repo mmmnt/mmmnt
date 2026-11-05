@@ -39,8 +39,9 @@ export interface ProjectLoadResult {
   readonly filesErrored: number;
 }
 
-// V22–V39 (ADR-037, ADR-038, reference rules): advisories per file, errors over the merge.
-const isCompletenessRule = (d: Diagnostic): boolean => /^V(2[2-9]|3[0-9])$/.test(d.ruleId ?? '');
+// V22–V43 (ADR-037, ADR-038, reference rules, ADR-040): advisories per file, errors over the merge.
+const isCompletenessRule = (d: Diagnostic): boolean =>
+  /^V(2[2-9]|3[0-9]|4[0-3])$/.test(d.ruleId ?? '');
 
 export class ProjectLoader {
   private readonly parser: MomentParser;

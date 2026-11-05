@@ -1,0 +1,15 @@
+// ADR-040 invalid exemplar: V5 — a triggered-by that names a node placed later in the flow.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+
+flow "Order"
+  lane shop "Shop" [Core]
+  moment "Placed"
+    shop: PlaceOrder
+      triggered-by OrderPlaced
+    shop: OrderPlaced

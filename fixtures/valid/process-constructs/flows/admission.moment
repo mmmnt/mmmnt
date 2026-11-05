@@ -1,0 +1,18 @@
+flow "Admission"
+  description "A pet is admitted, and the outcome is a fact others react to"
+
+  lane clinic "Clinic" [Core]
+
+  moment "Admission starts"
+    clinic: StartAdmission
+    clinic: AdmissionStarted
+
+  moment "Admission completes"
+    clinic: CompleteAdmission
+    clinic: AdmissionCompleted
+
+  moment "The owner is billed"
+    clinic: BillOnAdmissionCompleted
+      triggered-by AdmissionCompleted
+    clinic: IssueInvoice
+      triggered-by BillOnAdmissionCompleted

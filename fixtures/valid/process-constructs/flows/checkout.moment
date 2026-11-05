@@ -1,0 +1,20 @@
+flow "Checkout"
+  lane shop "Ordering" [Core]
+  lane psp "CardNetwork" [External]
+
+  moment "Order placed"
+    shop: PlaceOrder
+    shop: OrderPlaced
+    shop: ReserveSeatsOnOrderPlaced
+      triggered-by OrderPlaced
+    shop: ReserveSeats
+      triggered-by ReserveSeatsOnOrderPlaced
+    shop: SeatsReserved
+
+  moment "Card is authorised"
+    note psp: "The card network authorises the card and answers within seconds"
+
+  moment "Payment recorded"
+    shop: RecordPayment
+      triggered-by OrderPlaced
+    shop: PaymentRecorded

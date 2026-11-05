@@ -1,0 +1,19 @@
+// ADR-040 invalid exemplar: V40 — a process event repeats the name of an aggregate's event.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+
+  orchestration Fulfilment
+    command StartFulfilment
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+    invoked-by StartFulfilment
+    issues PlaceOrder
+    states Started
+    compensation none
+    timeout "none"

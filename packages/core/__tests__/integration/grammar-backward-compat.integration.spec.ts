@@ -51,7 +51,8 @@ function assertAdditiveFieldInvariants(ir: IntermediateRepresentation): void {
     for (const moment of flow.moments) {
       const branchCount = moment.branches?.length ?? 0;
       expect(moment.sequence).toBeDefined();
-      expect(moment.sequence).toHaveLength(moment.contextEntries.length + branchCount);
+      const noteCount = moment.notes?.length ?? 0;
+      expect(moment.sequence).toHaveLength(moment.contextEntries.length + branchCount + noteCount);
       const entryIndexes = moment
         .sequence!.filter((s) => s.kind === 'entry')
         .map((s) => s.index)
@@ -62,6 +63,11 @@ function assertAdditiveFieldInvariants(ir: IntermediateRepresentation): void {
         .sort((a, b) => a - b);
       expect(entryIndexes).toEqual(moment.contextEntries.map((_, i) => i));
       expect(branchIndexes).toEqual(Array.from({ length: branchCount }, (_, i) => i));
+      const noteIndexes = moment
+        .sequence!.filter((s) => s.kind === 'note')
+        .map((s) => s.index)
+        .sort((a, b) => a - b);
+      expect(noteIndexes).toEqual(Array.from({ length: noteCount }, (_, i) => i));
     }
   }
 }
