@@ -27,6 +27,7 @@ import {
   generateEventCatalog,
   generateImpactAnalysis,
   generateSagaStateMachines,
+  generatePolicyDefinitions,
 } from '@mmmnt/derive';
 import type { SimulationScenario, SimulationTopology } from '@mmmnt/derive';
 
@@ -89,6 +90,8 @@ interface ArtifactPayload {
   eventCatalog: unknown;
   impactAnalysis: unknown;
   sagaStateMachines: unknown;
+  /** Absent (null) when a facet directory predates policy-definitions.json. */
+  policyDefinitions: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +160,7 @@ function buildPayloads(ir: IntermediateRepresentation, includeAll: boolean): Pip
         eventCatalog: 'event-catalog.json',
         impactAnalysis: 'impact-analysis.json',
         sagaStateMachines: 'saga-state-machines.json',
+        policyDefinitions: 'policy-definitions.json',
       },
     },
     topologies,
@@ -165,6 +169,8 @@ function buildPayloads(ir: IntermediateRepresentation, includeAll: boolean): Pip
       eventCatalog: generateEventCatalog(ir),
       impactAnalysis: generateImpactAnalysis(ir),
       sagaStateMachines: generateSagaStateMachines(ir),
+      // The generator `simulate --out-dir` writes policy-definitions.json with.
+      policyDefinitions: generatePolicyDefinitions(ir),
     },
   };
 }
@@ -335,11 +341,13 @@ function normalizeArtifactFilenames(raw: Readonly<Record<string, string>>): {
   readonly eventCatalog: string;
   readonly impactAnalysis: string;
   readonly sagaStateMachines: string;
+  readonly policyDefinitions: string;
 } {
   return {
     eventCatalog: raw.eventCatalog ?? 'event-catalog.json',
     impactAnalysis: raw.impactAnalysis ?? 'impact-analysis.json',
     sagaStateMachines: raw.sagaStateMachines ?? 'saga-state-machines.json',
+    policyDefinitions: raw.policyDefinitions ?? 'policy-definitions.json',
   };
 }
 
@@ -419,6 +427,7 @@ export function runFacetDirPipeline(dir: string, includeAll: boolean): PipelineR
       eventCatalog: loadArtifact(dir, artifactNames.eventCatalog),
       impactAnalysis: loadArtifact(dir, artifactNames.impactAnalysis),
       sagaStateMachines: loadArtifact(dir, artifactNames.sagaStateMachines),
+      policyDefinitions: loadArtifact(dir, artifactNames.policyDefinitions),
     },
   };
 }

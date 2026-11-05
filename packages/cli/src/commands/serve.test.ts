@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -298,6 +298,7 @@ describe('runFacetDirPipeline', () => {
       expect(result.artifacts.eventCatalog).toBeNull();
       expect(result.artifacts.impactAnalysis).toBeNull();
       expect(result.artifacts.sagaStateMachines).toBeNull();
+      expect(result.artifacts.policyDefinitions).toBeNull();
       expect(Object.keys(result.scenarios)).toEqual(['scenario-flow-order-placed.json']);
     });
   });
@@ -343,6 +344,52 @@ describe('runPipeline (spec-file live derive)', () => {
     expect(Object.keys(all.scenarios).length).toBeGreaterThanOrEqual(
       Object.keys(base.scenarios).length,
     );
+  });
+});
+
+describe('policy-definitions reach Facet over the bridge', () => {
+  it('facet-dir mode loads policy-definitions.json, named by the manifest or by default', () => {
+    populateValidFacetDir(facetDir);
+    const defs = [{ name: 'P', contextId: 'ctx-A', trigger: 'E', chainsTo: ['C'] }];
+    writeJson(join(facetDir, 'policy-definitions.json'), defs);
+
+    const byDefault = runFacetDirPipeline(facetDir, false);
+    expect(byDefault.manifest.artifacts.policyDefinitions).toBe('policy-definitions.json');
+    expect(byDefault.artifacts.policyDefinitions).toEqual(defs);
+
+    writeJson(join(facetDir, 'manifest.json'), {
+      ...SAMPLE_MANIFEST,
+      artifacts: { ...SAMPLE_MANIFEST.artifacts, policyDefinitions: 'pol.json' },
+    });
+    writeJson(join(facetDir, 'pol.json'), defs);
+    const named = runFacetDirPipeline(facetDir, false);
+    expect(named.manifest.artifacts.policyDefinitions).toBe('pol.json');
+    expect(named.artifacts.policyDefinitions).toEqual(defs);
+  });
+
+  it('facet-dir mode without a policy file serves null, as an older directory does', () => {
+    populateValidFacetDir(facetDir);
+    expect(runFacetDirPipeline(facetDir, false).artifacts.policyDefinitions).toBeNull();
+  });
+
+  it('spec mode serves the same policy definitions simulate --out-dir writes', async () => {
+    const spec = resolve(
+      import.meta.dirname,
+      '../../../../examples/ticketwave/spec/ticketwave.moment',
+    );
+    const result = await runPipeline(spec, true);
+    const committed = JSON.parse(
+      readFileSync(
+        resolve(
+          import.meta.dirname,
+          '../../../../examples/ticketwave/facet/policy-definitions.json',
+        ),
+        'utf-8',
+      ),
+    );
+    expect(result.manifest.artifacts.policyDefinitions).toBe('policy-definitions.json');
+    expect(result.artifacts.policyDefinitions).toEqual(committed);
+    expect((result.artifacts.policyDefinitions as unknown[]).length).toBeGreaterThan(0);
   });
 });
 
