@@ -322,3 +322,120 @@ describe('V40 one owner per event', () => {
     expect(rules(r)).toEqual([]);
   });
 });
+
+// ADR-040 V41/V42: causes of commands, preconditions and placements, over hand-built IR.
+describe('V41/V42 causes', () => {
+  const cancel = (extra: Loose = {}): Loose => ({
+    name: 'CancelAppointment',
+    causes: ['OwnerRequest', 'ClinicClosure'],
+    preconditions: [
+      { name: 'IsOpen', description: 'open' },
+      { name: 'Window', description: 'ahead', causes: ['OwnerRequest'] },
+    ],
+    ...extra,
+  });
+  const withFlow = (
+    command: Loose,
+    entries: Loose[],
+    ctx: Loose = {},
+  ): IntermediateRepresentation =>
+    ({
+      ...ir({ commands: [command], ...ctx }),
+      flows: [
+        {
+          name: 'F',
+          lanes: [],
+          connections: [],
+          moments: [{ id: 'm0', name: 'M', contextEntries: entries }],
+        },
+      ],
+    }) as unknown as IntermediateRepresentation;
+  const place = (cause?: string): Loose => ({
+    nodeName: 'CancelAppointment',
+    nodeKind: 'command',
+    ...(cause ? { cause } : {}),
+  });
+
+  it('accepts a command with scoped preconditions placed for a declared cause', () => {
+    expect(rules(withFlow(cancel(), [place('OwnerRequest')]))).toEqual([]);
+  });
+
+  it('accepts IR that predates ADR-040 (no causes anywhere)', () => {
+    const plain = { name: 'CancelAppointment', preconditions: [{ name: 'P', description: 'd' }] };
+    expect(rules(withFlow(plain, [place()]))).toEqual([]);
+  });
+
+  it('V41: a precondition names a cause the command does not declare', () => {
+    const cmd = cancel({
+      preconditions: [{ name: 'Window', description: 'x', causes: ['Typo'] }],
+    });
+    expect(messages(withFlow(cmd, [place('OwnerRequest')]))).toEqual([
+      "Precondition 'Window' of command 'CancelAppointment' names cause 'Typo', which the command does not declare.",
+    ]);
+  });
+
+  it('V41: a precondition names a cause on a command that declares none', () => {
+    const cmd = {
+      name: 'CancelAppointment',
+      preconditions: [{ name: 'Window', description: 'x', causes: ['OwnerRequest'] }],
+    };
+    expect(rules(ir({ commands: [cmd] }))).toEqual(['V41']);
+  });
+
+  it('V41: a placement names a cause the command does not declare', () => {
+    expect(messages(withFlow(cancel(), [place('Typo')]))).toEqual([
+      "Flow 'F' places 'CancelAppointment' for cause 'Typo', which the command does not declare.",
+    ]);
+  });
+
+  it('V41: a placement names a cause on a command that declares none', () => {
+    const plain = { name: 'CancelAppointment', preconditions: [] };
+    expect(rules(withFlow(plain, [place('OwnerRequest')]))).toEqual(['V41']);
+  });
+
+  it('V42: a command with a scoped precondition is placed with no cause', () => {
+    expect(messages(withFlow(cancel(), [place()]))).toEqual([
+      "Flow 'F' places 'CancelAppointment' without a cause, but the command has cause-scoped preconditions.",
+    ]);
+  });
+
+  it('V42: quiet when no precondition is scoped, even if the command declares causes', () => {
+    const cmd = cancel({ preconditions: [{ name: 'IsOpen', description: 'open' }] });
+    expect(rules(withFlow(cmd, [place()]))).toEqual([]);
+  });
+
+  it('V41/V42 also cover orchestration commands and placements inside when blocks', () => {
+    const saga = {
+      name: 'P',
+      trigger: 'Go',
+      states: [],
+      commands: [
+        {
+          name: 'Go',
+          causes: ['Manual'],
+          preconditions: [{ name: 'Only', description: 'd', causes: ['Manual'] }],
+        },
+      ],
+    };
+    const base = ir({ sagas: [saga] });
+    const model = {
+      ...base,
+      flows: [
+        {
+          name: 'F',
+          lanes: [],
+          connections: [],
+          moments: [
+            {
+              id: 'm0',
+              name: 'M',
+              contextEntries: [],
+              branches: [{ condition: 'c', entries: [{ nodeName: 'Go', nodeKind: 'command' }] }],
+            },
+          ],
+        },
+      ],
+    } as unknown as IntermediateRepresentation;
+    expect(rules(model)).toEqual(['V42']);
+  });
+});

@@ -51,6 +51,8 @@ export type MomentKeywordNames =
     | "aggregate"
     | "boolean"
     | "branch-lane"
+    | "cause"
+    | "causes"
     | "chains-to"
     | "command"
     | "compensation"
@@ -211,6 +213,7 @@ export function isClassificationValue(item: unknown): item is ClassificationValu
 export interface CommandDeclaration extends langium.AstNode {
     readonly $container: AggregateDeclaration;
     readonly $type: 'CommandDeclaration';
+    causes: Array<string>;
     emits: string;
     inputs: Array<InputField>;
     name: string;
@@ -219,6 +222,7 @@ export interface CommandDeclaration extends langium.AstNode {
 
 export const CommandDeclaration = {
     $type: 'CommandDeclaration',
+    causes: 'causes',
     emits: 'emits',
     inputs: 'inputs',
     name: 'name',
@@ -263,7 +267,7 @@ export interface ContextCrossing extends langium.AstNode {
     readonly $type: 'ContextCrossing';
     fields: Array<ContractField>;
     relationshipType: RelationshipType;
-    targetLaneId: string;
+    targetLaneId: LaneName;
 }
 
 export const ContextCrossing = {
@@ -441,10 +445,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'reads' | 'sources' | 'state' | string;
+export type FieldName = 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'reads' | 'sources' | 'state' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -554,7 +558,7 @@ export interface LaneDeclaration extends langium.AstNode {
     readonly $container: FlowDeclaration;
     readonly $type: 'LaneDeclaration';
     classification?: Classification;
-    id: string;
+    id: LaneName;
     isBranch: boolean;
     label: string;
 }
@@ -569,6 +573,12 @@ export const LaneDeclaration = {
 
 export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
     return reflection.isInstance(item, LaneDeclaration.$type);
+}
+
+export type LaneName = 'cause' | 'causes' | string;
+
+export function isLaneName(item: unknown): item is LaneName {
+    return item === 'cause' || item === 'causes' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export type ModifierType = 'optional' | 'terminal';
@@ -651,9 +661,10 @@ export function isNodeModifier(item: unknown): item is NodeModifier {
 export interface NodePlacement extends langium.AstNode {
     readonly $container: MomentDeclaration | WhenBlock;
     readonly $type: 'NodePlacement';
+    cause?: string;
     connections: Array<Connection>;
     crossing?: ContextCrossing;
-    laneId: string;
+    laneId: LaneName;
     modifier?: NodeModifier;
     multiplicity?: Multiplicity;
     nodeName: string;
@@ -661,6 +672,7 @@ export interface NodePlacement extends langium.AstNode {
 
 export const NodePlacement = {
     $type: 'NodePlacement',
+    cause: 'cause',
     connections: 'connections',
     crossing: 'crossing',
     laneId: 'laneId',
@@ -676,6 +688,7 @@ export function isNodePlacement(item: unknown): item is NodePlacement {
 export interface OrchestrationCommand extends langium.AstNode {
     readonly $container: SagaDeclaration;
     readonly $type: 'OrchestrationCommand';
+    causes: Array<string>;
     emits?: string;
     inputs: Array<InputField>;
     name: string;
@@ -684,6 +697,7 @@ export interface OrchestrationCommand extends langium.AstNode {
 
 export const OrchestrationCommand = {
     $type: 'OrchestrationCommand',
+    causes: 'causes',
     emits: 'emits',
     inputs: 'inputs',
     name: 'name',
@@ -720,12 +734,14 @@ export function isPolicyDeclaration(item: unknown): item is PolicyDeclaration {
 export interface Precondition extends langium.AstNode {
     readonly $container: CommandDeclaration | OrchestrationCommand;
     readonly $type: 'Precondition';
+    causes: Array<string>;
     description: string;
     name: string;
 }
 
 export const Precondition = {
     $type: 'Precondition',
+    causes: 'causes',
     description: 'description',
     name: 'name'
 } as const;
@@ -980,7 +996,7 @@ export interface WhenBlock extends langium.AstNode {
     readonly $container: MomentDeclaration;
     readonly $type: 'WhenBlock';
     condition: string;
-    lane?: string;
+    lane?: LaneName;
     nodes: Array<NodePlacement>;
 }
 
@@ -1124,6 +1140,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         CommandDeclaration: {
             name: CommandDeclaration.$type,
             properties: {
+                causes: {
+                    name: CommandDeclaration.causes,
+                    defaultValue: [],
+                    optional: true
+                },
                 emits: {
                     name: CommandDeclaration.emits
                 },
@@ -1504,6 +1525,10 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         NodePlacement: {
             name: NodePlacement.$type,
             properties: {
+                cause: {
+                    name: NodePlacement.cause,
+                    optional: true
+                },
                 connections: {
                     name: NodePlacement.connections,
                     defaultValue: [],
@@ -1533,6 +1558,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         OrchestrationCommand: {
             name: OrchestrationCommand.$type,
             properties: {
+                causes: {
+                    name: OrchestrationCommand.causes,
+                    defaultValue: [],
+                    optional: true
+                },
                 emits: {
                     name: OrchestrationCommand.emits,
                     optional: true
@@ -1579,6 +1609,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         Precondition: {
             name: Precondition.$type,
             properties: {
+                causes: {
+                    name: Precondition.causes,
+                    defaultValue: [],
+                    optional: true
+                },
                 description: {
                     name: Precondition.description
                 },

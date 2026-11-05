@@ -798,3 +798,79 @@ describe('Moment Grammar > Generated Output', () => {
     expect(astContent).toContain('interface ContractField');
   });
 });
+
+// ---------------------------------------------------------------------------
+// ADR-040 — process events, causes, notes. The words `cause`, `causes` and `note` become keywords;
+// fields, inputs and lanes that used them keep parsing.
+// ---------------------------------------------------------------------------
+describe('Moment Grammar > ADR-040', () => {
+  const errorsOf = async (input: string): Promise<string[]> => {
+    const doc = await parse(input);
+    return [
+      ...doc.parseResult.lexerErrors.map((e) => e.message),
+      ...doc.parseResult.parserErrors.map((e) => e.message),
+    ];
+  };
+
+  const PROCESS = (body: string): string => `
+context "C" [Core]
+  orchestration P
+    command Go
+${body}
+    invoked-by Go
+    issues Do
+    states S
+    compensation none
+    timeout "none"
+`;
+
+  it('parses events between an orchestration command and invoked-by, with or without fields', async () => {
+    expect(await errorsOf(PROCESS('    event Started\n      a: UUID\n    event Finished'))).toEqual(
+      [],
+    );
+  });
+
+  it('parses a field named invoked-by in a process event before the real invoked-by', async () => {
+    expect(await errorsOf(PROCESS('    event Started\n      invoked-by: string'))).toEqual([]);
+  });
+
+  it('parses causes, a cause-scoped precondition and a placement cause', async () => {
+    const src = `
+context "C" [Core]
+  aggregate "A"
+    identity aId: UUID
+    command Cancel
+      causes Owner, Clinic
+      precondition Window cause Owner, Admin: "Ahead of time"
+      emits Cancelled
+    event Cancelled
+      aId: UUID
+flow "F"
+  lane l "C" [Core]
+  moment "M"
+    l: Cancel cause Owner
+`;
+    expect(await errorsOf(src)).toEqual([]);
+  });
+
+  it('parses fields, inputs and lanes named cause or causes', async () => {
+    const src = `
+context "C" [Core]
+  aggregate "A"
+    identity cause: UUID
+    command Do
+      input cause: string, causes: string
+      emits Done
+    event Done
+      cause: string
+      causes: string
+flow "F"
+  lane cause "Cause" [Core]
+  moment "M"
+    cause: Foo
+    cause: Bar cause Baz
+    cause: Qux
+`;
+    expect(await errorsOf(src)).toEqual([]);
+  });
+});

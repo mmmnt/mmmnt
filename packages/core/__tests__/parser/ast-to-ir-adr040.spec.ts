@@ -105,3 +105,74 @@ context "C" [Core]
     expect(ir.contexts[0].sagas[0].events ?? []).toEqual([]);
   });
 });
+
+const APPOINTMENT = `
+context "Clinic" [Core]
+  aggregate "Appointment"
+    identity appointmentId: UUID
+    command CancelAppointment
+      input appointmentId: UUID, cause: string
+      causes OwnerRequest, ClinicClosure
+      precondition AppointmentIsOpen: "The appointment has not been completed"
+      precondition WithinCancellationWindow cause OwnerRequest: "At least 24 hours ahead"
+      emits AppointmentCancelled
+    event AppointmentCancelled
+      appointmentId: UUID
+      cause: string
+
+flow "Owner cancels"
+  lane desk "Clinic" [Core]
+  moment "Owner asks to cancel"
+    desk: CancelAppointment cause OwnerRequest
+    desk: AppointmentCancelled
+  moment "Clinic cancels"
+    desk: CancelAppointment [optional] cause ClinicClosure
+    desk: AppointmentCancelled
+`;
+
+describe('ADR-040 D2 causes', () => {
+  it('reads causes on a command and a cause clause on a precondition', async () => {
+    const ir = await toIr(APPOINTMENT);
+    const cmd = ir.contexts[0].commands[0];
+    expect(cmd.causes).toEqual(['OwnerRequest', 'ClinicClosure']);
+    expect(cmd.preconditions[0].causes).toBeUndefined();
+    expect(cmd.preconditions[1].causes).toEqual(['OwnerRequest']);
+    expect(cmd.inputs.map((i) => i.name)).toEqual(['appointmentId', 'cause']);
+  });
+
+  it('reads the cause of a placement into MomentEntry.cause', async () => {
+    const ir = await toIr(APPOINTMENT);
+    const moments = ir.flows[0].moments;
+    expect(moments[0].contextEntries[0].cause).toBe('OwnerRequest');
+    expect(moments[0].contextEntries[1].cause).toBeUndefined();
+    expect(moments[1].contextEntries[0].cause).toBe('ClinicClosure');
+    expect(moments[1].contextEntries[0].optional).toBe(true);
+  });
+
+  it('reads causes on an orchestration command', async () => {
+    const ir = await toIr(`
+context "C" [Core]
+  aggregate "A"
+    identity aId: UUID
+    command Do
+      emits Done
+    event Done
+      aId: UUID
+  orchestration P
+    command Go
+      causes Manual, Scheduled
+      precondition Allowed cause Manual: "Only a person starts it by hand"
+      emits Started
+    event Started
+      aId: UUID
+    invoked-by Go
+    issues Do
+    states S
+    compensation none
+    timeout "none"
+`);
+    const go = ir.contexts[0].sagas[0].commands?.[0];
+    expect(go?.causes).toEqual(['Manual', 'Scheduled']);
+    expect(go?.preconditions[0].causes).toEqual(['Manual']);
+  });
+});

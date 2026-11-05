@@ -87,6 +87,7 @@ AggregateStateDeclaration:
 CommandDeclaration:
     'command' name=ID
         ('input' inputs+=InputField (',' inputs+=InputField)*)?
+        ('causes' causes+=ID (',' causes+=ID)*)?
         preconditions+=Precondition*
         'emits' emits=ID;
 
@@ -94,7 +95,7 @@ InputField:
     name=InputName ':' type=TypeReference deprecation=FieldDeprecation?;
 
 Precondition:
-    'precondition' name=ID ':' description=STRING;
+    'precondition' name=ID ('cause' causes+=ID (',' causes+=ID)*)? ':' description=STRING;
 
 DomainEventDeclaration:
     'event' name=ID
@@ -141,6 +142,7 @@ SagaDeclaration:
 OrchestrationCommand:
     'command' name=ID
         ('input' inputs+=InputField (',' inputs+=InputField)*)?
+        ('causes' causes+=ID (',' causes+=ID)*)?
         preconditions+=Precondition*
         ('emits' emits=ID)?;
 
@@ -173,22 +175,27 @@ FlowDeclaration:
         moments+=MomentDeclaration*;
 
 LaneDeclaration:
-    ('lane' | isBranch?='branch-lane') id=ID label=STRING classification=Classification?;
+    ('lane' | isBranch?='branch-lane') id=LaneName label=STRING classification=Classification?;
 
 MomentDeclaration:
     'moment' label=STRING isBranch?='[branch]'?
         (nodes+=NodePlacement | whenBlocks+=WhenBlock)*;
 
 WhenBlock:
-    'when' condition=ID ('[' lane=ID ']')?
+    'when' condition=ID ('[' lane=LaneName ']')?
         nodes+=NodePlacement*;
 
 NodePlacement:
-    laneId=ID ':' nodeName=ID
+    laneId=LaneName ':' nodeName=ID
         multiplicity=Multiplicity?
         modifier=NodeModifier?
+        ('cause' cause=ID)?
         crossing=ContextCrossing?
         connections+=Connection*;
+
+// A lane may be named with a word ADR-040 made a keyword, so a model that already used it keeps parsing.
+LaneName returns string:
+    ID | 'cause' | 'causes';
 
 Multiplicity:
     '(' '×' (count=INT | countVar=ID) ')';
@@ -204,7 +211,7 @@ Connection:
     TriggeredBy | Triggers | ReturnsTo;
 
 ContextCrossing:
-    'crosses-to' targetLaneId=ID 'via' relationshipType=RelationshipType
+    'crosses-to' targetLaneId=LaneName 'via' relationshipType=RelationshipType
         'contract' fields+=ContractField*;
 
 ContractField:
@@ -238,7 +245,7 @@ InputName returns string:
 // or a field list would read the next declaration as a field.
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
-    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by';
+    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;

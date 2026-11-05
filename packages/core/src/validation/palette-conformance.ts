@@ -11,6 +11,8 @@ import type {
   GatewayDefinition,
   IntermediateRepresentation,
   IssuedCommandDefinition,
+  MomentEntry,
+  PreconditionDefinition,
   SagaDefinition,
 } from '../ir/index.js';
 
@@ -240,9 +242,75 @@ function v40(ctx: ContextDefinition): Finding[] {
     }));
 }
 
+interface CauseCommand {
+  name: string;
+  causes?: string[];
+  preconditions?: PreconditionDefinition[];
+}
+
+function allCommands(ir: IntermediateRepresentation): CauseCommand[] {
+  return ir.contexts.flatMap((c) => [...c.commands, ...c.sagas.flatMap((s) => s.commands ?? [])]);
+}
+
+/** V41 on the declarations: a precondition's cause is one the command declares. */
+function v41Declarations(commands: CauseCommand[]): Finding[] {
+  return commands.flatMap((cmd) =>
+    (cmd.preconditions ?? []).flatMap((pre) =>
+      (pre.causes ?? [])
+        .filter((cause) => !(cmd.causes ?? []).includes(cause))
+        .map((cause) => ({
+          ruleId: 'V41',
+          message: `Precondition '${pre.name}' of command '${cmd.name}' names cause '${cause}', which the command does not declare.`,
+        })),
+    ),
+  );
+}
+
+function placementCauseFindings(
+  flowName: string,
+  entry: MomentEntry,
+  cmd: CauseCommand,
+): Finding[] {
+  if (entry.cause !== undefined) {
+    return (cmd.causes ?? []).includes(entry.cause)
+      ? []
+      : [
+          {
+            ruleId: 'V41',
+            message: `Flow '${flowName}' places '${cmd.name}' for cause '${entry.cause}', which the command does not declare.`,
+          },
+        ];
+  }
+  const scoped = (cmd.preconditions ?? []).some((p) => (p.causes ?? []).length > 0);
+  return (cmd.causes ?? []).length > 0 && scoped
+    ? [
+        {
+          ruleId: 'V42',
+          message: `Flow '${flowName}' places '${cmd.name}' without a cause, but the command has cause-scoped preconditions.`,
+        },
+      ]
+    : [];
+}
+
+/** V41 and V42 on the placements of every flow. */
+function v41v42Placements(ir: IntermediateRepresentation, commands: CauseCommand[]): Finding[] {
+  const byName = new Map(commands.map((c) => [c.name, c]));
+  return (ir.flows ?? []).flatMap((flow) =>
+    flow.moments.flatMap((moment) =>
+      [...moment.contextEntries, ...(moment.branches ?? []).flatMap((b) => b.entries)].flatMap(
+        (entry) => {
+          const cmd = byName.get(entry.nodeName);
+          return cmd === undefined ? [] : placementCauseFindings(flow.name, entry, cmd);
+        },
+      ),
+    ),
+  );
+}
+
 /** Every V29–V37 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
 export function validatePaletteConformance(ir: IntermediateRepresentation): Finding[] {
   const known = namesOf(ir);
+  const commands = allCommands(ir);
   return [
     ...ir.contexts.flatMap((ctx) => [
       ...v29v30(ctx, known),
@@ -251,6 +319,8 @@ export function validatePaletteConformance(ir: IntermediateRepresentation): Find
       ...v37(ctx, known),
       ...v40(ctx),
     ]),
+    ...v41Declarations(commands),
+    ...v41v42Placements(ir, commands),
     ...(ir.externals ?? []).flatMap((e) =>
       gatewayFindings(`external '${e.name}'`, e.gateways ?? [], known),
     ),

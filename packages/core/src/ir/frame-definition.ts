@@ -19,8 +19,7 @@ export interface MomentDefinition {
 
 /** One child of a moment in textual source order (see MomentDefinition.sequence). */
 export type MomentSequenceItem =
-  | { kind: 'entry'; index: number }
-  | { kind: 'branch'; index: number };
+  { kind: 'entry'; index: number } | { kind: 'branch'; index: number };
 
 export interface MomentEntry {
   contextId: string;
@@ -29,6 +28,8 @@ export interface MomentEntry {
   multiplicity?: number | string;
   optional?: boolean;
   terminal?: boolean;
+  /** The cause the command is placed for (ADR-040 D2). */
+  cause?: string;
 }
 
 export interface BranchDefinition {

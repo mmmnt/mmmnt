@@ -363,15 +363,21 @@ function transformCommand(
     name: cmd.name,
     ...(annotations ? { annotations } : {}),
     inputs: cmd.inputs.map(transformFieldDeclaration),
+    ...(cmd.causes.length > 0 ? { causes: [...cmd.causes] } : {}),
     preconditions: cmd.preconditions.map(transformPrecondition),
     emitsEvent: cmd.emits,
   };
 }
 
-function transformPrecondition(pre: { name: string; description: string }): PreconditionDefinition {
+function transformPrecondition(pre: {
+  name: string;
+  description: string;
+  causes: string[];
+}): PreconditionDefinition {
   return {
     name: pre.name,
     description: pre.description,
+    ...(pre.causes.length > 0 ? { causes: [...pre.causes] } : {}),
   };
 }
 
@@ -470,6 +476,7 @@ function transformOrchestrationCommand(cmd: OrchestrationCommand): Orchestration
     id: `cmd-${cmd.name}`,
     name: cmd.name,
     inputs: cmd.inputs.map(transformFieldDeclaration),
+    ...(cmd.causes.length > 0 ? { causes: [...cmd.causes] } : {}),
     preconditions: cmd.preconditions.map(transformPrecondition),
     ...(cmd.emits ? { emitsEvent: cmd.emits } : {}),
   };
@@ -671,6 +678,10 @@ function transformNodeToEntry(
   const multiplicity = multiplicityOf(node);
   if (multiplicity !== undefined) {
     entry.multiplicity = multiplicity;
+  }
+
+  if (node.cause !== undefined) {
+    entry.cause = node.cause;
   }
 
   const modifierType = node.modifier?.type;

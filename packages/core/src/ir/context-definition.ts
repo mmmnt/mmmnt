@@ -84,6 +84,8 @@ export interface CommandDefinition {
   name: string;
   annotations?: AnnotationDefinition[];
   inputs: FieldDefinition[];
+  /** The causes the command can be issued for (ADR-040 D2); absent when it declares none. */
+  causes?: string[];
   preconditions: PreconditionDefinition[];
   emitsEvent: string;
 }
@@ -91,6 +93,8 @@ export interface CommandDefinition {
 export interface PreconditionDefinition {
   name: string;
   description: string;
+  /** The causes the precondition applies to; absent or empty means every cause (ADR-040 D2). */
+  causes?: string[];
 }
 
 /** Who declares an event: an aggregate, or an orchestration for a process event (ADR-040 D1). */
@@ -186,6 +190,7 @@ export interface OrchestrationCommandDefinition {
   id: string;
   name: string;
   inputs: FieldDefinition[];
+  causes?: string[];
   preconditions: PreconditionDefinition[];
   /** Present only when the author wrote `emits`; V31 requires an event the orchestration declares. */
   emitsEvent?: string;
