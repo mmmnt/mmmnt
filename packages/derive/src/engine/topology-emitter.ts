@@ -48,6 +48,8 @@ export interface TopologyFrame {
   readonly moment: string;
   readonly isBranch: boolean;
   readonly nodes: TopologyNode[];
+  /** Notes of the moment (ADR-040 D3): narration, never nodes. `lane` is the lane the note speaks for. */
+  readonly notes?: { readonly text: string; readonly lane?: string }[];
 }
 
 export interface TopologyNode {
@@ -58,6 +60,8 @@ export interface TopologyNode {
   readonly aggregate?: string;
   /** The orchestration that owns a process event or a process command (ADR-040 D1). */
   readonly process?: string;
+  /** The cause the command is placed for (ADR-040 D2). */
+  readonly cause?: string;
   readonly optional?: boolean;
   readonly terminal?: boolean;
   readonly multiplicity?: string;
@@ -165,6 +169,14 @@ function buildFrames(
     moment: moment.name,
     isBranch: (moment.branches ?? []).length > 0,
     nodes: buildFrameNodes(moment, ctxMap, laneIndex),
+    ...((moment.notes ?? []).length > 0
+      ? {
+          notes: (moment.notes ?? []).map((n) => ({
+            text: n.text,
+            ...(n.laneId !== undefined ? { lane: n.laneId } : {}),
+          })),
+        }
+      : {}),
   }));
 }
 
@@ -213,6 +225,7 @@ function entryToNode(
     type: nodeKind,
     aggregate: aggregate ?? undefined,
     process: aggregate === null ? (findProcess(entry.nodeName, ctx) ?? undefined) : undefined,
+    cause: entry.cause,
     optional: entry.optional ?? undefined,
     terminal: entry.terminal ?? undefined,
     multiplicity: entry.multiplicity != null ? String(entry.multiplicity) : undefined,

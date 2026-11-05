@@ -92,3 +92,37 @@ describe('ADR-040 D1 a process event is attributed to its orchestration', () => 
     expect(command?.process).toBe('AdmissionProcess');
   });
 });
+
+const CHECKOUT = `
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command CancelOrder
+      causes OwnerRequest, ShopClosure
+      precondition Window cause OwnerRequest: "Ahead of time"
+      emits OrderCancelled
+    event OrderCancelled
+      orderId: UUID
+
+flow "Cancel"
+  lane shop "Ordering" [Core]
+  lane psp "CardNetwork" [External]
+  moment "Owner asks"
+    shop: CancelOrder cause OwnerRequest
+    shop: OrderCancelled
+  moment "Refund is paid"
+    note psp: "The card network returns the money"
+`;
+
+describe('ADR-040 D2/D3 in the topology', () => {
+  it('carries the cause of a placement and the notes of a frame', async () => {
+    const { ir: model } = await new MomentParser().parseContent(CHECKOUT);
+    const frames = new TopologyEmitter().emit(model!, model!.flows[0]).frames;
+
+    expect(frames[0].nodes.find((n) => n.label === 'CancelOrder')?.cause).toBe('OwnerRequest');
+    expect(frames[0].nodes.find((n) => n.label === 'OrderCancelled')?.cause).toBeUndefined();
+    expect(frames[0].notes).toBeUndefined();
+    expect(frames[1].nodes).toEqual([]);
+    expect(frames[1].notes).toEqual([{ text: 'The card network returns the money', lane: 'psp' }]);
+  });
+});
