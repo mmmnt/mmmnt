@@ -155,7 +155,7 @@ describe('moment simulate manifest kind classification (M-S15)', () => {
   it('emits a timeout scenario per timeout-declaring saga, neither happy nor negative', async () => {
     const fixture = join(
       import.meta.dirname,
-      '../../../../fixtures/valid/unified/vet-clinic.moment',
+      '../../../../examples/ticketwave/spec/ticketwave.moment',
     );
     const outDir = join(workDir, 'out-timeout');
     const result = await runSimulate([fixture, '--all', '--out-dir', outDir]);
@@ -167,35 +167,53 @@ describe('moment simulate manifest kind classification (M-S15)', () => {
         f.scenarios.filter((s) => s.kind === 'timeout'),
     );
 
-    // vet-clinic declares exactly one saga (VisitLifecycle, timeout visitTimeout),
-    // owned by exactly one flow (single-owner rule).
-    expect(timeoutEntries).toHaveLength(1);
-    const entry = timeoutEntries[0];
-    expect(String(entry.scenarioId).endsWith('-timeout-VisitLifecycle')).toBe(true);
-    expect(entry.scenarioLabel).toContain('[VisitLifecycle.visitTimeout]');
-    expect(entry.isHappyPath).toBe(false);
-    expect(entry.isNegative).toBe(false);
+    // ticketwave declares two timeout sagas (SeatHoldLifecycle.holdExpiry,
+    // TransferLifecycle.transferExpiry), each owned by exactly one flow (single-owner rule).
+    expect(timeoutEntries).toHaveLength(2);
+    const expected = [
+      {
+        saga: 'SeatHoldLifecycle',
+        timeout: 'holdExpiry',
+        initial: 'Held',
+        suffix: '-timeout-SeatHoldLifecycle',
+      },
+      {
+        saga: 'TransferLifecycle',
+        timeout: 'transferExpiry',
+        initial: 'Pending',
+        suffix: '-timeout-TransferLifecycle',
+      },
+    ];
+    for (const exp of expected) {
+      const entry = timeoutEntries.find((e: Record<string, unknown>) =>
+        String(e.scenarioId).endsWith(exp.suffix),
+      );
+      expect(entry).toBeDefined();
+      expect(entry.scenarioLabel).toContain(`[${exp.saga}.${exp.timeout}]`);
+      expect(entry.isHappyPath).toBe(false);
+      expect(entry.isNegative).toBe(false);
 
-    const scenario = JSON.parse(readFileSync(join(outDir, entry.file as string), 'utf-8'));
-    expect(scenario.kind).toBe('timeout');
-    // Trailing markers: initial state, TimedOut, Compensated (compensation declared).
-    const markerTypes = scenario.events
-      .filter((e: { eventType: string }) => e.eventType.startsWith('SimSaga.'))
-      .map((e: { eventType: string }) => e.eventType);
-    expect(markerTypes).toEqual([
-      'SimSaga.VisitLifecycle.Triaging',
-      'SimSaga.VisitLifecycle.TimedOut',
-      'SimSaga.VisitLifecycle.Compensated',
-    ]);
-    // Path events align 1:1 with the truncated expectedPath; markers trail.
-    expect(scenario.events.length).toBe(scenario.expectedPath.length + markerTypes.length);
+      const scenario = JSON.parse(readFileSync(join(outDir, entry.file as string), 'utf-8'));
+      expect(scenario.kind).toBe('timeout');
+      // Trailing markers: initial state, TimedOut, Compensated (compensation declared).
+      const markerTypes = scenario.events
+        .filter((e: { eventType: string }) => e.eventType.startsWith('SimSaga.'))
+        .map((e: { eventType: string }) => e.eventType);
+      expect(markerTypes).toEqual([
+        `SimSaga.${exp.saga}.${exp.initial}`,
+        `SimSaga.${exp.saga}.TimedOut`,
+        `SimSaga.${exp.saga}.Compensated`,
+      ]);
+      // Path events align 1:1 with the truncated expectedPath; markers trail.
+      expect(scenario.events.length).toBe(scenario.expectedPath.length + markerTypes.length);
+    }
   });
 });
 
 describe('moment simulate policy-definitions artifact', () => {
   const UNIFIED_FIXTURE = join(
     import.meta.dirname,
-    '../../../../fixtures/valid/unified/vet-clinic.moment',
+    '../../../../examples/ticketwave/spec/ticketwave.moment',
   );
 
   it('emits [] for a spec that declares no policies and lists it in the manifest', async () => {
@@ -228,12 +246,12 @@ describe('moment simulate policy-definitions artifact', () => {
     }>;
 
     expect(policies.length).toBeGreaterThan(0);
-    const triage = policies.find((p) => p.name === 'TriageOnIntakeRegistered');
-    expect(triage).toBeDefined();
-    expect(triage!.contextId).toBe('ctx-Clinical');
-    expect(triage!.trigger).toBe('PatientIntakeRegistered');
-    expect(triage!.chainsTo).toEqual(['CompleteTriage']);
-    expect(triage!.actionDescription).toBe('Begin triage process for registered patient');
+    const track = policies.find((p) => p.name === 'TrackHoldOnSeatsHeld');
+    expect(track).toBeDefined();
+    expect(track!.contextId).toBe('ctx-Inventory');
+    expect(track!.trigger).toBe('SeatsHeld');
+    expect(track!.chainsTo).toEqual(['TrackHold']);
+    expect(track!.actionDescription).toBe('Track the hold until it converts or expires');
 
     for (const pol of policies) {
       expect(Array.isArray(pol.chainsTo)).toBe(true);

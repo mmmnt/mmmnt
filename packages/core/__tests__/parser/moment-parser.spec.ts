@@ -308,13 +308,16 @@ describe('MomentParser', () => {
       ).toBe(true);
     });
 
-    it('validates the unified vet-clinic fixture (contexts + flows, sagas, policies) cleanly', async () => {
-      const content = readFileSync(resolve(FIXTURES, 'unified/vet-clinic.moment'), 'utf-8');
-      const result = await parser.parseContent(content, 'vet-clinic.moment');
+    it('validates the ticketwave example (contexts + flows, sagas, policies) cleanly', async () => {
+      const content = readFileSync(
+        resolve(FIXTURES, '../../examples/ticketwave/spec/ticketwave.moment'),
+        'utf-8',
+      );
+      const result = await parser.parseContent(content, 'ticketwave.moment');
 
       expect(result.success).toBe(true);
       expect(result.diagnostics).toHaveLength(0);
-      expect(result.ir!.metadata.name).toBe('vet-clinic');
+      expect(result.ir!.metadata.name).toBe('ticketwave');
     });
 
     it('does not spam flow-only specs: zero cross-file/SP diagnostics without contexts', async () => {

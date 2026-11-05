@@ -4,7 +4,10 @@ import { mkdirSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { status } from '../status.js';
 
-const VALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/valid/unified/vet-clinic.moment');
+const VALID_FIXTURE = resolve(
+  __dirname,
+  '../../../../../examples/ticketwave/spec/ticketwave.moment',
+);
 const INVALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/invalid/no-declaration.moment');
 
 function parseContent(result: Awaited<ReturnType<typeof status>>): Record<string, unknown> {
@@ -15,7 +18,10 @@ describe('status', () => {
   const tempDirs: string[] = [];
 
   function makeTempDir(): string {
-    const dir = join(tmpdir(), `mcp-test-status-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const dir = join(
+      tmpdir(),
+      `mcp-test-status-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(dir, { recursive: true });
     tempDirs.push(dir);
     return dir;

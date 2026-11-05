@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { validate } from '../validate.js';
 
-const VALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/valid/unified/vet-clinic.moment');
+const VALID_FIXTURE = resolve(
+  __dirname,
+  '../../../../../examples/ticketwave/spec/ticketwave.moment',
+);
 const INVALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/invalid/no-declaration.moment');
 
 function parseContent(result: Awaited<ReturnType<typeof validate>>): Record<string, unknown> {

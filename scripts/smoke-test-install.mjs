@@ -139,12 +139,12 @@ function discoverPackages() {
 const { libs: LIBRARY_PACKAGES, bins: BIN_PACKAGES } = discoverPackages();
 const ALL_PACKAGES = [...LIBRARY_PACKAGES, ...BIN_PACKAGES];
 
-// Vet clinic has multiple contexts + flows + sagas + policies + crossings,
+// Ticketwave has multiple contexts + flows + sagas + policies + crossings,
 // so every codegen path (TS types, scaffolds, features, docs, simulate
 // scenarios) produces non-empty output against it. A minimal flow-only
 // fixture would legitimately produce 0 TS files because there are no
 // aggregates to emit types for, masking real bugs in those paths.
-const FIXTURE_SPEC = resolve(ROOT, 'fixtures/valid/unified/vet-clinic.moment');
+const FIXTURE_SPEC = resolve(ROOT, 'examples/ticketwave/spec/ticketwave.moment');
 
 const log = (msg) => console.log(`[smoke] ${msg}`);
 const fail = (msg) => {
@@ -426,7 +426,7 @@ async function main() {
     assertIsFile(join(consumer, 'node_modules', '.bin', 'mcp'), 'mcp bin');
 
     const projectDir = smokeInit(momentBin, consumer);
-    const projectSpec = join(projectDir, 'vet-clinic.moment');
+    const projectSpec = join(projectDir, 'ticketwave.moment');
     cpSync(FIXTURE_SPEC, projectSpec);
     run(momentBin, ['parse', projectSpec]);
 

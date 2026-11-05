@@ -5,7 +5,7 @@ import { runStatus } from './status.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
 const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment');
-const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
+const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/ticketwave-deprecations.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment status', () => {
@@ -97,7 +97,7 @@ describe('moment status', () => {
 
     const schema = result.sections.find((s) => s.label === 'Schema Lifecycle');
     expect(schema).toBeDefined();
-    // ownerName on PatientCheckedIn is deprecated
-    expect(schema!.summary).toMatch(/\d+ deprecated/);
+    // buyerName on TicketOrderPlaced, buyerName on PlaceTicketOrder and venueName on ShowDetails are deprecated
+    expect(schema!.summary).toMatch(/^3 deprecated/);
   });
 });

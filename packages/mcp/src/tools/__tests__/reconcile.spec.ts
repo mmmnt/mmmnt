@@ -4,7 +4,10 @@ import { mkdirSync, writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { reconcile } from '../reconcile.js';
 
-const VALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/valid/unified/vet-clinic.moment');
+const VALID_FIXTURE = resolve(
+  __dirname,
+  '../../../../../examples/ticketwave/spec/ticketwave.moment',
+);
 
 function parseContent(result: Awaited<ReturnType<typeof reconcile>>): Record<string, unknown> {
   return JSON.parse((result.content[0] as { text: string }).text);
@@ -14,7 +17,10 @@ describe('reconcile', () => {
   const tempDirs: string[] = [];
 
   function makeTempDir(): string {
-    const dir = join(tmpdir(), `mcp-test-reconcile-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const dir = join(
+      tmpdir(),
+      `mcp-test-reconcile-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(dir, { recursive: true });
     tempDirs.push(dir);
     return dir;
@@ -144,10 +150,10 @@ describe('reconcile', () => {
     const specPath = join(tempDir, 'test.moment');
     copyFileSync(VALID_FIXTURE, specPath);
 
-    // We need an element name that actually exists in vet-clinic.moment
+    // The element name must exist in ticketwave.moment
     // First parse to find a name, but we can just use a common known pattern
     const eventPath = join(tempDir, 'cascade-event.json');
-    writeFileSync(eventPath, JSON.stringify({ affectedElements: ['Scheduling'] }));
+    writeFileSync(eventPath, JSON.stringify({ affectedElements: ['SeatHold'] }));
 
     const result = await reconcile({
       filePath: specPath,
@@ -156,8 +162,8 @@ describe('reconcile', () => {
     });
     expect(result.isError).toBeUndefined();
     const data = parseContent(result);
-    // If Scheduling is a known name, outcome should be APPLIED; otherwise DRIFT
-    expect(['APPLIED', 'DRIFT']).toContain(data.outcome);
+    // SeatHold is an aggregate in ticketwave.moment, so it is a known name
+    expect(data.outcome).toBe('APPLIED');
   });
 
   it('reconciles local mode with a .domain/ directory present', async () => {

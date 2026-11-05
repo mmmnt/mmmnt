@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
 import { emitTs } from '../emit-ts.js';
 
-const VALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/valid/unified/vet-clinic.moment');
+const VALID_FIXTURE = resolve(
+  __dirname,
+  '../../../../../examples/ticketwave/spec/ticketwave.moment',
+);
 const INVALID_FIXTURE = resolve(__dirname, '../../../../../fixtures/invalid/no-declaration.moment');
 
 function parseContent(result: Awaited<ReturnType<typeof emitTs>>): Record<string, unknown> {
@@ -16,7 +19,7 @@ describe('emitTs', () => {
     const data = parseContent(result);
     expect(data.success).toBe(true);
     expect(typeof data.tsFileCount).toBe('number');
-    expect((data.tsFileCount as number)).toBeGreaterThan(0);
+    expect(data.tsFileCount as number).toBeGreaterThan(0);
     expect(typeof data.scaffoldFileCount).toBe('number');
   });
 

@@ -6,7 +6,7 @@
  * fields must be purely additive: `states` keeps its historical shape and
  * `sequence` indexes stay within contextEntries/branches bounds.
  *
- * Swept sources: repo fixtures (valid/**, including unified/vet-clinic),
+ * Swept sources: repo fixtures (valid/**, including unified/ordering),
  * and examples/ticketwave.
  */
 import { MomentParser } from '../../src/index.js';
@@ -80,7 +80,7 @@ describe('Grammar backward compatibility (saga `on` + sequence, additive only)',
   });
 
   const suites: [name: string, dir: string][] = [
-    ['repo fixtures (valid, incl. vet-clinic)', FIXTURES_VALID],
+    ['repo fixtures (valid, incl. unified/ordering)', FIXTURES_VALID],
     ['examples (ticketwave)', EXAMPLES],
   ];
 

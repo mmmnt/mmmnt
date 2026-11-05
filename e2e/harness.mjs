@@ -3,7 +3,7 @@
 /**
  * Moment E2E Test Harness
  *
- * Runs every CLI command against the vet-clinic fixture and asserts outputs.
+ * Runs every CLI command against the ticketwave example and asserts outputs.
  * Produces a JSON report + individual output files for CI commenting.
  *
  * Usage: node e2e/harness.mjs [--output-dir <dir>]
@@ -29,7 +29,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const CLI = resolve(ROOT, 'packages/cli/dist/moment.mjs');
-const VET_CLINIC = resolve(ROOT, 'fixtures/valid/unified/vet-clinic.moment');
+const TICKETWAVE = resolve(ROOT, 'examples/ticketwave/spec/ticketwave.moment');
 const UNIFIED = resolve(ROOT, 'fixtures/valid/unified/ordering.moment');
 const INVALID = resolve(ROOT, 'fixtures/invalid/no-declaration.moment');
 
@@ -40,13 +40,18 @@ const OUTPUT_DIR =
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
+// Commands that write generated output (generate, emit-ts, test) write relative to the working
+// directory. Run every command from a throwaway directory so the repo root is never written to.
+const WORK_DIR = mkdtempSync(join(tmpdir(), 'moment-e2e-work-'));
+process.on('exit', () => rmSync(WORK_DIR, { recursive: true, force: true }));
+
 const results = [];
 let failures = 0;
 
 function run(cmd, args, opts = {}) {
   try {
     const result = execFileSync('node', [CLI, cmd, ...args], {
-      cwd: ROOT,
+      cwd: WORK_DIR,
       timeout: 30000,
       encoding: 'utf-8',
       ...opts,
@@ -95,11 +100,11 @@ function saveOutput(filename, content) {
 console.log('\nMoment E2E Test Harness\n');
 console.log('=== Parse ===');
 
-test('parse: vet-clinic (4 contexts, 1 flow)', (assert) => {
-  const r = run('parse', [VET_CLINIC]);
+test('parse: ticketwave (7 contexts, 4 flows)', (assert) => {
+  const r = run('parse', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
-  assert(r.stdout.includes('4 context(s)'), 'reports 4 contexts');
-  assert(r.stdout.includes('1 flow(s)'), 'reports 1 flow');
+  assert(r.stdout.includes('7 context(s)'), 'reports 7 contexts');
+  assert(r.stdout.includes('4 flow(s)'), 'reports 4 flows');
 });
 
 test('parse: unified ordering (2 contexts, 1 flow)', (assert) => {
@@ -122,15 +127,15 @@ test('parse: missing file errors', (assert) => {
 
 console.log('\n=== Derive ===');
 
-test('derive: vet-clinic produces 1 suite, 17 cases', (assert) => {
-  const r = run('derive', [VET_CLINIC]);
+test('derive: ticketwave produces 4 suites, 82 cases', (assert) => {
+  const r = run('derive', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
-  assert(r.stdout.includes('1 suite'), 'reports 1 suite');
+  assert(r.stdout.includes('4 suite'), 'reports 4 suites');
   assert(r.stdout.includes('case'), 'reports test cases');
 });
 
 test('derive: --json outputs valid topology JSON', (assert) => {
-  const r = run('derive', ['--json', VET_CLINIC]);
+  const r = run('derive', ['--json', TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   let parsed;
   try {
@@ -139,16 +144,19 @@ test('derive: --json outputs valid topology JSON', (assert) => {
     parsed = null;
   }
   assert(parsed !== null, 'valid JSON');
-  assert(parsed?.suites?.length === 1, '1 suite');
-  assert(parsed?.suites?.[0]?.testCases?.length >= 17, '>=17 test cases');
+  assert(parsed?.suites?.length === 4, '4 suites');
+  assert(
+    (parsed?.suites ?? []).reduce((n, s) => n + s.testCases.length, 0) >= 82,
+    '>=82 test cases',
+  );
   assert(parsed?.metadata?.sourceIrHash, 'has IR hash');
   saveOutput('derive-topology.json', JSON.stringify(parsed, null, 2));
 });
 
 console.log('\n=== Generate ===');
 
-test('generate: vet-clinic produces features + specs + docs', (assert) => {
-  const r = run('generate', [VET_CLINIC]);
+test('generate: ticketwave produces features + specs + docs', (assert) => {
+  const r = run('generate', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('.feature'), 'produces .feature files');
   assert(r.stdout.includes('.spec.ts'), 'produces .spec.ts files');
@@ -157,15 +165,15 @@ test('generate: vet-clinic produces features + specs + docs', (assert) => {
 
 console.log('\n=== Emit TypeScript ===');
 
-test('emit-ts: vet-clinic produces 14 TS + 6 scaffolds', (assert) => {
-  const r = run('emit-ts', [VET_CLINIC]);
+test('emit-ts: ticketwave produces 40 TS + 20 scaffolds', (assert) => {
+  const r = run('emit-ts', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('TypeScript'), 'reports TypeScript files');
-  assert(r.stdout.includes('6 scaffold'), '6 scaffold files');
+  assert(r.stdout.includes('20 scaffold'), '20 scaffold files');
 });
 
 test('emit-ts: --dry-run lists files without writing', (assert) => {
-  const r = run('emit-ts', ['--dry-run', VET_CLINIC]);
+  const r = run('emit-ts', ['--dry-run', TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('Dry run'), 'reports dry run');
   assert(r.stdout.includes('.ts'), 'lists .ts files');
@@ -173,15 +181,18 @@ test('emit-ts: --dry-run lists files without writing', (assert) => {
 
 console.log('\n=== Simulate ===');
 
-test('simulate: vet-clinic produces 28 events, 3 branches', (assert) => {
-  const r = run('simulate', [VET_CLINIC]);
+test('simulate: ticketwave produces 4 scenarios, 90 events', (assert) => {
+  const r = run('simulate', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
-  assert(r.stdout.includes('events'), 'reports events');
-  assert(r.stdout.includes('Branches: 3'), '3 branches');
+  assert(
+    r.stdout.includes('Generated 4 simulation scenario(s), 90 events'),
+    '4 scenarios, 90 events',
+  );
+  assert(r.stdout.includes('Branches: 2'), 'general-admission-purchase has 2 branches');
 });
 
 test('simulate: --json outputs valid Facet scenario', (assert) => {
-  const r = run('simulate', ['--json', VET_CLINIC]);
+  const r = run('simulate', ['--json', TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   let parsed;
   try {
@@ -189,18 +200,19 @@ test('simulate: --json outputs valid Facet scenario', (assert) => {
   } catch {
     parsed = null;
   }
-  assert(parsed !== null, 'valid JSON');
-  assert(parsed?.scenarioId, 'has scenarioId');
-  assert(parsed?.expectedPath?.length >= 28, '>=28 node path');
-  assert(parsed?.activeBranches?.length === 3, '3 active branches');
+  const first = parsed?.[0];
+  assert(Array.isArray(parsed) && parsed.length === 4, 'one scenario per flow (4)');
+  assert(first?.scenarioId, 'has scenarioId');
+  assert(first?.expectedPath?.length >= 32, '>=32 node path');
+  assert(first?.activeBranches?.length === 2, '2 active branches');
   saveOutput('facet.json', JSON.stringify(parsed, null, 2));
 });
 
 test('simulate: --json events have causation and payloads', (assert) => {
-  const r = run('simulate', ['--json', VET_CLINIC]);
-  const parsed = JSON.parse(r.stdout);
+  const r = run('simulate', ['--json', TICKETWAVE]);
+  const parsed = JSON.parse(r.stdout)[0];
   const events = parsed.events || [];
-  assert(events.length >= 28, '>=28 events');
+  assert(events.length >= 35, '>=35 events');
   const first = events[0] || {};
   const second = events[1] || {};
   assert(first.eventId, 'first event has eventId');
@@ -211,8 +223,8 @@ test('simulate: --json events have causation and payloads', (assert) => {
 
 console.log('\n=== Viz ===');
 
-test('viz: vet-clinic produces VizDataEnvelope', (assert) => {
-  const r = run('viz', [VET_CLINIC]);
+test('viz: ticketwave produces VizDataEnvelope', (assert) => {
+  const r = run('viz', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   let parsed;
   try {
@@ -222,7 +234,7 @@ test('viz: vet-clinic produces VizDataEnvelope', (assert) => {
   }
   assert(parsed !== null, 'valid JSON');
   assert(parsed?.type === 'viz:initial-load', 'type is viz:initial-load');
-  assert(parsed?.envelope?.contextMap?.nodes?.length >= 4, '>=4 context nodes');
+  assert(parsed?.envelope?.contextMap?.nodes?.length >= 7, '>=7 context nodes');
   assert(parsed?.session?.sessionId, 'has session ID');
   saveOutput('viz-envelope.json', JSON.stringify(parsed, null, 2));
 });
@@ -234,8 +246,8 @@ console.log('\n=== Sync Status ===');
 // result does not depend on what earlier harness tests wrote into the repo root.
 function setupSyncFixture() {
   const tmpDir = mkdtempSync(join(tmpdir(), 'moment-e2e-sync-'));
-  const spec = join(tmpDir, 'vet-clinic.moment');
-  copyFileSync(VET_CLINIC, spec);
+  const spec = join(tmpDir, 'ticketwave.moment');
+  copyFileSync(TICKETWAVE, spec);
   run('emit-ts', [spec], { cwd: tmpDir });
   return { tmpDir, spec };
 }
@@ -298,8 +310,8 @@ test('sync status: --json outputs DriftReport', (assert) => {
 
 console.log('\n=== Test ===');
 
-test('test: vet-clinic runs harness', (assert) => {
-  const r = run('test', [VET_CLINIC]);
+test('test: ticketwave runs harness', (assert) => {
+  const r = run('test', [TICKETWAVE]);
   const output = r.stdout || r.stderr || '';
   assert(output.includes('Tests:'), 'reports test summary');
   assert(output.includes('suite'), 'reports suite count');
@@ -400,7 +412,7 @@ const genCode = [
 ].join('\n');
 writeFileSync(tmpScript, genCode);
 try {
-  execFileSync('node', [tmpScript, VET_CLINIC, OUTPUT_DIR], {
+  execFileSync('node', [tmpScript, TICKETWAVE, OUTPUT_DIR], {
     cwd: resolve(ROOT, 'packages/cli'),
     timeout: 30000,
     stdio: 'inherit',
@@ -424,7 +436,7 @@ const failedTests = results.filter((r) => !r.pass);
 
 const report = {
   timestamp: new Date().toISOString(),
-  fixture: 'fixtures/valid/unified/vet-clinic.moment',
+  fixture: 'examples/ticketwave/spec/ticketwave.moment',
   summary: {
     tests: results.length,
     passed: results.length - failedTests.length,

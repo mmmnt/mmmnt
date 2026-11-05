@@ -5,7 +5,7 @@ import { mkdirSync, existsSync, readFileSync, rmSync, writeFileSync, readdirSync
 import { runReconcile } from './reconcile.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
-const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
+const UNIFIED_FIXTURE = resolve(FIXTURES, '../examples/ticketwave/spec/ticketwave.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 const tmpBase = join(tmpdir(), 'mmnt-reconcile-test-' + Date.now());

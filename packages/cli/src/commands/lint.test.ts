@@ -5,7 +5,7 @@ import { runLint } from './lint.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
 const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment');
-const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
+const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/ticketwave-deprecations.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment lint', () => {

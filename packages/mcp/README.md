@@ -193,7 +193,7 @@ pnpm turbo build --filter=@mmmnt/mcp
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node packages/mcp/dist/mcp.mjs
 
 # Call a tool
-echo '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"moment_validate","arguments":{"filePath":"fixtures/valid/unified/vet-clinic.moment"}},"id":2}' | node packages/mcp/dist/mcp.mjs
+echo '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"moment_validate","arguments":{"filePath":"examples/ticketwave/spec/ticketwave.moment"}},"id":2}' | node packages/mcp/dist/mcp.mjs
 ```
 
 ### Unit Tests

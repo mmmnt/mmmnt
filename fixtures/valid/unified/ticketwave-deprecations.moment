@@ -1,0 +1,27 @@
+// Ticketwave: a ticket order whose schema is mid-migration. Exercises the field lifecycle:
+// deprecated fields on an event, a command input and a value object.
+
+context "Ordering" [Core]
+  description "Places ticket orders and records who bought them"
+
+  aggregate "TicketOrder"
+    identity orderId: UUID
+
+    command PlaceTicketOrder
+      input customerId: UUID, buyerName: string [deprecated "Use buyerRef composite key" -> "buyerRef"], buyerRef: UUID, ticketType: string
+      precondition showExists: "The customer must have chosen a show"
+      emits TicketOrderPlaced
+
+    event TicketOrderPlaced
+      orderId: UUID
+      customerId: UUID
+      buyerName: string [deprecated "Use buyerRef composite key" -> "buyerRef"]
+      buyerRef: UUID
+      ticketType: string
+      placedAt: DateTime
+
+  value-object ShowDetails
+    showId: UUID
+    scheduledAt: DateTime
+    venueName: string [deprecated "Use venueId" -> "venueId"]
+    venueId: UUID

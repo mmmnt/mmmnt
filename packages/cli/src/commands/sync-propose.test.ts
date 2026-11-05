@@ -10,7 +10,7 @@ import type { SyncProject } from './sync-project.test-helper.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
 const VALID_FIXTURE = resolve(FIXTURES, 'valid/minimal/contexts/ordering.moment');
-const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
+const UNIFIED_FIXTURE = resolve(FIXTURES, '../examples/ticketwave/spec/ticketwave.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 describe('moment sync propose', () => {

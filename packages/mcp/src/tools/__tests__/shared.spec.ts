@@ -75,10 +75,14 @@ describe('loadModel', () => {
   const FIXTURES = resolve(__dirname, '../../../../../fixtures/valid');
 
   it('loads a single .moment file', async () => {
-    const result = await loadModel(resolve(FIXTURES, 'unified/vet-clinic.moment'));
+    const result = await loadModel(
+      resolve(FIXTURES, '../../examples/ticketwave/spec/ticketwave.moment'),
+    );
     expect(result.success).toBe(true);
     expect(result.isProject).toBe(false);
-    expect(result.files).toEqual([resolve(FIXTURES, 'unified/vet-clinic.moment')]);
+    expect(result.files).toEqual([
+      resolve(FIXTURES, '../../examples/ticketwave/spec/ticketwave.moment'),
+    ]);
   });
 
   it('loads a model directory as one project (ADR-038 project mode)', async () => {

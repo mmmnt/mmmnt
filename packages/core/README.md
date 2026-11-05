@@ -146,33 +146,33 @@ Four additions (ADR-040) model what recurs in process-manager and Event Storming
 A process records its outcomes as events. The orchestration declares them, and its commands emit them. Policies can trigger on them, projections can source from them, and flows can place them:
 
 ```
-orchestration AdmissionProcess
-  command StartAdmission
-    input petId: UUID
-    emits AdmissionStarted
-  command AbandonAdmission
-    emits AdmissionAbandoned
-  event AdmissionStarted
-    petId: UUID
-  event AdmissionAbandoned
-    petId: UUID
-  invoked-by StartAdmission
-  issues RequestLabPanel, BookBed
+orchestration PurchaseProcess
+  command StartPurchase
+    input customerId: UUID
+    emits PurchaseStarted
+  command AbandonPurchase
+    emits PurchaseAbandoned
+  event PurchaseStarted
+    customerId: UUID
+  event PurchaseAbandoned
+    customerId: UUID
+  invoked-by StartPurchase
+  issues RequestFraudCheck, HoldSeats
   states Started
-  compensation on AbandonAdmission issues ReleaseBed
-  timeout admissionWindow
+  compensation on AbandonPurchase issues ReleaseSeats
+  timeout purchaseWindow
 ```
 
 A command issued for different reasons names its causes. A refusal that belongs to one cause says so, and the flow names the cause it places. A precondition with no `cause` applies to every cause. Derived negative scenarios then follow the cause:
 
 ```
-command CancelAppointment
-  causes OwnerRequest, ClinicClosure
-  precondition WithinCancellationWindow cause OwnerRequest: "The owner cancels 24 hours ahead"
-  emits AppointmentCancelled
+command CancelBooking
+  causes CustomerRequest, OrganiserCancellation
+  precondition WithinRefundWindow cause CustomerRequest: "The owner cancels 24 hours ahead"
+  emits BookingCancelled
 
-moment "Owner asks to cancel"
-  desk: CancelAppointment cause OwnerRequest
+moment "Customer asks to cancel"
+  desk: CancelBooking cause CustomerRequest
 ```
 
 A step outside the model, or below its grain, is a note. A moment may be only notes:
@@ -358,7 +358,7 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 import { readFileSync } from 'node:fs';
 import { MomentParser } from '@mmmnt/core';
 
-const path = 'specs/vet-clinic.moment';
+const path = 'specs/ticketwave.moment';
 const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
 
 // Check for diagnostics

@@ -13,7 +13,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createMcpServer } from '../server.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
-const VALID_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
+const VALID_FIXTURE = resolve(FIXTURES, '../examples/ticketwave/spec/ticketwave.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 const NONEXISTENT_FILE = join(tmpdir(), `nonexistent-mcp-${Date.now()}.moment`);
 const NONEXISTENT_PROJECT = join(tmpdir(), `nonexistent-project-mcp-${Date.now()}`);
@@ -84,8 +84,8 @@ describe('MCP Integration — tools/call', () => {
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
     expect(parsed.success).toBe(true);
-    expect(parsed.contextCount).toBe(4);
-    expect(parsed.flowCount).toBe(1);
+    expect(parsed.contextCount).toBe(7);
+    expect(parsed.flowCount).toBe(4);
   });
 
   it('moment_validate with invalid fixture returns diagnostics', async () => {

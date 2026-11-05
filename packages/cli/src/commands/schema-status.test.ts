@@ -5,14 +5,17 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { runSchemaStatus } from './schema-status.js';
 
 const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
-const UNIFIED_FIXTURE = resolve(FIXTURES, 'valid/unified/vet-clinic.moment');
+const UNIFIED_FIXTURE = resolve(FIXTURES, '../examples/ticketwave/spec/ticketwave.moment');
 const INVALID_FIXTURE = resolve(FIXTURES, 'invalid/no-declaration.moment');
 
 // Fixture with no events (context with aggregate but no events)
 const EMPTY_SCHEMA_DIR = join(tmpdir(), 'schema-status-empty-' + Date.now());
 const EMPTY_SCHEMA_FIXTURE = join(EMPTY_SCHEMA_DIR, 'empty.moment');
 mkdirSync(EMPTY_SCHEMA_DIR, { recursive: true });
-writeFileSync(EMPTY_SCHEMA_FIXTURE, 'context "Empty" [Generic]\n  aggregate "Stub"\n    identity id: UUID\n');
+writeFileSync(
+  EMPTY_SCHEMA_FIXTURE,
+  'context "Empty" [Generic]\n  aggregate "Stub"\n    identity id: UUID\n',
+);
 
 describe('moment schema status', () => {
   it('outputs schema lifecycle table for valid spec with events', async () => {
