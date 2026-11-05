@@ -21,24 +21,26 @@ beforeAll(async () => {
 });
 
 describe('ADR-040 generated assertions over the process-constructs corpus', () => {
-  it('derives the refusal of the owner request in the owner flow and not in the clinic flow', () => {
-    const owner = deriveNegativeScenarios(ir, flow('Owner cancels')).map((s) => s.scenarioId);
-    const clinic = deriveNegativeScenarios(ir, flow('Clinic cancels')).map((s) => s.scenarioId);
-    expect(owner.filter((id) => id.includes('WithinCancellationWindow'))).toHaveLength(1);
-    expect(clinic.filter((id) => id.includes('WithinCancellationWindow'))).toHaveLength(0);
-    expect(owner.filter((id) => id.includes('AppointmentIsOpen'))).toHaveLength(1);
-    expect(clinic.filter((id) => id.includes('AppointmentIsOpen'))).toHaveLength(1);
+  it('derives the refusal of the customer request in the customer flow and not in the organiser flow', () => {
+    const customer = deriveNegativeScenarios(ir, flow('Customer cancels')).map((s) => s.scenarioId);
+    const organiser = deriveNegativeScenarios(ir, flow('Organiser cancels')).map(
+      (s) => s.scenarioId,
+    );
+    expect(customer.filter((id) => id.includes('WithinRefundWindow'))).toHaveLength(1);
+    expect(organiser.filter((id) => id.includes('WithinRefundWindow'))).toHaveLength(0);
+    expect(customer.filter((id) => id.includes('BookingIsOpen'))).toHaveLength(1);
+    expect(organiser.filter((id) => id.includes('BookingIsOpen'))).toHaveLength(1);
   });
 
   it('derives the refusal of a process command', () => {
-    const ids = deriveNegativeScenarios(ir, flow('Admission')).map((s) => s.scenarioId);
-    expect(ids.some((id) => id.endsWith('neg-StartAdmission-PetIsRegistered'))).toBe(true);
+    const ids = deriveNegativeScenarios(ir, flow('Purchase')).map((s) => s.scenarioId);
+    expect(ids.some((id) => id.endsWith('neg-StartPurchase-CustomerIsRegistered'))).toBe(true);
   });
 
   it('streams the process outcome before the policy that reacts to it', () => {
-    const types = generateSimulationScenario(ir, flow('Admission')).events.map((e) => e.eventType);
-    expect(types.indexOf('AdmissionCompleted')).toBeLessThan(
-      types.indexOf('BillOnAdmissionCompleted'),
+    const types = generateSimulationScenario(ir, flow('Purchase')).events.map((e) => e.eventType);
+    expect(types.indexOf('PurchaseCompleted')).toBeLessThan(
+      types.indexOf('ReceiptOnPurchaseCompleted'),
     );
   });
 

@@ -1,6 +1,6 @@
-flow "Owner cancels"
-  lane clinic "Clinic" [Core]
+flow "Customer cancels"
+  lane ticketing "Ticketing" [Core]
 
-  moment "Owner asks to cancel"
-    clinic: CancelAppointment cause OwnerRequest
-    clinic: AppointmentCancelled
+  moment "Customer asks to cancel"
+    ticketing: CancelBooking cause CustomerRequest
+    ticketing: BookingCancelled

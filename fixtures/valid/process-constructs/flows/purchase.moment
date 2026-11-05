@@ -1,18 +1,18 @@
-flow "Admission"
-  description "A pet is admitted, and the outcome is a fact others react to"
+flow "Purchase"
+  description "A customer purchases tickets, and the outcome is a fact others react to"
 
-  lane clinic "Clinic" [Core]
+  lane ticketing "Ticketing" [Core]
 
-  moment "Admission starts"
-    clinic: StartAdmission
-    clinic: AdmissionStarted
+  moment "Purchase starts"
+    ticketing: StartPurchase
+    ticketing: PurchaseStarted
 
-  moment "Admission completes"
-    clinic: CompleteAdmission
-    clinic: AdmissionCompleted
+  moment "Purchase completes"
+    ticketing: CompletePurchase
+    ticketing: PurchaseCompleted
 
-  moment "The owner is billed"
-    clinic: BillOnAdmissionCompleted
-      triggered-by AdmissionCompleted
-    clinic: IssueInvoice [terminal]
-      triggered-by BillOnAdmissionCompleted
+  moment "The customer is sent a receipt"
+    ticketing: ReceiptOnPurchaseCompleted
+      triggered-by PurchaseCompleted
+    ticketing: IssueReceipt [terminal]
+      triggered-by ReceiptOnPurchaseCompleted

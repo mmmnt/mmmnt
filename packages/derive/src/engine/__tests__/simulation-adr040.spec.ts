@@ -14,75 +14,73 @@ async function load(source: string): Promise<IntermediateRepresentation> {
 }
 
 const CLINIC = `
-context "Clinic" [Core]
-  aggregate "Appointment"
-    identity appointmentId: UUID
-    command CancelAppointment
-      input appointmentId: UUID
-      causes OwnerRequest, ClinicClosure
-      precondition AppointmentIsOpen: "The appointment has not been completed"
-      precondition WithinCancellationWindow cause OwnerRequest: "The owner cancels 24 hours ahead"
-      emits AppointmentCancelled
-    event AppointmentCancelled
-      appointmentId: UUID
+context "Ticketing" [Core]
+  aggregate "Booking"
+    identity bookingId: UUID
+    command CancelBooking
+      input bookingId: UUID
+      causes CustomerRequest, OrganiserCancellation
+      precondition BookingIsOpen: "The booking has not been completed"
+      precondition WithinRefundWindow cause CustomerRequest: "The owner cancels 24 hours ahead"
+      emits BookingCancelled
+    event BookingCancelled
+      bookingId: UUID
 
-flow "Owner cancels"
-  lane desk "Clinic" [Core]
-  moment "Owner asks to cancel"
-    desk: CancelAppointment cause OwnerRequest
-    desk: AppointmentCancelled
+flow "Customer cancels"
+  lane desk "Ticketing" [Core]
+  moment "Customer asks to cancel"
+    desk: CancelBooking cause CustomerRequest
+    desk: BookingCancelled
 
-flow "Clinic cancels"
-  lane desk "Clinic" [Core]
-  moment "Vet is unavailable"
-    desk: CancelAppointment cause ClinicClosure
-    desk: AppointmentCancelled
+flow "Ticketing cancels"
+  lane desk "Ticketing" [Core]
+  moment "Organiser is unavailable"
+    desk: CancelBooking cause OrganiserCancellation
+    desk: BookingCancelled
 `;
 
 describe('ADR-040 D2 cause-scoped negative scenarios', () => {
   it('derives a scoped precondition only in the flow that places its cause', async () => {
     const ir = await load(CLINIC);
     const owner = deriveNegativeScenarios(ir, ir.flows[0]).map((s) => s.scenarioId);
-    const clinic = deriveNegativeScenarios(ir, ir.flows[1]).map((s) => s.scenarioId);
+    const ticketing = deriveNegativeScenarios(ir, ir.flows[1]).map((s) => s.scenarioId);
 
-    expect(owner.some((id) => id.endsWith('neg-CancelAppointment-WithinCancellationWindow'))).toBe(
-      true,
-    );
-    expect(clinic.some((id) => id.includes('WithinCancellationWindow'))).toBe(false);
+    expect(owner.some((id) => id.endsWith('neg-CancelBooking-WithinRefundWindow'))).toBe(true);
+    expect(ticketing.some((id) => id.includes('WithinRefundWindow'))).toBe(false);
   });
 
   it('derives an unscoped precondition in both flows', async () => {
     const ir = await load(CLINIC);
     for (const flow of ir.flows) {
       const ids = deriveNegativeScenarios(ir, flow).map((s) => s.scenarioId);
-      expect(ids.some((id) => id.endsWith('neg-CancelAppointment-AppointmentIsOpen'))).toBe(true);
+      expect(ids.some((id) => id.endsWith('neg-CancelBooking-BookingIsOpen'))).toBe(true);
     }
   });
 
   it('names the cause in the failure event and the when text', async () => {
     const ir = await load(CLINIC);
     const scenario = deriveNegativeScenarios(ir, ir.flows[0]).find((s) =>
-      s.scenarioId.includes('WithinCancellationWindow'),
+      s.scenarioId.includes('WithinRefundWindow'),
     );
     const failure = scenario?.events[scenario.events.length - 1];
-    expect(failure?.payload.cause).toBe('OwnerRequest');
+    expect(failure?.payload.cause).toBe('CustomerRequest');
     expect(scenario?.when).toBe(
-      'CancelAppointment is invoked for OwnerRequest without satisfying WithinCancellationWindow',
+      'CancelBooking is invoked for CustomerRequest without satisfying WithinRefundWindow',
     );
   });
 
   it('leaves the failure payload and when text unchanged for a placement with no cause', async () => {
     const ir = await load(`
-context "Clinic" [Core]
-  aggregate "Pet"
-    identity petId: UUID
+context "Ticketing" [Core]
+  aggregate "Customer"
+    identity customerId: UUID
     command Register
-      precondition NotRegistered: "The pet is new"
+      precondition NotRegistered: "The customer is new"
       emits Registered
     event Registered
-      petId: UUID
+      customerId: UUID
 flow "F"
-  lane l "Clinic" [Core]
+  lane l "Ticketing" [Core]
   moment "M"
     l: Register
     l: Registered
@@ -95,71 +93,69 @@ flow "F"
 });
 
 const ADMISSION = `
-context "Clinic" [Core]
-  aggregate "Pet"
-    identity petId: UUID
-    command ReserveBed
-      emits BedReserved
-    event BedReserved
-      petId: UUID
+context "Ticketing" [Core]
+  aggregate "Customer"
+    identity customerId: UUID
+    command ReserveSeats
+      emits SeatsReserved
+    event SeatsReserved
+      customerId: UUID
   policy BillOnCompletion
-    trigger AdmissionCompleted
+    trigger PurchaseCompleted
     action "Bill the owner"
-    chains-to ReserveBed
-  orchestration AdmissionProcess
-    command StartAdmission
-      input petId: UUID
-      precondition PetIsRegistered: "The pet has a clinic record"
-      emits AdmissionStarted
-    command FinishAdmission
-      emits AdmissionCompleted
-    event AdmissionStarted
-      petId: UUID
-    event AdmissionCompleted
-      petId: UUID
-    invoked-by StartAdmission
-    issues ReserveBed
+    chains-to ReserveSeats
+  orchestration PurchaseProcess
+    command StartPurchase
+      input customerId: UUID
+      precondition CustomerIsRegistered: "The customer has a ticketing record"
+      emits PurchaseStarted
+    command FinishPurchase
+      emits PurchaseCompleted
+    event PurchaseStarted
+      customerId: UUID
+    event PurchaseCompleted
+      customerId: UUID
+    invoked-by StartPurchase
+    issues ReserveSeats
     states Started
     compensation none
-    timeout admissionWindow
+    timeout purchaseWindow
 
-flow "Admission"
-  lane proc "Clinic" [Core]
-  moment "Admission starts"
-    proc: StartAdmission
-    proc: AdmissionStarted
-  moment "Admission completes"
-    proc: FinishAdmission
-    proc: AdmissionCompleted
-  moment "Owner is billed"
+flow "Purchase"
+  lane proc "Ticketing" [Core]
+  moment "Purchase starts"
+    proc: StartPurchase
+    proc: PurchaseStarted
+  moment "Purchase completes"
+    proc: FinishPurchase
+    proc: PurchaseCompleted
+  moment "Customer is billed"
     proc: BillOnCompletion
-      triggered-by AdmissionCompleted
-    proc: ReserveBed
+      triggered-by PurchaseCompleted
+    proc: ReserveSeats
 `;
 
 describe('ADR-040 D1/D2 orchestration commands in derivation', () => {
   it('derives negative scenarios for a placed orchestration command', async () => {
     const ir = await load(ADMISSION);
     const ids = deriveNegativeScenarios(ir, ir.flows[0]).map((s) => s.scenarioId);
-    expect(ids.some((id) => id.endsWith('neg-StartAdmission-PetIsRegistered'))).toBe(true);
+    expect(ids.some((id) => id.endsWith('neg-StartPurchase-CustomerIsRegistered'))).toBe(true);
   });
 
   it('puts a process event in the stream after its command, with its declared fields', async () => {
     const ir = await load(ADMISSION);
     const events = generateSimulationScenario(ir, ir.flows[0]).events;
     const types = events.map((e) => e.eventType);
-    expect(types.indexOf('AdmissionCompleted')).toBe(
-      types.indexOf('SimProcess.FinishAdmission') + 1,
-    );
-    const completed = events.find((e) => e.eventType === 'AdmissionCompleted');
-    expect(completed?.payload.petId).toBe('petId-001');
-    expect(completed?.productSource).toBe('clinic');
+    expect(types.indexOf('PurchaseCompleted')).toBe(types.indexOf('SimProcess.FinishPurchase') + 1);
+    const completed = events.find((e) => e.eventType === 'PurchaseCompleted');
+    expect(completed?.payload.customerId).toBe('customerId-001');
+    expect(completed?.productSource).toBe('ticketing');
   });
 
   it('reaches a policy triggered by a process event, caused by that event', async () => {
     const ir = await load(ADMISSION);
     const events = generateSimulationScenario(ir, ir.flows[0]).events;
-    const completed = events.find((e) => e.eventType === 'AdmissionCompleted');
+    const completed = events.find((e) => e.eventType === 'PurchaseCompleted');
     const policy = events.find((e) => e.eventType === 'BillOnCompletion');
     expect(policy?.causationEventIds).toEqual([completed?.eventId]);
   });

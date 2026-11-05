@@ -31,31 +31,31 @@ async function toIr(input: string) {
 }
 
 const ADMISSION = `
-context "Clinic" [Core]
-  aggregate "Pet"
-    identity petId: UUID
-    command RegisterPet
-      emits PetRegistered
-    event PetRegistered
-      petId: UUID
-  orchestration AdmissionProcess
-    command StartAdmission
-      input petId: UUID
-      emits AdmissionStarted
-    command AbandonAdmission
-      emits AdmissionAbandoned
-    event AdmissionStarted
-      petId: UUID
-    event AdmissionCompleted
-      petId: UUID
+context "Ticketing" [Core]
+  aggregate "Customer"
+    identity customerId: UUID
+    command RegisterCustomer
+      emits CustomerRegistered
+    event CustomerRegistered
+      customerId: UUID
+  orchestration PurchaseProcess
+    command StartPurchase
+      input customerId: UUID
+      emits PurchaseStarted
+    command AbandonPurchase
+      emits PurchaseAbandoned
+    event PurchaseStarted
+      customerId: UUID
+    event PurchaseCompleted
+      customerId: UUID
       bedId: UUID
-    event AdmissionAbandoned
-      petId: UUID
-    invoked-by StartAdmission
-    issues RegisterPet
+    event PurchaseAbandoned
+      customerId: UUID
+    invoked-by StartPurchase
+    issues RegisterCustomer
     states Started
-    compensation on AbandonAdmission issues RegisterPet
-    timeout admissionWindow
+    compensation on AbandonPurchase issues RegisterCustomer
+    timeout purchaseWindow
 `;
 
 describe('ADR-040 D1 process events', () => {
@@ -63,26 +63,26 @@ describe('ADR-040 D1 process events', () => {
     const ir = await toIr(ADMISSION);
     const saga = ir.contexts[0].sagas[0];
     expect(saga.events?.map((e) => e.name)).toEqual([
-      'AdmissionStarted',
-      'AdmissionCompleted',
-      'AdmissionAbandoned',
+      'PurchaseStarted',
+      'PurchaseCompleted',
+      'PurchaseAbandoned',
     ]);
-    expect(saga.events?.[1].fields.map((f) => f.name)).toEqual(['petId', 'bedId']);
-    expect(saga.trigger).toBe('StartAdmission');
-    expect(saga.timeout).toBe('admissionWindow');
+    expect(saga.events?.[1].fields.map((f) => f.name)).toEqual(['customerId', 'bedId']);
+    expect(saga.trigger).toBe('StartPurchase');
+    expect(saga.timeout).toBe('purchaseWindow');
   });
 
   it('sets owner on every event and adds process events to the flat context list', async () => {
     const ir = await toIr(ADMISSION);
     const ctx = ir.contexts[0];
     const byName = Object.fromEntries(ctx.events.map((e) => [e.name, e]));
-    expect(byName.PetRegistered.owner).toEqual({ kind: 'aggregate', name: 'Pet' });
-    expect(byName.AdmissionCompleted.owner).toEqual({
+    expect(byName.CustomerRegistered.owner).toEqual({ kind: 'aggregate', name: 'Customer' });
+    expect(byName.PurchaseCompleted.owner).toEqual({
       kind: 'orchestration',
-      name: 'AdmissionProcess',
+      name: 'PurchaseProcess',
     });
-    expect(Object.keys(byName)).toContain('AdmissionAbandoned');
-    expect(ctx.aggregates[0].events[0].owner).toEqual({ kind: 'aggregate', name: 'Pet' });
+    expect(Object.keys(byName)).toContain('PurchaseAbandoned');
+    expect(ctx.aggregates[0].events[0].owner).toEqual({ kind: 'aggregate', name: 'Customer' });
   });
 
   it('keeps an orchestration without events free of an events list entry', async () => {
@@ -107,45 +107,45 @@ context "C" [Core]
 });
 
 const APPOINTMENT = `
-context "Clinic" [Core]
-  aggregate "Appointment"
-    identity appointmentId: UUID
-    command CancelAppointment
-      input appointmentId: UUID, cause: string
-      causes OwnerRequest, ClinicClosure
-      precondition AppointmentIsOpen: "The appointment has not been completed"
-      precondition WithinCancellationWindow cause OwnerRequest: "At least 24 hours ahead"
-      emits AppointmentCancelled
-    event AppointmentCancelled
-      appointmentId: UUID
+context "Ticketing" [Core]
+  aggregate "Booking"
+    identity bookingId: UUID
+    command CancelBooking
+      input bookingId: UUID, cause: string
+      causes CustomerRequest, OrganiserCancellation
+      precondition BookingIsOpen: "The booking has not been completed"
+      precondition WithinRefundWindow cause CustomerRequest: "At least 24 hours ahead"
+      emits BookingCancelled
+    event BookingCancelled
+      bookingId: UUID
       cause: string
 
-flow "Owner cancels"
-  lane desk "Clinic" [Core]
-  moment "Owner asks to cancel"
-    desk: CancelAppointment cause OwnerRequest
-    desk: AppointmentCancelled
-  moment "Clinic cancels"
-    desk: CancelAppointment [optional] cause ClinicClosure
-    desk: AppointmentCancelled
+flow "Customer cancels"
+  lane desk "Ticketing" [Core]
+  moment "Customer asks to cancel"
+    desk: CancelBooking cause CustomerRequest
+    desk: BookingCancelled
+  moment "Ticketing cancels"
+    desk: CancelBooking [optional] cause OrganiserCancellation
+    desk: BookingCancelled
 `;
 
 describe('ADR-040 D2 causes', () => {
   it('reads causes on a command and a cause clause on a precondition', async () => {
     const ir = await toIr(APPOINTMENT);
     const cmd = ir.contexts[0].commands[0];
-    expect(cmd.causes).toEqual(['OwnerRequest', 'ClinicClosure']);
+    expect(cmd.causes).toEqual(['CustomerRequest', 'OrganiserCancellation']);
     expect(cmd.preconditions[0].causes).toBeUndefined();
-    expect(cmd.preconditions[1].causes).toEqual(['OwnerRequest']);
-    expect(cmd.inputs.map((i) => i.name)).toEqual(['appointmentId', 'cause']);
+    expect(cmd.preconditions[1].causes).toEqual(['CustomerRequest']);
+    expect(cmd.inputs.map((i) => i.name)).toEqual(['bookingId', 'cause']);
   });
 
   it('reads the cause of a placement into MomentEntry.cause', async () => {
     const ir = await toIr(APPOINTMENT);
     const moments = ir.flows[0].moments;
-    expect(moments[0].contextEntries[0].cause).toBe('OwnerRequest');
+    expect(moments[0].contextEntries[0].cause).toBe('CustomerRequest');
     expect(moments[0].contextEntries[1].cause).toBeUndefined();
-    expect(moments[1].contextEntries[0].cause).toBe('ClinicClosure');
+    expect(moments[1].contextEntries[0].cause).toBe('OrganiserCancellation');
     expect(moments[1].contextEntries[0].optional).toBe(true);
   });
 

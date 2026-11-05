@@ -3,28 +3,28 @@ import { MomentParser } from '@mmmnt/core';
 import { TypeScriptEmitter } from '../../services/typescript-emitter.js';
 
 const SOURCE = `
-context "Clinic" [Core]
-  aggregate "Pet"
-    identity petId: UUID
-    command ReserveBed
-      emits BedReserved
-    event BedReserved
-      petId: UUID
-  orchestration AdmissionProcess
-    command StartAdmission
-      emits AdmissionStarted
-    command AbandonAdmission
-      emits AdmissionAbandoned
-    event AdmissionStarted
-      petId: UUID
-    event AdmissionAbandoned
-      petId: UUID
+context "Ticketing" [Core]
+  aggregate "Customer"
+    identity customerId: UUID
+    command ReserveSeats
+      emits SeatsReserved
+    event SeatsReserved
+      customerId: UUID
+  orchestration PurchaseProcess
+    command StartPurchase
+      emits PurchaseStarted
+    command AbandonPurchase
+      emits PurchaseAbandoned
+    event PurchaseStarted
+      customerId: UUID
+    event PurchaseAbandoned
+      customerId: UUID
       reason: string
-    invoked-by StartAdmission
-    issues ReserveBed
+    invoked-by StartPurchase
+    issues ReserveSeats
     states Started
-    compensation on AbandonAdmission issues ReserveBed
-    timeout admissionWindow
+    compensation on AbandonPurchase issues ReserveSeats
+    timeout purchaseWindow
 
 context "Billing" [Supporting]
   orchestration InvoiceRun
@@ -49,18 +49,18 @@ beforeAll(async () => {
 
 describe('TypeScript emission of process events (ADR-040 D1)', () => {
   it('emits the events an orchestration declares as interfaces', () => {
-    const types = files.get('src/clinic/admission-process.process.types.ts') ?? '';
-    expect(types).toContain('export interface AdmissionStarted {');
-    expect(types).toContain('export interface AdmissionAbandoned {');
+    const types = files.get('src/ticketing/purchase-process.process.types.ts') ?? '';
+    expect(types).toContain('export interface PurchaseStarted {');
+    expect(types).toContain('export interface PurchaseAbandoned {');
     expect(types).toContain('  readonly reason: string;');
   });
 
   it('exports the process types from the context and adds the events to its event union', () => {
-    const index = files.get('src/clinic/index.ts') ?? '';
-    expect(index).toContain("export * from './admission-process.process.types.js';");
-    expect(index).toContain('AdmissionAbandoned');
-    expect(index).toMatch(/export type ClinicEvent = .*AdmissionStarted/);
-    expect(index).toMatch(/export type ClinicEvent = .*BedReserved/);
+    const index = files.get('src/ticketing/index.ts') ?? '';
+    expect(index).toContain("export * from './purchase-process.process.types.js';");
+    expect(index).toContain('PurchaseAbandoned');
+    expect(index).toMatch(/export type TicketingEvent = .*PurchaseStarted/);
+    expect(index).toMatch(/export type TicketingEvent = .*SeatsReserved/);
   });
 
   it('exports a context that has process events but no aggregate', () => {
@@ -74,7 +74,7 @@ describe('TypeScript emission of process events (ADR-040 D1)', () => {
   it('emits no process file for an aggregate-level scope', async () => {
     const result = await new MomentParser().parseContent(SOURCE);
     const scoped = new TypeScriptEmitter().emit(result.ir!, {
-      scope: { level: 'aggregate', targets: ['Pet'] },
+      scope: { level: 'aggregate', targets: ['Customer'] },
     }).files;
     expect([...scoped.keys()].some((k) => k.includes('.process.'))).toBe(false);
   });

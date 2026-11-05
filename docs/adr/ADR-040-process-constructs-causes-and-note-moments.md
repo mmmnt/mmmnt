@@ -12,7 +12,7 @@ Moment models a domain as contexts (aggregates, commands, events, policies, orch
 
 ### 1. A process has outcomes, and a process outcome is a fact
 
-A process manager (the palette's Saga, written `orchestration`) coordinates a long-running sequence. When it ends, the business wants a fact that others can react to. Example, vet-clinic: an `AdmissionProcess` admits a pet, requests a lab panel from an external laboratory, and books a ward bed. When it ends, "AdmissionCompleted" or "AdmissionAbandoned" is a fact. A billing policy reacts to `AdmissionCompleted`. A dashboard projection counts `AdmissionAbandoned`.
+A process manager (the palette's Saga, written `orchestration`) coordinates a long-running sequence. When it ends, the business wants a fact that others can react to. Example, ticketwave: a `PurchaseProcess` starts a purchase for a customer, requests a fraud check from an external provider, and holds a block of seats. When it ends, "PurchaseCompleted" or "PurchaseAbandoned" is a fact. A receipt policy reacts to `PurchaseCompleted`. A dashboard projection counts `PurchaseAbandoned`.
 
 Today that fact cannot be declared. An event must sit in an aggregate (grammar: `AggregateMember`), and an orchestration's commands emit nothing (V31). Authors have three bad options: invent an aggregate whose only job is to own the process's outcome events, write the outcome as a comment, or leave consumers with nothing to subscribe to. The first one is a modelling lie (an aggregate is a consistency boundary, and this one guards nothing). The second one makes the model silent about a real contract.
 
@@ -20,9 +20,9 @@ ADR-038 already gave a process its own commands, so "a command outside an aggreg
 
 ### 2. One command, several causes, and a refusal that belongs to one of them
 
-A command is sometimes issued for different causes: by a person asking, by the system acting on a rule, by a correction. Some refusals apply only to one cause. Example, vet-clinic: `CancelAppointment` is issued when an owner asks to cancel (cause `OwnerRequest`) and when the clinic cancels because a vet is unavailable (cause `ClinicClosure`). The refusal `WithinCancellationWindow` ("cancelling less than 24 hours ahead is refused") is a rule of the owner's request. The clinic's own cancellation is never refused for that reason.
+A command is sometimes issued for different causes: by a person asking, by the system acting on a rule, by a correction. Some refusals apply only to one cause. Example, ticketwave: `CancelBooking` is issued when a customer asks to cancel (cause `CustomerRequest`) and when the organiser cancels because the event is called off (cause `OrganiserCancellation`). The refusal `WithinRefundWindow` ("cancelling less than 24 hours ahead is refused") is a rule of the customer's request. The organiser's own cancellation is never refused for that reason.
 
-Today a precondition belongs to the command and applies to every use of it. `deriveNegativeScenarios` therefore derives `neg-CancelAppointment-WithinCancellationWindow` for every flow that places `CancelAppointment`, including the clinic-closure flow, where the scenario is false: the derived failure cannot happen. An author must either split the command (two commands for one intent, breaking the ubiquitous language and the one-command-one-event symmetry), drop the precondition (losing a real rule and its test), or accept false negative scenarios.
+Today a precondition belongs to the command and applies to every use of it. `deriveNegativeScenarios` therefore derives `neg-CancelBooking-WithinRefundWindow` for every flow that places `CancelBooking`, including the ticketing-closure flow, where the scenario is false: the derived failure cannot happen. An author must either split the command (two commands for one intent, breaking the ubiquitous language and the one-command-one-event symmetry), drop the precondition (losing a real rule and its test), or accept false negative scenarios.
 
 ### 3. A step of a flow that is not a declarable thing
 
@@ -43,24 +43,24 @@ Moment gains four additions. All are general DDD and Event Storming constructs. 
 An orchestration may declare events. Its commands may emit them.
 
 ```
-orchestration AdmissionProcess
-  command StartAdmission
-    input petId: UUID
-    precondition PetIsRegistered: "The pet has a clinic record"
-    emits AdmissionStarted
-  command AbandonAdmission
-    emits AdmissionAbandoned
-  event AdmissionStarted
-    petId: UUID
-  event AdmissionCompleted
-    petId: UUID
+orchestration PurchaseProcess
+  command StartPurchase
+    input customerId: UUID
+    precondition CustomerIsRegistered: "The customer has a ticketing record"
+    emits PurchaseStarted
+  command AbandonPurchase
+    emits PurchaseAbandoned
+  event PurchaseStarted
+    customerId: UUID
+  event PurchaseCompleted
+    customerId: UUID
     bedId: UUID
-  event AdmissionAbandoned
-    petId: UUID
-  invoked-by StartAdmission
-  issues RequestLabPanel, BookBed
+  event PurchaseAbandoned
+    customerId: UUID
+  invoked-by StartPurchase
+  issues RequestFraudCheck, HoldSeats
   states Started
-  compensation on AbandonAdmission issues ReleaseBed
+  compensation on AbandonPurchase issues ReleaseSeats
   timeout "48h"
 ```
 
@@ -96,22 +96,22 @@ IR:
 A command may declare the causes it can be issued for. A precondition may name the causes it applies to. A flow placement may name the cause the command is issued for.
 
 ```
-aggregate "Appointment"
-  identity appointmentId: UUID
-  command CancelAppointment
-    input appointmentId: UUID
-    causes OwnerRequest, ClinicClosure
-    precondition AppointmentIsOpen: "The appointment has not been completed"
-    precondition WithinCancellationWindow cause OwnerRequest: "The owner cancels at least 24 hours ahead"
-    emits AppointmentCancelled
+aggregate "Booking"
+  identity bookingId: UUID
+  command CancelBooking
+    input bookingId: UUID
+    causes CustomerRequest, OrganiserCancellation
+    precondition BookingIsOpen: "The booking has not been completed"
+    precondition WithinRefundWindow cause CustomerRequest: "The customer cancels at least 24 hours ahead"
+    emits BookingCancelled
 ```
 
 ```
-flow "Owner cancels"
+flow "Customer cancels"
   lane desk "FrontDesk" [Core]
-  moment "Owner asks to cancel"
-    desk: CancelAppointment cause OwnerRequest
-    desk: AppointmentCancelled
+  moment "Customer asks to cancel"
+    desk: CancelBooking cause CustomerRequest
+    desk: BookingCancelled
 ```
 
 Grammar:
@@ -245,8 +245,8 @@ No new swatch is introduced. Every addition reuses an existing NDD swatch.
 | Process event | Event `#ff9d48` | An event is an event. The owner is shown by a Process `#c6a2d2` edge on the sticky, in place of the aggregate marker. |
 | Orchestration (unchanged) | Process/policy `#c6a2d2` | |
 | Process command (unchanged) | Command `#a6ccf5` | |
-| Cause-scoped precondition | Business rule/refusal `#fff9b1` | The refusal sticky carries a cause chip: `WithinCancellationWindow [OwnerRequest]`. An unscoped precondition has no chip. |
-| Cause on a placement | Command `#a6ccf5` | A chip on the command sticky: `CancelAppointment [OwnerRequest]`. |
+| Cause-scoped precondition | Business rule/refusal `#fff9b1` | The refusal sticky carries a cause chip: `WithinRefundWindow [CustomerRequest]`. An unscoped precondition has no chip. |
+| Cause on a placement | Command `#a6ccf5` | A chip on the command sticky: `CancelBooking [CustomerRequest]`. |
 | Note-only moment | Moment `#9ea9ff` | The moment sticky carries the note text in its body. A lane-attributed note on an `[External]` lane colours the lane label External system `#ffcee0`. |
 | Same-moment hop | Event `#ff9d48`, Process/policy `#c6a2d2`, Command `#a6ccf5` | The canonical Event Storming column. |
 
@@ -277,8 +277,8 @@ Backward compatible at the model level, with two edge cases at the grammar level
 1. **Constructs shaped for one product's vocabulary.** A "response" node kind, a "refusal" kind, or an "outcome" event type tied to one spec. Rejected: the founder's ruling is that Moment is not extended to fit one user. The four needs above are common to any process-manager or Event Storming model, and the additions are stated in the vocabulary of the DDD and Event Storming literature.
 2. **Stand-in value-object or event nodes in empty moments.** Rejected: they are derived as behaviour (they appear in simulated streams, topology and impact analysis), and they falsify the model to satisfy the validator. A note is the declared form of "this is not behaviour".
 3. **Relaxing V5 and V10 wholesale.** Rejected for V10: allowing an empty moment would let a typo pass as a step, and an empty moment says nothing. A note-only moment carries a statement. Rejected for V5: dropping the "prior" rule entirely would allow `triggered-by` against later nodes and cycles, and would let an edge be drawn that no policy supports. The new rule keeps order and adds a grounded hop.
-4. **Payload-condition branches.** Expressing the cause as a predicate over the command's payload (`precondition P when reason == "OwnerRequest"`). Rejected: Moment has no expression language, and adding one means a parser, a type checker and an evaluator for what is a naming problem. A cause is a name that a person chooses in the flow, which is what Event Storming does. Predicates also make derived scenarios depend on payload generation.
-5. **Splitting the command per cause.** `CancelAppointmentByOwner` and `CancelAppointmentByClinic`. Rejected: two commands for one intent break the ubiquitous language and duplicate every shared precondition and input. They also emit one event each, so subscribers see two events for one fact.
+4. **Payload-condition branches.** Expressing the cause as a predicate over the command's payload (`precondition P when reason == "CustomerRequest"`). Rejected: Moment has no expression language, and adding one means a parser, a type checker and an evaluator for what is a naming problem. A cause is a name that a person chooses in the flow, which is what Event Storming does. Predicates also make derived scenarios depend on payload generation.
+5. **Splitting the command per cause.** `CancelBookingByCustomer` and `CancelBookingByOrganiser`. Rejected: two commands for one intent break the ubiquitous language and duplicate every shared precondition and input. They also emit one event each, so subscribers see two events for one fact.
 6. **Process events as events of a synthetic aggregate.** Rejected: an aggregate is a consistency boundary. A synthetic one with no state and no invariants is a lie in the model, and ADR-038 already made an orchestration a first-class construct so it need not pose as one.
 7. **Letting an orchestration emit aggregate events.** Rejected: only the aggregate that owns an event may emit it. The orchestration issues the aggregate's command and reacts to its event. V31's remaining half keeps this.
 8. **Cause as a field of the command input.** Rejected: the input is payload. The cause is how the command is reached in the story, and the model then could not tell, at the flow, which preconditions apply without reading values.
@@ -288,9 +288,9 @@ Backward compatible at the model level, with two edge cases at the grammar level
 
 Specs live next to the code, as the existing `*-adr037` / `*-adr038` specs do. Fixtures live under `fixtures/`, in the existing valid/invalid layout.
 
-New fixtures (neutral domains: vet-clinic and the ticketwave example):
+New fixtures (the ticketwave domain):
 
-- `fixtures/valid/process-constructs/` : the `AdmissionProcess` orchestration with process events, a billing policy triggered by `AdmissionCompleted`, a projection sourced from `AdmissionAbandoned`; the `CancelAppointment` aggregate with causes and a scoped precondition; a flow with a note-only moment; a flow with a same-moment hop.
+- `fixtures/valid/process-constructs/` : the `PurchaseProcess` orchestration with process events, a receipt policy triggered by `PurchaseCompleted`, a projection sourced from `PurchaseAbandoned`; the `CancelBooking` command with causes and a scoped precondition; a flow with a note-only moment; a flow with a same-moment hop.
 - `fixtures/invalid/process-v31/` (an orchestration command emitting an aggregate's event), `process-v40/` (an event declared by two owners), `process-v41/` (a placement cause the command does not declare), `process-v42/` (a scoped command placed with no cause), `process-v43/` (a same-moment `triggered-by` with no declaring policy), `process-v5/` (a `triggered-by` to a later node), `process-v10/` (a moment with no node, when block or note).
 
 Specs and what they assert:
@@ -318,7 +318,7 @@ Built as written. What the build found:
 
 - **`invoked-by` ambiguity: none.** Langium's lookahead tells a process event's last field from `invoked-by`, so the stated fallback (event placement after `timeout`) was not needed. A process event may still have a field named `invoked-by`; a test pins it.
 - **`note` ambiguity: resolved by lookahead for lanes.** A `LaneName` rule (`ID | 'cause' | 'causes' | 'note'`) names lanes in declarations, placements, `when [lane]` and `crosses-to`, so a lane named `note`, `cause` or `causes` parses. `note`, `cause` and `causes` are added to `FieldName` and `InputName`. The one source break is a **node** (command, event, policy and so on) named `note`, `cause` or `causes`.
-- **Example correction.** The D1 example wrote `timeout "48h"`. The grammar's `timeout` takes an identifier or `"none"`, so the fixtures write `timeout admissionWindow`.
+- **Example correction.** The D1 example wrote `timeout "48h"`. The grammar's `timeout` takes an identifier or `"none"`, so the fixtures write `timeout purchaseWindow`.
 - **V43 is literal.** Only the three hops (a), (b), (c) are declared. A same-moment `triggered-by` of an event on its own command is not a hop and is reported; V43 skips a target the model does not declare, so a single file without the project only has V5's source-order check.
 - **V40 scope.** It checks only names that a process event declares, so IR that predates ADR-040 and repeats an aggregate event name stays quiet.
 - **Merged projects.** V40 to V43 are advisories per file and errors over a merged project, like V22 to V39. The project loader's per-file filter now covers them.

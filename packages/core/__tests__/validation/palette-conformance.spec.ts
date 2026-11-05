@@ -326,11 +326,11 @@ describe('V40 one owner per event', () => {
 // ADR-040 V41/V42: causes of commands, preconditions and placements, over hand-built IR.
 describe('V41/V42 causes', () => {
   const cancel = (extra: Loose = {}): Loose => ({
-    name: 'CancelAppointment',
-    causes: ['OwnerRequest', 'ClinicClosure'],
+    name: 'CancelBooking',
+    causes: ['CustomerRequest', 'OrganiserCancellation'],
     preconditions: [
       { name: 'IsOpen', description: 'open' },
-      { name: 'Window', description: 'ahead', causes: ['OwnerRequest'] },
+      { name: 'Window', description: 'ahead', causes: ['CustomerRequest'] },
     ],
     ...extra,
   });
@@ -351,17 +351,17 @@ describe('V41/V42 causes', () => {
       ],
     }) as unknown as IntermediateRepresentation;
   const place = (cause?: string): Loose => ({
-    nodeName: 'CancelAppointment',
+    nodeName: 'CancelBooking',
     nodeKind: 'command',
     ...(cause ? { cause } : {}),
   });
 
   it('accepts a command with scoped preconditions placed for a declared cause', () => {
-    expect(rules(withFlow(cancel(), [place('OwnerRequest')]))).toEqual([]);
+    expect(rules(withFlow(cancel(), [place('CustomerRequest')]))).toEqual([]);
   });
 
   it('accepts IR that predates ADR-040 (no causes anywhere)', () => {
-    const plain = { name: 'CancelAppointment', preconditions: [{ name: 'P', description: 'd' }] };
+    const plain = { name: 'CancelBooking', preconditions: [{ name: 'P', description: 'd' }] };
     expect(rules(withFlow(plain, [place()]))).toEqual([]);
   });
 
@@ -369,33 +369,33 @@ describe('V41/V42 causes', () => {
     const cmd = cancel({
       preconditions: [{ name: 'Window', description: 'x', causes: ['Typo'] }],
     });
-    expect(messages(withFlow(cmd, [place('OwnerRequest')]))).toEqual([
-      "Precondition 'Window' of command 'CancelAppointment' names cause 'Typo', which the command does not declare.",
+    expect(messages(withFlow(cmd, [place('CustomerRequest')]))).toEqual([
+      "Precondition 'Window' of command 'CancelBooking' names cause 'Typo', which the command does not declare.",
     ]);
   });
 
   it('V41: a precondition names a cause on a command that declares none', () => {
     const cmd = {
-      name: 'CancelAppointment',
-      preconditions: [{ name: 'Window', description: 'x', causes: ['OwnerRequest'] }],
+      name: 'CancelBooking',
+      preconditions: [{ name: 'Window', description: 'x', causes: ['CustomerRequest'] }],
     };
     expect(rules(ir({ commands: [cmd] }))).toEqual(['V41']);
   });
 
   it('V41: a placement names a cause the command does not declare', () => {
     expect(messages(withFlow(cancel(), [place('Typo')]))).toEqual([
-      "Flow 'F' places 'CancelAppointment' for cause 'Typo', which the command does not declare.",
+      "Flow 'F' places 'CancelBooking' for cause 'Typo', which the command does not declare.",
     ]);
   });
 
   it('V41: a placement names a cause on a command that declares none', () => {
-    const plain = { name: 'CancelAppointment', preconditions: [] };
-    expect(rules(withFlow(plain, [place('OwnerRequest')]))).toEqual(['V41']);
+    const plain = { name: 'CancelBooking', preconditions: [] };
+    expect(rules(withFlow(plain, [place('CustomerRequest')]))).toEqual(['V41']);
   });
 
   it('V42: a command with a scoped precondition is placed with no cause', () => {
     expect(messages(withFlow(cancel(), [place()]))).toEqual([
-      "Flow 'F' places 'CancelAppointment' without a cause, but the command has cause-scoped preconditions.",
+      "Flow 'F' places 'CancelBooking' without a cause, but the command has cause-scoped preconditions.",
     ]);
   });
 

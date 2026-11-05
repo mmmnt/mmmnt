@@ -36,24 +36,24 @@ import { SchemaRegistry } from '@mmmnt/schema';
 const registry = new SchemaRegistry();
 
 registry.registerEventSchema({
-  eventType: 'AppointmentScheduled',
+  eventType: 'BookingScheduled',
   version: '1.0.0',
   fieldDefinitions: [
-    { fieldName: 'patientId', fieldType: 'UUID', required: true },
+    { fieldName: 'customerId', fieldType: 'UUID', required: true },
     { fieldName: 'vetName', fieldType: 'string', required: false },
   ],
   registeredBy: 'scheduling',
 });
 
 registry.deprecateField({
-  eventType: 'AppointmentScheduled',
+  eventType: 'BookingScheduled',
   fieldName: 'vetName',
   deprecatedSince: '1.0.0',
   reason: 'vets are referenced by id',
   replacement: 'vetId',
 });
 
-console.log(registry.getFieldPhase('AppointmentScheduled', 'vetName')); // 'deprecated'
+console.log(registry.getFieldPhase('BookingScheduled', 'vetName')); // 'deprecated'
 ```
 
 ## Key Features
@@ -126,13 +126,13 @@ const registry = new SchemaRegistry();
 const manifest = new ConsumptionManifest();
 
 registry.registerEventSchema({
-  eventType: 'AppointmentCompleted',
+  eventType: 'BookingCompleted',
   version: '1.0.0',
   fieldDefinitions: [
-    { fieldName: 'patientId', fieldType: 'UUID', required: true },
+    { fieldName: 'customerId', fieldType: 'UUID', required: true },
     { fieldName: 'cost', fieldType: 'Money', required: true },
   ],
-  registeredBy: 'clinic',
+  registeredBy: 'ticketing',
 });
 
 manifest.declareConsumption(
@@ -140,13 +140,13 @@ manifest.declareConsumption(
     projectionId: 'billing-ledger',
     projectionName: 'BillingLedger',
     product: 'billing-service',
-    consumedEvents: [{ eventType: 'AppointmentCompleted', fields: ['patientId', 'cost'] }],
+    consumedEvents: [{ eventType: 'BookingCompleted', fields: ['customerId', 'cost'] }],
   },
   registry,
 );
 
 registry.deprecateField({
-  eventType: 'AppointmentCompleted',
+  eventType: 'BookingCompleted',
   fieldName: 'cost',
   deprecatedSince: '1.0.0',
   reason: 'split into fee and tax',
@@ -154,14 +154,14 @@ registry.deprecateField({
 });
 
 // SR-02: end-of-life is refused while any projection still consumes the field.
-const consumers = manifest.getConsumers('AppointmentCompleted', 'cost');
+const consumers = manifest.getConsumers('BookingCompleted', 'cost');
 console.log(consumers.map((c) => c.projectionName)); // ['BillingLedger']
 
 registry.confirmEndOfLife({
-  eventType: 'AppointmentCompleted',
+  eventType: 'BookingCompleted',
   fieldName: 'cost',
-  confirmedBy: 'clinic',
-  hasActiveConsumers: !manifest.hasZeroConsumers('AppointmentCompleted', 'cost'),
+  confirmedBy: 'ticketing',
+  hasActiveConsumers: !manifest.hasZeroConsumers('BookingCompleted', 'cost'),
 }); // throws: SR-02 ... active consumers exist
 ```
 
@@ -181,10 +181,10 @@ const evaluator = new CodexRuleEvaluator({
 // Every registry command returns the event it applied; a stored log replays the same way.
 const events: SchemaRegistryEvent[] = [
   new SchemaRegistry().registerEventSchema({
-    eventType: 'PatientRegistered',
+    eventType: 'CustomerRegistered',
     version: '1.0.0',
-    fieldDefinitions: [{ fieldName: 'patient_id', fieldType: 'UUID', required: true }],
-    registeredBy: 'clinic',
+    fieldDefinitions: [{ fieldName: 'customer_id', fieldType: 'UUID', required: true }],
+    registeredBy: 'ticketing',
   }),
 ];
 const result = await validateOnSchemaEvolution(events, evaluator);

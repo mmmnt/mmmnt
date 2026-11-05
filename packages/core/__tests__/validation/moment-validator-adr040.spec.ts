@@ -11,41 +11,41 @@ async function errors(source: string): Promise<string[]> {
 }
 
 const CLINIC = `
-context "Clinic" [Core]
-  aggregate "Pet"
-    identity petId: UUID
-    command ReserveBed
-      emits BedReserved
-    event BedReserved
-      petId: UUID
+context "Ticketing" [Core]
+  aggregate "Customer"
+    identity customerId: UUID
+    command ReserveSeats
+      emits SeatsReserved
+    event SeatsReserved
+      customerId: UUID
   policy BillOnCompletion
-    trigger AdmissionCompleted
+    trigger PurchaseCompleted
     action "Bill the owner"
-    chains-to ReserveBed
-  orchestration AdmissionProcess
-    command StartAdmission
-      emits AdmissionStarted
-    command FinishAdmission
-      emits AdmissionCompleted
-    event AdmissionStarted
-      petId: UUID
-    event AdmissionCompleted
-      petId: UUID
-    invoked-by StartAdmission
-    issues ReserveBed
+    chains-to ReserveSeats
+  orchestration PurchaseProcess
+    command StartPurchase
+      emits PurchaseStarted
+    command FinishPurchase
+      emits PurchaseCompleted
+    event PurchaseStarted
+      customerId: UUID
+    event PurchaseCompleted
+      customerId: UUID
+    invoked-by StartPurchase
+    issues ReserveSeats
     states Started
     compensation none
-    timeout admissionWindow
+    timeout purchaseWindow
 `;
 
 describe('ADR-040 D1 flows place process commands and process events', () => {
   it('resolves an orchestration command and a process event as declared building blocks (V1)', async () => {
     const source = `${CLINIC}
-flow "Admission"
-  lane proc "Clinic" [Core]
-  moment "Admission starts"
-    proc: StartAdmission
-    proc: AdmissionStarted
+flow "Purchase"
+  lane proc "Ticketing" [Core]
+  moment "Purchase starts"
+    proc: StartPurchase
+    proc: PurchaseStarted
 `;
     expect(await errors(source)).toEqual([]);
   });

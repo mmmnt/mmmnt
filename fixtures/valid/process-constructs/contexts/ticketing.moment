@@ -1,84 +1,84 @@
-// ADR-040 corpus exemplar (vet-clinic): a process that records its outcomes as events, and a command
+// ADR-040 corpus exemplar (ticketwave): a process that records its outcomes as events, and a command
 // issued for two causes with a refusal that belongs to one of them.
-context "Clinic" [Core]
-  aggregate "Pet"
-    identity petId: UUID
-    command RegisterPet
-      input petId: UUID
-      emits PetRegistered
-    event PetRegistered
-      petId: UUID
+context "Ticketing" [Core]
+  aggregate "Customer"
+    identity customerId: UUID
+    command RegisterCustomer
+      input customerId: UUID
+      emits CustomerRegistered
+    event CustomerRegistered
+      customerId: UUID
 
-  aggregate "LabPanel"
-    identity panelId: UUID
-    command RequestLabPanel
-      input petId: UUID
-      emits LabPanelRequested
-    event LabPanelRequested
-      panelId: UUID
-      petId: UUID
+  aggregate "FraudCheck"
+    identity checkId: UUID
+    command RequestFraudCheck
+      input customerId: UUID
+      emits FraudCheckRequested
+    event FraudCheckRequested
+      checkId: UUID
+      customerId: UUID
 
-  aggregate "Ward"
-    identity wardId: UUID
-    command BookBed
-      input petId: UUID
-      emits BedBooked
-    command ReleaseBed
-      input petId: UUID
-      emits BedReleased
-    event BedBooked
-      wardId: UUID
-      petId: UUID
-    event BedReleased
-      wardId: UUID
+  aggregate "SeatBlock"
+    identity seatBlockId: UUID
+    command HoldSeats
+      input customerId: UUID
+      emits SeatsHeld
+    command ReleaseSeats
+      input customerId: UUID
+      emits SeatsReleased
+    event SeatsHeld
+      seatBlockId: UUID
+      customerId: UUID
+    event SeatsReleased
+      seatBlockId: UUID
 
-  aggregate "Invoice"
-    identity invoiceId: UUID
-    command IssueInvoice
-      input petId: UUID
-      emits InvoiceIssued
-    event InvoiceIssued
-      invoiceId: UUID
+  aggregate "Receipt"
+    identity receiptId: UUID
+    command IssueReceipt
+      input customerId: UUID
+      emits ReceiptIssued
+    event ReceiptIssued
+      receiptId: UUID
 
-  aggregate "Appointment"
-    identity appointmentId: UUID
-    command CancelAppointment
-      input appointmentId: UUID
-      causes OwnerRequest, ClinicClosure
-      precondition AppointmentIsOpen: "The appointment has not been completed"
-      precondition WithinCancellationWindow cause OwnerRequest: "The owner cancels at least 24 hours ahead"
-      emits AppointmentCancelled
-    event AppointmentCancelled
-      appointmentId: UUID
+  aggregate "Booking"
+    identity bookingId: UUID
+    command CancelBooking
+      input bookingId: UUID
+      causes CustomerRequest, OrganiserCancellation
+      precondition BookingIsOpen: "The booking has not been fulfilled"
+      precondition WithinRefundWindow cause CustomerRequest: "The customer cancels at least 24 hours ahead"
+      emits BookingCancelled
+    event BookingCancelled
+      bookingId: UUID
 
-  orchestration AdmissionProcess
-    command StartAdmission
-      input petId: UUID
-      precondition PetIsRegistered: "The pet has a clinic record"
-      emits AdmissionStarted
-    command CompleteAdmission
-      emits AdmissionCompleted
-    command AbandonAdmission
-      emits AdmissionAbandoned
-    event AdmissionStarted
-      petId: UUID
-    event AdmissionCompleted
-      petId: UUID
-      bedId: UUID
-    event AdmissionAbandoned
-      petId: UUID
-    invoked-by StartAdmission
-    issues RequestLabPanel, BookBed
+  orchestration PurchaseProcess
+    command StartPurchase
+      input customerId: UUID
+      precondition CustomerIsRegistered: "The customer has a ticketing record"
+      emits PurchaseStarted
+    command CompletePurchase
+      emits PurchaseCompleted
+    command AbandonPurchase
+      emits PurchaseAbandoned
+    event PurchaseStarted
+      customerId: UUID
+    event PurchaseCompleted
+      customerId: UUID
+      seatBlockId: UUID
+    event PurchaseAbandoned
+      customerId: UUID
+    invoked-by StartPurchase
+    issues RequestFraudCheck, HoldSeats
     states Started
-    compensation on AbandonAdmission issues ReleaseBed
-    timeout admissionWindow
+    compensation on AbandonPurchase issues ReleaseSeats
+    timeout purchaseWindow
 
-  policy BillOnAdmissionCompleted
-    trigger AdmissionCompleted
-    action "Bill the owner for the stay"
-    chains-to IssueInvoice
+  policy ReceiptOnPurchaseCompleted
+    trigger PurchaseCompleted
+    action "Send the customer a receipt for the purchase"
+    chains-to IssueReceipt
 
-  projection AbandonedAdmissions
-    sources AdmissionAbandoned
-    description "How many admissions ended without completing"
-    field petId: UUID
+  projection AbandonedPurchases
+    sources PurchaseAbandoned
+    description "How many purchases ended without completing"
+    field customerId: UUID

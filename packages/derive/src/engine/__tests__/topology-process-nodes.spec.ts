@@ -26,32 +26,32 @@ beforeAll(async () => {
 
 describe('topology nodes of an orchestration (ADR-040 D1) over a merged project', () => {
   it('types a process command as a command, owned by its orchestration', () => {
-    const node = nodeOf(topologyOf('Admission'), 'StartAdmission');
+    const node = nodeOf(topologyOf('Purchase'), 'StartPurchase');
     expect(node.type).toBe('command');
-    expect(node.process).toBe('AdmissionProcess');
+    expect(node.process).toBe('PurchaseProcess');
   });
 
   it('routes a process command by its SimProcess event type, not by its plain name', () => {
-    const t = topologyOf('Admission');
-    const id = nodeOf(t, 'StartAdmission').id;
-    expect(t.eventRouting['SimProcess.StartAdmission']).toEqual([id]);
-    expect(t.eventRouting['StartAdmission']).toBeUndefined();
+    const t = topologyOf('Purchase');
+    const id = nodeOf(t, 'StartPurchase').id;
+    expect(t.eventRouting['SimProcess.StartPurchase']).toEqual([id]);
+    expect(t.eventRouting['StartPurchase']).toBeUndefined();
   });
 
   it('keeps a process event an event owned by its orchestration', () => {
-    const node = nodeOf(topologyOf('Admission'), 'AdmissionCompleted');
+    const node = nodeOf(topologyOf('Purchase'), 'PurchaseCompleted');
     expect(node.type).toBe('event');
-    expect(node.process).toBe('AdmissionProcess');
+    expect(node.process).toBe('PurchaseProcess');
   });
 });
 
 describe('every event type a scenario streams resolves in the topology', () => {
   it('routes a placed policy by the event type its own name streams', () => {
-    const flow = ir.flows.find((f) => f.name === 'Admission')!;
-    const t = topologyOf('Admission');
+    const flow = ir.flows.find((f) => f.name === 'Purchase')!;
+    const t = topologyOf('Purchase');
     const types = generateSimulationScenario(ir, flow).events.map((e) => e.eventType);
-    const policy = nodeOf(t, 'BillOnAdmissionCompleted');
-    expect(types).toContain('BillOnAdmissionCompleted');
-    expect(t.eventRouting['BillOnAdmissionCompleted']).toEqual([policy.id]);
+    const policy = nodeOf(t, 'ReceiptOnPurchaseCompleted');
+    expect(types).toContain('ReceiptOnPurchaseCompleted');
+    expect(t.eventRouting['ReceiptOnPurchaseCompleted']).toEqual([policy.id]);
   });
 });

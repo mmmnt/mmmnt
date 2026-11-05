@@ -10,7 +10,11 @@ const SIFT_DOMAIN_DIR = resolve(FIXTURES, 'valid/sift/domain');
 const tmpBase = join(tmpdir(), 'mmnt-import-test-' + Date.now());
 
 afterEach(() => {
-  try { rmSync(tmpBase, { recursive: true, force: true }); } catch { /* */ }
+  try {
+    rmSync(tmpBase, { recursive: true, force: true });
+  } catch {
+    /* */
+  }
 });
 
 describe('moment import --from-sift', () => {
@@ -26,11 +30,11 @@ describe('moment import --from-sift', () => {
     expect(result.message).toContain('Imported');
 
     // Verify .moment file created under .moment/contexts/
-    const contextFile = join(outDir, '.moment', 'contexts', 'reception.moment');
+    const contextFile = join(outDir, '.moment', 'contexts', 'entry.moment');
     expect(existsSync(contextFile)).toBe(true);
     const content = readFileSync(contextFile, 'utf-8');
-    expect(content).toContain('context "Reception"');
-    expect(content).toContain('aggregate "PatientIntake"');
+    expect(content).toContain('context "Entry"');
+    expect(content).toContain('aggregate "EntryRegistration"');
   });
 
   it('writes .upstream-fingerprint.json with sift envelope (EXIT-B2)', async () => {
@@ -130,13 +134,13 @@ describe('moment import --from-sift', () => {
     const result = await runImportFromSift([SIFT_DOMAIN_DIR, '--output-dir', outDir]);
 
     expect(result.success).toBe(true);
-    // 4 JSONL files: reception (11), clinical (28), billing (9), records (8) = 56 events
+    // 4 JSONL files: entry (11), ordering (28), payments (9), fulfilment (8) = 56 events
     expect(result.eventsProcessed).toBeGreaterThan(40);
 
     // All 4 contexts should have .moment files
-    expect(existsSync(join(outDir, '.moment', 'contexts', 'reception.moment'))).toBe(true);
-    expect(existsSync(join(outDir, '.moment', 'contexts', 'clinical.moment'))).toBe(true);
-    expect(existsSync(join(outDir, '.moment', 'contexts', 'billing.moment'))).toBe(true);
-    expect(existsSync(join(outDir, '.moment', 'contexts', 'records.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'entry.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'ordering.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'payments.moment'))).toBe(true);
+    expect(existsSync(join(outDir, '.moment', 'contexts', 'fulfilment.moment'))).toBe(true);
   });
 });

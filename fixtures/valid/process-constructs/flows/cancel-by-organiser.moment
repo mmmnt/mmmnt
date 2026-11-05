@@ -1,6 +1,6 @@
-flow "Clinic cancels"
-  lane clinic "Clinic" [Core]
+flow "Organiser cancels"
+  lane ticketing "Ticketing" [Core]
 
-  moment "The vet is unavailable"
-    clinic: CancelAppointment cause ClinicClosure
-    clinic: AppointmentCancelled
+  moment "The event is called off"
+    ticketing: CancelBooking cause OrganiserCancellation
+    ticketing: BookingCancelled

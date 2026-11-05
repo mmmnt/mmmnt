@@ -840,15 +840,15 @@ context "C" [Core]
   aggregate "A"
     identity aId: UUID
     command Cancel
-      causes Owner, Clinic
-      precondition Window cause Owner, Admin: "Ahead of time"
+      causes Customer, Ticketing
+      precondition Window cause Customer, Admin: "Ahead of time"
       emits Cancelled
     event Cancelled
       aId: UUID
 flow "F"
   lane l "C" [Core]
   moment "M"
-    l: Cancel cause Owner
+    l: Cancel cause Customer
 `;
     expect(await errorsOf(src)).toEqual([]);
   });
