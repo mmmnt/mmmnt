@@ -38,6 +38,7 @@ export type {
   MomentEntry,
   BranchDefinition,
   MomentSequenceItem,
+  MomentNote,
 } from './frame-definition.js';
 
 export type { ConnectionDefinition, ConnectionType } from './connection-definition.js';

@@ -179,7 +179,12 @@ LaneDeclaration:
 
 MomentDeclaration:
     'moment' label=STRING isBranch?='[branch]'?
-        (nodes+=NodePlacement | whenBlocks+=WhenBlock)*;
+        (nodes+=NodePlacement | whenBlocks+=WhenBlock | notes+=NoteStatement)*;
+
+// --- Note (ADR-040 D3): narration of a step outside the model; never a node ---
+// `note <lane>: "text"` speaks for a lane, `note "text"` for no lane. `note: Name` stays a placement on a lane named note.
+NoteStatement:
+    'note' (laneId=LaneName ':')? text=STRING;
 
 WhenBlock:
     'when' condition=ID ('[' lane=LaneName ']')?
@@ -195,7 +200,7 @@ NodePlacement:
 
 // A lane may be named with a word ADR-040 made a keyword, so a model that already used it keeps parsing.
 LaneName returns string:
-    ID | 'cause' | 'causes';
+    ID | 'cause' | 'causes' | 'note';
 
 Multiplicity:
     '(' '×' (count=INT | countVar=ID) ')';
@@ -245,7 +250,7 @@ InputName returns string:
 // or a field list would read the next declaration as a field.
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
-    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes';
+    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;

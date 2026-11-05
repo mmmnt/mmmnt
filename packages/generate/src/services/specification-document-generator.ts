@@ -189,10 +189,19 @@ export class SpecificationDocumentGenerator {
       this.renderEntryNarrative(lines, entry, moment, undefined, flow, ir, '  ', usedConnections);
     }
 
+    this.renderMomentNotes(lines, moment, flow);
     this.renderMomentBranches(lines, moment, flow, ir);
     this.renderMomentPoliciesAndRules(lines, moment, ir);
 
     lines.push('');
+  }
+
+  /** Notes (ADR-040 D3) are narrated as steps of their moment; they are not nodes. */
+  private renderMomentNotes(lines: string[], moment: MomentDefinition, flow: FlowDefinition): void {
+    for (const note of moment.notes ?? []) {
+      const label = flow.lanes.find((l) => l.id === note.laneId)?.label ?? note.laneId;
+      lines.push(`  - *note${label !== undefined ? ` (${label})` : ''}:* ${note.text}`);
+    }
   }
 
   private renderMomentHeader(

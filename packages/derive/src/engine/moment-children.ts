@@ -20,6 +20,8 @@ export type OrderedMomentChild =
   | { kind: 'entry'; entry: MomentEntry; entryIndex: number }
   | { kind: 'branch'; branch: BranchDefinition; branchIndex: number };
 
+type WalkedSequenceItem = { kind: 'entry' | 'branch'; index: number };
+
 export type ChildOrderFallback = 'entries-first' | 'branches-first';
 
 export function orderedMomentChildren(
@@ -30,8 +32,10 @@ export function orderedMomentChildren(
   const branches = moment.branches ?? [];
   const seq = moment.sequence;
 
-  if (seq && isUsableSequence(seq, entries.length, branches.length)) {
-    return seq.map((item) =>
+  // Notes (ADR-040 D3) sit in the sequence to keep source order but are not children to walk.
+  const walked = seq?.filter((item) => item.kind !== 'note') as WalkedSequenceItem[] | undefined;
+  if (walked && isUsableSequence(walked, entries.length, branches.length)) {
+    return walked.map((item) =>
       item.kind === 'entry'
         ? { kind: 'entry' as const, entry: entries[item.index], entryIndex: item.index }
         : { kind: 'branch' as const, branch: branches[item.index], branchIndex: item.index },

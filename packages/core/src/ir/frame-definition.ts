@@ -15,11 +15,21 @@ export interface MomentDefinition {
    * the order falls back to entries-then-branches.
    */
   sequence?: MomentSequenceItem[];
+  /** Notes (ADR-040 D3): narration of steps outside the model. Never nodes, never simulated. */
+  notes?: MomentNote[];
+}
+
+/** `note "text"` or `note <lane>: "text"`; `laneId` is the lane the note speaks for. */
+export interface MomentNote {
+  text: string;
+  laneId?: string;
 }
 
 /** One child of a moment in textual source order (see MomentDefinition.sequence). */
 export type MomentSequenceItem =
-  { kind: 'entry'; index: number } | { kind: 'branch'; index: number };
+  | { kind: 'entry'; index: number }
+  | { kind: 'branch'; index: number }
+  | { kind: 'note'; index: number };
 
 export interface MomentEntry {
   contextId: string;

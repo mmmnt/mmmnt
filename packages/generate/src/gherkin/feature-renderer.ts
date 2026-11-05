@@ -84,31 +84,7 @@ function renderMomentsByContext(
     renderBackgroundBlock(lines, sharedPreconditions);
 
     for (const moment of moments) {
-      if (moment.branches && moment.branches.length > 0) {
-        for (const branch of moment.branches) {
-          renderBranchScenario(
-            lines,
-            moment,
-            branch.condition,
-            branch.entries,
-            flow,
-            ctxMap,
-            ir,
-            sharedPreconditions,
-          );
-        }
-      } else {
-        renderScenario(
-          lines,
-          moment,
-          moment.contextEntries,
-          flow,
-          ctxMap,
-          ir,
-          undefined,
-          sharedPreconditions,
-        );
-      }
+      renderMoment(lines, moment, flow, ctxMap, ir, sharedPreconditions);
     }
 
     renderSagaScenarios(lines, ctxId, ir, ownedSagaIds);
@@ -118,6 +94,45 @@ function renderMomentsByContext(
   // saga's context — render those under their own Rule so they are not
   // silently dropped from every feature.
   renderOrphanOwnedSagas(lines, ir, contextGroups, ownedSagaIds);
+}
+
+function renderMoment(
+  lines: string[],
+  moment: MomentDefinition,
+  flow: FlowDefinition,
+  ctxMap: Map<string, ContextDefinition>,
+  ir: IntermediateRepresentation,
+  sharedPreconditions: Set<string>,
+): void {
+  if (isNoteOnly(moment)) {
+    renderNoteOnlyMoment(lines, moment, flow);
+    return;
+  }
+  if (moment.branches && moment.branches.length > 0) {
+    for (const branch of moment.branches) {
+      renderBranchScenario(
+        lines,
+        moment,
+        branch.condition,
+        branch.entries,
+        flow,
+        ctxMap,
+        ir,
+        sharedPreconditions,
+      );
+    }
+    return;
+  }
+  renderScenario(
+    lines,
+    moment,
+    moment.contextEntries,
+    flow,
+    ctxMap,
+    ir,
+    undefined,
+    sharedPreconditions,
+  );
 }
 
 function renderScenario(
@@ -135,6 +150,7 @@ function renderScenario(
 
   if (tags.length > 0) lines.push(`    ${tags.join(' ')}`);
   lines.push(`    Scenario: ${label}`);
+  lines.push(...noteComments(moment, flow, '      '));
 
   const steps: string[] = [];
   const usedConnections = new Set<string>();
@@ -185,6 +201,7 @@ function renderBranchScenario(
 
   if (tags.length > 0) lines.push(`    ${tags.join(' ')}`);
   lines.push(`    Scenario: ${moment.name} [${condition}]`);
+  lines.push(...noteComments(moment, flow, '      '));
 
   const steps = buildBranchScenarioSteps(
     moment,
@@ -247,6 +264,33 @@ function buildBranchScenarioSteps(
   return steps;
 }
 
+/** A moment that holds only notes (ADR-040 D3): narration, no node, so no scenario. */
+function isNoteOnly(moment: MomentDefinition): boolean {
+  return (
+    moment.contextEntries.length === 0 &&
+    (moment.branches ?? []).length === 0 &&
+    (moment.notes ?? []).length > 0
+  );
+}
+
+/** Each note as a Gherkin comment: `# note (<lane label>): text`, in source order. A note asserts nothing. */
+function noteComments(moment: MomentDefinition, flow: FlowDefinition, indent: string): string[] {
+  return (moment.notes ?? []).map((note) => {
+    const label = flow.lanes.find((l) => l.id === note.laneId)?.label ?? note.laneId;
+    return `${indent}# note${label !== undefined ? ` (${label})` : ''}: ${note.text}`;
+  });
+}
+
+function renderNoteOnlyMoment(
+  lines: string[],
+  moment: MomentDefinition,
+  flow: FlowDefinition,
+): void {
+  lines.push(`    # moment: ${moment.name}`);
+  lines.push(...noteComments(moment, flow, '    '));
+  lines.push('');
+}
+
 function renderTerminalBranchScenario(
   lines: string[],
   moment: MomentDefinition,
@@ -259,6 +303,7 @@ function renderTerminalBranchScenario(
   const tags = ['@terminal', '@failure-path'];
   lines.push(`    ${tags.join(' ')}`);
   lines.push(`    Scenario: ${moment.name} [${condition}]`);
+  lines.push(...noteComments(moment, flow, '      '));
 
   const failedPrecondition = findFailedPrecondition(moment, ctxMap);
   lines.push(`      Given the ${moment.name.toLowerCase()} is evaluated`);
@@ -699,8 +744,7 @@ function findCompensationForMoment(
 // ============================================================================
 
 type OrderedMomentChild =
-  | { kind: 'entry'; entry: MomentEntry }
-  | { kind: 'branch'; branch: BranchDefinition };
+  { kind: 'entry'; entry: MomentEntry } | { kind: 'branch'; branch: BranchDefinition };
 
 /**
  * Sequence-aware iteration over a moment's children (M-S12): honors the IR's
@@ -714,8 +758,11 @@ function orderedMomentChildren(moment: MomentDefinition): OrderedMomentChild[] {
   const branches = moment.branches ?? [];
   const seq = moment.sequence;
 
-  if (seq && isUsableSequence(seq, entries.length, branches.length)) {
-    return seq.map((item) =>
+  // Notes (ADR-040 D3) keep source order in the sequence but are not entries or branches.
+  const walked = seq?.filter((item) => item.kind !== 'note') as
+    { kind: 'entry' | 'branch'; index: number }[] | undefined;
+  if (walked && isUsableSequence(walked, entries.length, branches.length)) {
+    return walked.map((item) =>
       item.kind === 'entry'
         ? { kind: 'entry' as const, entry: entries[item.index] }
         : { kind: 'branch' as const, branch: branches[item.index] },
@@ -887,14 +934,32 @@ function collectFlowContextIds(flow: FlowDefinition): string[] {
   return [...ids];
 }
 
+/**
+ * The context a moment is listed under: its first node's, else its first branch node's. A note-only
+ * moment (ADR-040 D3) has no node, so it joins the context of the lane it speaks for, else the
+ * context of the moment before it.
+ */
+function primaryContextOf(
+  moment: MomentDefinition,
+  flow: FlowDefinition,
+  previous: string | undefined,
+): string {
+  const firstNode = moment.contextEntries[0] ?? moment.branches?.[0]?.entries[0];
+  return firstNode?.contextId ?? noteLaneContext(moment, flow) ?? previous ?? 'unknown';
+}
+
+function noteLaneContext(moment: MomentDefinition, flow: FlowDefinition): string | undefined {
+  const laneId = (moment.notes ?? []).find((n) => n.laneId !== undefined)?.laneId;
+  return flow.lanes.find((l) => l.id === laneId)?.contextId;
+}
+
 function groupMomentsByContext(flow: FlowDefinition): Map<string, MomentDefinition[]> {
   const groups = new Map<string, MomentDefinition[]>();
+  let previous: string | undefined;
 
   for (const moment of flow.moments) {
-    const primaryCtx =
-      moment.contextEntries[0]?.contextId ??
-      moment.branches?.[0]?.entries?.[0]?.contextId ??
-      'unknown';
+    const primaryCtx = primaryContextOf(moment, flow, previous);
+    previous = primaryCtx;
 
     const existing = groups.get(primaryCtx) ?? [];
     existing.push(moment);

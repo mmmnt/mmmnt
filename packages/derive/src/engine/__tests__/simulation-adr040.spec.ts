@@ -164,3 +164,45 @@ describe('ADR-040 D1/D2 orchestration commands in derivation', () => {
     expect(policy?.causationEventIds).toEqual([completed?.eventId]);
   });
 });
+
+const CHECKOUT = `
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      emits OrderPlaced
+    command RecordPayment
+      emits PaymentRecorded
+    event OrderPlaced
+      orderId: UUID
+    event PaymentRecorded
+      orderId: UUID
+
+flow "Checkout"
+  lane shop "Ordering" [Core]
+  lane psp "CardNetwork" [External]
+  moment "Order placed"
+    shop: PlaceOrder
+    shop: OrderPlaced
+  moment "Card is authorised"
+    note psp: "The card network authorises the card and answers within seconds"
+  moment "Payment recorded"
+    shop: RecordPayment
+      triggered-by OrderPlaced
+    shop: PaymentRecorded
+`;
+
+describe('ADR-040 D3 notes in simulation', () => {
+  it('adds no event and no path node for a note-only moment', async () => {
+    const ir = await load(CHECKOUT);
+    const scenario = generateSimulationScenario(ir, ir.flows[0]);
+    expect(scenario.events.map((e) => e.eventType)).toEqual([
+      'SimProcess.PlaceOrder',
+      'OrderPlaced',
+      'SimProcess.RecordPayment',
+      'PaymentRecorded',
+    ]);
+    expect(scenario.expectedPath).toHaveLength(4);
+    expect(JSON.stringify(scenario)).not.toContain('card network');
+  });
+});

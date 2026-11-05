@@ -11,7 +11,7 @@ import type { MomentDeclaration } from '../generated/ast.js';
 import type { MomentSequenceItem } from '../ir/index.js';
 
 export interface MomentSequenceResult {
-  /** Children of the moment in textual order (entry/branch + array index). */
+  /** Children of the moment in textual order (entry/branch/note + array index). */
   sequence: MomentSequenceItem[];
   /**
    * True when every child carried a `$cstNode` and the order is genuinely
@@ -28,6 +28,10 @@ export function buildMomentSequence(moment: MomentDeclaration): MomentSequenceRe
   });
   moment.whenBlocks.forEach((block, index) => {
     positioned.push({ item: { kind: 'branch', index }, offset: block.$cstNode?.offset });
+  });
+
+  (moment.notes ?? []).forEach((note, index) => {
+    positioned.push({ item: { kind: 'note', index }, offset: note.$cstNode?.offset });
   });
 
   const fromCst = positioned.every((p) => p.offset !== undefined);

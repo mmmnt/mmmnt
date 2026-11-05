@@ -78,6 +78,7 @@ export type MomentKeywordNames =
     | "lane"
     | "moment"
     | "none"
+    | "note"
     | "number"
     | "on"
     | "optional"
@@ -445,10 +446,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'reads' | 'sources' | 'state' | string;
+export type FieldName = 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'reads' | 'sources' | 'state' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -575,10 +576,10 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
     return reflection.isInstance(item, LaneDeclaration.$type);
 }
 
-export type LaneName = 'cause' | 'causes' | string;
+export type LaneName = 'cause' | 'causes' | 'note' | string;
 
 export function isLaneName(item: unknown): item is LaneName {
-    return item === 'cause' || item === 'causes' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'cause' || item === 'causes' || item === 'note' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export type ModifierType = 'optional' | 'terminal';
@@ -593,6 +594,7 @@ export interface MomentDeclaration extends langium.AstNode {
     isBranch: boolean;
     label: string;
     nodes: Array<NodePlacement>;
+    notes: Array<NoteStatement>;
     whenBlocks: Array<WhenBlock>;
 }
 
@@ -601,6 +603,7 @@ export const MomentDeclaration = {
     isBranch: 'isBranch',
     label: 'label',
     nodes: 'nodes',
+    notes: 'notes',
     whenBlocks: 'whenBlocks'
 } as const;
 
@@ -683,6 +686,23 @@ export const NodePlacement = {
 
 export function isNodePlacement(item: unknown): item is NodePlacement {
     return reflection.isInstance(item, NodePlacement.$type);
+}
+
+export interface NoteStatement extends langium.AstNode {
+    readonly $container: MomentDeclaration;
+    readonly $type: 'NoteStatement';
+    laneId?: LaneName;
+    text: string;
+}
+
+export const NoteStatement = {
+    $type: 'NoteStatement',
+    laneId: 'laneId',
+    text: 'text'
+} as const;
+
+export function isNoteStatement(item: unknown): item is NoteStatement {
+    return reflection.isInstance(item, NoteStatement.$type);
 }
 
 export interface OrchestrationCommand extends langium.AstNode {
@@ -1041,6 +1061,7 @@ export type MomentAstType = {
     Multiplicity: Multiplicity
     NodeModifier: NodeModifier
     NodePlacement: NodePlacement
+    NoteStatement: NoteStatement
     OrchestrationCommand: OrchestrationCommand
     PolicyDeclaration: PolicyDeclaration
     Precondition: Precondition
@@ -1470,6 +1491,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     defaultValue: [],
                     optional: true
                 },
+                notes: {
+                    name: MomentDeclaration.notes,
+                    defaultValue: [],
+                    optional: true
+                },
                 whenBlocks: {
                     name: MomentDeclaration.whenBlocks,
                     defaultValue: [],
@@ -1551,6 +1577,19 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 nodeName: {
                     name: NodePlacement.nodeName
+                }
+            },
+            superTypes: []
+        },
+        NoteStatement: {
+            name: NoteStatement.$type,
+            properties: {
+                laneId: {
+                    name: NoteStatement.laneId,
+                    optional: true
+                },
+                text: {
+                    name: NoteStatement.text
                 }
             },
             superTypes: []

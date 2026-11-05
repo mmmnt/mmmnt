@@ -176,3 +176,92 @@ context "C" [Core]
     expect(go?.preconditions[0].causes).toEqual(['Manual']);
   });
 });
+
+describe('ADR-040 D3 notes', () => {
+  const FLOW = `
+flow "Checkout"
+  lane shop "Ordering" [Core]
+  lane psp "CardNetwork" [External]
+  moment "Order placed"
+    shop: OrderPlaced
+    note "The customer sees a spinner"
+  moment "Card is authorised"
+    note psp: "The card network authorises the card and answers within seconds"
+  moment "Payment recorded"
+    shop: PaymentRecorded
+`;
+
+  it('reads a note-only moment with its lane and text', async () => {
+    const ir = await toIr(FLOW);
+    const moment = ir.flows[0].moments[1];
+    expect(moment.contextEntries).toEqual([]);
+    expect(moment.notes).toEqual([
+      { text: 'The card network authorises the card and answers within seconds', laneId: 'psp' },
+    ]);
+  });
+
+  it('reads a note with no lane and keeps source order in sequence', async () => {
+    const ir = await toIr(FLOW);
+    const moment = ir.flows[0].moments[0];
+    expect(moment.notes).toEqual([{ text: 'The customer sees a spinner' }]);
+    expect(moment.sequence).toEqual([
+      { kind: 'entry', index: 0 },
+      { kind: 'note', index: 0 },
+    ]);
+  });
+
+  it('leaves notes absent on a moment without any', async () => {
+    const ir = await toIr(FLOW);
+    expect(ir.flows[0].moments[2].notes).toBeUndefined();
+    expect(ir.flows[0].moments[2].sequence).toEqual([{ kind: 'entry', index: 0 }]);
+  });
+
+  it('does not turn a note into a node, a connection or a terminal', async () => {
+    const ir = await toIr(FLOW);
+    expect(ir.flows[0].connections).toEqual([]);
+    expect(ir.flows[0].moments.map((m) => m.contextEntries.length)).toEqual([1, 0, 1]);
+  });
+
+  it('still reads a lane or a field named note', async () => {
+    const ir = await toIr(`
+context "C" [Core]
+  aggregate "A"
+    identity note: UUID
+    command Do
+      input note: string, body: string
+      emits Done
+    event Done
+      note: string
+flow "F"
+  lane note "N" [Core]
+  moment "M"
+    note: Done
+    note "narration after a placement named note"
+    note note: "narration on the lane named note"
+`);
+    const moment = ir.flows[0].moments[0];
+    expect(moment.contextEntries.map((e) => e.nodeName)).toEqual(['Done']);
+    expect(moment.notes).toEqual([
+      { text: 'narration after a placement named note' },
+      { text: 'narration on the lane named note', laneId: 'note' },
+    ]);
+  });
+
+  it('reads a note after a when block as a note of the moment', async () => {
+    const ir = await toIr(`
+flow "F"
+  lane l "L" [Core]
+  moment "M"
+    when ok
+      l: A
+    note "after the branch"
+`);
+    const moment = ir.flows[0].moments[0];
+    expect(moment.notes).toEqual([{ text: 'after the branch' }]);
+    expect(moment.branches).toHaveLength(1);
+    expect(moment.sequence).toEqual([
+      { kind: 'branch', index: 0 },
+      { kind: 'note', index: 0 },
+    ]);
+  });
+});

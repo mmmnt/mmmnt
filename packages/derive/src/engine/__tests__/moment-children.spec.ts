@@ -41,6 +41,21 @@ describe('orderedMomentChildren', () => {
     ]);
   });
 
+  it('follows a sequence that also lists notes, and yields no child for a note', () => {
+    const moment = makeMoment([
+      { kind: 'entry', index: 1 },
+      { kind: 'note', index: 0 },
+      { kind: 'branch', index: 0 },
+      { kind: 'entry', index: 0 },
+    ]);
+
+    expect(shape(moment, 'branches-first')).toEqual([
+      'entry:ThingDone',
+      'branch:Refused',
+      'entry:DoThing',
+    ]);
+  });
+
   it.each<[string, MomentSequenceItem[]]>([
     ['partial', [{ kind: 'entry', index: 0 }]],
     [

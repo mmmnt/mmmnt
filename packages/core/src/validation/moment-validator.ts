@@ -20,6 +20,7 @@ import type {
   MomentFile,
   LaneDeclaration,
   NodePlacement,
+  NoteStatement,
   SagaDeclaration,
   TriggeredBy,
   Triggers,
@@ -163,6 +164,7 @@ export function registerMomentValidationChecks(
     AnnotationDeclaration: validator.checkAnnotationName,
     ContextDeclaration: validator.checkTrailingAnnotation,
     AggregateDeclaration: validator.checkTrailingAnnotation,
+    NoteStatement: validator.checkNoteLane,
     NodePlacement: [
       validator.checkNodePlacement,
       validator.checkOptionalWithCrossing,
@@ -381,11 +383,30 @@ export class MomentValidator {
   }
 
   // =========================================================================
-  // V10: Moment with zero nodes AND zero whenBlocks -> error
+  // V13 for notes: a lane named by `note <lane>: "text"` must be a declared lane (ADR-040 D3)
+  // =========================================================================
+  checkNoteLane(note: NoteStatement, accept: ValidationAcceptor): void {
+    if (note.laneId === undefined) return;
+    const flow = getFlowFromNode(note);
+    if (!flow) return;
+    if (!flow.lanes.some((l: LaneDeclaration) => l.id === note.laneId)) {
+      accept('error', 'V13: Lane ID does not match any declared lane.', {
+        node: note,
+        property: 'laneId',
+      });
+    }
+  }
+
+  // =========================================================================
+  // V10: Moment with zero nodes, zero whenBlocks AND zero notes -> error (ADR-040 D3)
   // =========================================================================
   checkMoment(moment: MomentDeclaration, accept: ValidationAcceptor): void {
-    if (moment.nodes.length === 0 && moment.whenBlocks.length === 0) {
-      accept('error', 'V10: Moment must contain at least one node or when block.', {
+    if (
+      moment.nodes.length === 0 &&
+      moment.whenBlocks.length === 0 &&
+      (moment.notes ?? []).length === 0
+    ) {
+      accept('error', 'V10: Moment must contain at least one node, when block or note.', {
         node: moment,
         property: 'label',
       });
