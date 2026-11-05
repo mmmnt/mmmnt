@@ -206,3 +206,62 @@ describe('ADR-040 D3 notes in simulation', () => {
     expect(JSON.stringify(scenario)).not.toContain('card network');
   });
 });
+
+const TICKETWAVE = `
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+  policy ReserveSeatsOnOrderPlaced
+    trigger OrderPlaced
+    action "Reserve the seats"
+    chains-to ReserveSeats
+  aggregate "Inventory"
+    identity inventoryId: UUID
+    command ReserveSeats
+      emits SeatsReserved
+    event SeatsReserved
+      inventoryId: UUID
+
+flow "Reactive column"
+  lane shop "Ordering" [Core]
+  moment "Order placed"
+    shop: PlaceOrder
+    shop: OrderPlaced
+    shop: ReserveSeatsOnOrderPlaced
+      triggered-by OrderPlaced
+    shop: ReserveSeats
+      triggered-by ReserveSeatsOnOrderPlaced
+    shop: SeatsReserved
+`;
+
+describe('ADR-040 D4 same-moment hops in simulation', () => {
+  it('resolves each hop to the node placed just before it in the same moment', async () => {
+    const ir = await load(TICKETWAVE);
+    const events = generateSimulationScenario(ir, ir.flows[0]).events;
+    const byType = (t: string) => events.find((e) => e.eventType === t);
+
+    const placed = byType('OrderPlaced');
+    const policy = byType('ReserveSeatsOnOrderPlaced');
+    const command = byType('SimProcess.ReserveSeats');
+    expect(policy?.causationEventIds).toEqual([placed?.eventId]);
+    expect(command?.causationEventIds).toEqual([policy?.eventId]);
+  });
+
+  it('keeps the declared order of the three nodes in the stream', async () => {
+    const ir = await load(TICKETWAVE);
+    const types = generateSimulationScenario(ir, ir.flows[0]).events.map((e) => e.eventType);
+    expect(types.indexOf('OrderPlaced')).toBeLessThan(types.indexOf('ReserveSeatsOnOrderPlaced'));
+    expect(types.indexOf('ReserveSeatsOnOrderPlaced')).toBeLessThan(
+      types.indexOf('SimProcess.ReserveSeats'),
+    );
+  });
+
+  it('parses without a V43 warning when a policy declares both hops', async () => {
+    const result = await new MomentParser().parseContent(TICKETWAVE);
+    expect(result.diagnostics.filter((d) => d.severity !== 'info')).toEqual([]);
+  });
+});

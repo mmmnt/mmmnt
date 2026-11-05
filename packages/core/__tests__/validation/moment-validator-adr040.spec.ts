@@ -91,3 +91,58 @@ flow "F"
     ).toEqual([]);
   });
 });
+
+describe('ADR-040 D4 V5 takes an earlier node of the same moment', () => {
+  const flow = (moment: string): string => `
+flow "F"
+  lane l "L" [Core]
+  moment "Prior"
+    l: Prior
+  moment "M"
+${moment}
+`;
+
+  it('accepts triggered-by of a node placed earlier in the same moment', async () => {
+    expect(
+      await errors(
+        flow(
+          '    l: OrderPlaced\n    l: ReserveSeatsOnOrderPlaced\n      triggered-by OrderPlaced',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it('accepts a chain of hops inside one moment', async () => {
+    expect(
+      await errors(
+        flow(
+          '    l: OrderPlaced\n    l: ReserveSeatsOnOrderPlaced\n      triggered-by OrderPlaced\n    l: ReserveSeats\n      triggered-by ReserveSeatsOnOrderPlaced',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it('accepts a hop whose cause is placed earlier in the moment than a when block', async () => {
+    expect(await errors(flow('    l: A\n    when ok\n      l: B\n        triggered-by A'))).toEqual(
+      [],
+    );
+  });
+
+  it('still accepts a node from a prior moment', async () => {
+    expect(await errors(flow('    l: X\n      triggered-by Prior'))).toEqual([]);
+  });
+
+  it('V5: refuses triggered-by of a node placed later in the same moment', async () => {
+    expect(await errors(flow('    l: First\n      triggered-by Second\n    l: Second'))).toEqual([
+      'V5',
+    ]);
+  });
+
+  it('V5: refuses a node that names itself', async () => {
+    expect(await errors(flow('    l: Loop\n      triggered-by Loop'))).toEqual(['V5']);
+  });
+
+  it('V5: refuses a name placed nowhere', async () => {
+    expect(await errors(flow('    l: X\n      triggered-by Ghost'))).toEqual(['V5']);
+  });
+});

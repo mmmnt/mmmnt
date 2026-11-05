@@ -633,22 +633,10 @@ export class MomentValidator {
     }
   }
 
-  // V5: triggered-by must reference a node that appeared earlier in the flow
+  // V5: triggered-by must reference a node that appears earlier in the flow in source order:
+  // in a prior moment, or earlier in the same moment (ADR-040 D4). V43 checks a same-moment hop.
   checkV5(node: NodePlacement, accept: ValidationAcceptor): void {
-    const flow = getFlowFromNode(node);
-    const moment = getMomentFromNode(node);
-    if (!flow || !moment) return;
-
-    for (const conn of node.connections) {
-      if (!isTriggeredBy(conn)) continue;
-      const priorNames = this.collectPriorNodeNames(flow, moment);
-      if (!priorNames.has(conn.nodeName)) {
-        accept('error', 'V5: triggered-by must reference a node from a prior frame.', {
-          node: conn,
-          property: 'nodeName',
-        });
-      }
-    }
+    this.checkTriggeredByPrior(node, accept);
   }
 
   // V9: crosses-to only valid on event kinds
@@ -745,14 +733,30 @@ export class MomentValidator {
 
     for (const conn of node.connections) {
       if (!isTriggeredBy(conn)) continue;
-      const priorNames = this.collectPriorNodeNames(flow, moment);
-      if (!priorNames.has(conn.nodeName)) {
-        accept('error', 'V5: triggered-by must reference a node from a prior frame.', {
-          node: conn,
-          property: 'nodeName',
-        });
+      const earlierNames = this.collectPriorNodeNames(flow, moment);
+      for (const n of this.nodesBefore(moment, node)) earlierNames.add(n.nodeName);
+      if (!earlierNames.has(conn.nodeName)) {
+        accept(
+          'error',
+          'V5: triggered-by must reference a node placed earlier in the flow, in a prior moment or earlier in the same moment.',
+          { node: conn, property: 'nodeName' },
+        );
       }
     }
+  }
+
+  /**
+   * The nodes of `moment` (its own and its `when` blocks') that come before `node` in source order.
+   * CST offsets give the order; a hand-built AST without them falls back to own nodes then `when` nodes.
+   */
+  private nodesBefore(moment: MomentDeclaration, node: NodePlacement): NodePlacement[] {
+    const all = [...moment.nodes, ...moment.whenBlocks.flatMap((wb) => wb.nodes)];
+    const offsets = all.map((n) => n.$cstNode?.offset);
+    const inOrder = offsets.every((o) => o !== undefined)
+      ? all.slice().sort((a, b) => (a.$cstNode?.offset ?? 0) - (b.$cstNode?.offset ?? 0))
+      : all;
+    const at = inOrder.indexOf(node);
+    return at < 0 ? [] : inOrder.slice(0, at);
   }
 
   private checkCrossFileNodeRules(node: NodePlacement, accept: ValidationAcceptor): void {

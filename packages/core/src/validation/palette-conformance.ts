@@ -6,6 +6,7 @@
  * for them.
  */
 import type {
+  ConnectionDefinition,
   ContextDefinition,
   Diagnostic,
   GatewayDefinition,
@@ -307,6 +308,67 @@ function v41v42Placements(ir: IntermediateRepresentation, commands: CauseCommand
   );
 }
 
+/**
+ * V43 (ADR-040 D4): a `triggered-by` whose cause is placed in the same moment, and in no earlier one, is
+ * a hop a policy declares: (a) event -> the policy it triggers, (b) policy -> the command it chains to,
+ * (c) event -> a command that a policy triggered by the event chains to. A target the model does not
+ * declare is not checked, so a single file without the project only has V5's source-order check.
+ */
+function isSameMomentTrigger(
+  conn: ConnectionDefinition,
+  sameMoment: Map<string, Set<string>>,
+  known: Set<string>,
+): boolean {
+  const { sourceNodeName: cause, targetNodeName: node } = conn;
+  return (
+    conn.connectionType === 'triggered-by' &&
+    cause !== undefined &&
+    node !== undefined &&
+    known.has(node) &&
+    (sameMoment.get(conn.sourceMomentId)?.has(cause) ?? false)
+  );
+}
+
+function v43(ir: IntermediateRepresentation): Finding[] {
+  const policies = ir.contexts.flatMap((c) => c.policies);
+  const known = new Set([
+    ...policies.map((p) => p.name),
+    ...ir.contexts.flatMap((c) => [
+      ...c.commands.map((m) => m.name),
+      ...c.events.map((e) => e.name),
+      ...c.sagas.flatMap((s) => (s.commands ?? []).map((m) => m.name)),
+    ]),
+  ]);
+  const declared = (cause: string, node: string): boolean =>
+    policies.some(
+      (p) =>
+        (p.name === node && p.trigger === cause) ||
+        (p.name === cause && p.chainsTo === node) ||
+        (p.trigger === cause && p.chainsTo === node),
+    );
+  return (ir.flows ?? []).flatMap((flow) => {
+    const earlier = new Set<string>();
+    const sameMoment = new Map<string, Set<string>>();
+    for (const moment of flow.moments) {
+      const names = new Set(
+        [...moment.contextEntries, ...(moment.branches ?? []).flatMap((b) => b.entries)].map(
+          (e) => e.nodeName,
+        ),
+      );
+      sameMoment.set(moment.id, new Set([...names].filter((n) => !earlier.has(n))));
+      names.forEach((n) => earlier.add(n));
+    }
+    const momentName = (id: string): string => flow.moments.find((m) => m.id === id)?.name ?? id;
+    return (flow.connections ?? [])
+      .filter((conn) => isSameMomentTrigger(conn, sameMoment, known))
+      .filter((conn) => !declared(conn.sourceNodeName ?? '', conn.targetNodeName ?? ''))
+      .map((conn) => ({
+        ruleId: 'V43',
+        message: `Flow '${flow.name}' moment '${momentName(conn.sourceMomentId)}': '${conn.targetNodeName ?? ''}' is triggered-by '${conn.sourceNodeName ?? ''}' in the same moment, but no policy declares that hop.`,
+      }));
+  });
+}
+
 /** Every V29–V37 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
 export function validatePaletteConformance(ir: IntermediateRepresentation): Finding[] {
   const known = namesOf(ir);
@@ -321,6 +383,7 @@ export function validatePaletteConformance(ir: IntermediateRepresentation): Find
     ]),
     ...v41Declarations(commands),
     ...v41v42Placements(ir, commands),
+    ...v43(ir),
     ...(ir.externals ?? []).flatMap((e) =>
       gatewayFindings(`external '${e.name}'`, e.gateways ?? [], known),
     ),

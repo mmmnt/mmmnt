@@ -439,3 +439,109 @@ describe('V41/V42 causes', () => {
     expect(rules(model)).toEqual(['V42']);
   });
 });
+
+// ADR-040 V43: a same-moment triggered-by is a hop a policy declares.
+describe('V43 same-moment hops', () => {
+  const policy = (name: string, trigger: string, chainsTo: string): Loose => ({
+    name,
+    trigger,
+    chainsTo,
+    action: 'a',
+  });
+  const model = (
+    moments: Loose[],
+    connections: Loose[],
+    policies: Loose[] = [policy('ReserveOnOrder', 'OrderPlaced', 'TakePayment')],
+  ): IntermediateRepresentation =>
+    ({
+      ...ir({ policies }),
+      flows: [{ name: 'F', lanes: [], moments, connections }],
+    }) as unknown as IntermediateRepresentation;
+  const moment = (id: string, ...names: string[]): Loose => ({
+    id,
+    name: id,
+    contextEntries: names.map((nodeName) => ({ nodeName, nodeKind: 'event' })),
+  });
+  const trig = (momentId: string, cause: string, node: string): Loose => ({
+    connectionType: 'triggered-by',
+    sourceMomentId: momentId,
+    sourceNodeName: cause,
+    targetNodeName: node,
+  });
+
+  it('accepts (a): the policy is triggered by the event placed earlier in the moment', () => {
+    const r = model(
+      [moment('m0', 'OrderPlaced', 'ReserveOnOrder')],
+      [trig('m0', 'OrderPlaced', 'ReserveOnOrder')],
+    );
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('accepts (b): the command is the one the policy chains to', () => {
+    const r = model(
+      [moment('m0', 'OrderPlaced', 'ReserveOnOrder', 'TakePayment')],
+      [trig('m0', 'ReserveOnOrder', 'TakePayment')],
+    );
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('accepts (c): a command that a policy triggered by the event chains to', () => {
+    const r = model(
+      [moment('m0', 'OrderPlaced', 'TakePayment')],
+      [trig('m0', 'OrderPlaced', 'TakePayment')],
+    );
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('refuses a hop no policy declares', () => {
+    const r = model(
+      [moment('m0', 'PaymentTaken', 'ReserveOnOrder')],
+      [trig('m0', 'PaymentTaken', 'ReserveOnOrder')],
+    );
+    expect(messages(r)).toEqual([
+      "Flow 'F' moment 'm0': 'ReserveOnOrder' is triggered-by 'PaymentTaken' in the same moment, but no policy declares that hop.",
+    ]);
+  });
+
+  it('refuses a command chained from a different event', () => {
+    const r = model(
+      [moment('m0', 'PaymentTaken', 'TakePayment')],
+      [trig('m0', 'PaymentTaken', 'TakePayment')],
+    );
+    expect(rules(r)).toEqual(['V43']);
+  });
+
+  it('does not check a triggered-by whose cause sits in a prior moment', () => {
+    const r = model(
+      [moment('m0', 'PaymentTaken'), moment('m1', 'ReserveOnOrder')],
+      [trig('m1', 'PaymentTaken', 'ReserveOnOrder')],
+    );
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('does not check a target the model does not declare (a single file without the project)', () => {
+    const r = model([moment('m0', 'A', 'B')], [trig('m0', 'A', 'B')], []);
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('looks into when blocks for the moment and the cause', () => {
+    const r = model(
+      [
+        {
+          id: 'm0',
+          name: 'm0',
+          contextEntries: [{ nodeName: 'OrderPlaced', nodeKind: 'event' }],
+          branches: [
+            { condition: 'ok', entries: [{ nodeName: 'ReserveOnOrder', nodeKind: 'policy' }] },
+          ],
+        },
+      ],
+      [trig('m0', 'OrderPlaced', 'ReserveOnOrder')],
+    );
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('stays quiet for IR with no flow connections', () => {
+    expect(rules(ir({}))).toEqual([]);
+  });
+});
