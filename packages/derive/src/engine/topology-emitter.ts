@@ -56,6 +56,8 @@ export interface TopologyNode {
   readonly label: string;
   readonly type: string;
   readonly aggregate?: string;
+  /** The orchestration that owns a process event or a process command (ADR-040 D1). */
+  readonly process?: string;
   readonly optional?: boolean;
   readonly terminal?: boolean;
   readonly multiplicity?: string;
@@ -210,6 +212,7 @@ function entryToNode(
     label: entry.nodeName,
     type: nodeKind,
     aggregate: aggregate ?? undefined,
+    process: aggregate === null ? (findProcess(entry.nodeName, ctx) ?? undefined) : undefined,
     optional: entry.optional ?? undefined,
     terminal: entry.terminal ?? undefined,
     multiplicity: entry.multiplicity != null ? String(entry.multiplicity) : undefined,
@@ -238,6 +241,15 @@ function findAggregate(nodeName: string, ctx: ContextDefinition | undefined): st
   for (const agg of ctx.aggregates) {
     if (agg.commands.some((c) => c.name === nodeName)) return agg.name;
     if (agg.events.some((e) => e.name === nodeName)) return agg.name;
+  }
+  return null;
+}
+
+/** The orchestration that declares an event or owns a command named `nodeName` (ADR-040 D1). */
+function findProcess(nodeName: string, ctx: ContextDefinition | undefined): string | null {
+  for (const saga of ctx?.sagas ?? []) {
+    if ((saga.events ?? []).some((e) => e.name === nodeName)) return saga.name;
+    if ((saga.commands ?? []).some((c) => c.name === nodeName)) return saga.name;
   }
   return null;
 }

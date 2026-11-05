@@ -13,6 +13,8 @@ export interface ImpactNode {
   readonly context: string;
   readonly dependsOn: readonly string[];
   readonly triggers: readonly string[];
+  /** The orchestration that declares a process event (ADR-040 D1); absent for every other node. */
+  readonly owner?: string;
 }
 
 export interface ImpactAnalysis {
@@ -44,6 +46,7 @@ export function generateImpactAnalysis(ir: IntermediateRepresentation): ImpactAn
     context: n.context,
     dependsOn: [...n.dependsOn],
     triggers: [...n.triggers],
+    ...(n.owner !== undefined ? { owner: n.owner } : {}),
   }));
 
   return {
@@ -58,6 +61,7 @@ interface MutableImpactNode {
   readonly context: string;
   readonly dependsOn: string[];
   readonly triggers: string[];
+  owner?: string;
 }
 
 function nodeKey(type: string, name: string, context: string): string {
@@ -93,12 +97,28 @@ function addCommandNodes(
       }
     }
   }
+  // An orchestration command that emits a process event (ADR-040 D1) is a producer like an aggregate's.
+  for (const saga of context.sagas) {
+    for (const cmd of saga.commands ?? []) {
+      if (!cmd.emitsEvent) continue;
+      const cmdNode = getOrCreate(nodeMap, 'command', cmd.name, context.name);
+      const evtNode = getOrCreate(nodeMap, 'event', cmd.emitsEvent, context.name);
+      cmdNode.triggers.push(nodeKey('event', cmd.emitsEvent, context.name));
+      evtNode.dependsOn.push(nodeKey('command', cmd.name, context.name));
+    }
+  }
 }
 
 function addEventNodes(context: ContextDefinition, nodeMap: Map<string, MutableImpactNode>): void {
   for (const agg of context.aggregates) {
     for (const event of agg.events) {
       getOrCreate(nodeMap, 'event', event.name, context.name);
+    }
+  }
+  // Process events (ADR-040 D1) belong to the orchestration that declares them.
+  for (const saga of context.sagas) {
+    for (const event of saga.events ?? []) {
+      getOrCreate(nodeMap, 'event', event.name, context.name).owner = saga.name;
     }
   }
 }

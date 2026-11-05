@@ -3,6 +3,7 @@ import type {
   ContextDefinition,
   AggregateDefinition,
   EventDefinition,
+  SagaDefinition,
   MomentEntry,
   MomentDefinition,
   FlowDefinition,
@@ -27,6 +28,8 @@ export interface EventCatalogEntry {
   readonly producer: {
     readonly context: string;
     readonly aggregate: string;
+    /** The orchestration that declares a process event (ADR-040 D1); absent for an aggregate event. */
+    readonly process?: string;
     readonly command: string;
   };
   readonly consumers: readonly {
@@ -49,6 +52,15 @@ export function generateEventCatalog(ir: IntermediateRepresentation): EventCatal
       for (const event of aggregate.events) {
         const entry = buildCatalogEntry(event, aggregate, context, ir);
         entries.push(entry);
+      }
+    }
+  }
+
+  // Process events (ADR-040 D1) are owned by an orchestration, not by an aggregate.
+  for (const context of ir.contexts) {
+    for (const saga of context.sagas) {
+      for (const event of saga.events ?? []) {
+        entries.push(buildProcessCatalogEntry(event, saga, context, ir));
       }
     }
   }
@@ -214,6 +226,35 @@ function buildCatalogEntry(
     producer,
     consumers,
     temporalLocation,
+  };
+}
+
+function buildProcessCatalogEntry(
+  event: EventDefinition,
+  saga: SagaDefinition,
+  context: ContextDefinition,
+  ir: IntermediateRepresentation,
+): EventCatalogEntry {
+  const command = (saga.commands ?? []).find((c) => c.emitsEvent === event.name);
+  return {
+    eventName: event.name,
+    kind: 'event',
+    schema: {
+      fields: event.fields.map((f) => ({
+        name: f.name,
+        type: f.type,
+        isArray: f.isArray,
+        deprecated: f.deprecated,
+      })),
+    },
+    producer: {
+      context: context.name,
+      aggregate: '',
+      process: saga.name,
+      command: command?.name ?? '',
+    },
+    consumers: findConsumers(event, ir),
+    temporalLocation: findTemporalLocation(event, ir),
   };
 }
 
