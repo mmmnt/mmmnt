@@ -14,5 +14,5 @@ flow "Admission"
   moment "The owner is billed"
     clinic: BillOnAdmissionCompleted
       triggered-by AdmissionCompleted
-    clinic: IssueInvoice
+    clinic: IssueInvoice [terminal]
       triggered-by BillOnAdmissionCompleted
