@@ -26,6 +26,13 @@ describe('ADR-040 valid corpus: process-constructs', () => {
   describe('reachability sweep: every construct is reached from a fixture', () => {
     const load = async () => (await new ProjectLoader().loadProject(project)).ir;
 
+    it('resolves a placed process command as a command node across files', async () => {
+      const flow = (await load()).flows.find((f) => f.name === 'Admission');
+      const entries = flow?.moments.flatMap((m) => m.contextEntries) ?? [];
+      expect(entries.find((e) => e.nodeName === 'StartAdmission')?.nodeKind).toBe('command');
+      expect(entries.find((e) => e.nodeName === 'AdmissionStarted')?.nodeKind).toBe('event');
+    });
+
     it('reaches a process event from a trigger, a projection source and an emitting command', async () => {
       const clinic = (await load()).contexts.find((c) => c.name === 'Clinic');
       const process = clinic?.sagas[0];

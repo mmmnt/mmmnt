@@ -77,7 +77,10 @@ function resolveAcrossFiles(ir: IntermediateRepresentation): IntermediateReprese
       ...(ctx.commands ?? []).map((c) => [c.name, 'command'] as const),
       ...(ctx.events ?? []).map((e) => [e.name, 'event'] as const),
       ...(ctx.policies ?? []).map((p) => [p.name, 'policy'] as const),
-      ...(ctx.sagas ?? []).map((g) => [g.name, 'saga'] as const),
+      ...(ctx.sagas ?? []).flatMap((g) => [
+        [g.name, 'saga'] as const,
+        ...(g.commands ?? []).map((c) => [c.name, 'command'] as const),
+      ]),
       ...(ctx.projections ?? []).map((p) => [p.name, 'projection'] as const),
       ...(ctx.queries ?? []).map((q) => [q.name, 'query'] as const),
     ]),
