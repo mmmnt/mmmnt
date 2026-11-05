@@ -64,6 +64,7 @@ for (const entry of timeline.entries) {
 - **Context map rendering** -- produces a graph of bounded contexts and external systems as nodes, and their relationships as edges, with layout coordinates. Edges come from declared relationships (typed by relationship pattern) and from context crossings in flows.
 - **External systems** -- every external system the model declares is drawn as a node with `isExternal: true` and the `External` classification, so a relationship between a context and an external keeps its edge.
 - **Flow timeline rendering** -- lays out one lane per context and one entry per moment, with connections for each context crossing.
+- **Notes, causes and hops** -- the timeline draws a note-only moment as a bare column with its note, a same-moment `triggered-by` as an arrow inside the column, and a cause as a chip on a command.
 - **VizDataEnvelope format** -- a single structured JSON object containing the context map, the timeline, and metadata, suitable for serialization, storage, and transmission.
 - **Transmission events** -- `VizEmitter` produces the `VizTransmissionEvent` messages for an initial load and incremental updates; the union also defines a session close.
 - **Server subpath export** -- `@mmmnt/viz/server` provides `FileWatcher` and `WatchModePublisher`, kept separate from the root export.

@@ -54,6 +54,7 @@ for (const feature of manifest.featuresGenerated) {
 ## Key Features
 
 - **Gherkin BDD scenario generation** -- produces one `.feature` file per flow, with Given/When/Then steps that map directly to your domain flows.
+- **Notes** -- a note renders as a comment line in Gherkin and as a narrated step in the specification document; a note-only moment produces no scenario.
 - **Specification document rendering** -- generates a Markdown document with embedded Mermaid diagrams, a narrative of each flow, context boundaries, and the domain model.
 - **Read side and model completeness** -- the specification document lists each context's projections (with the events they fold), queries (with the projections they read), rules (with their enforcer), and glossary terms, plus the external systems the model declares.
 - **AsyncAPI specification generation** -- outputs AsyncAPI 3.0 YAML with a channel and message per context crossing, and payload schemas derived from the specification.

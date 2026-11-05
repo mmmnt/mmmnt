@@ -58,7 +58,7 @@ Run `npx moment --help` for every command.
 ## What's in 0.6
 
 - **A complete modeling vocabulary (ADR-037).** Projections, queries, context-level rules with their enforcers, value objects, glossary terms and external systems, carried through code generation, specification documents and the context map.
-- **Models held to the palette (ADR-038).** A policy is one event and one command, `orchestration` is the palette's saga, and aggregates can declare internal state. Completeness rules V22–V28 and palette rules V29–V37 check a model, and every read-only command, `serve --project` and `reconcile` take a model directory and check it as one project.
+- **Models held to the palette (ADR-038).** A policy is one event and one command, `orchestration` is the palette's saga, and aggregates can declare internal state. Completeness rules V22–V28 and palette rules V29–V37 check a model, and every read-only command, `serve --project` and `reconcile` take a model directory and check it as one project. Processes record their outcomes as events (ADR-040), refusals can be scoped to the cause a command is issued for, a moment can be a note for a step outside the model, and one moment can show a whole reactive column of event, policy and command.
 - **Breaking for existing models.** `chains-to` is required on every policy, and the `condition` and `"file-watcher"` policy triggers are removed. Run `moment parse <dir>` after upgrading.
 - **Implementation sync (ADR-039).** `moment sync propose` records drift between a model and its implementation as proposals in `.domain/`; `sync accept` and `sync reject` decide them and commit the decision.
 - **Node 22.** Node 20 reached end-of-life on April 30, 2026 and is no longer supported.

@@ -44,7 +44,7 @@ if (result.success && result.ir) {
   console.log(`Flows: ${result.ir.flows.length}`);
 }
 
-// Errors make success false; warnings (including V22–V39 advisories) leave it true
+// Errors make success false; warnings (including V22–V43 advisories) leave it true
 for (const d of result.diagnostics) {
   console.log(`[${d.severity}] ${d.ruleId ?? ''} ${d.message}`);
 }
@@ -55,7 +55,7 @@ for (const d of result.diagnostics) {
 - **Langium-based parser** -- full grammar definition with error recovery and precise diagnostic messages pointing to the exact line and column of issues.
 - **Typed Intermediate Representation** -- a normalized, strongly-typed IR that downstream packages consume without needing to understand the raw AST.
 - **Project mode** -- `ProjectLoader` parses many `.moment` files and merges them into one IR, resolving names across files and checking cross-file references.
-- **Model completeness, palette and reference rules** -- V22–V39 check that projections, queries, rules, services, relationships, lanes, policies, orchestrations, aggregate states, gateways, emitted events and `triggers` targets name things the model declares (see [Validation Rules](#validation-rules)).
+- **Model completeness, palette and reference rules** -- V22–V43 check that projections, queries, rules, services, relationships, lanes, policies, orchestrations, aggregate states, gateways, emitted events and `triggers` targets name things the model declares (see [Validation Rules](#validation-rules)).
 - **Sift specification import** -- converts Sift building blocks into `.moment` context and flow source, with an upstream fingerprint for drift tracking.
 - **Manifest scaffolding** -- initializes new Moment projects with a `.manifest.yaml` and the `.moment/contexts/` and `.moment/flows/` directories.
 - **File watching** -- monitors `.moment` and manifest files for changes and triggers debounced callbacks for live development workflows.
@@ -76,7 +76,10 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 | Value object | context or aggregate | `value-object <Name>` followed by fields. |
 | Glossary term | context | `term "<term>" "<definition>"` |
 | Policy | context | `policy <Name> trigger <Event> action "<text>" chains-to <Command>` -- one domain event, one command. |
-| Orchestration | context | `orchestration <Name>` (`saga` is an alias) with its own `command`s, `invoked-by`, `issues`, `states`, `compensation` and `timeout`. |
+| Orchestration | context | `orchestration <Name>` (`saga` is an alias) with its own `command`s, the `event`s those commands emit, `invoked-by`, `issues`, `states`, `compensation` and `timeout`. |
+| Process event | orchestration | `event <Name>` with fields, declared inside an orchestration. An orchestration command emits it with `emits`. It is a domain event owned by the process. |
+| Cause | command, precondition, node | `causes A, B` on a command; `cause A` on a precondition limits it to that cause; `cause A` after a node placement says the command is issued for A. |
+| Note | moment | `note "text"` or `note <lane>: "text"`. Narration of a step outside the model. It is not a node and asserts nothing. |
 | Aggregate states | aggregate | `state initial <Name>` and `state <From> -> <To> on <Command>`, written right after the identity. |
 | Gateway | projection, policy, orchestration, external | `gateway <Name> consumes <Event or ValueObject> produces <Event or ValueObject>`, with optional `description`. |
 
@@ -136,14 +139,72 @@ flow "Checkout"
     customer: FindOrder
 ```
 
+### Processes, causes, notes and hops
+
+Four additions (ADR-040) model what recurs in process-manager and Event Storming work. `cause`, `causes` and `note` are keywords; a field, input or lane named so keeps parsing. A node named `note` or `cause` is the one source break.
+
+A process records its outcomes as events. The orchestration declares them, and its commands emit them. Policies can trigger on them, projections can source from them, and flows can place them:
+
+```
+orchestration AdmissionProcess
+  command StartAdmission
+    input petId: UUID
+    emits AdmissionStarted
+  command AbandonAdmission
+    emits AdmissionAbandoned
+  event AdmissionStarted
+    petId: UUID
+  event AdmissionAbandoned
+    petId: UUID
+  invoked-by StartAdmission
+  issues RequestLabPanel, BookBed
+  states Started
+  compensation on AbandonAdmission issues ReleaseBed
+  timeout admissionWindow
+```
+
+A command issued for different reasons names its causes. A refusal that belongs to one cause says so, and the flow names the cause it places. A precondition with no `cause` applies to every cause. Derived negative scenarios then follow the cause:
+
+```
+command CancelAppointment
+  causes OwnerRequest, ClinicClosure
+  precondition WithinCancellationWindow cause OwnerRequest: "The owner cancels 24 hours ahead"
+  emits AppointmentCancelled
+
+moment "Owner asks to cancel"
+  desk: CancelAppointment cause OwnerRequest
+```
+
+A step outside the model, or below its grain, is a note. A moment may be only notes:
+
+```
+moment "Card is authorised"
+  note psp: "The card network authorises the card"
+```
+
+One moment can show a whole reactive column. `triggered-by` may name a node placed earlier in the same moment when a policy declares the hop (V43):
+
+```
+moment "Order placed"
+  shop: OrderPlaced
+  shop: ReserveSeatsOnOrderPlaced
+    triggered-by OrderPlaced
+  shop: ReserveSeats
+    triggered-by ReserveSeatsOnOrderPlaced
+```
+
+To migrate: a stand-in node that only held a place in a moment becomes a `note`, and two moments that told one beat become one moment with hops.
+
 The grammar source is [`src/grammar/moment.langium`](src/grammar/moment.langium).
 
 ## Validation Rules
 
-V22–V39 compare names across declarations, so their severity depends on how much of the model the parser can see. `MomentParser.parseContent` reports them as **warnings** for a single file that declares contexts; `ProjectLoader.loadProject` reports them as **errors** over the merged project, where a missing name is genuinely missing. Each diagnostic carries its id in `ruleId`.
+V22–V43 compare names across declarations, so their severity depends on how much of the model the parser can see. `MomentParser.parseContent` reports them as **warnings** for a single file that declares contexts; `ProjectLoader.loadProject` reports them as **errors** over the merged project, where a missing name is genuinely missing. Each diagnostic carries its id in `ruleId`.
 
 | Rule | Checks |
 |------|--------|
+| V5 | `triggered-by` names a node that appears earlier in the flow in source order, in a prior moment or earlier in the same moment (V43 checks a same-moment target). |
+| V10 | A moment contains at least one node, `when` block or note. |
 | V22 | Every projection source is a declared event. |
 | V23 | Every name a query reads is a declared projection or value object. |
 | V24 | A rule with a declared enforcer is enforced by a service or query of its context. |
@@ -153,7 +214,7 @@ V22–V39 compare names across declarations, so their severity depends on how mu
 | V28 | Every service `consumes` and `produces` a declared event or value object. |
 | V29 | Every policy chains to a command of an aggregate or an orchestration. |
 | V30 | Every policy is triggered by a declared domain event. |
-| V31 | An orchestration's commands emit no domain event. |
+| V31 | An orchestration's commands emit only events the orchestration declares, never an aggregate's event. |
 | V32 | An orchestration is invoked by one of its own commands. |
 | V33 | Every command an orchestration issues is an aggregate command or an operation of a declared external. |
 | V34 | Every orchestration step advances on one of its own commands, and some policy chains to that command. |
@@ -162,6 +223,10 @@ V22–V39 compare names across declarations, so their severity depends on how mu
 | V37 | Every gateway `consumes` and `produces` a declared event or value object. |
 | V38 | Every aggregate command `emits` an event declared somewhere in the model. |
 | V39 | Every `triggers` target is a node placed in the same flow (`triggered-by` targets are checked by V5). |
+| V40 | An event is declared by one owner, an aggregate or an orchestration. |
+| V41 | A `cause` on a precondition or a placement is one of the command's declared `causes`. |
+| V42 | A command with cause-scoped preconditions is placed with its `cause`. |
+| V43 | A same-moment `triggered-by` is a hop a policy declares. |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
@@ -178,7 +243,7 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 
 | Export | Description |
 |--------|-------------|
-| `ProjectLoader` | `loadProject(filePaths, metadataOverride?)` parses each file, merges the IRs, runs cross-file validation and V22–V39, and resolves to a `ProjectLoadResult` (`success`, `ir`, `diagnostics`, `filesParsed`, `filesErrored`). |
+| `ProjectLoader` | `loadProject(filePaths, metadataOverride?)` parses each file, merges the IRs, runs cross-file validation and V22–V43, and resolves to a `ProjectLoadResult` (`success`, `ir`, `diagnostics`, `filesParsed`, `filesErrored`). |
 | `mergeIrs(irs, metadataOverride?)` | Concatenates IRs in the given order and reports duplicate context names. Returns a `MergeResult`. |
 | `validateCrossFileReferences(ir)` | Checks that flow lanes, crossings and relationships in a merged IR resolve. Returns a `CrossFileValidationResult`. |
 
@@ -191,8 +256,8 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 | `ContextDefinition` | A bounded context with its aggregates, commands, events, value objects, invariants, policies, sagas, domain services, projections, queries, and rules. |
 | `AggregateDefinition` | An aggregate root with its identity field, commands, events, invariants, value objects, and optional internal states. |
 | `AggregateStatesDefinition` | An aggregate's initial state and command-driven state transitions. |
-| `CommandDefinition` | A command with its input fields, preconditions, and the event it emits. |
-| `EventDefinition` | A domain event with its payload fields. |
+| `CommandDefinition` | A command with its input fields, `causes`, preconditions, and the event it emits. |
+| `EventDefinition` | A domain event with its payload fields and its `owner` (an aggregate or an orchestration). |
 | `ValueObjectDefinition` | A value object with its fields. |
 | `FieldDefinition` | A typed field within a command, event, value object, projection, or query. |
 | `InvariantDefinition` | A business invariant that must hold for an aggregate. |
@@ -207,11 +272,11 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 | `ExternalDefinition` | An external system that is not modelled but may be a relationship end or a lane. |
 | `ContextRelationship` | A relationship between two contexts or externals, with its type and contract. |
 | `AnnotationDefinition` | A `@classification`, `@retention`, or `@encryption` annotation. |
-| `PreconditionDefinition` | A precondition that must be satisfied before a command executes. |
+| `PreconditionDefinition` | A precondition that must be satisfied before a command executes; `causes` limits it to some causes. |
 | `FlowDefinition` | A flow with its lanes, moments, and connections. |
 | `LaneDefinition` | A flow lane bound to a context or external. |
-| `MomentDefinition` | A moment within a flow, with its entries and branches. |
-| `MomentEntry` | A node placed in a moment; its `nodeKind` is command, event, policy, saga, projection, or query. |
+| `MomentDefinition` | A moment within a flow, with its entries, branches and `notes`. |
+| `MomentEntry` | A node placed in a moment; its `nodeKind` is command, event, policy, saga, projection, or query, and `cause` names the cause a command is placed for. |
 | `MomentSequenceItem` | The source order of a moment's entries and branches. |
 | `BranchDefinition` | A `when` branch within a moment. |
 | `ConnectionDefinition` | A connection between flow nodes or moments. |
