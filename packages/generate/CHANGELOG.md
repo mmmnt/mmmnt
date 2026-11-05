@@ -1,5 +1,13 @@
 # @mmmnt/generate
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.7.1
+  - @mmmnt/derive@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

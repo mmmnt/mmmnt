@@ -1,5 +1,12 @@
 # @mmmnt/schema
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.7.1
+
 ## 0.7.0
 
 ### Patch Changes

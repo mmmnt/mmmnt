@@ -1,5 +1,25 @@
 # @mmmnt/cli
 
+## 0.7.1
+
+### Patch Changes
+
+- `moment serve` sends Facet everything `moment simulate --all --out-dir` writes.
+
+  - cli: `serve --all` includes the saga-timeout scenarios. A project with sagas showed 48 of ticketwave's 50 scenarios live.
+  - cli: `serve` sends the policy definitions in both the spec and the facet-directory pipelines, so Facet's policy tier runs in live mode.
+  - The vet-clinic fixture is removed; tests, the e2e harness and the install smoke test run against the ticketwave example, and the harness no longer writes generated output into the repository root.
+
+- Updated dependencies []:
+  - @mmmnt/core@0.7.1
+  - @mmmnt/derive@0.7.1
+  - @mmmnt/emit-ts@0.7.1
+  - @mmmnt/generate@0.7.1
+  - @mmmnt/harness@0.7.1
+  - @mmmnt/schema@0.7.1
+  - @mmmnt/sync@0.7.1
+  - @mmmnt/viz@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
