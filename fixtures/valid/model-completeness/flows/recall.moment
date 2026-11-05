@@ -12,4 +12,4 @@ flow "recall"
 
   moment "The agent asks"
     retrieval: QueryContext
-    retrieval: TrajectoryResult
+    retrieval: TrajectoryResult [terminal]
