@@ -1,5 +1,5 @@
 /**
- * ADR-038 — palette conformance checks V29–V37 over an IR.
+ * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43) over an IR.
  *
  * Like V22–V28 they compare names across declarations: advisories per file, errors over a merged
  * project. Hand-built IR that predates ADR-038 carries no orchestration fields and is not checked
@@ -88,13 +88,14 @@ function issueFindings(
 function orchestrationFindings(saga: SagaDefinition, known: Known): Finding[] {
   if (saga.commands === undefined) return [];
   const own = new Set(saga.commands.map((c) => c.name));
+  const ownEvents = new Set((saga.events ?? []).map((e) => e.name));
   const compensations = saga.compensations ?? [];
   return [
     ...saga.commands
-      .filter((c) => c.emitsEvent !== undefined)
+      .filter((c) => c.emitsEvent !== undefined && !ownEvents.has(c.emitsEvent))
       .map((c) => ({
         ruleId: 'V31',
-        message: `Orchestration '${saga.name}' command '${c.name}' emits '${c.emitsEvent ?? ''}'; an orchestration generates no domain event.`,
+        message: `Orchestration '${saga.name}' command '${c.name}' emits '${c.emitsEvent ?? ''}', which the orchestration does not declare; it emits only its own events.`,
       })),
     ...(own.has(saga.trigger)
       ? []
@@ -214,6 +215,31 @@ function v37(ctx: ContextDefinition, known: Known): Finding[] {
   ];
 }
 
+/**
+ * V40 (ADR-040): an event is declared by one owner, an aggregate or an orchestration. Only names that
+ * a process event declares are checked, so IR that predates ADR-040 stays quiet.
+ */
+function v40(ctx: ContextDefinition): Finding[] {
+  const owners = new Map<string, string[]>();
+  const add = (event: string, owner: string): void => {
+    owners.set(event, [...(owners.get(event) ?? []), owner]);
+  };
+  for (const agg of ctx.aggregates)
+    for (const e of agg.events ?? []) add(e.name, `aggregate '${agg.name}'`);
+  const processNames = new Set<string>();
+  for (const saga of ctx.sagas)
+    for (const e of saga.events ?? []) {
+      add(e.name, `orchestration '${saga.name}'`);
+      processNames.add(e.name);
+    }
+  return [...processNames]
+    .filter((name) => (owners.get(name) ?? []).length > 1)
+    .map((name) => ({
+      ruleId: 'V40',
+      message: `Event '${name}' is declared by ${(owners.get(name) ?? []).join(' and ')}; an event has one owner.`,
+    }));
+}
+
 /** Every V29–V37 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
 export function validatePaletteConformance(ir: IntermediateRepresentation): Finding[] {
   const known = namesOf(ir);
@@ -223,6 +249,7 @@ export function validatePaletteConformance(ir: IntermediateRepresentation): Find
       ...ctx.sagas.flatMap((saga) => orchestrationFindings(saga, known)),
       ...v36(ctx),
       ...v37(ctx, known),
+      ...v40(ctx),
     ]),
     ...(ir.externals ?? []).flatMap((e) =>
       gatewayFindings(`external '${e.name}'`, e.gateways ?? [], known),

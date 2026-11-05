@@ -80,13 +80,40 @@ describe('V31–V35 orchestrations', () => {
     expect(rules(ir({ sagas: [saga({ commands: own })] }))).toEqual([]);
   });
 
-  it('V31: an orchestration command must not emit a domain event', () => {
+  it('V31: an orchestration command must not emit an event the orchestration does not declare', () => {
     const r = ir({
       sagas: [saga({ commands: [{ name: 'StartCheckout', emitsEvent: 'OrderPlaced' }] })],
     });
     expect(messages(r)).toEqual([
-      "Orchestration 'Checkout' command 'StartCheckout' emits 'OrderPlaced'; an orchestration generates no domain event.",
+      "Orchestration 'Checkout' command 'StartCheckout' emits 'OrderPlaced', which the orchestration does not declare; it emits only its own events.",
     ]);
+  });
+
+  it('V31: an orchestration command may emit a process event the orchestration declares', () => {
+    const r = ir({
+      sagas: [
+        saga({
+          commands: [{ name: 'StartCheckout', emitsEvent: 'CheckoutStarted' }],
+          events: [{ name: 'CheckoutStarted' }],
+        }),
+      ],
+    });
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('V31: a command may not emit a process event of another orchestration', () => {
+    const r = ir({
+      sagas: [
+        saga({ commands: [{ name: 'StartCheckout', emitsEvent: 'Other' }], events: [] }),
+        saga({
+          name: 'Other',
+          trigger: 'Go',
+          commands: [{ name: 'Go' }],
+          events: [{ name: 'Other' }],
+        }),
+      ],
+    });
+    expect(rules(r)).toEqual(['V31']);
   });
 
   it('V32: the orchestration is invoked by one of its own commands', () => {
@@ -252,5 +279,46 @@ describe('V37 gateways', () => {
 
   it('tolerates a context without projections and an IR without externals', () => {
     expect(rules(ir({ projections: undefined }))).toEqual([]);
+  });
+});
+
+describe('V40 one owner per event', () => {
+  const saga = (name: string, events: Loose[], extra: Loose = {}): Loose => ({
+    name,
+    trigger: 'Go',
+    states: [],
+    commands: [{ name: 'Go' }],
+    events,
+    ...extra,
+  });
+
+  it('accepts process events with names no other construct declares', () => {
+    const r = ir({ sagas: [saga('Checkout', [{ name: 'CheckoutDone' }])] });
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('refuses a process event that repeats the name of an aggregate event', () => {
+    const r = ir({
+      aggregates: [{ name: 'Order', events: [{ name: 'OrderPlaced' }] }],
+      sagas: [saga('Checkout', [{ name: 'OrderPlaced' }])],
+    });
+    expect(messages(r)).toEqual([
+      "Event 'OrderPlaced' is declared by aggregate 'Order' and orchestration 'Checkout'; an event has one owner.",
+    ]);
+  });
+
+  it('refuses a process event that repeats the name of another orchestration event', () => {
+    const r = ir({
+      sagas: [saga('A', [{ name: 'Done' }]), saga('B', [{ name: 'Done' }])],
+    });
+    expect(rules(r)).toEqual(['V40']);
+  });
+
+  it('stays quiet for IR that predates ADR-040 (no orchestration events)', () => {
+    const r = ir({
+      aggregates: [{ name: 'Order', events: [{ name: 'OrderPlaced' }] }],
+      sagas: [saga('Checkout', undefined as unknown as Loose[])],
+    });
+    expect(rules(r)).toEqual([]);
   });
 });

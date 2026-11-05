@@ -93,9 +93,17 @@ export interface PreconditionDefinition {
   description: string;
 }
 
+/** Who declares an event: an aggregate, or an orchestration for a process event (ADR-040 D1). */
+export interface EventOwner {
+  kind: 'aggregate' | 'orchestration';
+  name: string;
+}
+
 export interface EventDefinition {
   id: string;
   name: string;
+  /** Set by the parser for every event; absent in hand-built IR, which reads as `aggregate`. */
+  owner?: EventOwner;
   annotations?: AnnotationDefinition[];
   fields: FieldDefinition[];
 }
@@ -165,8 +173,10 @@ export interface SagaDefinition {
   transitions?: SagaTransitionDefinition[];
   compensation: string;
   timeout: string;
-  /** The commands invoked on the orchestration; in the palette they emit nothing. */
+  /** The commands invoked on the orchestration; each may emit one of the process events it declares. */
   commands?: OrchestrationCommandDefinition[];
+  /** Process events (ADR-040 D1): recorded outcomes of the orchestration's commands. */
+  events?: EventDefinition[];
   issues?: IssuedCommandDefinition[];
   compensations?: CompensationDefinition[];
   gateways?: GatewayDefinition[];
@@ -177,7 +187,7 @@ export interface OrchestrationCommandDefinition {
   name: string;
   inputs: FieldDefinition[];
   preconditions: PreconditionDefinition[];
-  /** Present only when the author wrote `emits`, which V31 refuses. */
+  /** Present only when the author wrote `emits`; V31 requires an event the orchestration declares. */
   emitsEvent?: string;
 }
 
@@ -189,8 +199,7 @@ export interface IssuedCommandDefinition {
 
 /** `compensation on <Command> issues …`; `compensation none` is `{ none: true }`. */
 export type CompensationDefinition =
-  | { none: true }
-  | { none?: false; onCommand: string; issues: IssuedCommandDefinition[] };
+  { none: true } | { none?: false; onCommand: string; issues: IssuedCommandDefinition[] };
 
 /** One saga state transition (see SagaDefinition.transitions). */
 export interface SagaTransitionDefinition {

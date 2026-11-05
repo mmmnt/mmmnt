@@ -12,6 +12,7 @@ export type {
   CommandDefinition,
   PreconditionDefinition,
   EventDefinition,
+  EventOwner,
   ValueObjectDefinition,
   FieldDefinition,
   InvariantDefinition,

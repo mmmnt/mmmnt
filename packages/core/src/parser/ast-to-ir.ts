@@ -53,6 +53,7 @@ import type {
   CommandDefinition,
   PreconditionDefinition,
   EventDefinition,
+  EventOwner,
   ValueObjectDefinition,
   FieldDefinition,
   InvariantDefinition,
@@ -174,7 +175,9 @@ function collectContextMember(
   } else if (isPolicyDeclaration(member)) {
     out.policies.push(transformPolicy(member, annotations));
   } else if (isSagaDeclaration(member)) {
-    out.sagas.push(transformSaga(member, annotations));
+    const sagaDef = transformSaga(member, annotations);
+    out.sagas.push(sagaDef);
+    out.events.push(...(sagaDef.events ?? []));
   } else if (isProjectionDeclaration(member)) {
     out.projections.push(transformProjection(member));
   } else if (isQueryDeclaration(member)) {
@@ -315,7 +318,7 @@ function transformAggregate(
     if (isCommandDeclaration(member)) {
       commands.push(transformCommand(member, memberAnnotations));
     } else if (isDomainEventDeclaration(member)) {
-      events.push(transformEvent(member, memberAnnotations));
+      events.push(transformEvent(member, memberAnnotations, { kind: 'aggregate', name }));
     } else if (isValueObjectDeclaration(member)) {
       valueObjects.push(transformValueObject(member, memberAnnotations));
     } else if (isInvariantDeclaration(member)) {
@@ -374,11 +377,13 @@ function transformPrecondition(pre: { name: string; description: string }): Prec
 
 function transformEvent(
   evt: DomainEventDeclaration,
-  annotations?: AnnotationDefinition[],
+  annotations: AnnotationDefinition[] | undefined,
+  owner: EventOwner,
 ): EventDefinition {
   return {
     id: `evt-${evt.name}`,
     name: evt.name,
+    owner,
     ...(annotations ? { annotations } : {}),
     fields: evt.fields.map(transformFieldDeclaration),
   };
@@ -511,6 +516,13 @@ function transformSaga(
     compensation: compensationText(compensations),
     timeout,
     commands: saga.commands.map(transformOrchestrationCommand),
+    ...(saga.events.length > 0
+      ? {
+          events: saga.events.map((e) =>
+            transformEvent(e, undefined, { kind: 'orchestration', name: saga.name }),
+          ),
+        }
+      : {}),
     issues: saga.issues.map(transformIssued),
     compensations,
     ...gatewaysOf(saga.gateways),

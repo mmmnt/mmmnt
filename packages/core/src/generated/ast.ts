@@ -349,7 +349,7 @@ export function isContractField(item: unknown): item is ContractField {
 }
 
 export interface DomainEventDeclaration extends langium.AstNode {
-    readonly $container: AggregateDeclaration;
+    readonly $container: AggregateDeclaration | SagaDeclaration;
     readonly $type: 'DomainEventDeclaration';
     fields: Array<FieldDeclaration>;
     name: string;
@@ -825,6 +825,7 @@ export interface SagaDeclaration extends langium.AstNode {
     readonly $type: 'SagaDeclaration';
     commands: Array<OrchestrationCommand>;
     compensations: Array<Compensation>;
+    events: Array<DomainEventDeclaration>;
     gateways: Array<GatewayDeclaration>;
     initialState: string;
     invokedBy: string;
@@ -839,6 +840,7 @@ export const SagaDeclaration = {
     $type: 'SagaDeclaration',
     commands: 'commands',
     compensations: 'compensations',
+    events: 'events',
     gateways: 'gateways',
     initialState: 'initialState',
     invokedBy: 'invokedBy',
@@ -1675,6 +1677,11 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 compensations: {
                     name: SagaDeclaration.compensations,
                     defaultValue: []
+                },
+                events: {
+                    name: SagaDeclaration.events,
+                    defaultValue: [],
+                    optional: true
                 },
                 gateways: {
                     name: SagaDeclaration.gateways,

@@ -130,6 +130,7 @@ PolicyDeclaration:
 SagaDeclaration:
     keyword=('orchestration' | 'saga') name=ID
         commands+=OrchestrationCommand*
+        events+=DomainEventDeclaration*
         'invoked-by' invokedBy=ID
         'issues' issues+=IssuedCommand (',' issues+=IssuedCommand)*
         'states' initialState=ID transitions+=SagaTransition*
