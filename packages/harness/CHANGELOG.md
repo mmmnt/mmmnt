@@ -1,5 +1,13 @@
 # @mmmnt/harness
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies [`550a2b6`]:
+  - @mmmnt/core@0.7.0
+  - @mmmnt/derive@0.7.0
+
 ## 0.6.2
 
 ### Patch Changes
