@@ -22,6 +22,7 @@ import {
   generateSimulationScenario,
   generateAllScenarios,
   deriveNegativeScenarios,
+  deriveTimeoutScenarios,
   TopologyEmitter,
   generateEventCatalog,
   generateImpactAnalysis,
@@ -128,7 +129,12 @@ function buildPayloads(ir: IntermediateRepresentation, includeAll: boolean): Pip
     topologies[topoKey] = topoEmitter.emit(ir, flow);
 
     const flowScenarios: SimulationScenario[] = includeAll
-      ? [...generateAllScenarios(ir, flow), ...deriveNegativeScenarios(ir, flow)]
+      ? [
+          ...generateAllScenarios(ir, flow),
+          ...deriveNegativeScenarios(ir, flow),
+          // Saga-timeout scenarios, as `moment simulate --all` writes them.
+          ...deriveTimeoutScenarios(ir, flow),
+        ]
       : [generateSimulationScenario(ir, flow)];
 
     for (const s of flowScenarios) {

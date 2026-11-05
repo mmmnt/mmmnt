@@ -346,6 +346,26 @@ describe('runPipeline (spec-file live derive)', () => {
   });
 });
 
+describe('runPipeline --all serves every scenario simulate writes', () => {
+  const TICKETWAVE = resolve(
+    import.meta.dirname,
+    '../../../../examples/ticketwave/spec/ticketwave.moment',
+  );
+
+  it('includes the saga-timeout scenarios, as simulate --all --out-dir does', async () => {
+    const all = await runPipeline(TICKETWAVE, true);
+    const ids = Object.keys(all.scenarios);
+
+    expect(ids.filter((id) => id.includes('-timeout-')).sort()).toEqual([
+      'scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle.json',
+      'scenario-flow-ticket-transfer-timeout-TransferLifecycle.json',
+    ]);
+    expect(ids).toHaveLength(50);
+    const counted = all.manifest.flows.reduce((n, f) => n + f.scenarioCount, 0);
+    expect(counted).toBe(50);
+  });
+});
+
 describe('runPipeline (project directory, ADR-038 §5)', () => {
   const PROJECT = resolve(import.meta.dirname, '../../../../fixtures/valid/model-completeness');
 
