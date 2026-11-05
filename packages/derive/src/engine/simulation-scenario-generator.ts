@@ -27,6 +27,7 @@ import type {
   ContextDefinition,
   EventDefinition,
   CommandDefinition,
+  OrchestrationCommandDefinition,
   BranchDefinition,
   SagaDefinition,
   SagaTransitionDefinition,
@@ -90,6 +91,8 @@ interface NodeInfo {
   /** Selected branch condition when this node was emitted inside (or as the
    *  first node of) a branch-point moment. Surfaces as payload.outcome. */
   outcome?: string;
+  /** The cause the command is placed for (ADR-040 D2). */
+  cause?: string;
 }
 
 // Lane ID lookup: contextId → lane.id from the flow's lane declarations
@@ -593,6 +596,7 @@ function entryToNode(
     momentId: moment.id,
     momentIndex,
     ...(outcome !== undefined ? { outcome } : {}),
+    ...(entry.cause !== undefined ? { cause: entry.cause } : {}),
   };
 }
 
@@ -940,7 +944,14 @@ function findPreconditions(
   const ctx = contextMap.get(node.contextId);
   if (!ctx) return [];
   const cmd = findCommand(ctx, node.nodeName);
-  return cmd?.preconditions ?? [];
+  // A precondition with no causes applies to every cause; one with causes applies only when the
+  // command is placed for one of them (ADR-040 D2).
+  return (cmd?.preconditions ?? []).filter(
+    (pre) =>
+      pre.causes === undefined ||
+      pre.causes.length === 0 ||
+      (node.cause !== undefined && pre.causes.includes(node.cause)),
+  );
 }
 
 function buildNegativeScenario(
@@ -1000,7 +1011,7 @@ function buildNegativeScenario(
     kind: 'negative',
     description: `Negative scenario: ${precondition.description} precondition violation at ${failNode.nodeName}`,
     given: `A ${(flow.moments[0]?.name ?? '').toLowerCase()} scenario is initiated`,
-    when: `${failNode.nodeName} is invoked without satisfying ${precondition.name}`,
+    when: `${failNode.nodeName} is invoked${failNode.cause !== undefined ? ` for ${failNode.cause}` : ''} without satisfying ${precondition.name}`,
     then: `The command ${failNode.nodeName} is rejected`,
     expectedPath: precedingNodes.map((n) => n.nodeId),
     activeBranches,
@@ -1029,6 +1040,7 @@ function buildFailureEvent(
       nodeId: failNode.nodeId,
       failedPrecondition: precondition.name,
       description: precondition.description,
+      ...(failNode.cause !== undefined ? { cause: failNode.cause } : {}),
     },
   };
 }
@@ -1230,12 +1242,20 @@ function appendTimeoutMarkers(
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-function findCommand(ctx: ContextDefinition, name: string): CommandDefinition | undefined {
+function findCommand(
+  ctx: ContextDefinition,
+  name: string,
+): CommandDefinition | OrchestrationCommandDefinition | undefined {
   const topLevel = ctx.commands.find((c) => c.name === name);
   if (topLevel) return topLevel;
 
   for (const agg of ctx.aggregates) {
     const cmd = agg.commands.find((c) => c.name === name);
+    if (cmd) return cmd;
+  }
+  // An orchestration's own commands (ADR-040 D2): they carry preconditions like an aggregate's.
+  for (const saga of ctx.sagas) {
+    const cmd = (saga.commands ?? []).find((c) => c.name === name);
     if (cmd) return cmd;
   }
   return undefined;

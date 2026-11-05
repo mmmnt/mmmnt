@@ -88,6 +88,17 @@ function aggregateBlocks(agg: AggregateDeclaration, events: string[]): BuildingB
   return blocks;
 }
 
+/** The commands an orchestration is invoked through and the process events it declares (ADR-040 D1). */
+function sagaBlocks(saga: SagaDeclaration, events: string[]): BuildingBlock[] {
+  return [
+    ...saga.commands.map((c) => ({ name: c.name, kind: 'command' as const })),
+    ...saga.events.map((e) => {
+      events.push(e.name);
+      return { name: e.name, kind: 'event' as const };
+    }),
+  ];
+}
+
 /** The building block a context-level member declares, if it is one a flow node may name. */
 function contextMemberBlock(
   member: ContextDeclaration['members'][number],
@@ -120,6 +131,7 @@ export function buildCrossFileContext(file: MomentFile): CrossFileContext {
       const block = contextMemberBlock(member);
       if (block) blocks.push(block);
       if (block?.kind === 'saga') declaredSagas.push(block.name);
+      if (isSagaDeclaration(member)) blocks.push(...sagaBlocks(member, events));
     }
 
     declaredEvents.set(contextName, events);
