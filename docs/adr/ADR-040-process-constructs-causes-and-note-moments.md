@@ -311,3 +311,16 @@ Specs and what they assert:
 Reachability sweep before any "done" claim: for every new construct, name what invokes it. Process events must be reachable from a placed command and a trigger; causes from a placement; notes from a moment. A construct that no fixture reaches is an orphan.
 
 Schema contracts. This repository does not export JSON Schema contracts from its ADRs (`packages/schema` is the schema registry for consumers' events, not Moment's IR). The IR type changes above are the contract. No JSON Schema delta.
+
+## Implementation notes (2026-11-04)
+
+Built as written. What the build found:
+
+- **`invoked-by` ambiguity: none.** Langium's lookahead tells a process event's last field from `invoked-by`, so the stated fallback (event placement after `timeout`) was not needed. A process event may still have a field named `invoked-by`; a test pins it.
+- **`note` ambiguity: resolved by lookahead for lanes.** A `LaneName` rule (`ID | 'cause' | 'causes' | 'note'`) names lanes in declarations, placements, `when [lane]` and `crosses-to`, so a lane named `note`, `cause` or `causes` parses. `note`, `cause` and `causes` are added to `FieldName` and `InputName`. The one source break is a **node** (command, event, policy and so on) named `note`, `cause` or `causes`.
+- **Example correction.** The D1 example wrote `timeout "48h"`. The grammar's `timeout` takes an identifier or `"none"`, so the fixtures write `timeout admissionWindow`.
+- **V43 is literal.** Only the three hops (a), (b), (c) are declared. A same-moment `triggered-by` of an event on its own command is not a hop and is reported; V43 skips a target the model does not declare, so a single file without the project only has V5's source-order check.
+- **V40 scope.** It checks only names that a process event declares, so IR that predates ADR-040 and repeats an aggregate event name stays quiet.
+- **Merged projects.** V40 to V43 are advisories per file and errors over a merged project, like V22 to V39. The project loader's per-file filter now covers them.
+- **Consumers.** A flow in a single file can now place an orchestration command and a process event (V1). Derived negative scenarios now include the preconditions of placed orchestration commands, so a model that placed one gets more scenarios; `parse` and `test` results are unchanged.
+- **Viz.** This repository's viz renders layout data (no stickies, no swatches). The timeline entry carries `notes`, `hops` and `causes`; the sticky and chip drawing, and the palette mapping, belong to Facet and the platform palette.

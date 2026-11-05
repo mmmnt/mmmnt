@@ -15,7 +15,7 @@ The delta adds no swatch. It changes who may own an event, and how three constru
 | Moment `#9ea9ff` | A moment holds stickies. | A moment may hold only a note: narration of a step outside the model or below its grain. The moment sticky carries the note text in its body and nothing sits under it. A note attributed to an External lane colours that lane label External system `#ffcee0`. |
 | Event, Process/policy, Command column | Event, policy and command sit in separate moments in a flow. | They may sit in one moment: Event `#ff9d48`, then Process/policy `#c6a2d2`, then Command `#a6ccf5`, joined by short causal arrows. |
 
-Wording to add to the platform palette text (one sentence each):
+Wording for the platform palette text (platform corpus; not applied here) (one sentence each):
 
 - "An event is owned by an aggregate or by a Process; both use the Event swatch."
 - "A refusal can be scoped to a cause; the chip names the cause."
@@ -23,7 +23,7 @@ Wording to add to the platform palette text (one sentence each):
 
 ## 2. Moment's own docs and site pages
 
-ADR-038 mapped constructs to palette tabs in the grammar and the README. These files carry that mapping and change. Edits are proposed, not applied.
+ADR-038 mapped constructs to palette tabs in the grammar and the README. These files carry that mapping and change. Edits are applied.
 
 ### `packages/core/README.md`
 
