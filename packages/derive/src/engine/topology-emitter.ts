@@ -238,7 +238,8 @@ function resolveNodeKind(entry: MomentEntry, ctx: ContextDefinition | undefined)
 
   const isCmd =
     ctx.commands.some((c) => c.name === entry.nodeName) ||
-    ctx.aggregates.some((a) => a.commands.some((c) => c.name === entry.nodeName));
+    ctx.aggregates.some((a) => a.commands.some((c) => c.name === entry.nodeName)) ||
+    (ctx.sagas ?? []).some((g) => (g.commands ?? []).some((c) => c.name === entry.nodeName));
   if (isCmd) return 'command';
 
   const isEvt =
@@ -367,6 +368,13 @@ function buildEventRouting(
 
       // Events are routed by their plain name
       if (kind === 'event') {
+        const existing = routing[entry.nodeName] ?? new Set<string>();
+        existing.add(nodeId);
+        routing[entry.nodeName] = existing;
+      }
+
+      // A policy streams one event under its own name (ADR-040 D4 puts it in a same-moment hop)
+      if (kind === 'policy') {
         const existing = routing[entry.nodeName] ?? new Set<string>();
         existing.add(nodeId);
         routing[entry.nodeName] = existing;
