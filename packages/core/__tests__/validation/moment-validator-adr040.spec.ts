@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MomentParser } from '../../src/parser/moment-parser.js';
+import type { MomentValidator } from '../../src/validation/moment-validator.js';
 
 /** Parse a source and return "V<n>" rule ids of every error, in order (a message begins with its rule id). */
 async function errors(source: string): Promise<string[]> {
@@ -144,5 +145,59 @@ ${moment}
 
   it('V5: refuses a name placed nowhere', async () => {
     expect(await errors(flow('    l: X\n      triggered-by Ghost'))).toEqual(['V5']);
+  });
+});
+
+describe('ADR-040 validators over hand-built nodes', () => {
+  const services = new MomentParser() as unknown as {
+    services: { validation: { MomentValidator: MomentValidator } };
+  };
+  const validator = (): MomentValidator => services.services.validation.MomentValidator;
+  const collect = (): { messages: string[]; accept: (s: unknown, m: unknown) => void } => {
+    const messages: string[] = [];
+    return { messages, accept: (_s, m) => messages.push(m as string) };
+  };
+
+  it('V13 for a note that is detached from a flow says nothing', () => {
+    const { messages, accept } = collect();
+    validator().checkNoteLane({ $type: 'NoteStatement', laneId: 'x', text: 't' } as never, accept);
+    expect(messages).toEqual([]);
+  });
+
+  it('V13 for a note with no lane says nothing', () => {
+    const { messages, accept } = collect();
+    validator().checkNoteLane({ $type: 'NoteStatement', text: 't' } as never, accept);
+    expect(messages).toEqual([]);
+  });
+
+  it('V10 treats a hand-built moment without a notes list as having no notes', () => {
+    const { messages, accept } = collect();
+    validator().checkMoment(
+      { $type: 'MomentDeclaration', label: 'M', nodes: [], whenBlocks: [] } as never,
+      accept,
+    );
+    expect(messages).toEqual(['V10: Moment must contain at least one node, when block or note.']);
+  });
+
+  it('V5 orders the nodes of a hand-built moment without CST as own nodes, then when nodes', () => {
+    const earlier = { $type: 'NodePlacement', laneId: 'a', nodeName: 'Earlier', connections: [] };
+    const hop = {
+      $type: 'NodePlacement',
+      laneId: 'a',
+      nodeName: 'Hop',
+      connections: [{ $type: 'TriggeredBy', nodeName: 'Earlier' }],
+    };
+    const moment = {
+      $type: 'MomentDeclaration',
+      label: 'M',
+      nodes: [earlier, hop],
+      whenBlocks: [],
+    };
+    const flow = { $type: 'FlowDeclaration', name: 'F', lanes: [], moments: [moment] };
+    for (const n of [earlier, hop]) Object.assign(n, { $container: moment });
+    Object.assign(moment, { $container: flow });
+    const { messages, accept } = collect();
+    validator().checkV5(hop as never, accept);
+    expect(messages).toEqual([]);
   });
 });

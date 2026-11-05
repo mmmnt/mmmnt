@@ -5,7 +5,7 @@
  * Intra-file validators can run on a single parsed document.
  * Cross-file validators require a CrossFileContext parameter.
  */
-import type { ValidationAcceptor, ValidationChecks } from 'langium';
+import type { CstNode, ValidationAcceptor, ValidationChecks } from 'langium';
 import type { LangiumCoreServices } from 'langium';
 import type {
   MomentAstType,
@@ -386,9 +386,8 @@ export class MomentValidator {
   // V13 for notes: a lane named by `note <lane>: "text"` must be a declared lane (ADR-040 D3)
   // =========================================================================
   checkNoteLane(note: NoteStatement, accept: ValidationAcceptor): void {
-    if (note.laneId === undefined) return;
     const flow = getFlowFromNode(note);
-    if (!flow) return;
+    if (note.laneId === undefined || !flow) return;
     if (!flow.lanes.some((l: LaneDeclaration) => l.id === note.laneId)) {
       accept('error', 'V13: Lane ID does not match any declared lane.', {
         node: note,
@@ -751,12 +750,11 @@ export class MomentValidator {
    */
   private nodesBefore(moment: MomentDeclaration, node: NodePlacement): NodePlacement[] {
     const all = [...moment.nodes, ...moment.whenBlocks.flatMap((wb) => wb.nodes)];
-    const offsets = all.map((n) => n.$cstNode?.offset);
-    const inOrder = offsets.every((o) => o !== undefined)
-      ? all.slice().sort((a, b) => (a.$cstNode?.offset ?? 0) - (b.$cstNode?.offset ?? 0))
+    const hasCst = all.every((n) => n.$cstNode !== undefined);
+    const inOrder = hasCst
+      ? all.slice().sort((a, b) => (a.$cstNode as CstNode).offset - (b.$cstNode as CstNode).offset)
       : all;
-    const at = inOrder.indexOf(node);
-    return at < 0 ? [] : inOrder.slice(0, at);
+    return inOrder.slice(0, inOrder.indexOf(node));
   }
 
   private checkCrossFileNodeRules(node: NodePlacement, accept: ValidationAcceptor): void {

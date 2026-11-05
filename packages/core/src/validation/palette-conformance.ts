@@ -235,11 +235,11 @@ function v40(ctx: ContextDefinition): Finding[] {
       add(e.name, `orchestration '${saga.name}'`);
       processNames.add(e.name);
     }
-  return [...processNames]
-    .filter((name) => (owners.get(name) ?? []).length > 1)
-    .map((name) => ({
+  return [...owners]
+    .filter(([name, who]) => processNames.has(name) && who.length > 1)
+    .map(([name, who]) => ({
       ruleId: 'V40',
-      message: `Event '${name}' is declared by ${(owners.get(name) ?? []).join(' and ')}; an event has one owner.`,
+      message: `Event '${name}' is declared by ${who.join(' and ')}; an event has one owner.`,
     }));
 }
 
@@ -308,27 +308,31 @@ function v41v42Placements(ir: IntermediateRepresentation, commands: CauseCommand
   );
 }
 
+interface SameMomentTrigger {
+  readonly cause: string;
+  readonly node: string;
+  readonly momentId: string;
+}
+
+/** The `triggered-by` connections whose cause sits in the same moment as the node, and whose node the model declares. */
+function sameMomentTrigger(
+  conn: ConnectionDefinition,
+  sameMoment: Map<string, Set<string>>,
+  known: Set<string>,
+): SameMomentTrigger[] {
+  const { sourceNodeName: cause, targetNodeName: node } = conn;
+  if (conn.connectionType !== 'triggered-by' || cause === undefined || node === undefined)
+    return [];
+  if (!known.has(node) || !sameMoment.get(conn.sourceMomentId)?.has(cause)) return [];
+  return [{ cause, node, momentId: conn.sourceMomentId }];
+}
+
 /**
  * V43 (ADR-040 D4): a `triggered-by` whose cause is placed in the same moment, and in no earlier one, is
  * a hop a policy declares: (a) event -> the policy it triggers, (b) policy -> the command it chains to,
  * (c) event -> a command that a policy triggered by the event chains to. A target the model does not
  * declare is not checked, so a single file without the project only has V5's source-order check.
  */
-function isSameMomentTrigger(
-  conn: ConnectionDefinition,
-  sameMoment: Map<string, Set<string>>,
-  known: Set<string>,
-): boolean {
-  const { sourceNodeName: cause, targetNodeName: node } = conn;
-  return (
-    conn.connectionType === 'triggered-by' &&
-    cause !== undefined &&
-    node !== undefined &&
-    known.has(node) &&
-    (sameMoment.get(conn.sourceMomentId)?.has(cause) ?? false)
-  );
-}
-
 function v43(ir: IntermediateRepresentation): Finding[] {
   const policies = ir.contexts.flatMap((c) => c.policies);
   const known = new Set([
@@ -339,32 +343,31 @@ function v43(ir: IntermediateRepresentation): Finding[] {
       ...c.sagas.flatMap((s) => (s.commands ?? []).map((m) => m.name)),
     ]),
   ]);
-  const declared = (cause: string, node: string): boolean =>
+  const declared = (t: SameMomentTrigger): boolean =>
     policies.some(
       (p) =>
-        (p.name === node && p.trigger === cause) ||
-        (p.name === cause && p.chainsTo === node) ||
-        (p.trigger === cause && p.chainsTo === node),
+        (p.name === t.node && p.trigger === t.cause) ||
+        (p.name === t.cause && p.chainsTo === t.node) ||
+        (p.trigger === t.cause && p.chainsTo === t.node),
     );
   return (ir.flows ?? []).flatMap((flow) => {
     const earlier = new Set<string>();
     const sameMoment = new Map<string, Set<string>>();
     for (const moment of flow.moments) {
-      const names = new Set(
-        [...moment.contextEntries, ...(moment.branches ?? []).flatMap((b) => b.entries)].map(
-          (e) => e.nodeName,
-        ),
-      );
-      sameMoment.set(moment.id, new Set([...names].filter((n) => !earlier.has(n))));
+      const names = [
+        ...moment.contextEntries,
+        ...(moment.branches ?? []).flatMap((b) => b.entries),
+      ].map((e) => e.nodeName);
+      sameMoment.set(moment.id, new Set(names.filter((n) => !earlier.has(n))));
       names.forEach((n) => earlier.add(n));
     }
-    const momentName = (id: string): string => flow.moments.find((m) => m.id === id)?.name ?? id;
-    return (flow.connections ?? [])
-      .filter((conn) => isSameMomentTrigger(conn, sameMoment, known))
-      .filter((conn) => !declared(conn.sourceNodeName ?? '', conn.targetNodeName ?? ''))
-      .map((conn) => ({
+    const momentNames = new Map(flow.moments.map((m) => [m.id, m.name]));
+    return flow.connections
+      .flatMap((conn) => sameMomentTrigger(conn, sameMoment, known))
+      .filter((t) => !declared(t))
+      .map((t) => ({
         ruleId: 'V43',
-        message: `Flow '${flow.name}' moment '${momentName(conn.sourceMomentId)}': '${conn.targetNodeName ?? ''}' is triggered-by '${conn.sourceNodeName ?? ''}' in the same moment, but no policy declares that hop.`,
+        message: `Flow '${flow.name}' moment '${momentNames.get(t.momentId)}': '${t.node}' is triggered-by '${t.cause}' in the same moment, but no policy declares that hop.`,
       }));
   });
 }

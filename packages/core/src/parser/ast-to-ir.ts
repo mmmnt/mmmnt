@@ -65,6 +65,7 @@ import type {
   FlowDefinition,
   LaneDefinition,
   MomentDefinition,
+  MomentNote,
   MomentEntry,
   BranchDefinition,
   ConnectionDefinition,
@@ -638,18 +639,20 @@ function transformMoment(
     branches,
     terminal: hasTerminal || undefined,
     isBranch: moment.isBranch || undefined,
-    ...((moment.notes ?? []).length > 0
-      ? {
-          notes: (moment.notes ?? []).map((n) => ({
-            text: n.text,
-            ...(n.laneId !== undefined ? { laneId: n.laneId } : {}),
-          })),
-        }
-      : {}),
+    ...momentNotes(moment),
     // Textual order of entries/branches from CST offsets (M-P13); falls back
     // to entries-then-branches when the AST carries no CST.
     sequence: buildMomentSequence(moment).sequence,
   };
+}
+
+/** `notes` is absent from the IR of a moment without any (ADR-040 D3). */
+function momentNotes(moment: MomentDeclaration): { notes?: MomentNote[] } {
+  const notes = (moment.notes ?? []).map((n) => ({
+    text: n.text,
+    ...(n.laneId !== undefined ? { laneId: n.laneId } : {}),
+  }));
+  return notes.length > 0 ? { notes } : {};
 }
 
 function transformWhenBlock(
