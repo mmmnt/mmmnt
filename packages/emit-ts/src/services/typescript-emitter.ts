@@ -1,6 +1,7 @@
 import type {
   IntermediateRepresentation,
   ContextDefinition,
+  SagaDefinition,
   AggregateDefinition,
   CommandDefinition,
   EventDefinition,
@@ -206,10 +207,31 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
   return parts.join('\n');
 }
 
+/** The orchestrations of a context that declare process events (ADR-040 D1). */
+function processSagas(context: ContextDefinition): SagaDefinition[] {
+  return context.sagas.filter((s) => (s.events ?? []).length > 0);
+}
+
+function generateProcessTypesFile(saga: SagaDefinition): string {
+  const parts: string[] = [
+    generateJsDoc(`Events the ${saga.name} process records.`, '').trimEnd(),
+    '',
+  ];
+  for (const event of saga.events ?? []) {
+    parts.push(generateEventInterface(event));
+  }
+  return parts.join('\n');
+}
+
 function generateEventUnionType(context: ContextDefinition): string {
   const eventNames: string[] = [];
   for (const aggregate of context.aggregates) {
     for (const event of aggregate.events) {
+      eventNames.push(toPascalCase(event.name));
+    }
+  }
+  for (const saga of processSagas(context)) {
+    for (const event of saga.events ?? []) {
       eventNames.push(toPascalCase(event.name));
     }
   }
@@ -280,6 +302,10 @@ function generateContextIndexFile(context: ContextDefinition): string {
     parts.push(`export * from './${kebabName}.aggregate.js';`);
   }
 
+  for (const saga of processSagas(context)) {
+    parts.push(`export * from './${toKebabCase(saga.name)}.process.types.js';`);
+  }
+
   if (eventImports.length > 0) {
     parts.push('');
     for (const imp of eventImports) {
@@ -303,6 +329,10 @@ function collectEventImports(context: ContextDefinition): { module: string; name
     if (names.length > 0) {
       imports.push({ module: `${toKebabCase(aggregate.name)}.types.js`, names });
     }
+  }
+  for (const saga of processSagas(context)) {
+    const names = (saga.events ?? []).map((e) => toPascalCase(e.name));
+    imports.push({ module: `${toKebabCase(saga.name)}.process.types.js`, names });
   }
   return imports;
 }
@@ -355,8 +385,17 @@ function emitContext(
   const readSide = scope.level !== 'aggregate' && hasReadSide(context);
   if (readSide) write(`${contextDir}/read-model.types.ts`, generateReadModelFile(context));
 
-  if (aggregates.length === 0 && !readSide) return undefined;
-  write(`${contextDir}/index.ts`, generateContextIndexFile({ ...context, aggregates }));
+  // Process events belong to the orchestration, not to an aggregate (ADR-040 D1).
+  const sagas = scope.level !== 'aggregate' ? processSagas(context) : [];
+  for (const saga of sagas) {
+    write(
+      `${contextDir}/${toKebabCase(saga.name)}.process.types.ts`,
+      generateProcessTypesFile(saga),
+    );
+  }
+
+  if (aggregates.length === 0 && !readSide && sagas.length === 0) return undefined;
+  write(`${contextDir}/index.ts`, generateContextIndexFile({ ...context, aggregates, sagas }));
   return dir;
 }
 
