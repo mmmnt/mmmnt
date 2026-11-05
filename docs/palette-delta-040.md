@@ -1,6 +1,6 @@
 # Palette delta 040
 
-Companion to [ADR-040](adr/ADR-040-process-constructs-causes-and-note-moments.md). Status: Proposed. Nothing here is applied.
+Companion to [ADR-040](adr/ADR-040-process-constructs-causes-and-note-moments.md). Status: Accepted (founder, 2026-11-04). Applied with the implementation.
 
 The delta adds no swatch. It changes who may own an event, and how three constructs use existing swatches. Swatches are those of the platform NDD palette (ruling 324322a8): Moment `#9ea9ff`, Interface `#f5f6f8`, Action `#f5d128`, Business rule/refusal `#fff9b1`, Process/policy `#c6a2d2`, External system `#ffcee0`, Command `#a6ccf5`, Event `#ff9d48`, Projection `#f0939d`, Resolver/query `#93d275`; structural Data Store `#67c6c0`, Component `#000000`.
 

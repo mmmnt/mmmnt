@@ -1,6 +1,6 @@
 # ADR-040: Process events, cause-scoped preconditions, note-only moments and intra-moment policy hops
 
-- **Status:** Proposed. Awaiting founder ratification. Nothing in this ADR is built.
+- **Status:** Accepted (founder, 2026-11-04). Ruling, verbatim: "Accept, build it (Recommended)".
 - **Date:** 2026-11-04
 - **Supersedes:** nothing. Amends ADR-038 section 2 (orchestration) and the validation rules V5, V10, V31.
 - **Founder ruling (2026-11-04, verbatim):** "1, but generalize what's being added. do not extend Moment with specificity to [a single consumer]'s use case. update the palette and documentation"
