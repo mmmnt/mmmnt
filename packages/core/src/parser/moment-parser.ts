@@ -157,11 +157,12 @@ export class MomentParser {
         // V22–V28 (ADR-037): a file alone cannot see its siblings, so these are advisories here and
         // errors only over a merged project (ProjectLoader).
         ...validateModelCompleteness(ir).map((d) => ({ severity: 'warning' as const, ...d })),
-        // V29–V37 (ADR-038), likewise.
+        // V29–V37 (ADR-038), likewise. A finding that carries its own severity (V43 when the file declares
+        // the policy the hop needs) keeps it.
         ...validatePaletteConformance(ir).map((d) => ({ severity: 'warning' as const, ...d })),
       );
     }
 
-    return { success: true, ir, diagnostics };
+    return { success: !diagnostics.some((d) => d.severity === 'error'), ir, diagnostics };
   }
 }

@@ -148,6 +148,64 @@ ${moment}
   });
 });
 
+describe('ADR-040 D4 V43 decides strictly when the file declares the policy it needs', () => {
+  const hop = (moment: string): string => `${CLINIC}
+flow "Purchase"
+  lane proc "Ticketing" [Core]
+  moment "Hop"
+${moment}
+`;
+  const v43 = async (source: string): Promise<{ success: boolean; severities: string[] }> => {
+    const result = await new MomentParser().parseContent(source);
+    return {
+      success: result.success,
+      severities: result.diagnostics.filter((d) => d.ruleId === 'V43').map((d) => d.severity),
+    };
+  };
+
+  it('fails a single file whose policy does not declare the hop to the policy (a)', async () => {
+    const r = await v43(
+      hop(
+        '    proc: PurchaseStarted\n    proc: BillOnCompletion\n      triggered-by PurchaseStarted',
+      ),
+    );
+    expect(r).toEqual({ success: false, severities: ['error'] });
+  });
+
+  it('fails a single file whose policy does not chain to the command (b)', async () => {
+    const r = await v43(
+      hop(
+        '    proc: BillOnCompletion\n    proc: StartPurchase\n      triggered-by BillOnCompletion',
+      ),
+    );
+    expect(r).toEqual({ success: false, severities: ['error'] });
+  });
+
+  it('passes a hop the file declares', async () => {
+    const r = await v43(
+      hop(
+        '    proc: PurchaseCompleted\n    proc: BillOnCompletion\n      triggered-by PurchaseCompleted',
+      ),
+    );
+    expect(r).toEqual({ success: true, severities: [] });
+    const chained = await v43(
+      hop(
+        '    proc: BillOnCompletion\n    proc: ReserveSeats\n      triggered-by BillOnCompletion',
+      ),
+    );
+    expect(chained).toEqual({ success: true, severities: [] });
+  });
+
+  it('stays advisory when the deciding policy could live in another file (c)', async () => {
+    const r = await v43(
+      hop(
+        '    proc: PurchaseStarted\n    proc: FinishPurchase\n      triggered-by PurchaseStarted',
+      ),
+    );
+    expect(r).toEqual({ success: true, severities: ['warning'] });
+  });
+});
+
 describe('ADR-040 validators over hand-built nodes', () => {
   const services = new MomentParser() as unknown as {
     services: { validation: { MomentValidator: MomentValidator } };
@@ -199,5 +257,29 @@ describe('ADR-040 validators over hand-built nodes', () => {
     const { messages, accept } = collect();
     validator().checkV5(hop as never, accept);
     expect(messages).toEqual([]);
+  });
+
+  it('V5 treats a node its moment does not hold as having no earlier siblings', () => {
+    const sibling = { $type: 'NodePlacement', laneId: 'a', nodeName: 'Sibling', connections: [] };
+    const other = { $type: 'NodePlacement', laneId: 'a', nodeName: 'Other', connections: [] };
+    const stray = {
+      $type: 'NodePlacement',
+      laneId: 'a',
+      nodeName: 'Stray',
+      connections: [{ $type: 'TriggeredBy', nodeName: 'Sibling' }],
+    };
+    const moment = {
+      $type: 'MomentDeclaration',
+      label: 'M',
+      nodes: [sibling, other],
+      whenBlocks: [],
+    };
+    const flow = { $type: 'FlowDeclaration', name: 'F', lanes: [], moments: [moment] };
+    Object.assign(stray, { $container: moment });
+    Object.assign(moment, { $container: flow });
+    const { messages, accept } = collect();
+    validator().checkV5(stray as never, accept);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatch(/^V5:/);
   });
 });

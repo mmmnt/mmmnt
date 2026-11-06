@@ -17,7 +17,11 @@ import type {
   SagaDefinition,
 } from '../ir/index.js';
 
-type Finding = Pick<Diagnostic, 'message' | 'ruleId'>;
+/**
+ * A finding carries its own severity only when the rule can decide on what the IR holds; without one the
+ * caller's severity applies (a warning per file, an error over a merged project).
+ */
+type Finding = Pick<Diagnostic, 'message' | 'ruleId'> & { readonly severity?: 'error' };
 
 interface Known {
   events: Set<string>;
@@ -311,32 +315,46 @@ function v41v42Placements(ir: IntermediateRepresentation, commands: CauseCommand
 interface SameMomentTrigger {
   readonly cause: string;
   readonly node: string;
-  readonly momentId: string;
+  readonly momentName: string;
+}
+
+interface MomentNames {
+  readonly name: string;
+  /** The nodes this moment places that no earlier moment placed. */
+  readonly names: Set<string>;
 }
 
 /** The `triggered-by` connections whose cause sits in the same moment as the node, and whose node the model declares. */
 function sameMomentTrigger(
   conn: ConnectionDefinition,
-  sameMoment: Map<string, Set<string>>,
+  sameMoment: Map<string, MomentNames>,
   known: Set<string>,
 ): SameMomentTrigger[] {
   const { sourceNodeName: cause, targetNodeName: node } = conn;
   if (conn.connectionType !== 'triggered-by' || cause === undefined || node === undefined)
     return [];
-  if (!known.has(node) || !sameMoment.get(conn.sourceMomentId)?.has(cause)) return [];
-  return [{ cause, node, momentId: conn.sourceMomentId }];
+  const moment = sameMoment.get(conn.sourceMomentId);
+  if (!known.has(node) || !moment?.names.has(cause)) return [];
+  return [{ cause, node, momentName: moment.name }];
 }
 
 /**
  * V43 (ADR-040 D4): a `triggered-by` whose cause is placed in the same moment, and in no earlier one, is
  * a hop a policy declares: (a) event -> the policy it triggers, (b) policy -> the command it chains to,
  * (c) event -> a command that a policy triggered by the event chains to. A target the model does not
- * declare is not checked, so a single file without the project only has V5's source-order check.
+ * declare is not checked.
+ *
+ * Severity follows what the IR can decide. In (a) the node is a policy and in (b) the cause is a policy,
+ * so the declaration that would support the hop is the policy's own and the IR holds it: a refusal is an
+ * error. In (c) the supporting policy is any policy triggered by the event, and it may be declared in a
+ * file the IR does not include: a refusal is left to the caller (an advisory per file, an error over a
+ * merged project).
  */
 function v43(ir: IntermediateRepresentation): Finding[] {
   const policies = ir.contexts.flatMap((c) => c.policies);
+  const policyNames = new Set(policies.map((p) => p.name));
   const known = new Set([
-    ...policies.map((p) => p.name),
+    ...policyNames,
     ...ir.contexts.flatMap((c) => [
       ...c.commands.map((m) => m.name),
       ...c.events.map((e) => e.name),
@@ -352,22 +370,27 @@ function v43(ir: IntermediateRepresentation): Finding[] {
     );
   return (ir.flows ?? []).flatMap((flow) => {
     const earlier = new Set<string>();
-    const sameMoment = new Map<string, Set<string>>();
+    const sameMoment = new Map<string, MomentNames>();
     for (const moment of flow.moments) {
       const names = [
         ...moment.contextEntries,
         ...(moment.branches ?? []).flatMap((b) => b.entries),
       ].map((e) => e.nodeName);
-      sameMoment.set(moment.id, new Set(names.filter((n) => !earlier.has(n))));
+      sameMoment.set(moment.id, {
+        name: moment.name,
+        names: new Set(names.filter((n) => !earlier.has(n))),
+      });
       names.forEach((n) => earlier.add(n));
     }
-    const momentNames = new Map(flow.moments.map((m) => [m.id, m.name]));
     return flow.connections
       .flatMap((conn) => sameMomentTrigger(conn, sameMoment, known))
       .filter((t) => !declared(t))
       .map((t) => ({
         ruleId: 'V43',
-        message: `Flow '${flow.name}' moment '${momentNames.get(t.momentId)}': '${t.node}' is triggered-by '${t.cause}' in the same moment, but no policy declares that hop.`,
+        message: `Flow '${flow.name}' moment '${t.momentName}': '${t.node}' is triggered-by '${t.cause}' in the same moment, but no policy declares that hop.`,
+        ...(policyNames.has(t.node) || policyNames.has(t.cause)
+          ? { severity: 'error' as const }
+          : {}),
       }));
   });
 }

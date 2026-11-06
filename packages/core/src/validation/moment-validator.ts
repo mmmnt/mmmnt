@@ -754,7 +754,9 @@ export class MomentValidator {
     const inOrder = hasCst
       ? all.slice().sort((a, b) => (a.$cstNode as CstNode).offset - (b.$cstNode as CstNode).offset)
       : all;
-    return inOrder.slice(0, inOrder.indexOf(node));
+    const at = inOrder.indexOf(node);
+    // A node its moment does not hold has no earlier siblings; indexOf's -1 must not become slice(0, -1).
+    return at < 0 ? [] : inOrder.slice(0, at);
   }
 
   private checkCrossFileNodeRules(node: NodePlacement, accept: ValidationAcceptor): void {

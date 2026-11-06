@@ -541,6 +541,38 @@ describe('V43 same-moment hops', () => {
     expect(rules(r)).toEqual([]);
   });
 
+  it('marks a refusal as an error when the file declares the policy the hop needs', () => {
+    const r = model(
+      [moment('m0', 'PaymentTaken', 'ReserveOnOrder')],
+      [trig('m0', 'PaymentTaken', 'ReserveOnOrder')],
+    );
+    expect(validatePaletteConformance(r).map((f) => f.severity)).toEqual(['error']);
+  });
+
+  it('marks a refusal over a cause that is a declared policy as an error', () => {
+    const r = model(
+      [moment('m0', 'ReserveOnOrder', 'PlaceOrder')],
+      [trig('m0', 'ReserveOnOrder', 'PlaceOrder')],
+    );
+    expect(validatePaletteConformance(r).map((f) => f.severity)).toEqual(['error']);
+  });
+
+  it('leaves a refusal advisory when only another file could declare the policy', () => {
+    const r = model(
+      [moment('m0', 'PaymentTaken', 'TakePayment')],
+      [trig('m0', 'PaymentTaken', 'TakePayment')],
+    );
+    expect(validatePaletteConformance(r).map((f) => f.severity)).toEqual([undefined]);
+  });
+
+  it('names the moment in the message', () => {
+    const r = model(
+      [moment('m0', 'PaymentTaken', 'ReserveOnOrder')],
+      [trig('m0', 'PaymentTaken', 'ReserveOnOrder')],
+    );
+    expect(validatePaletteConformance(r)[0]?.message).toContain("moment 'm0'");
+  });
+
   it('stays quiet for IR with no flow connections', () => {
     expect(rules(ir({}))).toEqual([]);
   });

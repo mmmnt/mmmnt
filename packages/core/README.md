@@ -199,7 +199,7 @@ The grammar source is [`src/grammar/moment.langium`](src/grammar/moment.langium)
 
 ## Validation Rules
 
-V22–V43 compare names across declarations, so their severity depends on how much of the model the parser can see. `MomentParser.parseContent` reports them as **warnings** for a single file that declares contexts; `ProjectLoader.loadProject` reports them as **errors** over the merged project, where a missing name is genuinely missing. Each diagnostic carries its id in `ruleId`.
+V22–V43 compare names across declarations, so their severity depends on how much of the model the parser can see. `MomentParser.parseContent` reports them as **warnings** for a single file that declares contexts; `ProjectLoader.loadProject` reports them as **errors** over the merged project, where a missing name is genuinely missing. Each diagnostic carries its id in `ruleId`. The exception is V43, which is an **error** in a single file whenever the file declares the policy that the hop involves.
 
 | Rule | Checks |
 |------|--------|
@@ -226,7 +226,7 @@ V22–V43 compare names across declarations, so their severity depends on how mu
 | V40 | An event is declared by one owner, an aggregate or an orchestration. |
 | V41 | A `cause` on a precondition or a placement is one of the command's declared `causes`. |
 | V42 | A command with cause-scoped preconditions is placed with its `cause`. |
-| V43 | A same-moment `triggered-by` is a hop a policy declares. |
+| V43 | A same-moment `triggered-by` is a hop a policy declares. An error even in a single file when the node or the cause is a policy the file declares; an advisory per file otherwise (the supporting policy may be in another file). |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
