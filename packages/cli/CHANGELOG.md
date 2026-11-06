@@ -1,5 +1,28 @@
 # @mmmnt/cli
 
+## 0.7.2
+
+### Patch Changes
+
+- Audit fixes and corrections to the 0.7.0 notes.
+
+  - **V43 is an error in a single file when the file can decide.** A same-moment `triggered-by` must be a hop a policy declares. When the node is a policy (event -> policy) or the cause is a policy (policy -> command), the supporting declaration is that policy's own, so a file that declares the policy now fails with V43 instead of passing with a warning. When the hop is event -> command, the supporting policy may be declared in another file, so V43 stays an advisory per file; over a merged project it is always an error. This restores the guarantee V5 gave before it was relaxed, without needing the whole project when the file already holds the answer.
+  - **V5 keeps its safe default.** A `triggered-by` check on a node that its moment does not hold sees no earlier siblings, rather than all but the last. The V43 message names the moment from the flow's own moment list.
+  - **Two fixtures no longer end on a `[terminal]` that no rule needed.** `fixtures/valid/process-constructs` and `fixtures/valid/model-completeness` return to their original last node.
+  - **Vet-clinic names removed from the ADR-040 tests, fixtures and the DSL page**, re-themed to ticketwave. The ADR-040 document now names the real `*-adr040.spec.ts` files and no longer carries a stray field, an invalid `timeout "48h"` or a leftover flow name.
+  - **Correction to the 0.7.0 notes.** `causes`, as well as `note` and `cause`, became a keyword: a node (command, event, policy and so on) named `causes` no longer parses. Lane names and field names are unaffected.
+  - **Correction to the 0.7.0 notes: derived topology.** A placed policy is now routed in the topology by its own name, and an orchestration command is typed and routed as `SimProcess.<Name>`. The `eventRouting` of every model that places a policy gains those entries, so a regenerated topology differs from one derived with 0.6.x.
+
+- Updated dependencies []:
+  - @mmmnt/core@0.7.2
+  - @mmmnt/derive@0.7.2
+  - @mmmnt/emit-ts@0.7.2
+  - @mmmnt/generate@0.7.2
+  - @mmmnt/harness@0.7.2
+  - @mmmnt/schema@0.7.2
+  - @mmmnt/sync@0.7.2
+  - @mmmnt/viz@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes
