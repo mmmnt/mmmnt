@@ -343,12 +343,12 @@ describe('MomentParser', () => {
   describe('string escapes', () => {
     const source = String.raw`context "Records" [Core]
   description "Says \"hi\" from C:\\depot"
-  aggregate "Patient"
-    identity patientId: UUID
-    event PatientAdmitted
-      patientId: UUID
-      ward: string [deprecated "Use \"unit\"" -> "patientId"]
-    event PatientNoted
+  aggregate "Customer"
+    identity customerId: UUID
+    event CustomerRegistered
+      customerId: UUID
+      ward: string [deprecated "Use \"unit\"" -> "customerId"]
+    event CustomerNoted
       note: string
   term "\"Ward\"" "A unit
 spanning two lines"
@@ -360,8 +360,8 @@ spanning two lines"
       expect(result.success).toBe(true);
       const ctx = result.ir!.contexts[0];
       expect(ctx.description).toBe('Says "hi" from C:\\depot');
-      const ward = ctx.events.find((e) => e.name === 'PatientAdmitted')!.fields[1];
-      expect(ward.deprecated).toEqual({ reason: 'Use "unit"', replacement: 'patientId' });
+      const ward = ctx.events.find((e) => e.name === 'CustomerRegistered')!.fields[1];
+      expect(ward.deprecated).toEqual({ reason: 'Use "unit"', replacement: 'customerId' });
     });
 
     it('keeps quotes that begin and end the string content', async () => {

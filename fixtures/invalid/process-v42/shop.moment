@@ -3,14 +3,14 @@ context "Shop" [Core]
   aggregate "Order"
     identity orderId: UUID
     command CancelOrder
-      causes OwnerRequest, ShopClosure
-      precondition Window cause OwnerRequest: "Ahead of time"
+      causes CustomerRequest, VenueClosure
+      precondition Window cause CustomerRequest: "Ahead of time"
       emits OrderCancelled
     event OrderCancelled
       orderId: UUID
 
 flow "Cancel"
   lane shop "Shop" [Core]
-  moment "Owner asks"
+  moment "Customer asks"
     shop: CancelOrder
     shop: OrderCancelled

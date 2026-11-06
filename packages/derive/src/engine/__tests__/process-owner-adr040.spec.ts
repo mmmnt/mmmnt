@@ -14,7 +14,7 @@ context "Ticketing" [Core]
       customerId: UUID
   policy BillOnCompletion
     trigger PurchaseCompleted
-    action "Bill the owner"
+    action "Bill the customer"
     chains-to ReserveSeats
   orchestration PurchaseProcess
     command StartPurchase
@@ -25,7 +25,7 @@ context "Ticketing" [Core]
       customerId: UUID
     event PurchaseCompleted
       customerId: UUID
-      bedId: UUID
+      orderId: UUID
     invoked-by StartPurchase
     issues ReserveSeats
     states Started
@@ -56,7 +56,7 @@ beforeAll(async () => {
 describe('ADR-040 D1 a process event is attributed to its orchestration', () => {
   it('lists a process event in the event catalog, produced by its process command', () => {
     const entry = generateEventCatalog(ir).events.find((e) => e.eventName === 'PurchaseCompleted');
-    expect(entry?.schema.fields.map((f) => f.name)).toEqual(['customerId', 'bedId']);
+    expect(entry?.schema.fields.map((f) => f.name)).toEqual(['customerId', 'orderId']);
     expect(entry?.producer).toEqual({
       context: 'Ticketing',
       aggregate: '',
@@ -98,7 +98,7 @@ context "Ordering" [Core]
   aggregate "Order"
     identity orderId: UUID
     command CancelOrder
-      causes CustomerRequest, ShopClosure
+      causes CustomerRequest, VenueClosure
       precondition Window cause CustomerRequest: "Ahead of time"
       emits OrderCancelled
     event OrderCancelled

@@ -13,7 +13,7 @@ async function load(source: string): Promise<IntermediateRepresentation> {
   return result.ir;
 }
 
-const CLINIC = `
+const TICKETING = `
 context "Ticketing" [Core]
   aggregate "Booking"
     identity bookingId: UUID
@@ -21,7 +21,7 @@ context "Ticketing" [Core]
       input bookingId: UUID
       causes CustomerRequest, OrganiserCancellation
       precondition BookingIsOpen: "The booking has not been completed"
-      precondition WithinRefundWindow cause CustomerRequest: "The owner cancels 24 hours ahead"
+      precondition WithinRefundWindow cause CustomerRequest: "The customer cancels 24 hours ahead"
       emits BookingCancelled
     event BookingCancelled
       bookingId: UUID
@@ -41,7 +41,7 @@ flow "Ticketing cancels"
 
 describe('ADR-040 D2 cause-scoped negative scenarios', () => {
   it('derives a scoped precondition only in the flow that places its cause', async () => {
-    const ir = await load(CLINIC);
+    const ir = await load(TICKETING);
     const owner = deriveNegativeScenarios(ir, ir.flows[0]).map((s) => s.scenarioId);
     const ticketing = deriveNegativeScenarios(ir, ir.flows[1]).map((s) => s.scenarioId);
 
@@ -50,7 +50,7 @@ describe('ADR-040 D2 cause-scoped negative scenarios', () => {
   });
 
   it('derives an unscoped precondition in both flows', async () => {
-    const ir = await load(CLINIC);
+    const ir = await load(TICKETING);
     for (const flow of ir.flows) {
       const ids = deriveNegativeScenarios(ir, flow).map((s) => s.scenarioId);
       expect(ids.some((id) => id.endsWith('neg-CancelBooking-BookingIsOpen'))).toBe(true);
@@ -58,7 +58,7 @@ describe('ADR-040 D2 cause-scoped negative scenarios', () => {
   });
 
   it('names the cause in the failure event and the when text', async () => {
-    const ir = await load(CLINIC);
+    const ir = await load(TICKETING);
     const scenario = deriveNegativeScenarios(ir, ir.flows[0]).find((s) =>
       s.scenarioId.includes('WithinRefundWindow'),
     );
@@ -92,7 +92,7 @@ flow "F"
   });
 });
 
-const ADMISSION = `
+const PURCHASE_PROCESS = `
 context "Ticketing" [Core]
   aggregate "Customer"
     identity customerId: UUID
@@ -102,7 +102,7 @@ context "Ticketing" [Core]
       customerId: UUID
   policy BillOnCompletion
     trigger PurchaseCompleted
-    action "Bill the owner"
+    action "Bill the customer"
     chains-to ReserveSeats
   orchestration PurchaseProcess
     command StartPurchase
@@ -137,13 +137,13 @@ flow "Purchase"
 
 describe('ADR-040 D1/D2 orchestration commands in derivation', () => {
   it('derives negative scenarios for a placed orchestration command', async () => {
-    const ir = await load(ADMISSION);
+    const ir = await load(PURCHASE_PROCESS);
     const ids = deriveNegativeScenarios(ir, ir.flows[0]).map((s) => s.scenarioId);
     expect(ids.some((id) => id.endsWith('neg-StartPurchase-CustomerIsRegistered'))).toBe(true);
   });
 
   it('puts a process event in the stream after its command, with its declared fields', async () => {
-    const ir = await load(ADMISSION);
+    const ir = await load(PURCHASE_PROCESS);
     const events = generateSimulationScenario(ir, ir.flows[0]).events;
     const types = events.map((e) => e.eventType);
     expect(types.indexOf('PurchaseCompleted')).toBe(types.indexOf('SimProcess.FinishPurchase') + 1);
@@ -153,7 +153,7 @@ describe('ADR-040 D1/D2 orchestration commands in derivation', () => {
   });
 
   it('reaches a policy triggered by a process event, caused by that event', async () => {
-    const ir = await load(ADMISSION);
+    const ir = await load(PURCHASE_PROCESS);
     const events = generateSimulationScenario(ir, ir.flows[0]).events;
     const completed = events.find((e) => e.eventType === 'PurchaseCompleted');
     const policy = events.find((e) => e.eventType === 'BillOnCompletion');

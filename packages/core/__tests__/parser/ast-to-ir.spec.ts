@@ -961,7 +961,7 @@ describe('AstToIr', () => {
       context "Records" [Core]
         @classification(PHI)
         @retention(HIPAA)
-        aggregate "PatientRecord"
+        aggregate "CustomerRecord"
           identity recordId: UUID
 
           @classification(PHI)

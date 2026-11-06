@@ -10,7 +10,7 @@ async function errors(source: string): Promise<string[]> {
     .map((d) => d.message.split(':')[0]);
 }
 
-const CLINIC = `
+const TICKETING = `
 context "Ticketing" [Core]
   aggregate "Customer"
     identity customerId: UUID
@@ -20,7 +20,7 @@ context "Ticketing" [Core]
       customerId: UUID
   policy BillOnCompletion
     trigger PurchaseCompleted
-    action "Bill the owner"
+    action "Bill the customer"
     chains-to ReserveSeats
   orchestration PurchaseProcess
     command StartPurchase
@@ -40,7 +40,7 @@ context "Ticketing" [Core]
 
 describe('ADR-040 D1 flows place process commands and process events', () => {
   it('resolves an orchestration command and a process event as declared building blocks (V1)', async () => {
-    const source = `${CLINIC}
+    const source = `${TICKETING}
 flow "Purchase"
   lane proc "Ticketing" [Core]
   moment "Purchase starts"
@@ -149,7 +149,7 @@ ${moment}
 });
 
 describe('ADR-040 D4 V43 decides strictly when the file declares the policy it needs', () => {
-  const hop = (moment: string): string => `${CLINIC}
+  const hop = (moment: string): string => `${TICKETING}
 flow "Purchase"
   lane proc "Ticketing" [Core]
   moment "Hop"

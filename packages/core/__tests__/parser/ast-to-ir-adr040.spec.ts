@@ -30,7 +30,7 @@ async function toIr(input: string) {
   return astToIr(doc.parseResult.value);
 }
 
-const ADMISSION = `
+const PURCHASE_PROCESS = `
 context "Ticketing" [Core]
   aggregate "Customer"
     identity customerId: UUID
@@ -48,7 +48,7 @@ context "Ticketing" [Core]
       customerId: UUID
     event PurchaseCompleted
       customerId: UUID
-      bedId: UUID
+      orderId: UUID
     event PurchaseAbandoned
       customerId: UUID
     invoked-by StartPurchase
@@ -60,20 +60,20 @@ context "Ticketing" [Core]
 
 describe('ADR-040 D1 process events', () => {
   it('parses events declared inside an orchestration into SagaDefinition.events', async () => {
-    const ir = await toIr(ADMISSION);
+    const ir = await toIr(PURCHASE_PROCESS);
     const saga = ir.contexts[0].sagas[0];
     expect(saga.events?.map((e) => e.name)).toEqual([
       'PurchaseStarted',
       'PurchaseCompleted',
       'PurchaseAbandoned',
     ]);
-    expect(saga.events?.[1].fields.map((f) => f.name)).toEqual(['customerId', 'bedId']);
+    expect(saga.events?.[1].fields.map((f) => f.name)).toEqual(['customerId', 'orderId']);
     expect(saga.trigger).toBe('StartPurchase');
     expect(saga.timeout).toBe('purchaseWindow');
   });
 
   it('sets owner on every event and adds process events to the flat context list', async () => {
-    const ir = await toIr(ADMISSION);
+    const ir = await toIr(PURCHASE_PROCESS);
     const ctx = ir.contexts[0];
     const byName = Object.fromEntries(ctx.events.map((e) => [e.name, e]));
     expect(byName.CustomerRegistered.owner).toEqual({ kind: 'aggregate', name: 'Customer' });
@@ -106,7 +106,7 @@ context "C" [Core]
   });
 });
 
-const APPOINTMENT = `
+const CANCELLATION = `
 context "Ticketing" [Core]
   aggregate "Booking"
     identity bookingId: UUID
@@ -132,7 +132,7 @@ flow "Customer cancels"
 
 describe('ADR-040 D2 causes', () => {
   it('reads causes on a command and a cause clause on a precondition', async () => {
-    const ir = await toIr(APPOINTMENT);
+    const ir = await toIr(CANCELLATION);
     const cmd = ir.contexts[0].commands[0];
     expect(cmd.causes).toEqual(['CustomerRequest', 'OrganiserCancellation']);
     expect(cmd.preconditions[0].causes).toBeUndefined();
@@ -141,7 +141,7 @@ describe('ADR-040 D2 causes', () => {
   });
 
   it('reads the cause of a placement into MomentEntry.cause', async () => {
-    const ir = await toIr(APPOINTMENT);
+    const ir = await toIr(CANCELLATION);
     const moments = ir.flows[0].moments;
     expect(moments[0].contextEntries[0].cause).toBe('CustomerRequest');
     expect(moments[0].contextEntries[1].cause).toBeUndefined();

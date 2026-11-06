@@ -22,7 +22,7 @@ ADR-038 already gave a process its own commands, so "a command outside an aggreg
 
 A command is sometimes issued for different causes: by a person asking, by the system acting on a rule, by a correction. Some refusals apply only to one cause. Example, ticketwave: `CancelBooking` is issued when a customer asks to cancel (cause `CustomerRequest`) and when the organiser cancels because the event is called off (cause `OrganiserCancellation`). The refusal `WithinRefundWindow` ("cancelling less than 24 hours ahead is refused") is a rule of the customer's request. The organiser's own cancellation is never refused for that reason.
 
-Today a precondition belongs to the command and applies to every use of it. `deriveNegativeScenarios` therefore derives `neg-CancelBooking-WithinRefundWindow` for every flow that places `CancelBooking`, including the ticketing-closure flow, where the scenario is false: the derived failure cannot happen. An author must either split the command (two commands for one intent, breaking the ubiquitous language and the one-command-one-event symmetry), drop the precondition (losing a real rule and its test), or accept false negative scenarios.
+Today a precondition belongs to the command and applies to every use of it. `deriveNegativeScenarios` therefore derives `neg-CancelBooking-WithinRefundWindow` for every flow that places `CancelBooking`, including the flow where the organiser cancels, where the scenario is false: the derived failure cannot happen. An author must either split the command (two commands for one intent, breaking the ubiquitous language and the one-command-one-event symmetry), drop the precondition (losing a real rule and its test), or accept false negative scenarios.
 
 ### 3. A step of a flow that is not a declarable thing
 
@@ -54,14 +54,14 @@ orchestration PurchaseProcess
     customerId: UUID
   event PurchaseCompleted
     customerId: UUID
-    bedId: UUID
+    orderId: UUID
   event PurchaseAbandoned
     customerId: UUID
   invoked-by StartPurchase
   issues RequestFraudCheck, HoldSeats
   states Started
   compensation on AbandonPurchase issues ReleaseSeats
-  timeout "48h"
+  timeout purchaseWindow
 ```
 
 Grammar (`moment.langium`):
@@ -299,12 +299,13 @@ Specs and what they assert:
 |---|---|
 | `packages/core/__tests__/grammar/moment-grammar.spec.ts` (extended) | Syntax of `event` in an orchestration, `causes`, `cause`, `note`; a field named `cause`, `causes`, `note` still parses; the `invoked-by` ambiguity (see Consequences) is resolved. |
 | `packages/core/__tests__/parser/ast-to-ir-adr040.spec.ts` (new) | IR: `owner`, `SagaDefinition.events`, `causes`, `MomentEntry.cause`, `notes`, `sequence` with notes; process events are in the flat `ctx.events`. |
-| `packages/core/__tests__/validation/moment-validator.spec.ts` (extended) | V5 (order and same-moment target), V10 (note counts), each invalid fixture produces exactly its rule id and no other. |
+| `packages/core/__tests__/validation/moment-validator-adr040.spec.ts` (new) | V5 (order and same-moment target), V10 (note counts), V13 for a note, V43 as an error in a single file that declares the policy the hop needs and an advisory otherwise. |
+| `packages/core/__tests__/project/project-loader-adr040.spec.ts` (new) | The valid corpus loads clean and reaches every construct; each invalid fixture produces exactly its rule id and no other. |
 | `packages/core/__tests__/validation/palette-conformance.spec.ts` (extended) | V31 reworded; V40, V41, V42, V43 driven both ways over hand-built IR; IR that predates ADR-040 stays quiet. |
-| `packages/derive/src/engine/__tests__/simulation-scenario-generator.spec.ts` (extended) | A placed process command derives its negatives. A cause-scoped precondition derives a negative in the flow that places the matching cause and none in the flow that places the other cause. An unscoped precondition derives in both. Re-introducing the defect (ignoring `cause` in `findPreconditions`) fails the "none in the other flow" case. |
-| `packages/derive/src/engine/__tests__/` (new `simulation-adr040.spec.ts`) | A process command's emitted event appears in the stream and a policy triggered by it is reachable; a note-only moment adds no events; a same-moment hop resolves its causation event to the earlier node. |
-| `packages/generate/src/gherkin/__tests__/gherkin-generator.spec.ts` (extended) | A note renders as a comment line and no step; the specification document narrates it. |
-| `packages/viz/src/__tests__/` (extended) | A note-only moment, a same-moment arrow and a cause chip render. |
+| `packages/derive/src/engine/__tests__/simulation-adr040.spec.ts` (new) | A placed process command derives its negatives. A cause-scoped precondition derives a negative in the flow that places the matching cause and none in the flow that places the other cause; an unscoped precondition derives in both. A process command's emitted event appears in the stream and a policy triggered by it is reachable; a note-only moment adds no events; a same-moment hop resolves its causation event to the earlier node. Re-introducing the defect (ignoring `cause` in `findPreconditions`) fails the "none in the other flow" case. |
+| `packages/derive/src/engine/__tests__/process-owner-adr040.spec.ts` and `process-constructs-fixture-adr040.spec.ts` (new) | A process event is attributed to its orchestration in the catalog, impact analysis and topology; the valid corpus derives end to end. |
+| `packages/generate/src/__tests__/services/generate-adr040.spec.ts` (new) | A note renders as a comment line and no step; the specification document narrates it. |
+| `packages/viz/src/__tests__/flow-timeline-adr040.spec.ts` (new) | A note-only moment, a same-moment arrow and a cause chip are laid out. |
 | `packages/emit-ts/src/__tests__/services/typescript-emitter-adr040.spec.ts` (new) | Process events are emitted as types. |
 | `packages/core/__tests__/integration/grammar-backward-compat.integration.spec.ts` (extended) | Every fixture that parsed before ADR-040 still parses with the same IR except the new optional fields. |
 
