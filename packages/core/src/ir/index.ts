@@ -57,4 +57,4 @@ export type { ParseResult, ValidationResult, Diagnostic, SourceLocation } from '
 
 export type { ImportResult, UpstreamFingerprint } from './import-result.js';
 
-export { emitOutcomes, emittedEvents, type EmitsFields } from './emits.js';
+export { emitOutcomes, emittedEvents, matchEmitOutcome, type EmitsFields } from './emits.js';

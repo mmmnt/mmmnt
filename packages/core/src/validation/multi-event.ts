@@ -24,7 +24,7 @@ import type {
   CommandDefinition,
   SagaDefinition,
 } from '../ir/index.js';
-import { emitOutcomes, emittedEvents } from '../ir/emits.js';
+import { emitOutcomes, emittedEvents, matchEmitOutcome } from '../ir/emits.js';
 
 export type Finding = Pick<Diagnostic, 'message' | 'ruleId'> & {
   readonly severity?: 'error' | 'warning';
@@ -227,21 +227,11 @@ function placements(ir: IntermediateRepresentation): Placement[] {
     });
 }
 
-/** Which outcome the placed events record: an exact match, else the first outcome that holds them all. */
-function matchOutcome(outcomes: EmitOutcomeDefinition[], placed: string[]): number {
-  const exact = outcomes.findIndex(
-    (o) => o.events.length === placed.length && placed.every((e) => o.events.includes(e)),
-  );
-  return exact !== -1
-    ? exact
-    : outcomes.findIndex((o) => placed.every((e) => o.events.includes(e)));
-}
-
 function v47(placed: Placement[]): Finding[] {
   return placed.flatMap((p): Finding[] => {
     const outcomes = emitOutcomes(p.command);
     const where = `Flow '${p.flow}' moment '${p.moment}'`;
-    const i = matchOutcome(outcomes, p.placed);
+    const i = matchEmitOutcome(outcomes, p.placed);
     if (i === -1)
       return [
         {
@@ -266,7 +256,7 @@ function v47(placed: Placement[]): Finding[] {
 function v48(ir: IntermediateRepresentation, placed: Placement[]): Finding[] {
   const reached = new Map<AnyCommand, Set<number>>();
   for (const p of placed) {
-    const i = matchOutcome(emitOutcomes(p.command), p.placed);
+    const i = matchEmitOutcome(emitOutcomes(p.command), p.placed);
     if (i !== -1) reached.set(p.command, (reached.get(p.command) ?? new Set()).add(i));
   }
   return ir.contexts.flatMap((ctx) =>
