@@ -8,6 +8,7 @@ import type {
   ValueObjectDefinition,
   FieldDefinition,
 } from '@mmmnt/core';
+import { emitOutcomes, emittedEvents } from '@mmmnt/core';
 import type { GenerationScope, GenerationResult } from '../types/index.js';
 
 export interface EmitOptions {
@@ -151,6 +152,28 @@ function generateTypesFile(aggregate: AggregateDefinition): string {
   return parts.join('\n');
 }
 
+/**
+ * ADR-041 D5: `emits A` returns `A`; `emits A, B` returns `readonly [A, B]`; `emits A | B` returns
+ * `A | B`; `emits A, B | C` returns `readonly [A, B] | C`. A command that emits nothing returns `void`.
+ */
+function handlerReturnType(cmd: CommandDefinition): string {
+  const members = emitOutcomes(cmd).map((o) => {
+    const events = o.events.map(toPascalCase);
+    return events.length === 1 ? events[0] : `readonly [${events.join(', ')}]`;
+  });
+  return members.length === 0 ? 'void' : [...new Set(members)].join(' | ');
+}
+
+/** One `@emits` tag per distinct event, then `@outcome <State>: <events>` for each guarded outcome. */
+function emitsTags(cmd: CommandDefinition): string[] {
+  return [
+    ...emittedEvents(cmd).map((e) => `   * @emits ${toPascalCase(e)}`),
+    ...emitOutcomes(cmd)
+      .filter((o) => o.whenState !== undefined)
+      .map((o) => `   * @outcome ${o.whenState ?? ''}: ${o.events.map(toPascalCase).join(', ')}`),
+  ];
+}
+
 function generateAggregateFile(aggregate: AggregateDefinition): string {
   const aggregateName = toPascalCase(aggregate.name);
   const kebabName = toKebabCase(aggregate.name);
@@ -185,7 +208,7 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
     const cmdName = toPascalCase(cmd.name);
     const handlerName =
       cmd.name.charAt(0).toLowerCase() + cmd.name.slice(1).replace(/[^A-Za-z0-9_$]/g, '');
-    const eventName = cmd.emitsEvent ? toPascalCase(cmd.emitsEvent) : 'void';
+    const returnType = handlerReturnType(cmd);
 
     const jsdocLines: string[] = [];
     jsdocLines.push(`  /**`);
@@ -193,12 +216,10 @@ function generateAggregateFile(aggregate: AggregateDefinition): string {
     for (const pre of cmd.preconditions) {
       jsdocLines.push(`   * @precondition ${sanitizeJsDoc(pre.description)}`);
     }
-    if (cmd.emitsEvent) {
-      jsdocLines.push(`   * @emits ${toPascalCase(cmd.emitsEvent)}`);
-    }
+    jsdocLines.push(...emitsTags(cmd));
     jsdocLines.push(`   */`);
     parts.push(jsdocLines.join('\n'));
-    parts.push(`  ${safePropertyKey(handlerName)}(command: ${cmdName}): ${eventName};`);
+    parts.push(`  ${safePropertyKey(handlerName)}(command: ${cmdName}): ${returnType};`);
   }
 
   parts.push('}');
