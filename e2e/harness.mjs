@@ -181,12 +181,12 @@ test('emit-ts: --dry-run lists files without writing', (assert) => {
 
 console.log('\n=== Simulate ===');
 
-test('simulate: ticketwave produces 4 scenarios, 90 events', (assert) => {
+test('simulate: ticketwave produces 4 scenarios, 92 events', (assert) => {
   const r = run('simulate', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(
-    r.stdout.includes('Generated 4 simulation scenario(s), 90 events'),
-    '4 scenarios, 90 events',
+    r.stdout.includes('Generated 4 simulation scenario(s), 92 events'),
+    '4 scenarios, 92 events',
   );
   assert(r.stdout.includes('Branches: 2'), 'general-admission-purchase has 2 branches');
 });
