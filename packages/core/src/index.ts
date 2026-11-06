@@ -29,3 +29,4 @@ export type {
   GeneratorRunResult,
   GeneratorScope,
 } from './generators/index.js';
+export { momentPlacements, type MomentPlacement } from './validation/multi-event.js';

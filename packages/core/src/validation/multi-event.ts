@@ -185,30 +185,48 @@ interface Placement {
   readonly placed: string[];
 }
 
-function placementsIn(
-  flow: string,
+/** One placement of a command in a moment, and the event steps the flow places for it (ADR-041 V47, D5, D6). */
+export interface MomentPlacement {
+  readonly command: AnyCommand;
+  readonly commandEntry: MomentEntry;
+  /** The event steps of this path that the command can record, between it and the next command of its lane. */
+  readonly events: readonly MomentEntry[];
+}
+
+/**
+ * Every placement of a command in a moment, along each path through it. A path is the main entries, or
+ * the entries before a `when` block plus that block's own. `commandOf` resolves a command step by name;
+ * a step it does not resolve is no command.
+ */
+export function momentPlacements(
   moment: MomentDefinition,
-  commands: Map<string, AnyCommand>,
-): Placement[] {
+  commandOf: (name: string) => AnyCommand | undefined,
+): MomentPlacement[] {
   return momentPaths(moment).flatMap((path) =>
-    path.flatMap((entry, i) => {
-      const command = entry.nodeKind === 'command' ? commands.get(entry.nodeName) : undefined;
+    path.flatMap((entry, i): MomentPlacement[] => {
+      const command = entry.nodeKind === 'command' ? commandOf(entry.nodeName) : undefined;
       if (command === undefined) return [];
       const emitted = new Set(emittedEvents(command));
       const next = path.findIndex(
         (e, j) => j > i && e.nodeKind === 'command' && e.contextId === entry.contextId,
       );
-      const following = path.slice(i + 1, next === -1 ? undefined : next);
-      const placed = [
-        ...new Set(
-          following
-            .filter((e) => e.nodeKind === 'event' && emitted.has(e.nodeName))
-            .map((e) => e.nodeName),
-        ),
-      ];
-      return placed.length === 0 ? [] : [{ flow, moment: moment.name, command, placed }];
+      const events = path
+        .slice(i + 1, next === -1 ? undefined : next)
+        .filter((e) => e.nodeKind === 'event' && emitted.has(e.nodeName));
+      return [{ command, commandEntry: entry, events }];
     }),
   );
+}
+
+function placementsIn(
+  flow: string,
+  moment: MomentDefinition,
+  commands: Map<string, AnyCommand>,
+): Placement[] {
+  return momentPlacements(moment, (name) => commands.get(name)).flatMap((p) => {
+    const placed = [...new Set(p.events.map((e) => e.nodeName))];
+    return placed.length === 0 ? [] : [{ flow, moment: moment.name, command: p.command, placed }];
+  });
 }
 
 function placements(ir: IntermediateRepresentation): Placement[] {
