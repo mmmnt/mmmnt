@@ -14,5 +14,5 @@ flow "Purchase"
   moment "The customer is sent a receipt"
     ticketing: ReceiptOnPurchaseCompleted
       triggered-by PurchaseCompleted
-    ticketing: IssueReceipt [terminal]
+    ticketing: IssueReceipt
       triggered-by ReceiptOnPurchaseCompleted
