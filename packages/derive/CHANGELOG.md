@@ -1,5 +1,12 @@
 # @mmmnt/derive
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.8.0
+
 ## 0.7.2
 
 ### Patch Changes

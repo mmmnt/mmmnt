@@ -1,5 +1,16 @@
 # @mmmnt/mcp
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.8.0
+  - @mmmnt/derive@0.8.0
+  - @mmmnt/emit-ts@0.8.0
+  - @mmmnt/sync@0.8.0
+  - @mmmnt/viz@0.8.0
+
 ## 0.7.2
 
 ### Patch Changes
