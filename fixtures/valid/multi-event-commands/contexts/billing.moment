@@ -1,0 +1,58 @@
+// ADR-041 corpus exemplar: a command records one or more events. The aggregate shapes (events recorded
+// together, alternatives chosen by state, the unguarded form) and the orchestration shapes that
+// examples/ticketwave does not use.
+context "Billing" [Core]
+  aggregate "Invoice"
+    identity invoiceId: UUID
+    state initial Draft
+    state Draft -> Issued on IssueInvoice
+    command IssueInvoice
+      input invoiceId: UUID
+      precondition hasLines: "The invoice has at least one line"
+      emits InvoiceIssued, InvoiceNumbered
+    command SettleInvoice
+      input invoiceId: UUID, amount: Money
+      precondition isIssued: "The invoice was issued"
+      emits InvoiceSettled | InvoicePartlySettled
+    command VoidInvoice
+      input invoiceId: UUID
+      emits InvoiceVoided when Draft | InvoiceVoided, CreditNoted when Issued
+    event InvoiceIssued
+      invoiceId: UUID
+    event InvoiceNumbered
+      invoiceId: UUID
+      invoiceNumber: string
+    event InvoiceSettled
+      invoiceId: UUID
+    event InvoicePartlySettled
+      invoiceId: UUID
+      outstanding: Money
+    event InvoiceVoided
+      invoiceId: UUID
+    event CreditNoted
+      invoiceId: UUID
+
+  orchestration CollectionRun
+    command StartRun
+      input invoiceId: UUID
+      emits RunStarted, RunLogged
+    command FinishRun
+      emits RunSucceeded when Collecting | RunAbandoned when Closed
+    event RunStarted
+      invoiceId: UUID
+    event RunLogged
+      invoiceId: UUID
+    event RunSucceeded
+      invoiceId: UUID
+    event RunAbandoned
+      invoiceId: UUID
+    invoked-by StartRun
+    issues SettleInvoice
+    states Collecting -> Closed on FinishRun
+    compensation none
+    timeout window
+
+  policy FinishRunOnSettled
+    trigger InvoiceSettled
+    action "The invoice is settled; finish the collection run"
+    chains-to FinishRun

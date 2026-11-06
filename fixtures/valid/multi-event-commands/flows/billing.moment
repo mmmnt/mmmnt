@@ -1,0 +1,30 @@
+flow "Billing"
+  description "An invoice is issued with its number, then settled in full or in part, or voided"
+
+  lane billing "Billing" [Core]
+
+  moment "Invoice is issued"
+    billing: IssueInvoice
+    billing: InvoiceIssued
+    billing: InvoiceNumbered
+
+  moment "Invoice is settled" [branch]
+    when in-full
+      billing: SettleInvoice
+      billing: InvoiceSettled
+    when in-part
+      billing: SettleInvoice
+      billing: InvoicePartlySettled
+
+  moment "Collection run starts"
+    billing: StartRun
+    billing: RunStarted
+    billing: RunLogged
+
+  moment "Collection run finishes" [branch]
+    when collected
+      billing: FinishRun
+      billing: RunSucceeded
+    when given-up
+      billing: FinishRun
+      billing: RunAbandoned

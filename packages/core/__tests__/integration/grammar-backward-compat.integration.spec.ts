@@ -32,7 +32,31 @@ function collectMomentFiles(dir: string): string[] {
   return results.sort();
 }
 
+/**
+ * ADR-041 D3: the plain `emits A` writes `emitsEvent` and nothing else, so the IR of every model that
+ * parsed before the clause existed is byte-identical. A command carries `outcomes` only for a clause
+ * that says more than one event, more than one outcome, or a guard; and `emitsEvent` stays the first
+ * event of the first outcome, so a consumer that predates the field reads a real event.
+ */
+function assertEmitsInvariants(ir: IntermediateRepresentation): void {
+  const commands = ir.contexts.flatMap((c) => [
+    ...c.commands,
+    ...c.aggregates.flatMap((a) => a.commands),
+    ...c.sagas.flatMap((s) => s.commands ?? []),
+  ]);
+  for (const cmd of commands) {
+    if (cmd.outcomes === undefined) continue;
+    const plain =
+      cmd.outcomes.length === 1 &&
+      cmd.outcomes[0].events.length === 1 &&
+      cmd.outcomes[0].whenState === undefined;
+    expect(plain, `${cmd.name} writes outcomes for a plain 'emits'`).toBe(false);
+    expect(cmd.emitsEvent).toBe(cmd.outcomes[0].events[0]);
+  }
+}
+
 function assertAdditiveFieldInvariants(ir: IntermediateRepresentation): void {
+  assertEmitsInvariants(ir);
   // Saga compat: `states` keeps its flat shape; `transitions` mirrors it.
   for (const ctx of ir.contexts) {
     for (const saga of ctx.sagas) {

@@ -1,0 +1,24 @@
+// ADR-041 invalid exemplar: V31 — every event of every outcome of an orchestration command is its own.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PackOrder
+      emits OrderPacked
+    event OrderPacked
+      orderId: UUID
+  orchestration Fulfilment
+    command StartFulfilment
+      emits FulfilmentStarted, FulfilmentGhost
+    event FulfilmentStarted
+      orderId: UUID
+    invoked-by StartFulfilment
+    issues PackOrder
+    states Running
+    compensation none
+    timeout window
+
+flow "Fulfil"
+  lane shop "Shop" [Core]
+  moment "Started"
+    shop: StartFulfilment
+    shop: FulfilmentStarted

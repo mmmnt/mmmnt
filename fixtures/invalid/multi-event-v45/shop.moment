@@ -1,0 +1,16 @@
+// ADR-041 invalid exemplar: V45 — an event is listed once inside one outcome.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    state initial Open
+    state Open -> Packed on PackOrder
+    command PackOrder
+      emits OrderPacked, OrderPacked
+    event OrderPacked
+      orderId: UUID
+
+flow "Pack"
+  lane shop "Shop" [Core]
+  moment "Packed"
+    shop: PackOrder
+    shop: OrderPacked

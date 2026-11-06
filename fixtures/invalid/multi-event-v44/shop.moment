@@ -1,0 +1,26 @@
+// ADR-041 invalid exemplar: V44 — a command that records several events records only its own aggregate's.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    state initial Open
+    state Open -> Packed on PackOrder
+    command PackOrder
+      emits OrderPacked, PaymentTaken
+    event OrderPacked
+      orderId: UUID
+  aggregate "Payment"
+    identity paymentId: UUID
+    command TakePayment
+      emits PaymentTaken
+    event PaymentTaken
+      paymentId: UUID
+
+flow "Pack"
+  lane shop "Shop" [Core]
+  moment "Packed"
+    shop: PackOrder
+    shop: OrderPacked
+    shop: PaymentTaken
+  moment "Paid"
+    shop: TakePayment
+    shop: PaymentTaken

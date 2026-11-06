@@ -67,6 +67,8 @@ export class ProjectLoader {
     const sortedPaths = [...filePaths].sort();
     const allDiagnostics: Diagnostic[] = [];
     const successfulIrs: IntermediateRepresentation[] = [];
+    // A file that failed adds no IR, so the merged validation cannot report its findings again; its own stay.
+    const failedDiagnostics = new Set<Diagnostic>();
     let filesErrored = 0;
 
     // Phase 1: Parse each file independently.
@@ -78,6 +80,7 @@ export class ProjectLoader {
         successfulIrs.push(parseResult.ir);
       } else {
         filesErrored++;
+        parseResult.diagnostics.forEach((d) => failedDiagnostics.add(d));
       }
     }
 
@@ -92,7 +95,9 @@ export class ProjectLoader {
     // Phase 3: Cross-file validation on the merged IR. V22–V37 are advisories per file and errors over
     // the merge, which supersedes them.
     const validationResult = validateCrossFileReferences(mergeResult.ir);
-    const perFile = allDiagnostics.filter((d) => !isCompletenessRule(d));
+    const perFile = allDiagnostics.filter(
+      (d) => failedDiagnostics.has(d) || !isCompletenessRule(d),
+    );
     allDiagnostics.length = 0;
     allDiagnostics.push(
       ...perFile,

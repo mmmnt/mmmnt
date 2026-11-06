@@ -245,7 +245,14 @@ function placements(ir: IntermediateRepresentation): Placement[] {
     });
 }
 
-function v47(placed: Placement[]): Finding[] {
+function v47(ir: IntermediateRepresentation, placed: Placement[]): Finding[] {
+  // An event the model does not declare cannot be placed; V31 and V38 already report it.
+  const declared = new Set(
+    ir.contexts.flatMap((c) => [
+      ...c.events.map((e) => e.name),
+      ...c.sagas.flatMap((s) => (s.events ?? []).map((e) => e.name)),
+    ]),
+  );
   return placed.flatMap((p): Finding[] => {
     const outcomes = emitOutcomes(p.command);
     const where = `Flow '${p.flow}' moment '${p.moment}'`;
@@ -257,7 +264,7 @@ function v47(placed: Placement[]): Finding[] {
           message: `${where}: ${p.placed.map((e) => `'${e}'`).join(', ')} follow one placement of '${p.command.name}' but no single outcome of it records them together; its outcomes are alternatives.`,
         },
       ];
-    const missing = outcomes[i].events.filter((e) => !p.placed.includes(e));
+    const missing = outcomes[i].events.filter((e) => !p.placed.includes(e) && declared.has(e));
     return missing.length === 0
       ? []
       : [
@@ -311,7 +318,7 @@ export function validateMultiEvent(
   const placed = placements(ir);
   return [
     ...ir.contexts.flatMap((ctx) => [...v44(ctx), ...v45(ctx), ...v46(ctx)]),
-    ...v47(placed),
+    ...v47(ir, placed),
     ...(options.merged ? v48(ir, placed) : []),
   ];
 }

@@ -1,0 +1,23 @@
+// ADR-041 invalid exemplar: V46 — a guard names a state the aggregate declares.
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    state initial Open
+    state Open -> Packed on PackOrder
+    command PackOrder
+      emits OrderPacked when Open | OrderPacked, OrderLabelled when Lost
+    event OrderPacked
+      orderId: UUID
+    event OrderLabelled
+      orderId: UUID
+
+flow "Pack"
+  lane shop "Shop" [Core]
+  moment "Packed" [branch]
+    when plain
+      shop: PackOrder
+      shop: OrderPacked
+    when labelled
+      shop: PackOrder
+      shop: OrderPacked
+      shop: OrderLabelled

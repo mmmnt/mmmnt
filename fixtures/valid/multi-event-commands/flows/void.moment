@@ -1,0 +1,13 @@
+flow "Void"
+  description "An invoice is voided before it is issued, or credited after"
+
+  lane billing "Billing" [Core]
+
+  moment "Invoice is voided" [branch]
+    when draft
+      billing: VoidInvoice
+      billing: InvoiceVoided
+    when issued
+      billing: VoidInvoice
+      billing: InvoiceVoided
+      billing: CreditNoted
