@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "@mmmnt/emit-ts": "workspace:*",
-    "isomorphic-git": "^1.44.8",
+    "isomorphic-git": "^1.44.10",
     "typescript": "^5.9.3"
   },
   "publishConfig": {
