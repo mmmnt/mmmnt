@@ -4,6 +4,7 @@ import type {
   FlowDefinition,
   ConnectionDefinition,
 } from '@mmmnt/core';
+import { emittedEvents } from '@mmmnt/core';
 
 type CrossingConnection = Extract<ConnectionDefinition, { connectionType: 'crosses-to' }>;
 
@@ -90,22 +91,30 @@ function addCommandNodes(
   for (const agg of context.aggregates) {
     for (const cmd of agg.commands) {
       const cmdNode = getOrCreate(nodeMap, 'command', cmd.name, context.name);
-      if (cmd.emitsEvent) {
-        const evtNode = getOrCreate(nodeMap, 'event', cmd.emitsEvent, context.name);
-        cmdNode.triggers.push(nodeKey('event', cmd.emitsEvent, context.name));
-        evtNode.dependsOn.push(nodeKey('command', cmd.name, context.name));
-      }
+      linkCommandToEvents(cmdNode, cmd, context, nodeMap);
     }
   }
   // An orchestration command that emits a process event (ADR-040 D1) is a producer like an aggregate's.
   for (const saga of context.sagas) {
     for (const cmd of saga.commands ?? []) {
-      if (!cmd.emitsEvent) continue;
+      if (emittedEvents(cmd).length === 0) continue;
       const cmdNode = getOrCreate(nodeMap, 'command', cmd.name, context.name);
-      const evtNode = getOrCreate(nodeMap, 'event', cmd.emitsEvent, context.name);
-      cmdNode.triggers.push(nodeKey('event', cmd.emitsEvent, context.name));
-      evtNode.dependsOn.push(nodeKey('command', cmd.name, context.name));
+      linkCommandToEvents(cmdNode, cmd, context, nodeMap);
     }
+  }
+}
+
+/** A command triggers every event of every outcome, and each of them depends on it (ADR-041 D5). */
+function linkCommandToEvents(
+  cmdNode: MutableImpactNode,
+  cmd: Parameters<typeof emittedEvents>[0] & { name: string },
+  context: ContextDefinition,
+  nodeMap: Map<string, MutableImpactNode>,
+): void {
+  for (const event of emittedEvents(cmd)) {
+    const evtNode = getOrCreate(nodeMap, 'event', event, context.name);
+    cmdNode.triggers.push(nodeKey('event', event, context.name));
+    evtNode.dependsOn.push(nodeKey('command', cmd.name, context.name));
   }
 }
 

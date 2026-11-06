@@ -9,6 +9,7 @@ import type {
   FlowDefinition,
   ConnectionDefinition,
 } from '@mmmnt/core';
+import { emitOutcomes, emittedEvents } from '@mmmnt/core';
 import { orderedMomentChildren } from './moment-children.js';
 
 type CrossingConnection = Extract<ConnectionDefinition, { connectionType: 'crosses-to' }>;
@@ -31,6 +32,10 @@ export interface EventCatalogEntry {
     /** The orchestration that declares a process event (ADR-040 D1); absent for an aggregate event. */
     readonly process?: string;
     readonly command: string;
+    /** The other events of every outcome that contains this event: recorded in one transaction with it (ADR-041 D5). */
+    readonly recordedWith?: readonly string[];
+    /** The events of the outcomes that do not contain this event: recorded instead of it, by state (ADR-041 D5). */
+    readonly alternativeTo?: readonly string[];
   };
   readonly consumers: readonly {
     readonly context: string;
@@ -235,7 +240,7 @@ function buildProcessCatalogEntry(
   context: ContextDefinition,
   ir: IntermediateRepresentation,
 ): EventCatalogEntry {
-  const command = (saga.commands ?? []).find((c) => c.emitsEvent === event.name);
+  const command = (saga.commands ?? []).find((c) => emittedEvents(c).includes(event.name));
   return {
     eventName: event.name,
     kind: 'event',
@@ -252,6 +257,7 @@ function buildProcessCatalogEntry(
       aggregate: '',
       process: saga.name,
       command: command?.name ?? '',
+      ...(command ? recordedAlongside(command, event.name) : {}),
     },
     consumers: findConsumers(event, ir),
     temporalLocation: findTemporalLocation(event, ir),
@@ -263,11 +269,35 @@ function findProducerCommand(
   aggregate: AggregateDefinition,
   context: ContextDefinition,
 ): EventCatalogEntry['producer'] {
-  const command = aggregate.commands.find((c) => c.emitsEvent === event.name);
+  const command = aggregate.commands.find((c) => emittedEvents(c).includes(event.name));
   return {
     context: context.name,
     aggregate: aggregate.name,
     command: command?.name ?? '',
+    ...(command ? recordedAlongside(command, event.name) : {}),
+  };
+}
+
+/**
+ * ADR-041 D5: how the producing command relates this event to its siblings. Both fields are absent for a
+ * command that records one event, so a single-event model's catalog is unchanged.
+ */
+function recordedAlongside(
+  command: Parameters<typeof emitOutcomes>[0],
+  eventName: string,
+): { recordedWith?: string[]; alternativeTo?: string[] } {
+  const outcomes = emitOutcomes(command);
+  const distinct = (events: string[]): string[] =>
+    [...new Set(events)].filter((e) => e !== eventName);
+  const recordedWith = distinct(
+    outcomes.filter((o) => o.events.includes(eventName)).flatMap((o) => o.events),
+  );
+  const alternativeTo = distinct(
+    outcomes.filter((o) => !o.events.includes(eventName)).flatMap((o) => o.events),
+  );
+  return {
+    ...(recordedWith.length > 0 ? { recordedWith } : {}),
+    ...(alternativeTo.length > 0 ? { alternativeTo } : {}),
   };
 }
 

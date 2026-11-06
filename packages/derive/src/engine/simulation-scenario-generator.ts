@@ -33,6 +33,7 @@ import type {
   SagaTransitionDefinition,
   PreconditionDefinition,
 } from '@mmmnt/core';
+import { multiEventPlacements, type Placement } from './multi-event-placement.js';
 import { orderedMomentChildren } from './moment-children.js';
 
 /**
@@ -195,7 +196,7 @@ export function generateSimulationScenario(
     kind: resolveScenarioKind(walk.reachedBranches),
     description: flow.description ?? `Full lifecycle flow: ${flow.name}`,
     given: `A ${(flow.moments[0]?.name ?? '').toLowerCase()} scenario is initiated`,
-    when: buildWhenClause(flow, nodes),
+    when: buildWhenClause(flow, nodes, contextMap),
     then: buildThenClause(flow, nodes, contextNames),
     expectedPath: nodes.map((n) => n.nodeId),
     activeBranches,
@@ -614,17 +615,23 @@ function generateEvents(
 ): SimulationEvent[] {
   const events: SimulationEvent[] = [];
   const eventIds = nodes.map((_, i) => `evt-${String(i + 1).padStart(3, '0')}`);
+  // ADR-041 D6: the events one multi-event command records share its step's cause and timestamp.
+  const placements = placementsOf(nodes, contextMap);
+  const commandOfEvent = new Map(placements.flatMap((p) => p.events.map((k) => [k, p.command])));
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
-    const timestamp = new Date(baseTime.getTime() + i * 1000).toISOString();
-    const causationEventIds = findCausationEvents(node, nodes, flow, eventIds, i);
+    const recordedBy = commandOfEvent.get(i);
+    const timestamp = new Date(baseTime.getTime() + (recordedBy ?? i) * 1000).toISOString();
+    const causationEventIds = findCausationEvents(node, nodes, flow, eventIds, i, recordedBy);
 
     // 2a: resolve actual node kind from context map
     const effectiveKind = resolveNodeKind(node.nodeName, node.contextId, contextMap, node.nodeKind);
     const eventType = resolveEventType(node, effectiveKind);
     const productSource = resolveProductSource(node, effectiveKind, contextMap);
     const payload = buildPayload(node, effectiveKind, contextMap, flow);
+    const whenState = placements.find((p) => p.command === i)?.whenState;
+    if (whenState !== undefined) payload.whenState = whenState;
 
     events.push({
       eventId: eventIds[i],
@@ -654,6 +661,7 @@ function findCausationEvents(
   flow: FlowDefinition,
   eventIds: string[],
   currentIndex: number,
+  recordedBy?: number,
 ): string[] {
   const causation: string[] = [];
 
@@ -666,7 +674,10 @@ function findCausationEvents(
   }
 
   const deduped = [...new Set(causation)];
-  if (deduped.length === 0 && currentIndex > 0) {
+  if (deduped.length === 0 && recordedBy !== undefined) {
+    // An event recorded by a multi-event command (ADR-041 D6) is a sibling of the others, not their effect.
+    deduped.push(eventIds[recordedBy]);
+  } else if (deduped.length === 0 && currentIndex > 0) {
     deduped.push(eventIds[currentIndex - 1]);
   }
   return deduped;
@@ -1284,9 +1295,37 @@ function generatePlaceholder(type: string, name: string): unknown {
   return {};
 }
 
-function buildWhenClause(flow: FlowDefinition, nodes: NodeInfo[]): string {
+function buildWhenClause(
+  flow: FlowDefinition,
+  nodes: NodeInfo[],
+  contextMap: Map<string, ContextDefinition>,
+): string {
   const momentNames = [...new Set(nodes.map((n) => n.momentName))];
-  return `The flow progresses through ${momentNames.join(', ')}`;
+  const base = `The flow progresses through ${momentNames.join(', ')}`;
+  // ADR-041 D6: a guard is the declared reason the path reaches an outcome, not a prediction.
+  const guards = placementsOf(nodes, contextMap)
+    .filter((p) => p.whenState !== undefined)
+    .map((p) => {
+      const owner = ownerNameOf(nodes[p.command], contextMap);
+      return `${nodes[p.command].nodeName} is invoked while ${owner} is ${p.whenState ?? ''}`;
+    });
+  return [base, ...guards].join('; ');
+}
+
+/** The placements of multi-event commands along a walked path (ADR-041 D6). */
+function placementsOf(nodes: NodeInfo[], contextMap: Map<string, ContextDefinition>): Placement[] {
+  return multiEventPlacements(nodes, (n) => {
+    const ctx = contextMap.get(n.contextId);
+    return ctx ? findCommand(ctx, n.nodeName) : undefined;
+  });
+}
+
+/** The aggregate or orchestration that owns a command, for the text of a guard. */
+function ownerNameOf(node: NodeInfo, contextMap: Map<string, ContextDefinition>): string {
+  const ctx = contextMap.get(node.contextId);
+  const aggregate = ctx?.aggregates.find((a) => a.commands.some((c) => c.name === node.nodeName));
+  const saga = ctx?.sagas.find((s) => (s.commands ?? []).some((c) => c.name === node.nodeName));
+  return aggregate?.name ?? saga?.name ?? node.contextName;
 }
 
 function buildThenClause(flow: FlowDefinition, nodes: NodeInfo[], contextNames: string[]): string {
