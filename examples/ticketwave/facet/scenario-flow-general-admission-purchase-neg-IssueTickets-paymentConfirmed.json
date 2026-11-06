@@ -33,6 +33,7 @@
     "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
     "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
     "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
+    "moment-12-Hold-conversion::inventory::HoldClosed::main",
     "moment-13-Ticket-issuance::delivery::IssueTickets::main"
   ],
   "activeBranches": [
@@ -543,7 +544,7 @@
         "evt-023"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:23.000Z",
+      "timestamp": "2026-01-01T10:00:22.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
@@ -554,6 +555,23 @@
     },
     {
       "eventId": "evt-025",
+      "eventType": "HoldClosed",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-general-admission-purchase",
+      "causationEventIds": [
+        "evt-023"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase",
+      "timestamp": "2026-01-01T10:00:22.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-12-Hold-conversion::inventory::HoldClosed::main",
+        "holdId": "holdId-001",
+        "closedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-026",
       "eventType": "SimProcess.IssueTickets",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
@@ -561,7 +579,7 @@
         "evt-022"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:24.000Z",
+      "timestamp": "2026-01-01T10:00:25.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
@@ -574,15 +592,15 @@
       }
     },
     {
-      "eventId": "evt-026",
+      "eventId": "evt-027",
       "eventType": "SimFailure.IssueTickets.PreconditionViolation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
       "causationEventIds": [
-        "evt-025"
+        "evt-026"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:25.000Z",
+      "timestamp": "2026-01-01T10:00:26.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
@@ -591,7 +609,7 @@
       }
     },
     {
-      "eventId": "evt-027",
+      "eventId": "evt-028",
       "eventType": "SimSaga.SeatHoldLifecycle.Held",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
@@ -599,7 +617,7 @@
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:26.000Z",
+      "timestamp": "2026-01-01T10:00:27.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",
@@ -608,7 +626,7 @@
       }
     },
     {
-      "eventId": "evt-028",
+      "eventId": "evt-029",
       "eventType": "SimSaga.SeatHoldLifecycle.Converting",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
@@ -616,7 +634,7 @@
         "evt-020"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:27.000Z",
+      "timestamp": "2026-01-01T10:00:28.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",
@@ -625,7 +643,7 @@
       }
     },
     {
-      "eventId": "evt-029",
+      "eventId": "evt-030",
       "eventType": "SimSaga.SeatHoldLifecycle.Converted",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase",
@@ -633,7 +651,7 @@
         "evt-024"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase",
-      "timestamp": "2026-01-01T10:00:28.000Z",
+      "timestamp": "2026-01-01T10:00:29.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",

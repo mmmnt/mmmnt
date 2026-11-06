@@ -1,0 +1,183 @@
+{
+  "scenarioId": "scenario-flow-presale-access-5",
+  "flowId": "flow-presale-access",
+  "flowName": "presale-access",
+  "scenarioLabel": "Failure Path: presale-access [last-use, window-expired]",
+  "kind": "failure",
+  "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
+  "given": "A presale window opens scenario is initiated",
+  "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome; RedeemAccessCode is invoked while AccessCode is OneUseLeft",
+  "then": "The flow completes at Code validation outcome across Presale, Window Closed",
+  "expectedPath": [
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+    "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br1",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br1",
+    "moment-1-Access-code-redemption::presale::AccessCodeExhausted::br1",
+    "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
+    "moment-2-Code-validation-outcome::presale::PresaleWindowClosed::br2",
+    "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "last-use",
+      "routeChosen": "last-use"
+    },
+    {
+      "momentName": "Code validation outcome",
+      "condition": "window-expired",
+      "routeChosen": "window-expired"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PresaleWindowOpened",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+        "windowId": "windowId-001",
+        "openedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.RedeemAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br1",
+        "processName": "RedeemAccessCode",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "outcome": "last-use",
+        "whenState": "OneUseLeft"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "AccessCodeRedeemed",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br1",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "windowId": "windowId-001",
+        "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "last-use"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "AccessCodeExhausted",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeExhausted::br1",
+        "codeId": "codeId-001",
+        "windowId": "windowId-001",
+        "exhaustedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "last-use"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SimProcess.ClosePresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
+        "processName": "ClosePresaleWindow",
+        "windowId": "windowId-001",
+        "outcome": "window-expired"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "PresaleWindowClosed",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::presale::PresaleWindowClosed::br2",
+        "windowId": "windowId-001",
+        "totalRedemptions": 0,
+        "closedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "window-expired"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "PresaleWindowClosed",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-presale-access-5",
+      "causationEventIds": [
+        "evt-007"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-5",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2",
+        "outcome": "window-expired"
+      }
+    }
+  ]
+}

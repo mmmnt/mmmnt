@@ -11,8 +11,8 @@
   "expectedPath": [
     "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
     "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
-    "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
-    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
     "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
     "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
     "moment-3-Presale-cart-creation::checkout::CreateCart::main",
@@ -26,6 +26,11 @@
     "moment-7-Presale-payment-confirmation::checkout::ConfirmPayment::main"
   ],
   "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "uses-remain",
+      "routeChosen": "uses-remain"
+    },
     {
       "momentName": "Code validation outcome",
       "condition": "valid",
@@ -77,12 +82,14 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
         "processName": "RedeemAccessCode",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
-        "eventId": "eventId-001"
+        "eventId": "eventId-001",
+        "outcome": "uses-remain",
+        "whenState": "Open"
       }
     },
     {
@@ -94,16 +101,17 @@
         "evt-003"
       ],
       "correlationId": "corr-scenario-flow-presale-access",
-      "timestamp": "2026-01-01T10:00:03.000Z",
+      "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
         "windowId": "windowId-001",
-        "redeemedAt": "2026-01-01T10:00:00.000Z"
+        "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "uses-remain"
       }
     },
     {

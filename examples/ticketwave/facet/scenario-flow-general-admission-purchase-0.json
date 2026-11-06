@@ -33,6 +33,7 @@
     "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
     "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
     "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
+    "moment-12-Hold-conversion::inventory::HoldClosed::main",
     "moment-13-Ticket-issuance::delivery::IssueTickets::main",
     "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
     "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
@@ -550,7 +551,7 @@
         "evt-023"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:23.000Z",
+      "timestamp": "2026-01-01T10:00:22.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
@@ -561,6 +562,23 @@
     },
     {
       "eventId": "evt-025",
+      "eventType": "HoldClosed",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-general-admission-purchase-0",
+      "causationEventIds": [
+        "evt-023"
+      ],
+      "correlationId": "corr-scenario-flow-general-admission-purchase-0",
+      "timestamp": "2026-01-01T10:00:22.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-12-Hold-conversion::inventory::HoldClosed::main",
+        "holdId": "holdId-001",
+        "closedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-026",
       "eventType": "SimProcess.IssueTickets",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
@@ -568,7 +586,7 @@
         "evt-022"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:24.000Z",
+      "timestamp": "2026-01-01T10:00:25.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
@@ -581,15 +599,15 @@
       }
     },
     {
-      "eventId": "evt-026",
+      "eventId": "evt-027",
       "eventType": "TicketsIssued",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
       "causationEventIds": [
-        "evt-025"
+        "evt-026"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:25.000Z",
+      "timestamp": "2026-01-01T10:00:26.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-13-Ticket-issuance::delivery::TicketsIssued::main",
@@ -603,15 +621,15 @@
       }
     },
     {
-      "eventId": "evt-027",
+      "eventId": "evt-028",
       "eventType": "SimProcess.GenerateMobilePass",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
       "causationEventIds": [
-        "evt-026"
+        "evt-027"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:26.000Z",
+      "timestamp": "2026-01-01T10:00:27.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-14-Mobile-pass-generation::delivery::GenerateMobilePass::main",
@@ -621,15 +639,15 @@
       }
     },
     {
-      "eventId": "evt-028",
+      "eventId": "evt-029",
       "eventType": "MobilePassGenerated",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
       "causationEventIds": [
-        "evt-027"
+        "evt-028"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:27.000Z",
+      "timestamp": "2026-01-01T10:00:28.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-14-Mobile-pass-generation::delivery::MobilePassGenerated::main",
@@ -640,7 +658,7 @@
       }
     },
     {
-      "eventId": "evt-029",
+      "eventId": "evt-030",
       "eventType": "SimProcess.SendOrderConfirmation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
@@ -648,7 +666,7 @@
         "evt-022"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:28.000Z",
+      "timestamp": "2026-01-01T10:00:29.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-15-Order-confirmation::notifications::SendOrderConfirmation::main",
@@ -662,15 +680,15 @@
       }
     },
     {
-      "eventId": "evt-030",
+      "eventId": "evt-031",
       "eventType": "OrderConfirmationSent",
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
       "causationEventIds": [
-        "evt-029"
+        "evt-030"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:29.000Z",
+      "timestamp": "2026-01-01T10:00:30.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-15-Order-confirmation::notifications::OrderConfirmationSent::main",
@@ -682,15 +700,15 @@
       }
     },
     {
-      "eventId": "evt-031",
+      "eventId": "evt-032",
       "eventType": "SimProcess.SendTicketDelivery",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
       "causationEventIds": [
-        "evt-026"
+        "evt-027"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:30.000Z",
+      "timestamp": "2026-01-01T10:00:31.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-16-Ticket-delivery-notification::notifications::SendTicketDelivery::main",
@@ -702,15 +720,15 @@
       }
     },
     {
-      "eventId": "evt-032",
+      "eventId": "evt-033",
       "eventType": "TicketDeliverySent",
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
       "causationEventIds": [
-        "evt-031"
+        "evt-032"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:31.000Z",
+      "timestamp": "2026-01-01T10:00:32.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-16-Ticket-delivery-notification::notifications::TicketDeliverySent::main",
@@ -722,7 +740,7 @@
       }
     },
     {
-      "eventId": "evt-033",
+      "eventId": "evt-034",
       "eventType": "SimSaga.SeatHoldLifecycle.Held",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
@@ -730,7 +748,7 @@
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:32.000Z",
+      "timestamp": "2026-01-01T10:00:33.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",
@@ -739,7 +757,7 @@
       }
     },
     {
-      "eventId": "evt-034",
+      "eventId": "evt-035",
       "eventType": "SimSaga.SeatHoldLifecycle.Converting",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
@@ -747,7 +765,7 @@
         "evt-020"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:33.000Z",
+      "timestamp": "2026-01-01T10:00:34.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",
@@ -756,7 +774,7 @@
       }
     },
     {
-      "eventId": "evt-035",
+      "eventId": "evt-036",
       "eventType": "SimSaga.SeatHoldLifecycle.Converted",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-general-admission-purchase-0",
@@ -764,7 +782,7 @@
         "evt-024"
       ],
       "correlationId": "corr-scenario-flow-general-admission-purchase-0",
-      "timestamp": "2026-01-01T10:00:34.000Z",
+      "timestamp": "2026-01-01T10:00:35.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",

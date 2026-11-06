@@ -6,13 +6,13 @@
   "kind": "happy",
   "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
   "given": "A presale window opens scenario is initiated",
-  "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome, Presale cart creation, Presale cart population, Presale fee calculation, Presale payment, Presale payment confirmation, Presale delivery trigger, Presale hold conversion, Presale ticket issuance, Presale confirmation, Presale ticket delivery",
+  "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome, Presale cart creation, Presale cart population, Presale fee calculation, Presale payment, Presale payment confirmation, Presale delivery trigger, Presale hold conversion, Presale ticket issuance, Presale confirmation, Presale ticket delivery; RedeemAccessCode is invoked while AccessCode is Open",
   "then": "The flow completes at Presale ticket delivery across Presale, Inventory, Checkout, Delivery, Notifications",
   "expectedPath": [
     "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
     "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
-    "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
-    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
     "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
     "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
     "moment-3-Presale-cart-creation::checkout::CreateCart::main",
@@ -28,6 +28,7 @@
     "moment-8-Presale-delivery-trigger::checkout::PaymentConfirmed::main",
     "moment-9-Presale-hold-conversion::inventory::ConvertHoldToReservation::main",
     "moment-9-Presale-hold-conversion::inventory::HoldConvertedToReservation::main",
+    "moment-9-Presale-hold-conversion::inventory::HoldClosed::main",
     "moment-10-Presale-ticket-issuance::delivery::IssueTickets::main",
     "moment-10-Presale-ticket-issuance::delivery::TicketsIssued::main",
     "moment-11-Presale-confirmation::notifications::SendOrderConfirmation::main",
@@ -36,6 +37,11 @@
     "moment-12-Presale-ticket-delivery::notifications::TicketDeliverySent::main"
   ],
   "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "uses-remain",
+      "routeChosen": "uses-remain"
+    },
     {
       "momentName": "Code validation outcome",
       "condition": "valid",
@@ -87,12 +93,14 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
         "processName": "RedeemAccessCode",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
-        "eventId": "eventId-001"
+        "eventId": "eventId-001",
+        "outcome": "uses-remain",
+        "whenState": "Open"
       }
     },
     {
@@ -104,16 +112,17 @@
         "evt-003"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:03.000Z",
+      "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
         "windowId": "windowId-001",
-        "redeemedAt": "2026-01-01T10:00:00.000Z"
+        "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "uses-remain"
       }
     },
     {
@@ -419,7 +428,7 @@
         "evt-018"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:18.000Z",
+      "timestamp": "2026-01-01T10:00:17.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-9-Presale-hold-conversion::inventory::HoldConvertedToReservation::main",
@@ -430,6 +439,23 @@
     },
     {
       "eventId": "evt-020",
+      "eventType": "HoldClosed",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-presale-access-0",
+      "causationEventIds": [
+        "evt-018"
+      ],
+      "correlationId": "corr-scenario-flow-presale-access-0",
+      "timestamp": "2026-01-01T10:00:17.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-9-Presale-hold-conversion::inventory::HoldClosed::main",
+        "holdId": "holdId-001",
+        "closedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-021",
       "eventType": "SimProcess.IssueTickets",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
@@ -437,7 +463,7 @@
         "evt-017"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:19.000Z",
+      "timestamp": "2026-01-01T10:00:20.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-10-Presale-ticket-issuance::delivery::IssueTickets::main",
@@ -450,15 +476,15 @@
       }
     },
     {
-      "eventId": "evt-021",
+      "eventId": "evt-022",
       "eventType": "TicketsIssued",
       "productSource": "delivery",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-020"
+        "evt-021"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:20.000Z",
+      "timestamp": "2026-01-01T10:00:21.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-10-Presale-ticket-issuance::delivery::TicketsIssued::main",
@@ -472,7 +498,7 @@
       }
     },
     {
-      "eventId": "evt-022",
+      "eventId": "evt-023",
       "eventType": "SimProcess.SendOrderConfirmation",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
@@ -480,7 +506,7 @@
         "evt-017"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:21.000Z",
+      "timestamp": "2026-01-01T10:00:22.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-11-Presale-confirmation::notifications::SendOrderConfirmation::main",
@@ -494,15 +520,15 @@
       }
     },
     {
-      "eventId": "evt-023",
+      "eventId": "evt-024",
       "eventType": "OrderConfirmationSent",
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-022"
+        "evt-023"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:22.000Z",
+      "timestamp": "2026-01-01T10:00:23.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-11-Presale-confirmation::notifications::OrderConfirmationSent::main",
@@ -514,15 +540,15 @@
       }
     },
     {
-      "eventId": "evt-024",
+      "eventId": "evt-025",
       "eventType": "SimProcess.SendTicketDelivery",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-021"
+        "evt-022"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:23.000Z",
+      "timestamp": "2026-01-01T10:00:24.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-12-Presale-ticket-delivery::notifications::SendTicketDelivery::main",
@@ -534,15 +560,15 @@
       }
     },
     {
-      "eventId": "evt-025",
+      "eventId": "evt-026",
       "eventType": "TicketDeliverySent",
       "productSource": "notifications",
       "sessionId": "sess-scenario-flow-presale-access-0",
       "causationEventIds": [
-        "evt-024"
+        "evt-025"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:24.000Z",
+      "timestamp": "2026-01-01T10:00:25.000Z",
       "version": 1,
       "payload": {
         "nodeId": "moment-12-Presale-ticket-delivery::notifications::TicketDeliverySent::main",
@@ -554,7 +580,7 @@
       }
     },
     {
-      "eventId": "evt-026",
+      "eventId": "evt-027",
       "eventType": "SimSaga.SeatHoldLifecycle.Held",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
@@ -562,7 +588,7 @@
         "evt-006"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:25.000Z",
+      "timestamp": "2026-01-01T10:00:26.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",
@@ -571,7 +597,7 @@
       }
     },
     {
-      "eventId": "evt-027",
+      "eventId": "evt-028",
       "eventType": "SimSaga.SeatHoldLifecycle.Converting",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
@@ -579,7 +605,7 @@
         "evt-016"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:26.000Z",
+      "timestamp": "2026-01-01T10:00:27.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",
@@ -588,7 +614,7 @@
       }
     },
     {
-      "eventId": "evt-028",
+      "eventId": "evt-029",
       "eventType": "SimSaga.SeatHoldLifecycle.Converted",
       "productSource": "moment:simulation",
       "sessionId": "sess-scenario-flow-presale-access-0",
@@ -596,7 +622,7 @@
         "evt-019"
       ],
       "correlationId": "corr-scenario-flow-presale-access-0",
-      "timestamp": "2026-01-01T10:00:27.000Z",
+      "timestamp": "2026-01-01T10:00:28.000Z",
       "version": 1,
       "payload": {
         "sagaName": "SeatHoldLifecycle",

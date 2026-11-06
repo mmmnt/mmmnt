@@ -6,18 +6,23 @@
   "kind": "failure",
   "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
   "given": "A presale window opens scenario is initiated",
-  "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome",
+  "when": "The flow progresses through Presale window opens, Access code redemption, Code validation outcome; RedeemAccessCode is invoked while AccessCode is Open",
   "then": "The flow completes at Code validation outcome across Presale, Invalid Code",
   "expectedPath": [
     "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
     "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
-    "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
-    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
     "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1",
     "moment-2-Code-validation-outcome::presale::AccessCodeInvalidated::br1",
     "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1"
   ],
   "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "uses-remain",
+      "routeChosen": "uses-remain"
+    },
     {
       "momentName": "Code validation outcome",
       "condition": "invalid",
@@ -69,12 +74,14 @@
       "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
         "processName": "RedeemAccessCode",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
-        "eventId": "eventId-001"
+        "eventId": "eventId-001",
+        "outcome": "uses-remain",
+        "whenState": "Open"
       }
     },
     {
@@ -86,16 +93,17 @@
         "evt-003"
       ],
       "correlationId": "corr-scenario-flow-presale-access-1",
-      "timestamp": "2026-01-01T10:00:03.000Z",
+      "timestamp": "2026-01-01T10:00:02.000Z",
       "version": 1,
       "payload": {
-        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
         "codeId": "codeId-001",
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
         "windowId": "windowId-001",
-        "redeemedAt": "2026-01-01T10:00:00.000Z"
+        "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "uses-remain"
       }
     },
     {

@@ -194,7 +194,7 @@ context "Inventory" [Core]
     command ConvertHoldToReservation
       input holdId: UUID, paymentConfirmationId: UUID
       precondition holdActive: "Hold must be active"
-      emits HoldConvertedToReservation
+      emits HoldConvertedToReservation, HoldClosed
 
     event SeatsHeld
       holdId: UUID
@@ -222,6 +222,10 @@ context "Inventory" [Core]
       holdId: UUID
       paymentConfirmationId: UUID
       convertedAt: DateTime
+
+    event HoldClosed
+      holdId: UUID
+      closedAt: DateTime
 
   value-object SeatAssignment
     seatId: UUID
@@ -488,6 +492,8 @@ context "Presale" [Supporting]
 
   aggregate "AccessCode"
     identity codeId: UUID
+    state initial Open
+    state Open -> OneUseLeft on RedeemAccessCode
 
     command GenerateAccessCodes
       input windowId: UUID, eventId: UUID, quantity: number, codePrefix: string
@@ -499,7 +505,8 @@ context "Presale" [Supporting]
       precondition codeValid: "Access code must be valid and unredeemed"
       precondition windowOpen: "Associated presale window must be currently open"
       precondition redemptionLimit: "Code must not have exceeded its redemption limit"
-      emits AccessCodeRedeemed
+      emits AccessCodeRedeemed when Open
+          | AccessCodeRedeemed, AccessCodeExhausted when OneUseLeft
 
     command InvalidateAccessCode
       input codeId: UUID, reason: string
@@ -519,6 +526,11 @@ context "Presale" [Supporting]
       eventId: UUID
       windowId: UUID
       redeemedAt: DateTime
+
+    event AccessCodeExhausted
+      codeId: UUID
+      windowId: UUID
+      exhaustedAt: DateTime
 
     event AccessCodeInvalidated
       codeId: UUID
@@ -1121,6 +1133,7 @@ flow "general-admission-purchase"
     inventory: ConvertHoldToReservation
       triggered-by PaymentConfirmed
     inventory: HoldConvertedToReservation
+    inventory: HoldClosed
 
   moment "Ticket issuance"
     delivery: IssueTickets
@@ -1162,9 +1175,14 @@ flow "presale-access"
     presale: OpenPresaleWindow
     presale: PresaleWindowOpened
 
-  moment "Access code redemption"
-    presale: RedeemAccessCode
-    presale: AccessCodeRedeemed
+  moment "Access code redemption" [branch]
+    when uses-remain
+      presale: RedeemAccessCode
+      presale: AccessCodeRedeemed
+    when last-use
+      presale: RedeemAccessCode
+      presale: AccessCodeRedeemed
+      presale: AccessCodeExhausted
 
   moment "Code validation outcome" [branch]
     when valid
@@ -1227,6 +1245,7 @@ flow "presale-access"
     inventory: ConvertHoldToReservation
       triggered-by PaymentConfirmed
     inventory: HoldConvertedToReservation
+    inventory: HoldClosed
 
   moment "Presale ticket issuance"
     delivery: IssueTickets

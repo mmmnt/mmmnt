@@ -81,23 +81,50 @@
     {
       "id": "moment-1-Access-code-redemption",
       "moment": "Access code redemption",
-      "isBranch": false,
+      "isBranch": true,
       "nodes": [
         {
-          "id": "moment-1-Access-code-redemption::presale::RedeemAccessCode::main",
+          "id": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
           "lane": "presale",
           "label": "RedeemAccessCode",
           "type": "command",
           "aggregate": "AccessCode"
         },
         {
-          "id": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main",
+          "id": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
           "lane": "presale",
           "label": "AccessCodeRedeemed",
           "type": "event",
           "aggregate": "AccessCode",
           "eventTypes": [
             "AccessCodeRedeemed"
+          ]
+        },
+        {
+          "id": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br1",
+          "lane": "presale",
+          "label": "RedeemAccessCode",
+          "type": "command",
+          "aggregate": "AccessCode"
+        },
+        {
+          "id": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br1",
+          "lane": "presale",
+          "label": "AccessCodeRedeemed",
+          "type": "event",
+          "aggregate": "AccessCode",
+          "eventTypes": [
+            "AccessCodeRedeemed"
+          ]
+        },
+        {
+          "id": "moment-1-Access-code-redemption::presale::AccessCodeExhausted::br1",
+          "lane": "presale",
+          "label": "AccessCodeExhausted",
+          "type": "event",
+          "aggregate": "AccessCode",
+          "eventTypes": [
+            "AccessCodeExhausted"
           ]
         }
       ]
@@ -337,6 +364,16 @@
           "aggregate": "SeatHold",
           "eventTypes": [
             "HoldConvertedToReservation"
+          ]
+        },
+        {
+          "id": "moment-9-Presale-hold-conversion::inventory::HoldClosed::main",
+          "lane": "inventory",
+          "label": "HoldClosed",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldClosed"
           ]
         }
       ]
@@ -580,10 +617,15 @@
       "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main"
     ],
     "SimProcess.RedeemAccessCode": [
-      "moment-1-Access-code-redemption::presale::RedeemAccessCode::main"
+      "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+      "moment-1-Access-code-redemption::presale::RedeemAccessCode::br1"
     ],
     "AccessCodeRedeemed": [
-      "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::main"
+      "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
+      "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br1"
+    ],
+    "AccessCodeExhausted": [
+      "moment-1-Access-code-redemption::presale::AccessCodeExhausted::br1"
     ],
     "SimProcess.RequestHold": [
       "moment-2-Code-validation-outcome::inventory::RequestHold::br0"
@@ -642,6 +684,9 @@
     "HoldConvertedToReservation": [
       "moment-9-Presale-hold-conversion::inventory::HoldConvertedToReservation::main"
     ],
+    "HoldClosed": [
+      "moment-9-Presale-hold-conversion::inventory::HoldClosed::main"
+    ],
     "SimProcess.IssueTickets": [
       "moment-10-Presale-ticket-issuance::delivery::IssueTickets::main"
     ],
@@ -662,6 +707,14 @@
     ]
   },
   "branchPredicates": {
+    "moment-1-Access-code-redemption": {
+      "field": "outcome",
+      "defaultRoute": "uses-remain",
+      "routes": {
+        "uses-remain": "uses-remain",
+        "last-use": "last-use"
+      }
+    },
     "moment-2-Code-validation-outcome": {
       "field": "outcome",
       "defaultRoute": "valid",

@@ -584,7 +584,41 @@
       "producer": {
         "context": "Inventory",
         "aggregate": "SeatHold",
-        "command": "ConvertHoldToReservation"
+        "command": "ConvertHoldToReservation",
+        "recordedWith": [
+          "HoldClosed"
+        ]
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Hold conversion",
+        "momentIndex": 12
+      }
+    },
+    {
+      "eventName": "HoldClosed",
+      "kind": "event",
+      "schema": {
+        "fields": [
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "closedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Inventory",
+        "aggregate": "SeatHold",
+        "command": "ConvertHoldToReservation",
+        "recordedWith": [
+          "HoldConvertedToReservation"
+        ]
       },
       "consumers": [],
       "temporalLocation": {
@@ -1188,7 +1222,49 @@
       "producer": {
         "context": "Presale",
         "aggregate": "AccessCode",
-        "command": "RedeemAccessCode"
+        "command": "RedeemAccessCode",
+        "recordedWith": [
+          "AccessCodeExhausted"
+        ]
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Access code redemption",
+        "momentIndex": 1
+      }
+    },
+    {
+      "eventName": "AccessCodeExhausted",
+      "kind": "event",
+      "schema": {
+        "fields": [
+          {
+            "name": "codeId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "windowId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "exhaustedAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "AccessCode",
+        "command": "RedeemAccessCode",
+        "recordedWith": [
+          "AccessCodeRedeemed"
+        ],
+        "alternativeTo": [
+          "AccessCodeRedeemed"
+        ]
       },
       "consumers": [],
       "temporalLocation": {
@@ -2878,7 +2954,7 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-05T22:52:39.555Z",
-    "totalEvents": 88
+    "generatedAt": "2026-11-06T07:16:31.970Z",
+    "totalEvents": 90
   }
 }

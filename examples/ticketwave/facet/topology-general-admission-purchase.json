@@ -444,6 +444,16 @@
           "eventTypes": [
             "HoldConvertedToReservation"
           ]
+        },
+        {
+          "id": "moment-12-Hold-conversion::inventory::HoldClosed::main",
+          "lane": "inventory",
+          "label": "HoldClosed",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldClosed"
+          ]
         }
       ]
     },
@@ -923,6 +933,9 @@
     ],
     "HoldConvertedToReservation": [
       "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main"
+    ],
+    "HoldClosed": [
+      "moment-12-Hold-conversion::inventory::HoldClosed::main"
     ],
     "SimProcess.IssueTickets": [
       "moment-13-Ticket-issuance::delivery::IssueTickets::main"

@@ -11,8 +11,8 @@
           "kind": "happy",
           "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
           "file": "scenario-flow-general-admission-purchase-0.json",
-          "eventCount": 35,
-          "pathLength": 32,
+          "eventCount": 36,
+          "pathLength": 33,
           "branchCount": 2,
           "isHappyPath": true,
           "isNegative": false
@@ -179,8 +179,8 @@
           "kind": "negative",
           "description": "Negative scenario: Payment must be confirmed before ticket issuance precondition violation at IssueTickets",
           "file": "scenario-flow-general-admission-purchase-neg-IssueTickets-paymentConfirmed.json",
-          "eventCount": 29,
-          "pathLength": 25,
+          "eventCount": 30,
+          "pathLength": 26,
           "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
@@ -191,8 +191,8 @@
           "kind": "negative",
           "description": "Negative scenario: Ticket must be issued precondition violation at GenerateMobilePass",
           "file": "scenario-flow-general-admission-purchase-neg-GenerateMobilePass-ticketIssued.json",
-          "eventCount": 31,
-          "pathLength": 27,
+          "eventCount": 32,
+          "pathLength": 28,
           "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
@@ -222,9 +222,9 @@
           "kind": "happy",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
           "file": "scenario-flow-presale-access-0.json",
-          "eventCount": 28,
-          "pathLength": 25,
-          "branchCount": 1,
+          "eventCount": 29,
+          "pathLength": 26,
+          "branchCount": 2,
           "isHappyPath": true,
           "isNegative": false
         },
@@ -236,7 +236,7 @@
           "file": "scenario-flow-presale-access-1.json",
           "eventCount": 7,
           "pathLength": 7,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": false
         },
@@ -248,7 +248,43 @@
           "file": "scenario-flow-presale-access-2.json",
           "eventCount": 7,
           "pathLength": 7,
-          "branchCount": 1,
+          "branchCount": 2,
+          "isHappyPath": false,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-presale-access-3",
+          "scenarioLabel": "Variant: presale-access [last-use]",
+          "kind": "variant",
+          "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
+          "file": "scenario-flow-presale-access-3.json",
+          "eventCount": 30,
+          "pathLength": 27,
+          "branchCount": 2,
+          "isHappyPath": false,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-presale-access-4",
+          "scenarioLabel": "Failure Path: presale-access [last-use, invalid]",
+          "kind": "failure",
+          "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
+          "file": "scenario-flow-presale-access-4.json",
+          "eventCount": 8,
+          "pathLength": 8,
+          "branchCount": 2,
+          "isHappyPath": false,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-presale-access-5",
+          "scenarioLabel": "Failure Path: presale-access [last-use, window-expired]",
+          "kind": "failure",
+          "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
+          "file": "scenario-flow-presale-access-5.json",
+          "eventCount": 8,
+          "pathLength": 8,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": false
         },
@@ -272,7 +308,7 @@
           "file": "scenario-flow-presale-access-neg-RedeemAccessCode-codeValid.json",
           "eventCount": 4,
           "pathLength": 3,
-          "branchCount": 0,
+          "branchCount": 1,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -284,7 +320,7 @@
           "file": "scenario-flow-presale-access-neg-RedeemAccessCode-windowOpen.json",
           "eventCount": 4,
           "pathLength": 3,
-          "branchCount": 0,
+          "branchCount": 1,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -296,7 +332,7 @@
           "file": "scenario-flow-presale-access-neg-RedeemAccessCode-redemptionLimit.json",
           "eventCount": 4,
           "pathLength": 3,
-          "branchCount": 0,
+          "branchCount": 1,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -308,7 +344,7 @@
           "file": "scenario-flow-presale-access-neg-RequestHold-ticketsAvailable.json",
           "eventCount": 6,
           "pathLength": 5,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -320,7 +356,7 @@
           "file": "scenario-flow-presale-access-neg-RequestHold-customerHoldLimit.json",
           "eventCount": 6,
           "pathLength": 5,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -332,7 +368,7 @@
           "file": "scenario-flow-presale-access-neg-AddTicketsToCart-cartOpen.json",
           "eventCount": 11,
           "pathLength": 9,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -344,7 +380,7 @@
           "file": "scenario-flow-presale-access-neg-AddTicketsToCart-holdValid.json",
           "eventCount": 11,
           "pathLength": 9,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -356,7 +392,7 @@
           "file": "scenario-flow-presale-access-neg-CalculateFees-cartHasItems.json",
           "eventCount": 13,
           "pathLength": 11,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -368,7 +404,7 @@
           "file": "scenario-flow-presale-access-neg-InitiatePayment-feesCalculated.json",
           "eventCount": 15,
           "pathLength": 13,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -380,7 +416,7 @@
           "file": "scenario-flow-presale-access-neg-ConfirmPayment-paymentPending.json",
           "eventCount": 17,
           "pathLength": 15,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -392,7 +428,7 @@
           "file": "scenario-flow-presale-access-neg-ConvertHoldToReservation-holdActive.json",
           "eventCount": 21,
           "pathLength": 18,
-          "branchCount": 1,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         },
@@ -402,9 +438,9 @@
           "kind": "negative",
           "description": "Negative scenario: Payment must be confirmed before ticket issuance precondition violation at IssueTickets",
           "file": "scenario-flow-presale-access-neg-IssueTickets-paymentConfirmed.json",
-          "eventCount": 24,
-          "pathLength": 20,
-          "branchCount": 1,
+          "eventCount": 25,
+          "pathLength": 21,
+          "branchCount": 2,
           "isHappyPath": false,
           "isNegative": true
         }

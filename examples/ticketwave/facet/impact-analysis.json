@@ -277,7 +277,8 @@
         "event:Checkout:PaymentConfirmed"
       ],
       "triggers": [
-        "event:Inventory:HoldConvertedToReservation"
+        "event:Inventory:HoldConvertedToReservation",
+        "event:Inventory:HoldClosed"
       ]
     },
     {
@@ -290,6 +291,15 @@
       "triggers": [
         "policy:Inventory:CloseHoldOnConversion"
       ]
+    },
+    {
+      "type": "event",
+      "name": "HoldClosed",
+      "context": "Inventory",
+      "dependsOn": [
+        "command:Inventory:ConvertHoldToReservation"
+      ],
+      "triggers": []
     },
     {
       "type": "policy",
@@ -700,7 +710,8 @@
       "context": "Presale",
       "dependsOn": [],
       "triggers": [
-        "event:Presale:AccessCodeRedeemed"
+        "event:Presale:AccessCodeRedeemed",
+        "event:Presale:AccessCodeExhausted"
       ]
     },
     {
@@ -714,6 +725,15 @@
         "policy:Presale:GrantAccessOnRedemption",
         "command:Inventory:RequestHold"
       ]
+    },
+    {
+      "type": "event",
+      "name": "AccessCodeExhausted",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:RedeemAccessCode"
+      ],
+      "triggers": []
     },
     {
       "type": "command",
@@ -1601,6 +1621,6 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-05T22:52:39.558Z"
+    "generatedAt": "2026-11-06T07:16:31.973Z"
   }
 }
