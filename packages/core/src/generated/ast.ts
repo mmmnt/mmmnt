@@ -109,6 +109,7 @@ export type MomentKeywordNames =
     | "value-object"
     | "via"
     | "when"
+    | "|"
     | "×";
 
 export type MomentTokenNames = MomentTerminalNames | MomentKeywordNames;
@@ -215,7 +216,7 @@ export interface CommandDeclaration extends langium.AstNode {
     readonly $container: AggregateDeclaration;
     readonly $type: 'CommandDeclaration';
     causes: Array<string>;
-    emits: string;
+    emits: EmitsClause;
     inputs: Array<InputField>;
     name: string;
     preconditions: Array<Precondition>;
@@ -389,6 +390,38 @@ export const DomainServiceDeclaration = {
 
 export function isDomainServiceDeclaration(item: unknown): item is DomainServiceDeclaration {
     return reflection.isInstance(item, DomainServiceDeclaration.$type);
+}
+
+export interface EmitOutcome extends langium.AstNode {
+    readonly $container: EmitsClause;
+    readonly $type: 'EmitOutcome';
+    events: Array<string>;
+    state?: string;
+}
+
+export const EmitOutcome = {
+    $type: 'EmitOutcome',
+    events: 'events',
+    state: 'state'
+} as const;
+
+export function isEmitOutcome(item: unknown): item is EmitOutcome {
+    return reflection.isInstance(item, EmitOutcome.$type);
+}
+
+export interface EmitsClause extends langium.AstNode {
+    readonly $container: CommandDeclaration | OrchestrationCommand;
+    readonly $type: 'EmitsClause';
+    outcomes: Array<EmitOutcome>;
+}
+
+export const EmitsClause = {
+    $type: 'EmitsClause',
+    outcomes: 'outcomes'
+} as const;
+
+export function isEmitsClause(item: unknown): item is EmitsClause {
+    return reflection.isInstance(item, EmitsClause.$type);
 }
 
 export interface ExternalDeclaration extends langium.AstNode {
@@ -709,7 +742,7 @@ export interface OrchestrationCommand extends langium.AstNode {
     readonly $container: SagaDeclaration;
     readonly $type: 'OrchestrationCommand';
     causes: Array<string>;
-    emits?: string;
+    emits?: EmitsClause;
     inputs: Array<InputField>;
     name: string;
     preconditions: Array<Precondition>;
@@ -1047,6 +1080,8 @@ export type MomentAstType = {
     ContractField: ContractField
     DomainEventDeclaration: DomainEventDeclaration
     DomainServiceDeclaration: DomainServiceDeclaration
+    EmitOutcome: EmitOutcome
+    EmitsClause: EmitsClause
     ExternalDeclaration: ExternalDeclaration
     FieldDeclaration: FieldDeclaration
     FieldDeprecation: FieldDeprecation
@@ -1322,6 +1357,30 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 }
             },
             superTypes: [ContextMember.$type]
+        },
+        EmitOutcome: {
+            name: EmitOutcome.$type,
+            properties: {
+                events: {
+                    name: EmitOutcome.events,
+                    defaultValue: []
+                },
+                state: {
+                    name: EmitOutcome.state,
+                    optional: true
+                }
+            },
+            superTypes: []
+        },
+        EmitsClause: {
+            name: EmitsClause.$type,
+            properties: {
+                outcomes: {
+                    name: EmitsClause.outcomes,
+                    defaultValue: []
+                }
+            },
+            superTypes: []
         },
         ExternalDeclaration: {
             name: ExternalDeclaration.$type,

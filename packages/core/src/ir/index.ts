@@ -29,6 +29,7 @@ export type {
   OrchestrationCommandDefinition,
   IssuedCommandDefinition,
   CompensationDefinition,
+  EmitOutcomeDefinition,
 } from './context-definition.js';
 
 export type { FlowDefinition, LaneDefinition } from './flow-definition.js';
@@ -55,3 +56,5 @@ export type {
 export type { ParseResult, ValidationResult, Diagnostic, SourceLocation } from './parse-result.js';
 
 export type { ImportResult, UpstreamFingerprint } from './import-result.js';
+
+export { emitOutcomes, emittedEvents, type EmitsFields } from './emits.js';

@@ -89,7 +89,16 @@ CommandDeclaration:
         ('input' inputs+=InputField (',' inputs+=InputField)*)?
         ('causes' causes+=ID (',' causes+=ID)*)?
         preconditions+=Precondition*
-        'emits' emits=ID;
+        emits=EmitsClause;
+
+// --- Emits (ADR-041): a command records one or more events. `,` joins the events one transaction records
+// together; `|` separates alternative outcomes, of which the aggregate's state decides one. `when` names
+// the declared state in which an outcome is recorded. The plain `emits A` is one outcome of one event. ---
+EmitsClause:
+    'emits' outcomes+=EmitOutcome ('|' outcomes+=EmitOutcome)*;
+
+EmitOutcome:
+    events+=ID (',' events+=ID)* ('when' state=ID)?;
 
 InputField:
     name=InputName ':' type=TypeReference deprecation=FieldDeprecation?;
@@ -144,7 +153,7 @@ OrchestrationCommand:
         ('input' inputs+=InputField (',' inputs+=InputField)*)?
         ('causes' causes+=ID (',' causes+=ID)*)?
         preconditions+=Precondition*
-        ('emits' emits=ID)?;
+        (emits=EmitsClause)?;
 
 IssuedCommand:
     target=ID ('.' operation=ID)?;

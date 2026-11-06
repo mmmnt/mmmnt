@@ -87,7 +87,21 @@ export interface CommandDefinition {
   /** The causes the command can be issued for (ADR-040 D2); absent when it declares none. */
   causes?: string[];
   preconditions: PreconditionDefinition[];
+  /** The first event of the first outcome; the only event for the plain `emits A`. */
   emitsEvent: string;
+  /**
+   * The outcomes (ADR-041 D3), present only when the clause is not the plain `emits A`. Read through
+   * `emittedEvents` / `emitOutcomes`, never directly.
+   */
+  outcomes?: EmitOutcomeDefinition[];
+}
+
+/** Events recorded together in one transaction, and the state in which that outcome is recorded (ADR-041 D3). */
+export interface EmitOutcomeDefinition {
+  /** In declared order; one or more. */
+  events: string[];
+  /** The aggregate (or orchestration) state this outcome is recorded in; absent when none is declared. */
+  whenState?: string;
 }
 
 export interface PreconditionDefinition {
@@ -194,6 +208,8 @@ export interface OrchestrationCommandDefinition {
   preconditions: PreconditionDefinition[];
   /** Present only when the author wrote `emits`; V31 requires an event the orchestration declares. */
   emitsEvent?: string;
+  /** As on CommandDefinition (ADR-041 D3). */
+  outcomes?: EmitOutcomeDefinition[];
 }
 
 /** A command an orchestration sends: an aggregate's command, or `<External>.<operation>`. */

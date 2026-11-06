@@ -8,7 +8,6 @@
 import type {
   ConnectionDefinition,
   ContextDefinition,
-  Diagnostic,
   GatewayDefinition,
   IntermediateRepresentation,
   IssuedCommandDefinition,
@@ -16,12 +15,14 @@ import type {
   PreconditionDefinition,
   SagaDefinition,
 } from '../ir/index.js';
+import { emittedEvents } from '../ir/emits.js';
+import { validateMultiEvent, type Finding as MultiEventFinding } from './multi-event.js';
 
 /**
  * A finding carries its own severity only when the rule can decide on what the IR holds; without one the
  * caller's severity applies (a warning per file, an error over a merged project).
  */
-type Finding = Pick<Diagnostic, 'message' | 'ruleId'> & { readonly severity?: 'error' };
+type Finding = MultiEventFinding;
 
 interface Known {
   events: Set<string>;
@@ -98,12 +99,14 @@ function orchestrationFindings(saga: SagaDefinition, known: Known): Finding[] {
   const ownEvents = new Set((saga.events ?? []).map((e) => e.name));
   const compensations = saga.compensations ?? [];
   return [
-    ...saga.commands
-      .filter((c) => c.emitsEvent !== undefined && !ownEvents.has(c.emitsEvent))
-      .map((c) => ({
-        ruleId: 'V31',
-        message: `Orchestration '${saga.name}' command '${c.name}' emits '${c.emitsEvent ?? ''}', which the orchestration does not declare; it emits only its own events.`,
-      })),
+    ...saga.commands.flatMap((c) =>
+      emittedEvents(c)
+        .filter((e) => !ownEvents.has(e))
+        .map((e) => ({
+          ruleId: 'V31',
+          message: `Orchestration '${saga.name}' command '${c.name}' emits '${e}', which the orchestration does not declare; it emits only its own events.`,
+        })),
+    ),
     ...(own.has(saga.trigger)
       ? []
       : [
@@ -396,7 +399,10 @@ function v43(ir: IntermediateRepresentation): Finding[] {
 }
 
 /** Every V29–V37 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
-export function validatePaletteConformance(ir: IntermediateRepresentation): Finding[] {
+export function validatePaletteConformance(
+  ir: IntermediateRepresentation,
+  options: { readonly merged?: boolean } = {},
+): Finding[] {
   const known = namesOf(ir);
   const commands = allCommands(ir);
   return [
@@ -410,6 +416,7 @@ export function validatePaletteConformance(ir: IntermediateRepresentation): Find
     ...v41Declarations(commands),
     ...v41v42Placements(ir, commands),
     ...v43(ir),
+    ...validateMultiEvent(ir, options),
     ...(ir.externals ?? []).flatMap((e) =>
       gatewayFindings(`external '${e.name}'`, e.gateways ?? [], known),
     ),

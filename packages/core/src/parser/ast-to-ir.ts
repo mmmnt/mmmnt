@@ -1,6 +1,7 @@
 import type {
   AggregateDeclaration,
   CommandDeclaration,
+  EmitsClause,
   ContextCrossing,
   ContextDeclaration,
   ContextRelationshipDeclaration,
@@ -51,6 +52,7 @@ import type {
   ContextDefinition,
   AggregateDefinition,
   CommandDefinition,
+  EmitOutcomeDefinition,
   PreconditionDefinition,
   EventDefinition,
   EventOwner,
@@ -355,6 +357,23 @@ function transformStates(decls: AggregateStateDeclaration[]): AggregateStatesDef
   };
 }
 
+/**
+ * ADR-041 D3: the plain `emits A` is `emitsEvent` alone, so the IR of every model that parses today is
+ * unchanged. Any other clause adds `outcomes`, and `emitsEvent` is the first event of the first outcome.
+ */
+function transformEmits(clause: EmitsClause): {
+  emitsEvent: string;
+  outcomes?: EmitOutcomeDefinition[];
+} {
+  const outcomes = clause.outcomes.map((o): EmitOutcomeDefinition => ({
+    events: [...o.events],
+    ...(o.state === undefined ? {} : { whenState: o.state }),
+  }));
+  const first = outcomes[0]?.events[0] ?? '';
+  const plain = outcomes.length === 1 && outcomes[0].events.length === 1 && !outcomes[0].whenState;
+  return plain ? { emitsEvent: first } : { emitsEvent: first, outcomes };
+}
+
 function transformCommand(
   cmd: CommandDeclaration,
   annotations?: AnnotationDefinition[],
@@ -366,7 +385,7 @@ function transformCommand(
     inputs: cmd.inputs.map(transformFieldDeclaration),
     ...(cmd.causes.length > 0 ? { causes: [...cmd.causes] } : {}),
     preconditions: cmd.preconditions.map(transformPrecondition),
-    emitsEvent: cmd.emits,
+    ...transformEmits(cmd.emits),
   };
 }
 
@@ -479,7 +498,7 @@ function transformOrchestrationCommand(cmd: OrchestrationCommand): Orchestration
     inputs: cmd.inputs.map(transformFieldDeclaration),
     ...(cmd.causes.length > 0 ? { causes: [...cmd.causes] } : {}),
     preconditions: cmd.preconditions.map(transformPrecondition),
-    ...(cmd.emits ? { emitsEvent: cmd.emits } : {}),
+    ...(cmd.emits ? transformEmits(cmd.emits) : {}),
   };
 }
 

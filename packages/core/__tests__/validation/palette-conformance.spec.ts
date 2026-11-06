@@ -116,6 +116,55 @@ describe('V31–V35 orchestrations', () => {
     expect(rules(r)).toEqual(['V31']);
   });
 
+  it('V31 (ADR-041): every event of every outcome must be one the orchestration declares', () => {
+    const messages = (r: IntermediateRepresentation): string[] =>
+      validatePaletteConformance(r)
+        .filter((f) => f.ruleId === 'V31')
+        .map((f) => f.message);
+    const r = ir({
+      sagas: [
+        saga({
+          commands: [
+            {
+              name: 'StartCheckout',
+              emitsEvent: 'CheckoutStarted',
+              outcomes: [
+                { events: ['CheckoutStarted', 'CheckoutLogged'] },
+                { events: ['CheckoutStarted', 'OrderPlaced'] },
+              ],
+            },
+          ],
+          events: [{ name: 'CheckoutStarted' }, { name: 'CheckoutLogged' }],
+        }),
+      ],
+    });
+    expect(messages(r)).toEqual([
+      "Orchestration 'Checkout' command 'StartCheckout' emits 'OrderPlaced', which the orchestration does not declare; it emits only its own events.",
+    ]);
+  });
+
+  it('V31 (ADR-041): outcomes made only of declared process events are quiet', () => {
+    const rules = (r: IntermediateRepresentation): string[] =>
+      validatePaletteConformance(r)
+        .map((f) => f.ruleId as string)
+        .filter((id) => id !== 'V46');
+    const r = ir({
+      sagas: [
+        saga({
+          commands: [
+            {
+              name: 'StartCheckout',
+              emitsEvent: 'A',
+              outcomes: [{ events: ['A', 'B'] }, { events: ['B'] }],
+            },
+          ],
+          events: [{ name: 'A' }, { name: 'B' }],
+        }),
+      ],
+    });
+    expect(rules(r)).toEqual([]);
+  });
+
   it('V32: the orchestration is invoked by one of its own commands', () => {
     expect(rules(ir({ sagas: [saga({ commands: [{ name: 'Other' }] })] }))).toEqual(['V32']);
   });
@@ -575,5 +624,113 @@ describe('V43 same-moment hops', () => {
 
   it('stays quiet for IR with no flow connections', () => {
     expect(rules(ir({}))).toEqual([]);
+  });
+});
+
+describe('V44/V45 (ADR-041) commands that record several events', () => {
+  // The unguarded choice between alternatives is V46's advisory; these specs are about V44 and V45.
+  const rules = (r: IntermediateRepresentation): string[] =>
+    validatePaletteConformance(r)
+      .map((f) => f.ruleId as string)
+      .filter((id) => id !== 'V46');
+  const messages = (r: IntermediateRepresentation): string[] =>
+    validatePaletteConformance(r)
+      .filter((f) => f.ruleId !== 'V46')
+      .map((f) => f.message);
+
+  const agg = (name: string, commands: Loose[], events: string[]): Loose => ({
+    name,
+    commands,
+    events: events.map((e) => ({ name: e })),
+    states: undefined,
+  });
+  const cmd = (name: string, outcomes: string[][], extra: Loose = {}): Loose => ({
+    name,
+    emitsEvent: outcomes[0][0],
+    outcomes: outcomes.map((events) => ({ events })),
+    ...extra,
+  });
+  const model = (
+    convert: Loose,
+    seatEvents = ['Converted', 'Closed'],
+  ): IntermediateRepresentation =>
+    ir({
+      events: [{ name: 'Converted' }, { name: 'Closed' }, { name: 'Paid' }],
+      commands: [convert],
+      aggregates: [
+        agg('SeatHold', [convert], seatEvents),
+        agg('Payment', [{ name: 'Pay', emitsEvent: 'Paid' }], ['Paid']),
+      ],
+    });
+
+  it('V44: accepts events the owning aggregate declares', () => {
+    expect(rules(model(cmd('Convert', [['Converted', 'Closed']])))).toEqual([]);
+    expect(rules(model(cmd('Convert', [['Converted'], ['Closed']])))).toEqual([]);
+  });
+
+  it('V44: refuses an event of another aggregate in a multi-event command, once per event', () => {
+    const r = model(cmd('Convert', [['Converted', 'Paid']]));
+    expect(messages(r)).toEqual([
+      "Command 'Convert' emits 'Paid', which aggregate 'SeatHold' does not declare; a command that records more than one event records only its own aggregate's events.",
+    ]);
+    expect(rules(r)).toEqual(['V44']);
+  });
+
+  it('V44: refuses an event of another aggregate in a later alternative', () => {
+    expect(rules(model(cmd('Convert', [['Converted'], ['Closed', 'Paid']])))).toEqual(['V44']);
+  });
+
+  it('V44: refuses a process event in an aggregate command', () => {
+    const r = ir({
+      events: [{ name: 'Converted' }, { name: 'Closed' }, { name: 'Started' }],
+      commands: [cmd('Convert', [['Converted', 'Started']])],
+      aggregates: [
+        agg('SeatHold', [cmd('Convert', [['Converted', 'Started']])], ['Converted', 'Closed']),
+      ],
+      sagas: [{ name: 'Run', trigger: 'Go', states: [], events: [{ name: 'Started' }] }],
+    });
+    expect(rules(r)).toEqual(['V44']);
+  });
+
+  it('V44: leaves an undeclared event to V38', () => {
+    expect(rules(model(cmd('Convert', [['Converted', 'Ghost']])))).toEqual([]);
+  });
+
+  it('V44: stays quiet for a single-event command whose event belongs to another aggregate', () => {
+    const single = { name: 'Convert', emitsEvent: 'Paid' };
+    expect(rules(model(single))).toEqual([]);
+    const alt = cmd('Convert', [['Paid'], ['Paid']]);
+    expect(rules(model(alt))).toEqual([]);
+  });
+
+  it('V44: stays quiet when the owning aggregate cannot be found, as for IR that predates the ADR', () => {
+    const r = ir({
+      events: [{ name: 'Converted' }, { name: 'Closed' }],
+      commands: [cmd('Convert', [['Converted', 'Closed']])],
+      aggregates: [],
+    });
+    expect(rules(r)).toEqual([]);
+  });
+
+  it('V45: refuses an event listed twice in one outcome, but not across outcomes', () => {
+    const twice = model(cmd('Convert', [['Converted', 'Converted']]));
+    expect(messages(twice)).toEqual(["Command 'Convert' lists 'Converted' twice in one outcome."]);
+    const across = model(cmd('Convert', [['Converted'], ['Converted', 'Closed']]));
+    expect(rules(across)).toEqual([]);
+  });
+
+  it('V45: also applies to an orchestration command', () => {
+    const r = ir({
+      sagas: [
+        {
+          name: 'Run',
+          trigger: 'Go',
+          states: [],
+          commands: [cmd('Go', [['Started', 'Started']])],
+          events: [{ name: 'Started' }],
+        },
+      ],
+    });
+    expect(rules(r)).toEqual(['V45']);
   });
 });

@@ -89,7 +89,7 @@ describe('Moment Grammar > Spatial Constructs', () => {
         expect(cmd.inputs).toHaveLength(2);
         expect(cmd.inputs[1].type.isArray).toBe(true);
         expect(cmd.preconditions).toHaveLength(1);
-        expect(cmd.emits).toBe('OrderPlaced');
+        expect(cmd.emits.outcomes.map((o) => o.events)).toEqual([['OrderPlaced']]);
       }
     }
   });
@@ -872,5 +872,130 @@ flow "F"
     cause: Qux
 `;
     expect(await errorsOf(src)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ADR-041 — a command records one or more events
+// ---------------------------------------------------------------------------
+describe('ADR-041 D1 emits clause', () => {
+  const AGGREGATE = (emits: string): string => `
+context "C" [Core]
+  aggregate "A"
+    identity aId: UUID
+    state initial Open
+    state Open -> OneUseLeft on Use
+    command Use
+      emits Done
+    command Do
+      ${emits}
+    event Done
+      aId: UUID
+`;
+
+  async function outcomesOf(emits: string) {
+    const doc = await parse(AGGREGATE(emits));
+    expect(doc.parseResult.lexerErrors).toHaveLength(0);
+    expect(doc.parseResult.parserErrors).toHaveLength(0);
+    const agg = doc.parseResult.value.contexts[0].members[0];
+    if (agg.$type !== 'AggregateDeclaration') throw new Error('expected an aggregate');
+    const cmd = agg.members.find((m) => m.$type === 'CommandDeclaration' && m.name === 'Do');
+    if (cmd?.$type !== 'CommandDeclaration') throw new Error('expected command Do');
+    return cmd.emits.outcomes.map((o) => ({ events: [...o.events], state: o.state }));
+  }
+
+  it('parses the plain form as one outcome with one event and no guard', async () => {
+    expect(await outcomesOf('emits A')).toEqual([{ events: ['A'], state: undefined }]);
+  });
+
+  it('parses `emits A, B` as one outcome of two events', async () => {
+    expect(await outcomesOf('emits A, B')).toEqual([{ events: ['A', 'B'], state: undefined }]);
+  });
+
+  it('parses `emits A | B` as two outcomes, with or without spaces around the bar', async () => {
+    const expected = [
+      { events: ['A'], state: undefined },
+      { events: ['B'], state: undefined },
+    ];
+    expect(await outcomesOf('emits A | B')).toEqual(expected);
+    expect(await outcomesOf('emits A|B')).toEqual(expected);
+  });
+
+  it('binds `,` tighter than `|` and attaches `when` to the outcome it follows', async () => {
+    expect(await outcomesOf('emits A, B when Open | C when OneUseLeft')).toEqual([
+      { events: ['A', 'B'], state: 'Open' },
+      { events: ['C'], state: 'OneUseLeft' },
+    ]);
+  });
+
+  it('parses a clause that continues on the next line', async () => {
+    expect(await outcomesOf('emits A when Open\n        | A, B when OneUseLeft')).toEqual([
+      { events: ['A'], state: 'Open' },
+      { events: ['A', 'B'], state: 'OneUseLeft' },
+    ]);
+  });
+
+  it('requires an aggregate command to name at least one event', async () => {
+    const doc = await parse(AGGREGATE('emits'));
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+  });
+
+  it('refuses a dangling `,` or `|`', async () => {
+    expect((await parse(AGGREGATE('emits A,'))).parseResult.parserErrors.length).toBeGreaterThan(0);
+    expect((await parse(AGGREGATE('emits A |'))).parseResult.parserErrors.length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  const ORCHESTRATION = (command: string): string => `
+context "C" [Core]
+  aggregate "A"
+    identity aId: UUID
+    command Go
+      emits Went
+    event Went
+      aId: UUID
+  orchestration P
+    ${command}
+    event Started
+      aId: UUID
+    event Finished
+      aId: UUID
+    invoked-by Start
+    issues Go
+    states Running -> Done on Finish
+    compensation none
+    timeout window
+`;
+
+  it('lets an orchestration command take the same clause, or omit it', async () => {
+    for (const clause of ['emits Started, Finished', 'emits Started | Finished', '']) {
+      const doc = await parse(ORCHESTRATION(`command Start\n      ${clause}\n    command Finish`));
+      expect(doc.parseResult.lexerErrors).toHaveLength(0);
+      expect(doc.parseResult.parserErrors).toEqual([]);
+    }
+    const doc = await parse(
+      ORCHESTRATION('command Start\n      emits Started, Finished\n    command Finish'),
+    );
+    const saga = doc.parseResult.value.contexts[0].members.find(
+      (m) => m.$type === 'SagaDeclaration',
+    );
+    if (saga?.$type !== 'SagaDeclaration') throw new Error('expected a saga');
+    expect(saga.commands[0].emits?.outcomes[0].events).toEqual(['Started', 'Finished']);
+    expect(saga.commands[1].emits).toBeUndefined();
+  });
+
+  it('leaves `when` out of the words a field may be named, as before the clause existed', async () => {
+    const doc = await parse(`
+context "C" [Core]
+  aggregate "A"
+    identity aId: UUID
+    command Do
+      emits Done
+    event Done
+      when: DateTime
+      aId: UUID
+`);
+    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
   });
 });

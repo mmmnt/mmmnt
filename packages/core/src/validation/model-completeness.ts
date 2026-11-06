@@ -6,6 +6,7 @@
  * errors (ADR-034 G8's split between per-file and post-merge validation).
  */
 import type { ContextDefinition, Diagnostic, IntermediateRepresentation } from '../ir/index.js';
+import { emittedEvents } from '../ir/emits.js';
 
 type Finding = Pick<Diagnostic, 'message' | 'ruleId'>;
 
@@ -132,12 +133,14 @@ function checkExternals(ir: IntermediateRepresentation): Finding[] {
 
 /** V38: an aggregate command emits an event declared somewhere in the model. */
 const v38 = (ctx: ContextDefinition, known: Known): Finding[] =>
-  ctx.commands
-    .filter((c) => c.emitsEvent && !known.events.has(c.emitsEvent))
-    .map((c) => ({
-      ruleId: 'V38',
-      message: `Command '${c.name}' emits '${c.emitsEvent}', which is no declared event.`,
-    }));
+  ctx.commands.flatMap((c) =>
+    emittedEvents(c)
+      .filter((e) => !known.events.has(e))
+      .map((e) => ({
+        ruleId: 'V38',
+        message: `Command '${c.name}' emits '${e}', which is no declared event.`,
+      })),
+  );
 
 /** V39: `N triggers X` names a node placed in the same flow (V20 checks its order, V5 covers triggered-by). */
 function v39(ir: IntermediateRepresentation): Finding[] {

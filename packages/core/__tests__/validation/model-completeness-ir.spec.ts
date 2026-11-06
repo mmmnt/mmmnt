@@ -60,6 +60,40 @@ describe('model completeness over hand-built IR', () => {
     ]);
   });
 
+  it('V38 (ADR-041): every event of every outcome is declared, one finding per undeclared event', () => {
+    const cmd = (outcomes: Loose[]): Loose => ({
+      name: 'Redeem',
+      emitsEvent: 'OrderPlaced',
+      outcomes,
+    });
+    const known = ir({ commands: [cmd([{ events: ['OrderPlaced', 'OrderPlaced'] }])] });
+    expect(rules(known)).toEqual([]);
+    const later = ir({
+      commands: [cmd([{ events: ['OrderPlaced'] }, { events: ['OrderPlaced', 'Gone'] }])],
+    });
+    expect(validateModelCompleteness(later)).toEqual([
+      { ruleId: 'V38', message: "Command 'Redeem' emits 'Gone', which is no declared event." },
+    ]);
+    const two = ir({ commands: [cmd([{ events: ['Ghost', 'Gone'] }])] });
+    expect(validateModelCompleteness(two).map((f) => f.message)).toEqual([
+      "Command 'Redeem' emits 'Ghost', which is no declared event.",
+      "Command 'Redeem' emits 'Gone', which is no declared event.",
+    ]);
+  });
+
+  it('V38 (ADR-041): reports an event that two outcomes both name once', () => {
+    const r = ir({
+      commands: [
+        {
+          name: 'Redeem',
+          emitsEvent: 'Gone',
+          outcomes: [{ events: ['Gone'] }, { events: ['Gone', 'OrderPlaced'] }],
+        },
+      ],
+    });
+    expect(rules(r)).toEqual(['V38']);
+  });
+
   it('V39: a triggers target is placed in the flow, including inside a when block', () => {
     const placed = flow([
       { connectionType: 'triggers', sourceNodeName: 'PlaceOrder', targetNodeName: 'OrderPlaced' },
