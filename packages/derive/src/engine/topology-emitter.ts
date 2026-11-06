@@ -17,6 +17,7 @@ import type {
   ConnectionDefinition,
   ContextDefinition,
 } from '@mmmnt/core';
+import { nodeId } from './node-ids.js';
 import { orderedMomentChildren } from './moment-children.js';
 
 // ---------------------------------------------------------------------------
@@ -219,7 +220,7 @@ function entryToNode(
   const aggregate = findAggregate(entry.nodeName, ctx);
 
   return {
-    id: `${moment.id}::${laneId}::${entry.nodeName}::${scope}`,
+    id: nodeId(moment, entry, (e) => laneIdOf(e, laneIndex), scope),
     lane: laneId,
     label: entry.nodeName,
     type: nodeKind,
@@ -231,6 +232,11 @@ function entryToNode(
     multiplicity: entry.multiplicity != null ? String(entry.multiplicity) : undefined,
     eventTypes: nodeKind === 'event' ? [entry.nodeName] : undefined,
   };
+}
+
+/** The lane id a topology node carries: its lane, or the context when the flow declares none. */
+function laneIdOf(entry: MomentEntry, laneIndex: Map<string, LaneDefinition>): string {
+  return laneIndex.get(entry.contextId)?.id ?? entry.contextId;
 }
 
 function resolveNodeKind(entry: MomentEntry, ctx: ContextDefinition | undefined): string {
@@ -364,19 +370,19 @@ function buildEventRouting(
       const kind = resolveNodeKind(entry, ctx);
       const lane = laneIndex.get(entry.contextId);
       const laneId = lane?.id ?? entry.contextId;
-      const nodeId = `${moment.id}::${laneId}::${entry.nodeName}::${scope}`;
+      const id = nodeId(moment, entry, (e) => laneIdOf(e, laneIndex), scope);
 
       // Events are routed by their plain name
       if (kind === 'event') {
         const existing = routing[entry.nodeName] ?? new Set<string>();
-        existing.add(nodeId);
+        existing.add(id);
         routing[entry.nodeName] = existing;
       }
 
       // A policy streams one event under its own name (ADR-040 D4 puts it in a same-moment hop)
       if (kind === 'policy') {
         const existing = routing[entry.nodeName] ?? new Set<string>();
-        existing.add(nodeId);
+        existing.add(id);
         routing[entry.nodeName] = existing;
       }
 
@@ -384,7 +390,7 @@ function buildEventRouting(
       if (kind === 'command') {
         const key = `SimProcess.${entry.nodeName}`;
         const existing = routing[key] ?? new Set<string>();
-        existing.add(nodeId);
+        existing.add(id);
         routing[key] = existing;
       }
     };

@@ -1,0 +1,12 @@
+flow "Reminders"
+  description "Two collection runs start in one moment; each records its events, so a node is placed twice"
+
+  lane billing "Billing" [Core]
+
+  moment "Two runs start"
+    billing: StartRun
+    billing: RunStarted
+    billing: RunLogged
+    billing: StartRun
+    billing: RunStarted
+    billing: RunLogged

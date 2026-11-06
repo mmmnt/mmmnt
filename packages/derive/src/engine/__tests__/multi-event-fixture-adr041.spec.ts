@@ -97,3 +97,17 @@ describe('ADR-041 fixtures/valid/multi-event-commands derives end to end', () =>
     expect(topology.frames.length).toBeGreaterThan(0);
   });
 });
+
+describe('a moment that places the same node twice (fixtures/valid/multi-event-commands)', () => {
+  it('gives every node of the topology its own id, and every scenario event a node of it', async () => {
+    const ir = await load();
+    const flow = ir.flows.find((f) => f.name === 'Reminders')!;
+    const ids = new TopologyEmitter()
+      .emit(ir, flow)
+      .frames.flatMap((f) => f.nodes.map((n) => n.id));
+    expect(ids).toHaveLength(6);
+    expect(new Set(ids).size).toBe(6);
+    const [scenario] = generateAllScenarios(ir, flow);
+    expect(scenario.events.map((e) => e.payload.nodeId)).toEqual(ids);
+  });
+});

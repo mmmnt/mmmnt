@@ -33,6 +33,7 @@ import type {
   SagaTransitionDefinition,
   PreconditionDefinition,
 } from '@mmmnt/core';
+import { nodeId } from './node-ids.js';
 import { multiEventPlacements, type Placement } from './multi-event-placement.js';
 import { orderedMomentChildren } from './moment-children.js';
 
@@ -588,7 +589,7 @@ function entryToNode(
   const contextName = entry.contextId.replace(/^ctx-/, '');
   const laneId = laneIndex.get(entry.contextId) ?? entry.contextId;
   return {
-    nodeId: `${moment.id}::${laneId}::${entry.nodeName}::${scope}`,
+    nodeId: nodeId(moment, entry, (e) => laneIndex.get(e.contextId) ?? e.contextId, scope),
     nodeName: entry.nodeName,
     contextId: entry.contextId,
     contextName,
