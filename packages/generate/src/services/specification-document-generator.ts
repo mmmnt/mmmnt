@@ -9,7 +9,25 @@ import type {
   ValueObjectDefinition,
   SagaDefinition,
 } from '@mmmnt/core';
+import { emitOutcomes, emittedEvents, type EmitsFields } from '@mmmnt/core';
 import type { GeneratedDocument } from '../types/index.js';
+
+const hasEvents = (cmd: EmitsFields): boolean => emittedEvents(cmd).length > 0;
+
+/**
+ * ADR-041 D5: `A` for one event, `A, B` for events recorded together, `A or B` for alternative
+ * outcomes, and `A when S, or A, B when T` when the outcomes name the state that decides them.
+ * `mark` wraps each event (bold in prose, plain in a table or a diagram).
+ */
+function describeOutcomes(cmd: EmitsFields, mark: (event: string) => string): string {
+  const outcomes = emitOutcomes(cmd);
+  const guarded = outcomes.some((o) => o.whenState !== undefined);
+  const parts = outcomes.map(
+    (o) =>
+      o.events.map(mark).join(', ') + (o.whenState === undefined ? '' : ` when ${o.whenState}`),
+  );
+  return parts.join(guarded ? ', or ' : ' or ');
+}
 
 /**
  * SpecificationDocumentGenerator — produces a single domain narrative
@@ -353,7 +371,8 @@ export class SpecificationDocumentGenerator {
   ): void {
     const cmd = this.findCommand(ctx, entry.nodeName);
     const intent = cmd?.preconditions?.[0]?.description;
-    const produces = cmd?.emitsEvent ? ` → produces **${cmd.emitsEvent}**` : '';
+    const produces =
+      cmd && hasEvents(cmd) ? ` → produces ${describeOutcomes(cmd, (e) => `**${e}**`)}` : '';
     if (intent) {
       lines.push(`${indent}- *Requires:* ${intent}`);
     }
@@ -518,7 +537,7 @@ export class SpecificationDocumentGenerator {
         const purpose =
           cmd.preconditions[0]?.description ??
           `Accepts ${cmd.inputs.map((i) => i.name).join(', ')}`;
-        lines.push(`| **${cmd.name}** | ${purpose} | ${cmd.emitsEvent} |`);
+        lines.push(`| **${cmd.name}** | ${purpose} | ${describeOutcomes(cmd, (e) => e)} |`);
       }
       lines.push('');
     }
@@ -805,7 +824,7 @@ export class SpecificationDocumentGenerator {
         ir.contexts.find((c) => c.id === entry.contextId),
         entry.nodeName,
       );
-      const emits = cmd?.emitsEvent ? ` → ${cmd.emitsEvent}` : '';
+      const emits = cmd && hasEvents(cmd) ? ` → ${describeOutcomes(cmd, (e) => e)}` : '';
       lines.push(`  ${entryCtx}->>${entryCtx}: ${entry.nodeName}${emits}`);
     } else {
       lines.push(`  ${entryCtx}->>${entryCtx}: ${entry.nodeName}`);

@@ -11,6 +11,7 @@ import type {
   PreconditionDefinition,
   SagaDefinition,
 } from '@mmmnt/core';
+import { emittedEvents, momentPlacements } from '@mmmnt/core';
 
 /**
  * Renders a flow into a complete, richly-tagged Gherkin .feature file.
@@ -431,8 +432,41 @@ function renderEntrySteps(
   if (entry.nodeKind === 'command') {
     renderCommandStep(lines, entry, ctx, ctxName, moment, flow, sharedPreconditions);
   } else {
+    const first = lines.length;
     renderEventStep(lines, entry, ctx, ctxName, moment, branchCondition, flow, usedConnections);
+    // ADR-041 D5: the events recorded together with the first one continue its Then with And.
+    if (first < lines.length && coEmittedEntries(moment, ctxMap).has(entry)) {
+      lines[first] = lines[first].replace(/^(\s*)Then /, '$1And ');
+    }
   }
+}
+
+const coEmittedCache = new WeakMap<MomentDefinition, Set<MomentEntry>>();
+
+/**
+ * The event steps of a moment that a multi-event command records after its first one on some path
+ * (ADR-041 D5). Which events a command records is read from the flow's placements.
+ */
+function coEmittedEntries(
+  moment: MomentDefinition,
+  ctxMap: Map<string, ContextDefinition>,
+): Set<MomentEntry> {
+  const cached = coEmittedCache.get(moment);
+  if (cached) return cached;
+  const commandOf = (name: string): CommandDefinition | undefined => {
+    for (const ctx of ctxMap.values()) {
+      const cmd = findCommand(ctx, name);
+      if (cmd) return cmd;
+    }
+    return undefined;
+  };
+  const entries = new Set(
+    momentPlacements(moment, commandOf)
+      .filter((p) => emittedEvents(p.command).length > 1)
+      .flatMap((p) => p.events.slice(1)),
+  );
+  coEmittedCache.set(moment, entries);
+  return entries;
 }
 
 function renderCommandStep(
