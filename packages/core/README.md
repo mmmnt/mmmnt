@@ -78,6 +78,7 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 | Policy | context | `policy <Name> trigger <Event> action "<text>" chains-to <Command>` -- one domain event, one command. |
 | Orchestration | context | `orchestration <Name>` (`saga` is an alias) with its own `command`s, the `event`s those commands emit, `invoked-by`, `issues`, `states`, `compensation` and `timeout`. |
 | Process event | orchestration | `event <Name>` with fields, declared inside an orchestration. An orchestration command emits it with `emits`. It is a domain event owned by the process. |
+| Emits clause | command | `emits A` records one event. `emits A, B` records both in one transaction. `emits A \| B` records one of them, chosen by the aggregate's state. `emits A when Open \| A, B when OneUseLeft` names the declared state that chooses each outcome (ADR-041). |
 | Cause | command, precondition, node | `causes A, B` on a command; `cause A` on a precondition limits it to that cause; `cause A` after a node placement says the command is issued for A. |
 | Note | moment | `note "text"` or `note <lane>: "text"`. Narration of a step outside the model. It is not a node and asserts nothing. |
 | Aggregate states | aggregate | `state initial <Name>` and `state <From> -> <To> on <Command>`, written right after the identity. |
@@ -195,6 +196,34 @@ moment "Order placed"
 
 To migrate: a stand-in node that only held a place in a moment becomes a `note`, and two moments that told one beat become one moment with hops.
 
+### Commands that record several events
+
+A command records one or more events (ADR-041), as the palette's "command produces event(s) or a rejection" says. `,` joins the events one transaction records together. `|` separates alternative outcomes, of which the aggregate's state decides exactly one. `when <State>` names the declared state in which an outcome is recorded. `emits A` alone is the same as before; the IR of a model that uses only that form does not change.
+
+```
+aggregate "SeatHold"
+  identity holdId: UUID
+  command ConvertHoldToReservation
+    input holdId: UUID, paymentConfirmationId: UUID
+    precondition holdActive: "Hold must be active"
+    emits HoldConvertedToReservation, HoldClosed
+
+aggregate "AccessCode"
+  identity codeId: UUID
+  state initial Open
+  state Open -> OneUseLeft on RedeemAccessCode
+  command RedeemAccessCode
+    input codeId: UUID, code: string
+    emits AccessCodeRedeemed when Open
+        | AccessCodeRedeemed, AccessCodeExhausted when OneUseLeft
+```
+
+Read `,` as "and", and `|` as "or". `,` binds tighter than `|`. A `when` belongs to the outcome it follows. An orchestration command takes the same clause for the process events the orchestration declares. A multi-event command stays inside its own aggregate: events of another aggregate are the job of a policy.
+
+In the IR a plain `emits A` is `emitsEvent: 'A'` and nothing else. Any other clause adds `outcomes: { events: string[]; whenState?: string }[]`, and `emitsEvent` is the first event of the first outcome. Read a command's events with `emittedEvents(cmd)` and its outcomes with `emitOutcomes(cmd)`, not from the fields.
+
+In a flow, place the events the command records after it. All the events of one outcome (V47), or the events of the outcome one `when` block shows. Derived artifacts follow: a scenario shows exactly one outcome, the events of one outcome carry the command step as their cause and share its timestamp, `moment generate` writes the later ones as `And ... emits`, `moment emit-ts` returns a tuple (`readonly [A, B]`) or a union (`A | B`), and the event catalog marks them with `recordedWith` and `alternativeTo`.
+
 The grammar source is [`src/grammar/moment.langium`](src/grammar/moment.langium).
 
 ## Validation Rules
@@ -214,19 +243,24 @@ V22–V43 compare names across declarations, so their severity depends on how mu
 | V28 | Every service `consumes` and `produces` a declared event or value object. |
 | V29 | Every policy chains to a command of an aggregate or an orchestration. |
 | V30 | Every policy is triggered by a declared domain event. |
-| V31 | An orchestration's commands emit only events the orchestration declares, never an aggregate's event. |
+| V31 | Every event of every outcome of an orchestration command is one the orchestration declares, never an aggregate's event. |
 | V32 | An orchestration is invoked by one of its own commands. |
 | V33 | Every command an orchestration issues is an aggregate command or an operation of a declared external. |
 | V34 | Every orchestration step advances on one of its own commands, and some policy chains to that command. |
 | V35 | `compensation none` stands alone; every other compensation is on one of the orchestration's own commands and issues resolvable commands. |
 | V36 | An aggregate with states has exactly one initial state, transitions only on its own commands, and every state is reachable from the initial one. |
 | V37 | Every gateway `consumes` and `produces` a declared event or value object. |
-| V38 | Every aggregate command `emits` an event declared somewhere in the model. |
+| V38 | Every event of every outcome of an aggregate command is declared somewhere in the model. |
 | V39 | Every `triggers` target is a node placed in the same flow (`triggered-by` targets are checked by V5). |
 | V40 | An event is declared by one owner, an aggregate or an orchestration. |
 | V41 | A `cause` on a precondition or a placement is one of the command's declared `causes`. |
 | V42 | A command with cause-scoped preconditions is placed with its `cause`. |
 | V43 | A same-moment `triggered-by` is a hop a policy declares. An error even in a single file when the node or the cause is a policy the file declares; an advisory per file otherwise (the supporting policy may be in another file). |
+| V44 | A command that records more than one distinct event records only events its own aggregate declares. A single-event command is unchanged. |
+| V45 | An event is listed once inside one outcome; it may appear in several outcomes. |
+| V46 | A `when` guard names a declared state of the aggregate (or orchestration), no two outcomes carry the same state, and a command guards every outcome or none. Alternatives with no guard are an advisory. |
+| V47 | The events a flow places after one placement of a multi-event command come from one outcome. Part of an outcome is an advisory. |
+| V48 | Every outcome of a command with alternatives is placed by some flow. An advisory, over a merged project only. |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
@@ -243,7 +277,7 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 
 | Export | Description |
 |--------|-------------|
-| `ProjectLoader` | `loadProject(filePaths, metadataOverride?)` parses each file, merges the IRs, runs cross-file validation and V22–V43, and resolves to a `ProjectLoadResult` (`success`, `ir`, `diagnostics`, `filesParsed`, `filesErrored`). |
+| `ProjectLoader` | `loadProject(filePaths, metadataOverride?)` parses each file, merges the IRs, runs cross-file validation and V22–V48, and resolves to a `ProjectLoadResult` (`success`, `ir`, `diagnostics`, `filesParsed`, `filesErrored`). |
 | `mergeIrs(irs, metadataOverride?)` | Concatenates IRs in the given order and reports duplicate context names. Returns a `MergeResult`. |
 | `validateCrossFileReferences(ir)` | Checks that flow lanes, crossings and relationships in a merged IR resolve. Returns a `CrossFileValidationResult`. |
 
@@ -256,7 +290,9 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 | `ContextDefinition` | A bounded context with its aggregates, commands, events, value objects, invariants, policies, sagas, domain services, projections, queries, and rules. |
 | `AggregateDefinition` | An aggregate root with its identity field, commands, events, invariants, value objects, and optional internal states. |
 | `AggregateStatesDefinition` | An aggregate's initial state and command-driven state transitions. |
-| `CommandDefinition` | A command with its input fields, `causes`, preconditions, and the event it emits. |
+| `CommandDefinition` | A command with its input fields, `causes`, preconditions, `emitsEvent` (the first event it emits) and, for anything but the plain `emits A`, `outcomes`. |
+| `EmitOutcomeDefinition` | Events recorded together in one transaction, and the `whenState` in which that outcome is recorded. |
+| `emittedEvents(cmd)` · `emitOutcomes(cmd)` | Every distinct event a command can record, and its outcomes. Read a command through these. |
 | `EventDefinition` | A domain event with its payload fields and its `owner` (an aggregate or an orchestration). |
 | `ValueObjectDefinition` | A value object with its fields. |
 | `FieldDefinition` | A typed field within a command, event, value object, projection, or query. |
