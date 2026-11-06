@@ -40,6 +40,8 @@
   - @mmmnt/sync@0.8.0
   - @mmmnt/viz@0.8.0
 
+- derive: node ids are unique within a topology. The first placement of a name in a moment, lane and scope keeps its id; a later one adds an occurrence mark (`<moment>::<lane>::<name>::main#2`, `…::br0#2`), so a moment that places the same node twice no longer fails Facet's "Duplicate node ID". Topology frames, event routing, scenario `payload.nodeId` and `expectedPath` use the same id. Output for a model with no repeated placement is unchanged.
+
 ## 0.7.2
 
 ### Patch Changes
