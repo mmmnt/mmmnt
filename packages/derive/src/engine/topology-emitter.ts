@@ -85,6 +85,12 @@ export interface TopologyConnection {
   readonly crossBoundary?: boolean;
   readonly relationship?: string;
   readonly schemaContract?: TopologySchemaContract;
+  /**
+   * The `when` arm this connection is declared in (ADR-044): the arm's condition as written in the
+   * spec, the key `branchPredicates[<frame>].routes` and `activeBranches[].condition` use. Absent for
+   * a connection declared outside an arm.
+   */
+  readonly branchCondition?: string;
 }
 
 export interface TopologySchemaContract {
@@ -279,52 +285,58 @@ function findProcess(nodeName: string, ctx: ContextDefinition | undefined): stri
 // ---------------------------------------------------------------------------
 
 function buildConnections(flow: FlowDefinition): TopologyConnection[] {
-  return flow.connections.map((conn) => {
-    const eventType = conn.eventId.replace(/^evt-/, '');
-    const endpoints = {
-      eventType,
-      sourceNodeName: conn.sourceNodeName,
-      targetNodeName: conn.targetNodeName,
-    };
+  return flow.connections.map((conn) => ({
+    ...buildConnection(conn),
+    // ADR-044: the IR already states which arm declared the connection.
+    ...(conn.branchCondition !== undefined ? { branchCondition: conn.branchCondition } : {}),
+  }));
+}
 
-    // Audit fix #1: returns-to edges are frame→frame loops. The IR now carries
-    // the resolved targetMomentId; use it so the edge lands on a real frame.
-    if (conn.connectionType === 'returns-to') {
-      if (conn.targetMomentId) {
-        return {
-          from: conn.sourceMomentId,
-          to: conn.targetMomentId,
-          style: 'return',
-          targetMomentLabel: conn.targetMomentLabel,
-          ...endpoints,
-        };
-      }
-      // Unresolvable label: keep the old (context-target) shape but warn
-      // rather than fabricating a frame id.
+function buildConnection(conn: FlowDefinition['connections'][number]): TopologyConnection {
+  const eventType = conn.eventId.replace(/^evt-/, '');
+  const endpoints = {
+    eventType,
+    sourceNodeName: conn.sourceNodeName,
+    targetNodeName: conn.targetNodeName,
+  };
+
+  // Audit fix #1: returns-to edges are frame→frame loops. The IR now carries
+  // the resolved targetMomentId; use it so the edge lands on a real frame.
+  if (conn.connectionType === 'returns-to') {
+    if (conn.targetMomentId) {
       return {
         from: conn.sourceMomentId,
-        to: conn.targetContextId,
-        label: `unresolved returns-to target: ${conn.targetMomentLabel ?? '(unknown)'}`,
+        to: conn.targetMomentId,
         style: 'return',
         targetMomentLabel: conn.targetMomentLabel,
         ...endpoints,
       };
     }
-
-    const isCrossing = conn.connectionType === 'crosses-to';
+    // Unresolvable label: keep the old (context-target) shape but warn
+    // rather than fabricating a frame id.
     return {
       from: conn.sourceMomentId,
-      // For 'triggers' the core now resolves targetContextId to the context
-      // where the TARGET node is placed (not the source's own lane).
       to: conn.targetContextId,
-      label: isCrossing ? eventType : undefined,
-      style: mapConnectionStyle(conn),
-      crossBoundary: isCrossing || undefined,
-      relationship: isCrossing ? conn.schemaContract.relationshipType : undefined,
-      schemaContract: isCrossing ? mapSchemaContract(conn) : undefined,
+      label: `unresolved returns-to target: ${conn.targetMomentLabel ?? '(unknown)'}`,
+      style: 'return',
+      targetMomentLabel: conn.targetMomentLabel,
       ...endpoints,
     };
-  });
+  }
+
+  const isCrossing = conn.connectionType === 'crosses-to';
+  return {
+    from: conn.sourceMomentId,
+    // For 'triggers' the core now resolves targetContextId to the context
+    // where the TARGET node is placed (not the source's own lane).
+    to: conn.targetContextId,
+    label: isCrossing ? eventType : undefined,
+    style: mapConnectionStyle(conn),
+    crossBoundary: isCrossing || undefined,
+    relationship: isCrossing ? conn.schemaContract.relationshipType : undefined,
+    schemaContract: isCrossing ? mapSchemaContract(conn) : undefined,
+    ...endpoints,
+  };
 }
 
 // Review fix #4: Explicit branch for 'triggers' connection type.
