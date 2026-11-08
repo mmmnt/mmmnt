@@ -120,4 +120,50 @@ describe('generatePolicyDefinitions', () => {
     expect('actionDescription' in def).toBe(false);
     expect(def.chainsTo).toEqual(['Cmd']);
   });
+
+  // ADR-045 D3: `condition` is carried when the policy declares one, and absent otherwise.
+  it('carries the declared condition as `condition`, and no key when none is declared', () => {
+    const ir = makeIR([
+      makeContext('ctx-A', 'Alpha', [
+        {
+          id: 'pol-1',
+          name: 'Plain',
+          trigger: 'HoldReleased',
+          action: 'act',
+          chainsTo: 'Notify',
+        },
+        {
+          id: 'pol-2',
+          name: 'Guarded',
+          trigger: 'HoldReleased',
+          action: 'act',
+          chainsTo: 'Notify',
+          condition: { field: 'reason', equals: 'expired' },
+        },
+        {
+          id: 'pol-3',
+          name: 'Caused',
+          trigger: 'PaymentConfirmed',
+          action: 'act',
+          chainsTo: 'Convert',
+          condition: { after: 'SeatsHeld' },
+        },
+        {
+          id: 'pol-4',
+          name: 'Both',
+          trigger: 'PaymentConfirmed',
+          action: 'act',
+          chainsTo: 'Convert',
+          condition: { field: 'method', equals: 'card', after: 'SeatsHeld' },
+        },
+      ]),
+    ]);
+
+    const defs = generatePolicyDefinitions(ir);
+
+    expect('condition' in defs[0]).toBe(false);
+    expect(defs[1].condition).toEqual({ field: 'reason', equals: 'expired' });
+    expect(defs[2].condition).toEqual({ after: 'SeatsHeld' });
+    expect(defs[3].condition).toEqual({ field: 'method', equals: 'card', after: 'SeatsHeld' });
+  });
 });

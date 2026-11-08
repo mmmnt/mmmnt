@@ -7,6 +7,7 @@
  * - `chainsTo` is ALWAYS an array (normalized from the IR's optional single
  *   `chainsTo` string; a policy with no chain emits `[]`).
  * - `actionDescription` is included only when the policy declares action text.
+ * - `condition` (ADR-045: `field` + `equals`, and/or `after`) is included only when the policy declares one.
  *
  * A spec with zero policies yields `[]` — a truthful "zero policies declared",
  * never a missing artifact.
@@ -20,6 +21,12 @@ export interface PolicyDefinitionArtifact {
   readonly trigger: string;
   readonly actionDescription?: string;
   readonly chainsTo: readonly string[];
+  /** ADR-045: present only when the policy declares the condition under which it reacts. */
+  readonly condition?: {
+    readonly field?: string;
+    readonly equals?: string;
+    readonly after?: string;
+  };
 }
 
 export function generatePolicyDefinitions(
@@ -35,6 +42,7 @@ export function generatePolicyDefinitions(
         trigger: policy.trigger,
         ...(policy.action ? { actionDescription: policy.action } : {}),
         chainsTo: normalizeChainsTo(policy.chainsTo),
+        ...(policy.condition ? { condition: { ...policy.condition } } : {}),
       });
     }
   }

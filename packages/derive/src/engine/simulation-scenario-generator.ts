@@ -13,7 +13,8 @@
  * - SimSaga.* events are appended strictly AFTER all path events, renumbered
  *   sequentially so evt-NNN order equals array order
  * - every path event carries payload.nodeId; events inside a selected branch
- *   carry payload.outcome = the selected branch condition
+ *   carry payload.$branch = the selected branch condition (ADR-046), and
+ *   payload.outcome too when the event declares no field of that name
  * - a `returns-to` arm loop-unrolls (bounded, once per connection) back into
  *   its target moment, so paths never contain reject-then-accept contradictions
  */
@@ -32,6 +33,7 @@ import type {
   SagaDefinition,
   SagaTransitionDefinition,
   PreconditionDefinition,
+  PolicyDefinition,
 } from '@mmmnt/core';
 import { nodeId } from './node-ids.js';
 import { multiEventPlacements, type Placement } from './multi-event-placement.js';
@@ -46,6 +48,12 @@ import { orderedMomentChildren } from './moment-children.js';
  * - 'negative' — synthetic precondition-violation scenario
  * - 'timeout'  — synthetic saga-timeout scenario (declared timeout elapses)
  */
+/**
+ * ADR-046: the payload key the selected branch condition is stamped under. The grammar's identifiers
+ * (`[a-zA-Z_][a-zA-Z0-9_-]*`) cannot contain `$`, so no field, input or contract field can be named this.
+ */
+export const BRANCH_KEY = '$branch';
+
 export type ScenarioKind = 'happy' | 'variant' | 'failure' | 'negative' | 'timeout';
 
 export interface SimulationScenario {
@@ -91,7 +99,7 @@ interface NodeInfo {
   momentId: string;
   momentIndex: number;
   /** Selected branch condition when this node was emitted inside (or as the
-   *  first node of) a branch-point moment. Surfaces as payload.outcome. */
+   *  first node of) a branch-point moment. Surfaces as payload.$branch (ADR-046). */
   outcome?: string;
   /** The cause the command is placed for (ADR-040 D2). */
   cause?: string;
@@ -632,6 +640,8 @@ function generateEvents(
   // ADR-041 D6: the events one multi-event command records share its step's cause and timestamp.
   const placements = placementsOf(nodes, contextMap);
   const commandOfEvent = new Map(placements.flatMap((p) => p.events.map((k) => [k, p.command])));
+  // ADR-045 D4: the occurrences of a trigger that a declared reaction names.
+  const conditioned = policyConditionedOccurrences(nodes, flow, contextMap);
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
@@ -644,6 +654,7 @@ function generateEvents(
     const eventType = resolveEventType(node, effectiveKind);
     const productSource = resolveProductSource(node, effectiveKind, contextMap);
     const payload = buildPayload(node, effectiveKind, contextMap, flow);
+    applyPolicyConditions(payload, i, node, conditioned, contextMap);
     const whenState = placements.find((p) => p.command === i)?.whenState;
     if (whenState !== undefined) payload.whenState = whenState;
 
@@ -661,6 +672,123 @@ function generateEvents(
   }
 
   return events;
+}
+
+/** The policies with a `when <field> = <value>` condition, by trigger event name (ADR-045). */
+function guardedPolicies(
+  contextMap: Map<string, ContextDefinition>,
+): Map<string, PolicyDefinition[]> {
+  const byTrigger = new Map<string, PolicyDefinition[]>();
+  for (const ctx of contextMap.values())
+    for (const policy of ctx.policies) {
+      if (policy.condition?.field === undefined) continue;
+      byTrigger.set(policy.trigger, [...(byTrigger.get(policy.trigger) ?? []), policy]);
+    }
+  return byTrigger;
+}
+
+/**
+ * ADR-045 D4. A node that is a policy's `chains-to` command and is `triggered-by` the policy's trigger
+ * names one occurrence of the trigger: the nearest earlier placement on the walked path (the one
+ * `findCausationEvents` links). The result maps that occurrence's index to the policies whose guard it meets.
+ */
+function policyConditionedOccurrences(
+  nodes: NodeInfo[],
+  flow: FlowDefinition,
+  contextMap: Map<string, ContextDefinition>,
+): Map<number, PolicyDefinition[]> {
+  const guarded = guardedPolicies(contextMap);
+  const named = new Map<number, PolicyDefinition[]>();
+  if (guarded.size === 0) return named;
+  nodes.forEach((node, index) => {
+    for (const conn of flow.connections) {
+      if (!isCausationConnectionFor(conn, node)) continue;
+      const triggerName = conn.sourceNodeName ?? conn.eventId.replace(/^evt-/, '');
+      const policies = (guarded.get(triggerName) ?? []).filter((p) => p.chainsTo === node.nodeName);
+      if (policies.length === 0) continue;
+      for (let j = index - 1; j >= 0; j--) {
+        if (nodes[j].nodeName !== triggerName) continue;
+        named.set(j, [...(named.get(j) ?? []), ...policies]);
+        break;
+      }
+    }
+  });
+  return named;
+}
+
+/** The declared value, written as the field's type: a number or a boolean field takes it as one. */
+function typedValue(type: string, value: string): unknown {
+  if (type === 'number' && value.trim() !== '' && !Number.isNaN(Number(value)))
+    return Number(value);
+  if (type === 'boolean' && (value === 'true' || value === 'false')) return value === 'true';
+  return value;
+}
+
+/** A value that is not the declared one, of the same type as the sample. */
+function otherThan(value: unknown): unknown {
+  if (typeof value === 'number') return value + 1;
+  if (typeof value === 'boolean') return !value;
+  return `${String(value)}-other`;
+}
+
+/** The guarded field of a policy, when the event's payload has it. */
+function guardedField(
+  policy: PolicyDefinition,
+  payload: Record<string, unknown>,
+): string | undefined {
+  const field = policy.condition?.field;
+  return field !== undefined && field in payload ? field : undefined;
+}
+
+/** The policy's declared value, typed as the event's field. */
+function declaredValue(evt: EventDefinition, policy: PolicyDefinition): unknown {
+  const field = policy.condition?.field ?? '';
+  const type = evt.fields.find((f) => f.name === field)?.type ?? '';
+  return typedValue(type, policy.condition?.equals ?? '');
+}
+
+/** Another occurrence of a guarded trigger must not meet the guard by chance of its sample value. */
+function moveOffDeclared(
+  payload: Record<string, unknown>,
+  guarded: PolicyDefinition[],
+  evt: EventDefinition,
+  fixed: Set<string>,
+): void {
+  for (const policy of guarded) {
+    const field = guardedField(policy, payload);
+    if (field === undefined || fixed.has(field)) continue;
+    const declared = declaredValue(evt, policy);
+    if (payload[field] === declared) payload[field] = otherThan(declared);
+  }
+}
+
+/**
+ * ADR-045 D4: the occurrence a declared reaction names carries `field = value`; any other occurrence of
+ * a guarded trigger keeps its sample value, moved off the declared one if the sample would equal it.
+ */
+function applyPolicyConditions(
+  payload: Record<string, unknown>,
+  index: number,
+  node: NodeInfo,
+  conditioned: Map<number, PolicyDefinition[]>,
+  contextMap: Map<string, ContextDefinition>,
+): void {
+  const ctx = contextMap.get(node.contextId);
+  const evt = ctx ? findEvent(ctx, node.nodeName) : undefined;
+  if (!evt) return;
+  const guarded = [...contextMap.values()].flatMap((c) =>
+    c.policies.filter((p) => p.trigger === node.nodeName && p.condition?.field !== undefined),
+  );
+  const naming = conditioned.get(index) ?? [];
+  // A reaction names the occurrence; the first policy to name a field fixes it.
+  const fixed = new Set<string>();
+  for (const policy of guarded.filter((p) => naming.includes(p))) {
+    const field = guardedField(policy, payload);
+    if (field === undefined || fixed.has(field)) continue;
+    payload[field] = declaredValue(evt, policy);
+    fixed.add(field);
+  }
+  moveOffDeclared(payload, guarded, evt, fixed);
 }
 
 /**
@@ -792,11 +920,19 @@ function buildPayload(
   // crossing was declared in.
   addContractFields(payload, node, flow);
 
-  if (node.outcome !== undefined) {
-    payload.outcome = node.outcome;
-  }
+  stampBranch(payload, node);
 
   return payload;
+}
+
+/**
+ * ADR-046: the arm lives under a key no model field can be named. `outcome` is kept for older consumers,
+ * and only where the event declares no field of that name: a model's own field is never overwritten.
+ */
+function stampBranch(payload: Record<string, unknown>, node: NodeInfo): void {
+  if (node.outcome === undefined) return;
+  payload[BRANCH_KEY] = node.outcome;
+  if (!('outcome' in payload)) payload.outcome = node.outcome;
 }
 
 function addContractFields(

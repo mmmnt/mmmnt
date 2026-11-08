@@ -19,6 +19,7 @@ import type {
 } from '@mmmnt/core';
 import { nodeId } from './node-ids.js';
 import { orderedMomentChildren } from './moment-children.js';
+import { BRANCH_KEY } from './simulation-scenario-generator.js';
 
 // ---------------------------------------------------------------------------
 // Output types (ADR-023 §2)
@@ -439,14 +440,15 @@ function buildBranchPredicates(flow: FlowDefinition): Record<string, TopologyBra
     // Audit fix #5: each branch condition maps to a route label that IS the
     // condition itself, so route labels are distinct per branch point and
     // coverage denominators make sense. The scenario generator emits
-    // payload.outcome with the selected condition (agreed contract).
+    // payload.$branch with the selected condition (ADR-046), the field a
+    // consumer reads through `branchPredicates[*].field`.
     const routes: Record<string, string> = {};
     for (const branch of moment.branches) {
       routes[branch.condition] = branch.condition;
     }
 
     predicates[moment.id] = {
-      field: 'outcome',
+      field: BRANCH_KEY,
       defaultRoute: moment.branches[0].condition,
       routes,
     };

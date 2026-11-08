@@ -261,7 +261,7 @@ describe('TopologyEmitter', () => {
 
       const predicate = topology.branchPredicates['moment-1-Cold-sender-throttled'];
       expect(predicate).toBeDefined();
-      expect(predicate.field).toBe('outcome');
+      expect(predicate.field).toBe('$branch');
       expect(predicate.routes).toEqual({
         SenderWarmOrActive: 'SenderWarmOrActive',
         ColdSenderThrottled: 'ColdSenderThrottled',

@@ -16,6 +16,7 @@ export {
   generateAllScenarios,
   deriveNegativeScenarios,
   deriveTimeoutScenarios,
+  BRANCH_KEY,
   type SimulationScenario,
   type SimulationEvent,
   type ActiveBranch,
