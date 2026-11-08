@@ -283,9 +283,8 @@ function resolveScenarioLabel(flow: FlowDefinition, reachedBranches: ReachedBran
   if (deviations.length === 0) return `Happy Path: ${flow.name}`;
 
   const bracket = deviations.map((b) => b.condition).join(', ');
-  const hasTerminalArm = deviations.some((b) => b.armHasTerminal);
 
-  return hasTerminalArm
+  return endsAtFailureExit(deviations)
     ? `Failure Path: ${flow.name} [${bracket}]`
     : `Variant: ${flow.name} [${bracket}]`;
 }
@@ -298,7 +297,15 @@ function resolveScenarioLabel(flow: FlowDefinition, reachedBranches: ReachedBran
 function resolveScenarioKind(reachedBranches: ReachedBranch[]): ScenarioKind {
   const deviations = reachedBranches.filter((b) => !b.isFirstArm);
   if (deviations.length === 0) return 'happy';
-  return deviations.some((b) => b.armHasTerminal) ? 'failure' : 'variant';
+  return endsAtFailureExit(deviations) ? 'failure' : 'variant';
+}
+
+/**
+ * The one rule label and kind share (ADR-043 D3): a path is a failure when a deviating arm ends at
+ * `[terminal]`; an arm that ends at `[outcome]`, or at no terminal, is a variant.
+ */
+function endsAtFailureExit(deviations: readonly ReachedBranch[]): boolean {
+  return deviations.some((b) => b.armHasFailureExit);
 }
 
 // ---------------------------------------------------------------------------
@@ -317,7 +324,8 @@ interface ReachedBranch {
   momentName: string;
   condition: string;
   isFirstArm: boolean;
-  armHasTerminal: boolean;
+  /** The first terminal placement of the arm is `[terminal]`, not `[outcome]` (ADR-043). */
+  armHasFailureExit: boolean;
 }
 
 interface BranchActivation {
@@ -470,6 +478,11 @@ function selectBranch(
   return { branch, forced };
 }
 
+function armEndsAtFailureExit(branch: BranchDefinition): boolean {
+  const exit = branch.entries.find((e) => e.terminal);
+  return exit !== undefined && exit.exit !== 'outcome';
+}
+
 function recordBranchPoint(
   state: WalkState,
   moment: MomentDefinition,
@@ -488,7 +501,7 @@ function recordBranchPoint(
       momentName: moment.name,
       condition: branch.condition,
       isFirstArm: branchIdx === 0,
-      armHasTerminal: branch.entries.some((e) => e.terminal),
+      armHasFailureExit: armEndsAtFailureExit(branch),
     });
   }
 }
