@@ -917,6 +917,13 @@ function findEventAfter(
 // 2d. Negative scenarios from precondition violations
 // ---------------------------------------------------------------------------
 
+/**
+ * Negative scenarios: one per (command, precondition, cause) of a placed command (ADR-042).
+ *
+ * With no `branchSelections` the first-arm path is derived exactly as before, then every other path
+ * `generateAllScenarios` enumerates is walked and adds a scenario only for a (command, precondition,
+ * cause) no earlier scenario of the flow covers. An explicit `branchSelections` walks that one path.
+ */
 export function deriveNegativeScenarios(
   ir: IntermediateRepresentation,
   flow: FlowDefinition,
@@ -924,26 +931,42 @@ export function deriveNegativeScenarios(
 ): SimulationScenario[] {
   const contextMap = buildContextMap(ir);
   const opts = resolveOptions(flow, options);
-  const walk = walkPath(flow, opts.branchSelections);
-  const nodes = walk.nodes;
   const scenarios: SimulationScenario[] = [];
   const usedIds = new Set<string>();
+  const covered = new Set<string>();
 
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    const kind = resolveNodeKind(node.nodeName, node.contextId, contextMap, node.nodeKind);
-    if (kind !== 'command') continue;
+  const deriveOnPath = (walk: WalkResult, onlyUncovered: boolean): void => {
+    const nodes = walk.nodes;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const kind = resolveNodeKind(node.nodeName, node.contextId, contextMap, node.nodeKind);
+      if (kind !== 'command') continue;
 
-    const preconditions = findPreconditions(node, contextMap);
-    for (const pre of preconditions) {
-      // Suffix the path index when the same command+precondition repeats so
-      // scenario ids never collide.
-      const baseId = `${opts.scenarioId}-neg-${node.nodeName}-${pre.name}`;
-      const scenarioId = usedIds.has(baseId) ? `${baseId}-${i}` : baseId;
-      usedIds.add(scenarioId);
-      usedIds.add(baseId);
-      scenarios.push(buildNegativeScenario(ir, flow, walk, i, pre, contextMap, opts, scenarioId));
+      for (const pre of findPreconditions(node, contextMap)) {
+        const key = [node.nodeName, pre.name, node.cause ?? ''].join('\u0000');
+        if (onlyUncovered && covered.has(key)) continue;
+        covered.add(key);
+        // Suffix the path index when the same command+precondition repeats so
+        // scenario ids never collide.
+        const baseId = `${opts.scenarioId}-neg-${node.nodeName}-${pre.name}`;
+        const scenarioId = usedIds.has(baseId) ? `${baseId}-${i}` : baseId;
+        usedIds.add(scenarioId);
+        usedIds.add(baseId);
+        scenarios.push(buildNegativeScenario(ir, flow, walk, i, pre, contextMap, opts, scenarioId));
+      }
     }
+  };
+
+  deriveOnPath(walkPath(flow, opts.branchSelections), false);
+  if (options?.branchSelections !== undefined) return scenarios;
+
+  const seenPaths = new Set<string>();
+  for (const selections of enumerateBranchCombinations(flow)) {
+    const walk = walkPath(flow, selections);
+    const pathKey = walk.nodes.map((n) => n.nodeId).join('|');
+    if (seenPaths.has(pathKey)) continue;
+    seenPaths.add(pathKey);
+    deriveOnPath(walk, true);
   }
 
   return scenarios;

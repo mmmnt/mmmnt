@@ -6,6 +6,7 @@
 - **Founder approval (2026-11-07, relayed):** fixing four limits found in the derivation. Standing rule: Moment evolves on its own merits; this ADR is justified and proven on TicketWave and SAMMI.
 - **Release:** 0.9.0 (minor, fixed `@mmmnt/*` group), with ADR-043 and ADR-044.
 - **Numbering:** `docs/adr/` on `origin/main` (bcbc0b3) holds ADR-040 and ADR-041; this takes 042.
+- **Build note (2026-11-07):** the draft counted SAMMI as +0. Built and run on the model, it is +1: T7's `RecordSessionLoss` is placed only in the `SessionRevoked` arm, so its `WasConnected` refusal was never reached, which is the limit this ADR removes. The reachability sweep below (expected empty) requires it. The decision is unchanged; the counts above are the measured ones.
 - **Source read:** `origin/main` bcbc0b3, `packages/derive/src/engine/simulation-scenario-generator.ts`, `packages/cli/src/commands/{simulate,serve}.ts`, `examples/ticketwave/`, SAMMI `firebase/model`.
 
 ## Context
@@ -63,14 +64,14 @@ One negative per **(command, precondition, cause)** per flow is what the model s
 | Model | Negatives now | Added |
 |---|---|---|
 | TicketWave (4 flows) | 36 | 3 (`FailPayment.paymentPending`, `DeclineTransfer.transferPending`, `CancelTransfer.transferPending`) |
-| SAMMI firebase (8 flows) | 25 | 0 |
+| SAMMI firebase (8 flows) | 25 | 1 (`RecordSessionLoss.WasConnected`, T7: placed only in the `SessionRevoked` arm) |
 
 - Cost: each derived path is walked once more (bounded by the path count `generateAllScenarios` already pays).
 - Risk: a flow with very many arms derives more scenarios than before; the coverage key keeps the growth linear in the model, not in the paths.
 
 ## Migration
 
-**Not breaking for a model; breaking for a golden file.** No spec changes, no IR change. A model with no command only in a later arm derives byte-identical output. SAMMI: byte-identical (0 added). TicketWave gains 3 files and 3 manifest rows; its committed `examples/ticketwave/facet/` is regenerated in the same commit.. Anything that pins the exact count of `negative` scenarios (a CI count, a README table) updates.
+**Not breaking for a model; breaking for a golden file.** No spec changes, no IR change. A model with no command only in a later arm derives byte-identical output. SAMMI: every existing file byte-identical; one scenario added (`RecordSessionLoss.WasConnected`). TicketWave gains 3 files and 3 manifest rows; its committed `examples/ticketwave/facet/` is regenerated in the same commit. Anything that pins the exact count of `negative` scenarios (a CI count, a README table) updates.
 
 Compatibility proof, recorded before the change from `origin/main`: for every model above, the old build's scenario set must be a **subset, id for id and byte for byte,** of the new build's; the new build adds exactly the table's scenarios and nothing else.
 
