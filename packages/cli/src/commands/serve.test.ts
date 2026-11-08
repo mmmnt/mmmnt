@@ -407,9 +407,9 @@ describe('runPipeline --all serves every scenario simulate writes', () => {
       'scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle.json',
       'scenario-flow-ticket-transfer-timeout-TransferLifecycle.json',
     ]);
-    expect(ids).toHaveLength(53);
+    expect(ids).toHaveLength(67);
     const counted = all.manifest.flows.reduce((n, f) => n + f.scenarioCount, 0);
-    expect(counted).toBe(53);
+    expect(counted).toBe(67);
   });
 });
 

@@ -1,0 +1,212 @@
+{
+  "name": "payment-settlement",
+  "flowId": "flow-payment-settlement",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "contextId": "ctx-Inventory",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "contextId": "ctx-Checkout",
+      "classification": "Core",
+      "isBranch": false
+    }
+  ],
+  "frames": [
+    {
+      "id": "moment-0-Payment-processing",
+      "moment": "Payment processing",
+      "isBranch": true,
+      "nodes": [
+        {
+          "id": "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
+          "lane": "checkout",
+          "label": "ConfirmPayment",
+          "type": "command",
+          "aggregate": "Payment"
+        },
+        {
+          "id": "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
+          "lane": "checkout",
+          "label": "PaymentConfirmed",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
+          "lane": "inventory",
+          "label": "ConvertHoldToReservation",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::HoldClosed::br0",
+          "lane": "inventory",
+          "label": "HoldClosed",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldClosed"
+          ]
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0",
+          "lane": "inventory",
+          "label": "HoldConvertedToReservation",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "terminal": true,
+          "eventTypes": [
+            "HoldConvertedToReservation"
+          ]
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::RequestHold::br1",
+          "lane": "inventory",
+          "label": "RequestHold",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::SeatsHeld::br1",
+          "lane": "inventory",
+          "label": "SeatsHeld",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "SeatsHeld"
+          ]
+        },
+        {
+          "id": "moment-0-Payment-processing::checkout::PaymentConfirmed::br1",
+          "lane": "checkout",
+          "label": "PaymentConfirmed",
+          "type": "event",
+          "aggregate": "Payment",
+          "eventTypes": [
+            "PaymentConfirmed"
+          ]
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br1",
+          "lane": "inventory",
+          "label": "ConvertHoldToReservation",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::HoldClosed::br1",
+          "lane": "inventory",
+          "label": "HoldClosed",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldClosed"
+          ]
+        },
+        {
+          "id": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br1",
+          "lane": "inventory",
+          "label": "HoldConvertedToReservation",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "terminal": true,
+          "eventTypes": [
+            "HoldConvertedToReservation"
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "moment-0-Payment-processing",
+      "to": "ctx-Inventory",
+      "style": "happy",
+      "eventType": "PaymentConfirmed",
+      "sourceNodeName": "PaymentConfirmed",
+      "targetNodeName": "ConvertHoldToReservation",
+      "branchCondition": "approved"
+    },
+    {
+      "from": "moment-0-Payment-processing",
+      "to": "ctx-Inventory",
+      "style": "happy",
+      "eventType": "SeatsHeld",
+      "sourceNodeName": "SeatsHeld",
+      "targetNodeName": "ConvertHoldToReservation",
+      "branchCondition": "approved-after-rehold"
+    }
+  ],
+  "eventRouting": {
+    "SimProcess.ConfirmPayment": [
+      "moment-0-Payment-processing::checkout::ConfirmPayment::br0"
+    ],
+    "PaymentConfirmed": [
+      "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
+      "moment-0-Payment-processing::checkout::PaymentConfirmed::br1"
+    ],
+    "SimProcess.ConvertHoldToReservation": [
+      "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
+      "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br1"
+    ],
+    "HoldClosed": [
+      "moment-0-Payment-processing::inventory::HoldClosed::br0",
+      "moment-0-Payment-processing::inventory::HoldClosed::br1"
+    ],
+    "HoldConvertedToReservation": [
+      "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0",
+      "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br1"
+    ],
+    "SimProcess.RequestHold": [
+      "moment-0-Payment-processing::inventory::RequestHold::br1"
+    ],
+    "SeatsHeld": [
+      "moment-0-Payment-processing::inventory::SeatsHeld::br1"
+    ]
+  },
+  "branchPredicates": {
+    "moment-0-Payment-processing": {
+      "field": "outcome",
+      "defaultRoute": "approved",
+      "routes": {
+        "approved": "approved",
+        "approved-after-rehold": "approved-after-rehold"
+      }
+    }
+  },
+  "contextMap": {
+    "contexts": [
+      {
+        "contextId": "ctx-Checkout",
+        "name": "Checkout",
+        "classification": "Core",
+        "laneId": "checkout",
+        "aggregates": [
+          "Cart",
+          "Payment"
+        ]
+      },
+      {
+        "contextId": "ctx-Inventory",
+        "name": "Inventory",
+        "classification": "Core",
+        "laneId": "inventory",
+        "aggregates": [
+          "TicketPool",
+          "SeatHold"
+        ]
+      }
+    ],
+    "relationships": []
+  }
+}

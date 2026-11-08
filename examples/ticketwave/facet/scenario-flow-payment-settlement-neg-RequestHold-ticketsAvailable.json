@@ -1,0 +1,61 @@
+{
+  "scenarioId": "scenario-flow-payment-settlement-neg-RequestHold-ticketsAvailable",
+  "flowId": "flow-payment-settlement",
+  "flowName": "payment-settlement",
+  "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
+  "kind": "negative",
+  "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
+  "given": "A payment processing scenario is initiated",
+  "when": "RequestHold is invoked without satisfying ticketsAvailable",
+  "then": "The command RequestHold is rejected",
+  "expectedPath": [
+    "moment-0-Payment-processing::inventory::RequestHold::br1"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Payment processing",
+      "condition": "approved-after-rehold",
+      "routeChosen": "approved-after-rehold"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-payment-settlement",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-payment-settlement",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::inventory::RequestHold::br1",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "outcome": "approved-after-rehold"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "SimFailure.RequestHold.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-payment-settlement",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-payment-settlement",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::inventory::RequestHold::br1",
+        "failedPrecondition": "ticketsAvailable",
+        "description": "Requested quantity must be available in the pool"
+      }
+    }
+  ]
+}

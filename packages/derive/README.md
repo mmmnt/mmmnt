@@ -75,12 +75,12 @@ const topology = deriveTopology(project.ir);
 
 - **Test topology derivation** -- produces one test suite per flow with test cases, setup steps, assertion points, and payload constraints derived from your specification.
 - **Simulation scenario generation** -- creates a scenario for every distinct branch path through a flow, with events in the shared envelope shape. Steps that are not domain events carry their kind as a prefix: commands as `SimProcess.<Name>`, and read steps as `SimQuery.<Name>` and `SimProjection.<Name>`, so a query or projection is never simulated as a domain event.
-- **Negative and timeout scenarios** -- derives precondition-violation scenarios for commands, and timeout (and compensation) scenarios for sagas that declare a timeout.
+- **Negative and timeout scenarios** -- derives precondition-violation scenarios for commands, and timeout (and compensation) scenarios for sagas that declare a timeout. Negatives cover every branch path: one per command, precondition and cause, wherever the command is placed, with the first-arm path derived first. An arm that ends at `[outcome]` is a `variant` scenario; one that ends at `[terminal]` is a `failure`.
 - **Process and cause-aware negatives** -- preconditions of orchestration commands derive negative scenarios. A precondition scoped to a cause derives only in flows that place the command for that cause. A process event is attributed to its orchestration in the event catalog, impact analysis and topology.
 - **Event catalog generation** -- builds a catalog of every event with its producer, consumers, payload schema, and the moment it occurs in.
 - **Impact analysis** -- produces a dependency graph of commands, events, policies, sagas, projections, queries, and context crossings. A projection depends on the events it folds; a query depends on the projections it reads.
 - **Saga state machine extraction** -- derives a state machine for each declared saga, with states, transitions, compensation, timeout, and a reachability check.
-- **Simulation topology** -- `TopologyEmitter` produces the per-flow drawing contract (lanes, frames, connections, routing); query and projection nodes are typed as such.
+- **Simulation topology** -- `TopologyEmitter` produces the per-flow drawing contract (lanes, frames, connections, routing); query and projection nodes are typed as such; a connection declared inside a `when` arm carries that arm as `branchCondition`.
 - **Policy definitions** -- `generatePolicyDefinitions` lists every policy with its trigger and the commands it chains to.
 - **Policy-driven automation** -- the `DeriveOnSpecificationParsed` policy derives a topology from a parsed IR and passes it to registered hooks, so downstream generators can run as part of one pipeline.
 - **Deterministic structure** -- the same specification produces the same derived structure; only the timestamps recorded in metadata vary, and `deriveTopology` accepts a fixed `derivedAt`.

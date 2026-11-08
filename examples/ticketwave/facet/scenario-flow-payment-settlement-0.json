@@ -1,0 +1,119 @@
+{
+  "scenarioId": "scenario-flow-payment-settlement-0",
+  "flowId": "flow-payment-settlement",
+  "flowName": "payment-settlement",
+  "scenarioLabel": "Happy Path: payment-settlement",
+  "kind": "happy",
+  "description": "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead.",
+  "given": "A payment processing scenario is initiated",
+  "when": "The flow progresses through Payment processing",
+  "then": "The flow completes at Payment processing across Checkout, Inventory",
+  "expectedPath": [
+    "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
+    "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
+    "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
+    "moment-0-Payment-processing::inventory::HoldClosed::br0",
+    "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Payment processing",
+      "condition": "approved",
+      "routeChosen": "approved"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.ConfirmPayment",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-payment-settlement-0",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-payment-settlement-0",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
+        "processName": "ConfirmPayment",
+        "paymentId": "paymentId-001",
+        "gatewayTransactionId": "sample-gatewayTransactionId",
+        "outcome": "approved"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PaymentConfirmed",
+      "productSource": "checkout",
+      "sessionId": "sess-scenario-flow-payment-settlement-0",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-payment-settlement-0",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
+        "paymentId": "paymentId-001",
+        "gatewayTransactionId": "sample-gatewayTransactionId",
+        "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "approved"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.ConvertHoldToReservation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-payment-settlement-0",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-payment-settlement-0",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
+        "processName": "ConvertHoldToReservation",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "outcome": "approved"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "HoldClosed",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-payment-settlement-0",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-payment-settlement-0",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br0",
+        "holdId": "holdId-001",
+        "closedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "approved"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "HoldConvertedToReservation",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-payment-settlement-0",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-payment-settlement-0",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0",
+        "holdId": "holdId-001",
+        "paymentConfirmationId": "paymentConfirmationId-001",
+        "convertedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "approved"
+      }
+    }
+  ]
+}

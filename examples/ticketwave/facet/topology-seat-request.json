@@ -1,0 +1,173 @@
+{
+  "name": "seat-request",
+  "flowId": "flow-seat-request",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "contextId": "ctx-Inventory",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "presale",
+      "label": "Presale",
+      "contextId": "ctx-Presale",
+      "classification": "Supporting",
+      "isBranch": false
+    },
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "contextId": "ctx-Checkout",
+      "classification": "Core",
+      "isBranch": false
+    }
+  ],
+  "frames": [
+    {
+      "id": "moment-0-Seat-request",
+      "moment": "Seat request",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-0-Seat-request::inventory::RequestHold::main",
+          "lane": "inventory",
+          "label": "RequestHold",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-0-Seat-request::inventory::SeatsHeld::main",
+          "lane": "inventory",
+          "label": "SeatsHeld",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "SeatsHeld"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "moment-1-Availability-decision",
+      "moment": "Availability decision",
+      "isBranch": true,
+      "nodes": [
+        {
+          "id": "moment-1-Availability-decision::checkout::CreateCart::br0",
+          "lane": "checkout",
+          "label": "CreateCart",
+          "type": "command",
+          "aggregate": "Cart"
+        },
+        {
+          "id": "moment-1-Availability-decision::checkout::CartCreated::br0",
+          "lane": "checkout",
+          "label": "CartCreated",
+          "type": "event",
+          "aggregate": "Cart",
+          "eventTypes": [
+            "CartCreated"
+          ]
+        },
+        {
+          "id": "moment-1-Availability-decision::presale::JoinWaitlist::br1",
+          "lane": "presale",
+          "label": "JoinWaitlist",
+          "type": "command",
+          "aggregate": "Waitlist"
+        },
+        {
+          "id": "moment-1-Availability-decision::presale::WaitlistJoined::br1",
+          "lane": "presale",
+          "label": "WaitlistJoined",
+          "type": "event",
+          "aggregate": "Waitlist",
+          "terminal": true,
+          "eventTypes": [
+            "WaitlistJoined"
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "moment-1-Availability-decision",
+      "to": "ctx-Checkout",
+      "style": "happy",
+      "eventType": "SeatsHeld",
+      "sourceNodeName": "SeatsHeld",
+      "targetNodeName": "CreateCart",
+      "branchCondition": "seats-available"
+    }
+  ],
+  "eventRouting": {
+    "SimProcess.RequestHold": [
+      "moment-0-Seat-request::inventory::RequestHold::main"
+    ],
+    "SeatsHeld": [
+      "moment-0-Seat-request::inventory::SeatsHeld::main"
+    ],
+    "SimProcess.CreateCart": [
+      "moment-1-Availability-decision::checkout::CreateCart::br0"
+    ],
+    "CartCreated": [
+      "moment-1-Availability-decision::checkout::CartCreated::br0"
+    ],
+    "SimProcess.JoinWaitlist": [
+      "moment-1-Availability-decision::presale::JoinWaitlist::br1"
+    ],
+    "WaitlistJoined": [
+      "moment-1-Availability-decision::presale::WaitlistJoined::br1"
+    ]
+  },
+  "branchPredicates": {
+    "moment-1-Availability-decision": {
+      "field": "outcome",
+      "defaultRoute": "seats-available",
+      "routes": {
+        "seats-available": "seats-available",
+        "sold-out": "sold-out"
+      }
+    }
+  },
+  "contextMap": {
+    "contexts": [
+      {
+        "contextId": "ctx-Inventory",
+        "name": "Inventory",
+        "classification": "Core",
+        "laneId": "inventory",
+        "aggregates": [
+          "TicketPool",
+          "SeatHold"
+        ]
+      },
+      {
+        "contextId": "ctx-Checkout",
+        "name": "Checkout",
+        "classification": "Core",
+        "laneId": "checkout",
+        "aggregates": [
+          "Cart",
+          "Payment"
+        ]
+      },
+      {
+        "contextId": "ctx-Presale",
+        "name": "Presale",
+        "classification": "Supporting",
+        "laneId": "presale",
+        "aggregates": [
+          "PresaleWindow",
+          "AccessCode",
+          "Waitlist"
+        ]
+      }
+    ],
+    "relationships": []
+  }
+}

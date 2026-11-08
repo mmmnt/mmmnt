@@ -176,6 +176,17 @@ moment "Customer asks to cancel"
   desk: CancelBooking cause CustomerRequest
 ```
 
+A branch arm ends the flow at an exit. `[terminal]` is a failure exit: the arm is a failure path. `[outcome]` is a normal outcome the business names as a result: the flow ends there and the arm is a variant, not a failure. A refusal stays a precondition, or a `[terminal]` when the flow shows it:
+
+```
+moment "Availability decision" [branch]
+  when seats-available
+    checkout: CreateCart
+  when sold-out
+    presale: JoinWaitlist
+    presale: WaitlistJoined [outcome]
+```
+
 A step outside the model, or below its grain, is a note. A moment may be only notes:
 
 ```

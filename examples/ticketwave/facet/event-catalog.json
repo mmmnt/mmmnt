@@ -1352,7 +1352,11 @@
         "aggregate": "Waitlist",
         "command": "JoinWaitlist"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Availability decision",
+        "momentIndex": 1
+      }
     },
     {
       "eventName": "WaitlistPromoted",
@@ -2951,10 +2955,27 @@
         "moment": "Cancellation notifications",
         "momentIndex": 7
       }
+    },
+    {
+      "eventName": "JoinWaitlist",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Availability decision",
+        "momentIndex": 1
+      }
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-06T07:16:31.970Z",
-    "totalEvents": 90
+    "generatedAt": "2026-11-08T00:29:18.034Z",
+    "totalEvents": 91
   }
 }

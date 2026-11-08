@@ -370,7 +370,8 @@
       "style": "happy",
       "eventType": "EventCancelled",
       "sourceNodeName": "EventCancelled",
-      "targetNodeName": "RefundPayment"
+      "targetNodeName": "RefundPayment",
+      "branchCondition": "all-successful"
     },
     {
       "from": "moment-6-Refund-processing",
@@ -378,7 +379,8 @@
       "style": "happy",
       "eventType": "EventCancelled",
       "sourceNodeName": "EventCancelled",
-      "targetNodeName": "RefundPayment"
+      "targetNodeName": "RefundPayment",
+      "branchCondition": "partial-failure"
     },
     {
       "from": "moment-7-Cancellation-notifications",

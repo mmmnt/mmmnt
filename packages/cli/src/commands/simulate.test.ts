@@ -210,6 +210,66 @@ describe('moment simulate manifest kind classification (M-S15)', () => {
   });
 });
 
+describe('moment simulate ticketwave branch paths (ADR-042, ADR-043)', () => {
+  const TICKETWAVE = join(
+    import.meta.dirname,
+    '../../../../examples/ticketwave/spec/ticketwave.moment',
+  );
+  type Entry = {
+    scenarioId: string;
+    scenarioLabel: string;
+    kind: string;
+    isHappyPath: boolean;
+    isNegative: boolean;
+  };
+
+  async function manifestEntries(outName: string): Promise<Entry[]> {
+    const outDir = join(workDir, outName);
+    const result = await runSimulate([TICKETWAVE, '--all', '--out-dir', outDir]);
+    expect(result.success).toBe(true);
+    const manifest = JSON.parse(readFileSync(join(outDir, 'manifest.json'), 'utf-8'));
+    return manifest.flows.flatMap((f: { scenarios: Entry[] }) => f.scenarios);
+  }
+
+  it('lists a negative for the refusal a later arm issues (ADR-042)', async () => {
+    const entries = await manifestEntries('out-042');
+    const ids = entries.map((e) => e.scenarioId);
+    for (const id of [
+      'scenario-flow-seat-request-neg-JoinWaitlist-notAlreadyOnWaitlist',
+      'scenario-flow-general-admission-purchase-neg-FailPayment-paymentPending',
+      'scenario-flow-ticket-transfer-neg-DeclineTransfer-transferPending',
+      'scenario-flow-ticket-transfer-neg-CancelTransfer-transferPending',
+    ]) {
+      const entry = entries.find((e) => e.scenarioId === id);
+      expect(entry, id).toBeDefined();
+      expect(entry!.kind).toBe('negative');
+      expect(entry!.isNegative).toBe(true);
+      expect(entry!.isHappyPath).toBe(false);
+    }
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('classifies an arm that ends at [outcome] a variant and one that ends at [terminal] a failure (ADR-043)', async () => {
+    const entries = await manifestEntries('out-043');
+    const labelled = (label: string) => entries.find((e) => e.scenarioLabel === label);
+
+    for (const label of [
+      'Variant: seat-request [sold-out]',
+      'Variant: payment-settlement [approved-after-rehold]',
+    ]) {
+      const entry = labelled(label);
+      expect(entry, label).toBeDefined();
+      expect(entry!.kind).toBe('variant');
+      expect(entry!.isHappyPath).toBe(false);
+      expect(entry!.isNegative).toBe(false);
+    }
+    expect(labelled('Failure Path: general-admission-purchase [declined]')?.kind).toBe('failure');
+    expect(entries.some((e) => e.scenarioLabel.startsWith('Failure Path: seat-request'))).toBe(
+      false,
+    );
+  });
+});
+
 describe('moment simulate policy-definitions artifact', () => {
   const UNIFIED_FIXTURE = join(
     import.meta.dirname,

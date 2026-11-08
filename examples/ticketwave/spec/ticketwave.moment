@@ -1377,3 +1377,46 @@ flow "event-cancellation"
     notifications: SendEventCancellationNotice
       triggered-by EventCancelled
     notifications: EventCancellationNoticeSent (×N) [terminal]
+
+flow "seat-request"
+  description "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist."
+
+  lane inventory "Inventory" [Core]
+  lane presale "Presale" [Supporting]
+  lane checkout "Checkout" [Core]
+
+  moment "Seat request"
+    inventory: RequestHold
+    inventory: SeatsHeld
+
+  moment "Availability decision" [branch]
+    when seats-available
+      checkout: CreateCart
+        triggered-by SeatsHeld
+      checkout: CartCreated
+    when sold-out
+      presale: JoinWaitlist
+      presale: WaitlistJoined [outcome]
+
+flow "payment-settlement"
+  description "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead."
+
+  lane inventory "Inventory" [Core]
+  lane checkout "Checkout" [Core]
+
+  moment "Payment processing" [branch]
+    when approved
+      checkout: ConfirmPayment
+      checkout: PaymentConfirmed
+      inventory: ConvertHoldToReservation
+        triggered-by PaymentConfirmed
+      inventory: HoldClosed
+      inventory: HoldConvertedToReservation [outcome]
+    when approved-after-rehold
+      inventory: RequestHold
+      inventory: SeatsHeld
+      checkout: PaymentConfirmed
+      inventory: ConvertHoldToReservation
+        triggered-by SeatsHeld
+      inventory: HoldClosed
+      inventory: HoldConvertedToReservation [outcome]

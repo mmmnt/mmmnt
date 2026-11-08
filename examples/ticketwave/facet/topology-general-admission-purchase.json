@@ -626,7 +626,8 @@
       "style": "happy",
       "eventType": "HoldRiskEvaluated",
       "sourceNodeName": "HoldRiskEvaluated",
-      "targetNodeName": "CreateCart"
+      "targetNodeName": "CreateCart",
+      "branchCondition": "low-risk"
     },
     {
       "from": "moment-4-Hold-risk-decision",
@@ -634,7 +635,8 @@
       "style": "happy",
       "eventType": "HoldRiskEvaluated",
       "sourceNodeName": "HoldRiskEvaluated",
-      "targetNodeName": "BlockCustomer"
+      "targetNodeName": "BlockCustomer",
+      "branchCondition": "high-risk"
     },
     {
       "from": "moment-4-Hold-risk-decision",
@@ -642,7 +644,8 @@
       "style": "happy",
       "eventType": "HoldRiskEvaluated",
       "sourceNodeName": "HoldRiskEvaluated",
-      "targetNodeName": "FlagForManualReview"
+      "targetNodeName": "FlagForManualReview",
+      "branchCondition": "medium-risk"
     },
     {
       "from": "moment-5-Cart-population",
@@ -705,7 +708,8 @@
       "style": "happy",
       "eventType": "PaymentRiskEvaluated",
       "sourceNodeName": "PaymentRiskEvaluated",
-      "targetNodeName": "ConfirmPayment"
+      "targetNodeName": "ConfirmPayment",
+      "branchCondition": "approved"
     },
     {
       "from": "moment-9-Payment-processing",
@@ -726,7 +730,8 @@
         }
       },
       "eventType": "PaymentConfirmed",
-      "sourceNodeName": "PaymentConfirmed"
+      "sourceNodeName": "PaymentConfirmed",
+      "branchCondition": "approved"
     },
     {
       "from": "moment-9-Payment-processing",
@@ -734,7 +739,8 @@
       "style": "happy",
       "eventType": "PaymentRiskEvaluated",
       "sourceNodeName": "PaymentRiskEvaluated",
-      "targetNodeName": "FailPayment"
+      "targetNodeName": "FailPayment",
+      "branchCondition": "declined"
     },
     {
       "from": "moment-10-Delivery-trigger",

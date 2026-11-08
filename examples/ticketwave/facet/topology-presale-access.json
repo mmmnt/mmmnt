@@ -459,7 +459,8 @@
       "style": "happy",
       "eventType": "AccessCodeRedeemed",
       "sourceNodeName": "AccessCodeRedeemed",
-      "targetNodeName": "RequestHold"
+      "targetNodeName": "RequestHold",
+      "branchCondition": "valid"
     },
     {
       "from": "moment-2-Code-validation-outcome",
@@ -488,7 +489,8 @@
         }
       },
       "eventType": "SeatsHeld",
-      "sourceNodeName": "SeatsHeld"
+      "sourceNodeName": "SeatsHeld",
+      "branchCondition": "valid"
     },
     {
       "from": "moment-3-Presale-cart-creation",

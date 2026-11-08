@@ -100,11 +100,11 @@ function saveOutput(filename, content) {
 console.log('\nMoment E2E Test Harness\n');
 console.log('=== Parse ===');
 
-test('parse: ticketwave (7 contexts, 4 flows)', (assert) => {
+test('parse: ticketwave (7 contexts, 6 flows)', (assert) => {
   const r = run('parse', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('7 context(s)'), 'reports 7 contexts');
-  assert(r.stdout.includes('4 flow(s)'), 'reports 4 flows');
+  assert(r.stdout.includes('6 flow(s)'), 'reports 6 flows');
 });
 
 test('parse: unified ordering (2 contexts, 1 flow)', (assert) => {
@@ -127,10 +127,10 @@ test('parse: missing file errors', (assert) => {
 
 console.log('\n=== Derive ===');
 
-test('derive: ticketwave produces 4 suites, 82 cases', (assert) => {
+test('derive: ticketwave produces 6 suites, 88 cases', (assert) => {
   const r = run('derive', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
-  assert(r.stdout.includes('4 suite'), 'reports 4 suites');
+  assert(r.stdout.includes('6 suite'), 'reports 6 suites');
   assert(r.stdout.includes('case'), 'reports test cases');
 });
 
@@ -144,10 +144,10 @@ test('derive: --json outputs valid topology JSON', (assert) => {
     parsed = null;
   }
   assert(parsed !== null, 'valid JSON');
-  assert(parsed?.suites?.length === 4, '4 suites');
+  assert(parsed?.suites?.length === 6, '6 suites');
   assert(
-    (parsed?.suites ?? []).reduce((n, s) => n + s.testCases.length, 0) >= 82,
-    '>=82 test cases',
+    (parsed?.suites ?? []).reduce((n, s) => n + s.testCases.length, 0) >= 88,
+    '>=88 test cases',
   );
   assert(parsed?.metadata?.sourceIrHash, 'has IR hash');
   saveOutput('derive-topology.json', JSON.stringify(parsed, null, 2));
@@ -181,12 +181,12 @@ test('emit-ts: --dry-run lists files without writing', (assert) => {
 
 console.log('\n=== Simulate ===');
 
-test('simulate: ticketwave produces 4 scenarios, 92 events', (assert) => {
+test('simulate: ticketwave produces 6 scenarios, 102 events', (assert) => {
   const r = run('simulate', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(
-    r.stdout.includes('Generated 4 simulation scenario(s), 92 events'),
-    '4 scenarios, 92 events',
+    r.stdout.includes('Generated 6 simulation scenario(s), 102 events'),
+    '6 scenarios, 102 events',
   );
   assert(r.stdout.includes('Branches: 2'), 'general-admission-purchase has 2 branches');
 });
@@ -201,7 +201,7 @@ test('simulate: --json outputs valid Facet scenario', (assert) => {
     parsed = null;
   }
   const first = parsed?.[0];
-  assert(Array.isArray(parsed) && parsed.length === 4, 'one scenario per flow (4)');
+  assert(Array.isArray(parsed) && parsed.length === 6, 'one scenario per flow (6)');
   assert(first?.scenarioId, 'has scenarioId');
   assert(first?.expectedPath?.length >= 32, '>=32 node path');
   assert(first?.activeBranches?.length === 2, '2 active branches');

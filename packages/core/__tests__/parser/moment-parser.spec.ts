@@ -316,7 +316,14 @@ describe('MomentParser', () => {
       const result = await parser.parseContent(content, 'ticketwave.moment');
 
       expect(result.success).toBe(true);
-      expect(result.diagnostics).toHaveLength(0);
+      // Clean, apart from the one hop payment-settlement's re-hold arm states on purpose (ADR-044): the
+      // conversion follows the new hold (SeatsHeld), which no policy declares.
+      const [rehold, ...others] = result.diagnostics;
+      expect(rehold?.ruleId).toBe('V43');
+      expect(rehold?.message).toMatch(
+        /^Flow 'payment-settlement' moment 'Payment processing': 'ConvertHoldToReservation' is triggered-by 'SeatsHeld'/,
+      );
+      expect(others).toHaveLength(0);
       expect(result.ir!.metadata.name).toBe('ticketwave');
     });
 

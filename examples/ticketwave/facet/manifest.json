@@ -198,6 +198,18 @@
           "isNegative": true
         },
         {
+          "scenarioId": "scenario-flow-general-admission-purchase-neg-FailPayment-paymentPending",
+          "scenarioLabel": "Failure: Payment must be in pending state not met",
+          "kind": "negative",
+          "description": "Negative scenario: Payment must be in pending state precondition violation at FailPayment",
+          "file": "scenario-flow-general-admission-purchase-neg-FailPayment-paymentPending.json",
+          "eventCount": 21,
+          "pathLength": 19,
+          "branchCount": 2,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
           "scenarioId": "scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle",
           "scenarioLabel": "Timeout: general-admission-purchase [SeatHoldLifecycle.holdExpiry]",
           "kind": "timeout",
@@ -572,6 +584,30 @@
           "isNegative": true
         },
         {
+          "scenarioId": "scenario-flow-ticket-transfer-neg-DeclineTransfer-transferPending",
+          "scenarioLabel": "Failure: Transfer must be in pending state not met",
+          "kind": "negative",
+          "description": "Negative scenario: Transfer must be in pending state precondition violation at DeclineTransfer",
+          "file": "scenario-flow-ticket-transfer-neg-DeclineTransfer-transferPending.json",
+          "eventCount": 7,
+          "pathLength": 5,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
+          "scenarioId": "scenario-flow-ticket-transfer-neg-CancelTransfer-transferPending",
+          "scenarioLabel": "Failure: Transfer must be in pending state not met",
+          "kind": "negative",
+          "description": "Negative scenario: Transfer must be in pending state precondition violation at CancelTransfer",
+          "file": "scenario-flow-ticket-transfer-neg-CancelTransfer-transferPending.json",
+          "eventCount": 7,
+          "pathLength": 5,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
           "scenarioId": "scenario-flow-ticket-transfer-timeout-TransferLifecycle",
           "scenarioLabel": "Timeout: ticket-transfer [TransferLifecycle.transferExpiry]",
           "kind": "timeout",
@@ -658,6 +694,152 @@
           "file": "scenario-flow-event-cancellation-neg-RefundPayment-paymentConfirmed.json",
           "eventCount": 11,
           "pathLength": 10,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        }
+      ]
+    },
+    {
+      "flowId": "flow-seat-request",
+      "flowName": "seat-request",
+      "topology": "topology-seat-request.json",
+      "scenarios": [
+        {
+          "scenarioId": "scenario-flow-seat-request-0",
+          "scenarioLabel": "Happy Path: seat-request",
+          "kind": "happy",
+          "description": "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist.",
+          "file": "scenario-flow-seat-request-0.json",
+          "eventCount": 5,
+          "pathLength": 4,
+          "branchCount": 1,
+          "isHappyPath": true,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-seat-request-1",
+          "scenarioLabel": "Variant: seat-request [sold-out]",
+          "kind": "variant",
+          "description": "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist.",
+          "file": "scenario-flow-seat-request-1.json",
+          "eventCount": 5,
+          "pathLength": 4,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-seat-request-neg-RequestHold-ticketsAvailable",
+          "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
+          "kind": "negative",
+          "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
+          "file": "scenario-flow-seat-request-neg-RequestHold-ticketsAvailable.json",
+          "eventCount": 2,
+          "pathLength": 1,
+          "branchCount": 0,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
+          "scenarioId": "scenario-flow-seat-request-neg-RequestHold-customerHoldLimit",
+          "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
+          "kind": "negative",
+          "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
+          "file": "scenario-flow-seat-request-neg-RequestHold-customerHoldLimit.json",
+          "eventCount": 2,
+          "pathLength": 1,
+          "branchCount": 0,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
+          "scenarioId": "scenario-flow-seat-request-neg-JoinWaitlist-notAlreadyOnWaitlist",
+          "scenarioLabel": "Failure: Customer must not already be on the waitlist for this tier not met",
+          "kind": "negative",
+          "description": "Negative scenario: Customer must not already be on the waitlist for this tier precondition violation at JoinWaitlist",
+          "file": "scenario-flow-seat-request-neg-JoinWaitlist-notAlreadyOnWaitlist.json",
+          "eventCount": 5,
+          "pathLength": 3,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        }
+      ]
+    },
+    {
+      "flowId": "flow-payment-settlement",
+      "flowName": "payment-settlement",
+      "topology": "topology-payment-settlement.json",
+      "scenarios": [
+        {
+          "scenarioId": "scenario-flow-payment-settlement-0",
+          "scenarioLabel": "Happy Path: payment-settlement",
+          "kind": "happy",
+          "description": "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead.",
+          "file": "scenario-flow-payment-settlement-0.json",
+          "eventCount": 5,
+          "pathLength": 5,
+          "branchCount": 1,
+          "isHappyPath": true,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-payment-settlement-1",
+          "scenarioLabel": "Variant: payment-settlement [approved-after-rehold]",
+          "kind": "variant",
+          "description": "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead.",
+          "file": "scenario-flow-payment-settlement-1.json",
+          "eventCount": 9,
+          "pathLength": 6,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-payment-settlement-neg-ConfirmPayment-paymentPending",
+          "scenarioLabel": "Failure: Payment must be in pending state not met",
+          "kind": "negative",
+          "description": "Negative scenario: Payment must be in pending state precondition violation at ConfirmPayment",
+          "file": "scenario-flow-payment-settlement-neg-ConfirmPayment-paymentPending.json",
+          "eventCount": 2,
+          "pathLength": 1,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
+          "scenarioId": "scenario-flow-payment-settlement-neg-ConvertHoldToReservation-holdActive",
+          "scenarioLabel": "Failure: Hold must be active not met",
+          "kind": "negative",
+          "description": "Negative scenario: Hold must be active precondition violation at ConvertHoldToReservation",
+          "file": "scenario-flow-payment-settlement-neg-ConvertHoldToReservation-holdActive.json",
+          "eventCount": 4,
+          "pathLength": 3,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
+          "scenarioId": "scenario-flow-payment-settlement-neg-RequestHold-ticketsAvailable",
+          "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
+          "kind": "negative",
+          "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
+          "file": "scenario-flow-payment-settlement-neg-RequestHold-ticketsAvailable.json",
+          "eventCount": 2,
+          "pathLength": 1,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        },
+        {
+          "scenarioId": "scenario-flow-payment-settlement-neg-RequestHold-customerHoldLimit",
+          "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
+          "kind": "negative",
+          "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
+          "file": "scenario-flow-payment-settlement-neg-RequestHold-customerHoldLimit.json",
+          "eventCount": 2,
+          "pathLength": 1,
           "branchCount": 1,
           "isHappyPath": false,
           "isNegative": true

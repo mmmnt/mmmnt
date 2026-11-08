@@ -1,0 +1,131 @@
+{
+  "scenarioId": "scenario-flow-seat-request-1",
+  "flowId": "flow-seat-request",
+  "flowName": "seat-request",
+  "scenarioLabel": "Variant: seat-request [sold-out]",
+  "kind": "variant",
+  "description": "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist.",
+  "given": "A seat request scenario is initiated",
+  "when": "The flow progresses through Seat request, Availability decision",
+  "then": "The flow completes at Availability decision across Inventory, Presale",
+  "expectedPath": [
+    "moment-0-Seat-request::inventory::RequestHold::main",
+    "moment-0-Seat-request::inventory::SeatsHeld::main",
+    "moment-1-Availability-decision::presale::JoinWaitlist::br1",
+    "moment-1-Availability-decision::presale::WaitlistJoined::br1"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Availability decision",
+      "condition": "sold-out",
+      "routeChosen": "sold-out"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-seat-request-1",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-seat-request-1",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Seat-request::inventory::RequestHold::main",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "SeatsHeld",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-seat-request-1",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-seat-request-1",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Seat-request::inventory::SeatsHeld::main",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "heldAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.JoinWaitlist",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-seat-request-1",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-seat-request-1",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Availability-decision::presale::JoinWaitlist::br1",
+        "processName": "JoinWaitlist",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "customerId": "customerId-001",
+        "requestedQuantity": 0,
+        "outcome": "sold-out"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "WaitlistJoined",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-seat-request-1",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-seat-request-1",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Availability-decision::presale::WaitlistJoined::br1",
+        "waitlistId": "waitlistId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "customerId": "customerId-001",
+        "requestedQuantity": 0,
+        "position": 0,
+        "joinedAt": "2026-01-01T10:00:00.000Z",
+        "outcome": "sold-out"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-seat-request-1",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-seat-request-1",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
+      }
+    }
+  ]
+}

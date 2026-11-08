@@ -93,6 +93,8 @@ flow "payment-settlement"
 
 Expected topology: the two `ConvertHoldToReservation` connections have `branchCondition` `approved` and `approved-after-rehold`.
 
+Build note (2026-11-07): each arm also places `inventory: HoldClosed` before the exit, as `general-admission-purchase` does, because the command records both events and V47 warns when only one is placed. The re-hold arm's `triggered-by SeatsHeld` draws one V43 warning (no policy declares that hop); it states the cause on purpose and the ticketwave parse test names it.
+
 ### Reachability sweep before any "done" claim
 
 For every connection of every flow of TicketWave and SAMMI: its IR `branchCondition` equals its topology `branchCondition` (both absent counts as equal). Report any mismatch.
