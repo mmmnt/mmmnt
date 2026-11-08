@@ -1,0 +1,142 @@
+{
+  "name": "waitlist-offer",
+  "flowId": "flow-waitlist-offer",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "presale",
+      "label": "Presale",
+      "contextId": "ctx-Presale",
+      "classification": "Supporting",
+      "isBranch": false
+    }
+  ],
+  "frames": [
+    {
+      "id": "moment-0-Offer-answered",
+      "moment": "Offer answered",
+      "isBranch": true,
+      "nodes": [
+        {
+          "id": "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br0",
+          "lane": "presale",
+          "label": "AnswerWaitlistOffer",
+          "type": "command",
+          "aggregate": "Waitlist"
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br0",
+          "lane": "presale",
+          "label": "WaitlistOfferAnswered",
+          "type": "event",
+          "aggregate": "Waitlist",
+          "eventTypes": [
+            "WaitlistOfferAnswered"
+          ]
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0",
+          "lane": "presale",
+          "label": "PromoteFromWaitlist",
+          "type": "command",
+          "aggregate": "Waitlist"
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::WaitlistPromoted::br0",
+          "lane": "presale",
+          "label": "WaitlistPromoted",
+          "type": "event",
+          "aggregate": "Waitlist",
+          "terminal": true,
+          "eventTypes": [
+            "WaitlistPromoted"
+          ]
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br1",
+          "lane": "presale",
+          "label": "AnswerWaitlistOffer",
+          "type": "command",
+          "aggregate": "Waitlist"
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br1",
+          "lane": "presale",
+          "label": "WaitlistOfferAnswered",
+          "type": "event",
+          "aggregate": "Waitlist",
+          "eventTypes": [
+            "WaitlistOfferAnswered"
+          ]
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::LeaveWaitlist::br1",
+          "lane": "presale",
+          "label": "LeaveWaitlist",
+          "type": "command",
+          "aggregate": "Waitlist"
+        },
+        {
+          "id": "moment-0-Offer-answered::presale::WaitlistLeft::br1",
+          "lane": "presale",
+          "label": "WaitlistLeft",
+          "type": "event",
+          "aggregate": "Waitlist",
+          "terminal": true,
+          "eventTypes": [
+            "WaitlistLeft"
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": [],
+  "eventRouting": {
+    "SimProcess.AnswerWaitlistOffer": [
+      "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br0",
+      "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br1"
+    ],
+    "WaitlistOfferAnswered": [
+      "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br0",
+      "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br1"
+    ],
+    "SimProcess.PromoteFromWaitlist": [
+      "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0"
+    ],
+    "WaitlistPromoted": [
+      "moment-0-Offer-answered::presale::WaitlistPromoted::br0"
+    ],
+    "SimProcess.LeaveWaitlist": [
+      "moment-0-Offer-answered::presale::LeaveWaitlist::br1"
+    ],
+    "WaitlistLeft": [
+      "moment-0-Offer-answered::presale::WaitlistLeft::br1"
+    ]
+  },
+  "branchPredicates": {
+    "moment-0-Offer-answered": {
+      "field": "$branch",
+      "defaultRoute": "accepted",
+      "routes": {
+        "accepted": "accepted",
+        "declined": "declined"
+      }
+    }
+  },
+  "contextMap": {
+    "contexts": [
+      {
+        "contextId": "ctx-Presale",
+        "name": "Presale",
+        "classification": "Supporting",
+        "laneId": "presale",
+        "aggregates": [
+          "PresaleWindow",
+          "AccessCode",
+          "Waitlist"
+        ]
+      }
+    ],
+    "relationships": []
+  }
+}

@@ -209,6 +209,7 @@
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
         "refundAmount": 0,
+        "$branch": "all-successful",
         "outcome": "all-successful"
       }
     },
@@ -229,6 +230,7 @@
         "reason": "sample-reason",
         "refundAmount": 0,
         "refundedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "all-successful",
         "outcome": "all-successful"
       }
     },

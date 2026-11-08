@@ -265,7 +265,8 @@
       ],
       "triggers": [
         "policy:Inventory:ReplenishOnHoldRelease",
-        "policy:Inventory:PromoteWaitlistOnRelease"
+        "policy:Inventory:PromoteWaitlistOnRelease",
+        "command:Presale:NotifyWaitlistPromotion"
       ]
     },
     {
@@ -412,7 +413,8 @@
       "name": "NotifyWaitlistPromotion",
       "context": "Presale",
       "dependsOn": [
-        "policy:Inventory:PromoteWaitlistOnRelease"
+        "policy:Inventory:PromoteWaitlistOnRelease",
+        "event:Inventory:HoldReleased"
       ],
       "triggers": [
         "event:Presale:WaitlistPromotionNotified"
@@ -819,6 +821,24 @@
       "triggers": [
         "policy:Notifications:NotifyOnWaitlistPromotion"
       ]
+    },
+    {
+      "type": "command",
+      "name": "AnswerWaitlistOffer",
+      "context": "Presale",
+      "dependsOn": [],
+      "triggers": [
+        "event:Presale:WaitlistOfferAnswered"
+      ]
+    },
+    {
+      "type": "event",
+      "name": "WaitlistOfferAnswered",
+      "context": "Presale",
+      "dependsOn": [
+        "command:Presale:AnswerWaitlistOffer"
+      ],
+      "triggers": []
     },
     {
       "type": "policy",
@@ -1623,6 +1643,6 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-08T00:29:18.037Z"
+    "generatedAt": "2026-11-08T02:38:23.465Z"
   }
 }

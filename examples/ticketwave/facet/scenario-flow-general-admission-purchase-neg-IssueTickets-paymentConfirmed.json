@@ -233,6 +233,7 @@
         "processName": "CreateCart",
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
+        "$branch": "low-risk",
         "outcome": "low-risk"
       }
     },
@@ -253,6 +254,7 @@
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
         "createdAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "low-risk",
         "outcome": "low-risk"
       }
     },
@@ -444,6 +446,7 @@
         "processName": "ConfirmPayment",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },
@@ -468,6 +471,7 @@
         "orderId": "orderId-001",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },

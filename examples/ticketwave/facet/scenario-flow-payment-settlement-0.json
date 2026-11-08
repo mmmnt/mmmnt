@@ -37,6 +37,7 @@
         "processName": "ConfirmPayment",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },
@@ -56,6 +57,7 @@
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },
@@ -75,6 +77,7 @@
         "processName": "ConvertHoldToReservation",
         "holdId": "holdId-001",
         "paymentConfirmationId": "paymentConfirmationId-001",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },
@@ -93,6 +96,7 @@
         "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br0",
         "holdId": "holdId-001",
         "closedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },
@@ -112,6 +116,7 @@
         "holdId": "holdId-001",
         "paymentConfirmationId": "paymentConfirmationId-001",
         "convertedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved",
         "outcome": "approved"
       }
     }

@@ -318,4 +318,27 @@ describe('moment simulate policy-definitions artifact', () => {
       expect(pol.contextId.startsWith('ctx-')).toBe(true);
     }
   });
+
+  // ADR-045 D3: `condition` appears on a policy that declares one and on no other.
+  it('emits `condition` on the policies that declare one, and no key on the others', async () => {
+    const outDir = join(workDir, 'out-cond');
+    const result = await runSimulate([UNIFIED_FIXTURE, '--all', '--out-dir', outDir]);
+    expect(result.success).toBe(true);
+    const policies = JSON.parse(
+      readFileSync(join(outDir, 'policy-definitions.json'), 'utf-8'),
+    ) as Array<{ name: string; condition?: Record<string, string> }>;
+    const byName = new Map(policies.map((p) => [p.name, p]));
+
+    expect(byName.get('PromoteWaitlistOnRelease')?.condition).toEqual({
+      field: 'reason',
+      equals: 'expired',
+    });
+    expect(byName.get('ConvertHoldOnPayment')?.condition).toEqual({ after: 'SeatsHeld' });
+    expect(
+      policies
+        .filter((p) => 'condition' in p)
+        .map((p) => p.name)
+        .sort(),
+    ).toEqual(['ConvertHoldOnPayment', 'PromoteWaitlistOnRelease']);
+  });
 });

@@ -42,7 +42,11 @@
     "actionDescription": "Check waitlist for customers waiting on this event-tier and promote next eligible",
     "chainsTo": [
       "NotifyWaitlistPromotion"
-    ]
+    ],
+    "condition": {
+      "field": "reason",
+      "equals": "expired"
+    }
   },
   {
     "name": "ConvertHoldOnPayment",
@@ -51,7 +55,10 @@
     "actionDescription": "Convert seat hold to permanent reservation after payment clears",
     "chainsTo": [
       "ConvertHoldToReservation"
-    ]
+    ],
+    "condition": {
+      "after": "SeatsHeld"
+    }
   },
   {
     "name": "ReleaseHoldOnPaymentFailure",

@@ -214,6 +214,7 @@
         "customerId": "customerId-001",
         "reason": "sample-reason",
         "duration": 0,
+        "$branch": "high-risk",
         "outcome": "high-risk"
       }
     },
@@ -236,6 +237,7 @@
         "duration": 0,
         "blockedUntil": "2026-01-01T10:00:00.000Z",
         "blockedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "high-risk",
         "outcome": "high-risk"
       }
     },
@@ -252,6 +254,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-4-Hold-risk-decision::botDetected::CustomerBlocked::br1",
+        "$branch": "high-risk",
         "outcome": "high-risk"
       }
     },

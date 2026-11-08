@@ -84,6 +84,7 @@
         "tierId": "tierId-001",
         "customerId": "customerId-001",
         "requestedQuantity": 0,
+        "$branch": "sold-out",
         "outcome": "sold-out"
       }
     },
@@ -107,6 +108,7 @@
         "requestedQuantity": 0,
         "position": 0,
         "joinedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "sold-out",
         "outcome": "sold-out"
       }
     },

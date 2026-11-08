@@ -970,7 +970,7 @@
   },
   "branchPredicates": {
     "moment-4-Hold-risk-decision": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "low-risk",
       "routes": {
         "low-risk": "low-risk",
@@ -979,7 +979,7 @@
       }
     },
     "moment-9-Payment-processing": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "approved",
       "routes": {
         "approved": "approved",

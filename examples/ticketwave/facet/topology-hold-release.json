@@ -1,0 +1,126 @@
+{
+  "name": "hold-release",
+  "flowId": "flow-hold-release",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "inventory",
+      "label": "Inventory",
+      "contextId": "ctx-Inventory",
+      "classification": "Core",
+      "isBranch": false
+    },
+    {
+      "id": "presale",
+      "label": "Presale",
+      "contextId": "ctx-Presale",
+      "classification": "Supporting",
+      "isBranch": false
+    }
+  ],
+  "frames": [
+    {
+      "id": "moment-0-Holds-released",
+      "moment": "Holds released",
+      "isBranch": false,
+      "nodes": [
+        {
+          "id": "moment-0-Holds-released::inventory::ReleaseHold::main",
+          "lane": "inventory",
+          "label": "ReleaseHold",
+          "type": "command",
+          "aggregate": "SeatHold"
+        },
+        {
+          "id": "moment-0-Holds-released::inventory::HoldReleased::main",
+          "lane": "inventory",
+          "label": "HoldReleased",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldReleased"
+          ]
+        },
+        {
+          "id": "moment-0-Holds-released::inventory::HoldReleased::main#2",
+          "lane": "inventory",
+          "label": "HoldReleased",
+          "type": "event",
+          "aggregate": "SeatHold",
+          "eventTypes": [
+            "HoldReleased"
+          ]
+        },
+        {
+          "id": "moment-0-Holds-released::presale::NotifyWaitlistPromotion::main",
+          "lane": "presale",
+          "label": "NotifyWaitlistPromotion",
+          "type": "command",
+          "aggregate": "Waitlist"
+        },
+        {
+          "id": "moment-0-Holds-released::presale::WaitlistPromotionNotified::main",
+          "lane": "presale",
+          "label": "WaitlistPromotionNotified",
+          "type": "event",
+          "aggregate": "Waitlist",
+          "eventTypes": [
+            "WaitlistPromotionNotified"
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "moment-0-Holds-released",
+      "to": "ctx-Presale",
+      "style": "happy",
+      "eventType": "HoldReleased",
+      "sourceNodeName": "HoldReleased",
+      "targetNodeName": "NotifyWaitlistPromotion"
+    }
+  ],
+  "eventRouting": {
+    "SimProcess.ReleaseHold": [
+      "moment-0-Holds-released::inventory::ReleaseHold::main"
+    ],
+    "HoldReleased": [
+      "moment-0-Holds-released::inventory::HoldReleased::main",
+      "moment-0-Holds-released::inventory::HoldReleased::main#2"
+    ],
+    "SimProcess.NotifyWaitlistPromotion": [
+      "moment-0-Holds-released::presale::NotifyWaitlistPromotion::main"
+    ],
+    "WaitlistPromotionNotified": [
+      "moment-0-Holds-released::presale::WaitlistPromotionNotified::main"
+    ]
+  },
+  "branchPredicates": {},
+  "contextMap": {
+    "contexts": [
+      {
+        "contextId": "ctx-Inventory",
+        "name": "Inventory",
+        "classification": "Core",
+        "laneId": "inventory",
+        "aggregates": [
+          "TicketPool",
+          "SeatHold"
+        ]
+      },
+      {
+        "contextId": "ctx-Presale",
+        "name": "Presale",
+        "classification": "Supporting",
+        "laneId": "presale",
+        "aggregates": [
+          "PresaleWindow",
+          "AccessCode",
+          "Waitlist"
+        ]
+      }
+    ],
+    "relationships": []
+  }
+}

@@ -124,6 +124,7 @@
         "processName": "AcceptTransfer",
         "transferId": "transferId-001",
         "recipientCustomerId": "recipientCustomerId-001",
+        "$branch": "accepted",
         "outcome": "accepted"
       }
     },
@@ -145,6 +146,7 @@
         "recipientCustomerId": "recipientCustomerId-001",
         "newBarcode": {},
         "acceptedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "accepted",
         "outcome": "accepted"
       }
     },

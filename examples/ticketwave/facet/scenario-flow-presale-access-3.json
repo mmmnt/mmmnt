@@ -100,6 +100,7 @@
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
+        "$branch": "last-use",
         "outcome": "last-use",
         "whenState": "OneUseLeft"
       }
@@ -123,6 +124,7 @@
         "eventId": "eventId-001",
         "windowId": "windowId-001",
         "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "last-use",
         "outcome": "last-use"
       }
     },
@@ -142,6 +144,7 @@
         "codeId": "codeId-001",
         "windowId": "windowId-001",
         "exhaustedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "last-use",
         "outcome": "last-use"
       }
     },
@@ -165,6 +168,7 @@
         "quantity": 0,
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
+        "$branch": "valid",
         "outcome": "valid"
       }
     },
@@ -190,6 +194,7 @@
         "sessionId": "sessionId-001",
         "expiresAt": "2026-01-01T10:00:00.000Z",
         "heldAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "valid",
         "outcome": "valid"
       }
     },

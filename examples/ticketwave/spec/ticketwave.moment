@@ -278,7 +278,7 @@ context "Inventory" [Core]
     chains-to AdjustPoolCapacity
 
   policy PromoteWaitlistOnRelease
-    trigger HoldReleased
+    trigger HoldReleased when reason = expired
     action "Check waitlist for customers waiting on this event-tier and promote next eligible"
     chains-to NotifyWaitlistPromotion
 // TicketWave — Checkout Context
@@ -439,7 +439,7 @@ context "Checkout" [Core]
     scope Cart
 
   policy ConvertHoldOnPayment
-    trigger PaymentConfirmed
+    trigger PaymentConfirmed after SeatsHeld
     action "Convert seat hold to permanent reservation after payment clears"
     chains-to ConvertHoldToReservation
 
@@ -558,6 +558,10 @@ context "Presale" [Supporting]
       input waitlistId: UUID, customerId: UUID, availableQuantity: number
       emits WaitlistPromotionNotified
 
+    command AnswerWaitlistOffer
+      input waitlistId: UUID, customerId: UUID, outcome: string
+      emits WaitlistOfferAnswered
+
     event WaitlistJoined
       waitlistId: UUID
       eventId: UUID
@@ -583,6 +587,12 @@ context "Presale" [Supporting]
       customerId: UUID
       availableQuantity: number
       notifiedAt: DateTime
+
+    event WaitlistOfferAnswered
+      waitlistId: UUID
+      customerId: UUID
+      outcome: string
+      answeredAt: DateTime
 
   invariant PRE-01 "Access code must belong to the associated presale window"
     scope AccessCode
@@ -1420,3 +1430,34 @@ flow "payment-settlement"
         triggered-by SeatsHeld
       inventory: HoldClosed
       inventory: HoldConvertedToReservation [outcome]
+
+flow "hold-release"
+  description "A customer abandons the cart and the hold is released; later a hold expires. Only the expired release promotes the waitlist."
+
+  lane inventory "Inventory" [Core]
+  lane presale "Presale" [Supporting]
+
+  moment "Holds released"
+    inventory: ReleaseHold
+    inventory: HoldReleased
+    inventory: HoldReleased
+    presale: NotifyWaitlistPromotion
+      triggered-by HoldReleased
+    presale: WaitlistPromotionNotified
+
+flow "waitlist-offer"
+  description "A waitlisted customer is offered seats and answers. The answer is the event's own outcome field; the branch is the arm the flow takes."
+
+  lane presale "Presale" [Supporting]
+
+  moment "Offer answered" [branch]
+    when accepted
+      presale: AnswerWaitlistOffer
+      presale: WaitlistOfferAnswered
+      presale: PromoteFromWaitlist
+      presale: WaitlistPromoted [outcome]
+    when declined
+      presale: AnswerWaitlistOffer
+      presale: WaitlistOfferAnswered
+      presale: LeaveWaitlist
+      presale: WaitlistLeft [outcome]

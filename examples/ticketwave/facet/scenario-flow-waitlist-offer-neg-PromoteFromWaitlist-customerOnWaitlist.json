@@ -1,0 +1,101 @@
+{
+  "scenarioId": "scenario-flow-waitlist-offer-neg-PromoteFromWaitlist-customerOnWaitlist",
+  "flowId": "flow-waitlist-offer",
+  "flowName": "waitlist-offer",
+  "scenarioLabel": "Failure: Customer must be on the waitlist not met",
+  "kind": "negative",
+  "description": "Negative scenario: Customer must be on the waitlist precondition violation at PromoteFromWaitlist",
+  "given": "A offer answered scenario is initiated",
+  "when": "PromoteFromWaitlist is invoked without satisfying customerOnWaitlist",
+  "then": "The command PromoteFromWaitlist is rejected",
+  "expectedPath": [
+    "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br0",
+    "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br0",
+    "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Offer answered",
+      "condition": "accepted",
+      "routeChosen": "accepted"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.AnswerWaitlistOffer",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-waitlist-offer",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-waitlist-offer",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br0",
+        "processName": "AnswerWaitlistOffer",
+        "waitlistId": "waitlistId-001",
+        "customerId": "customerId-001",
+        "outcome": "sample-outcome",
+        "$branch": "accepted"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "WaitlistOfferAnswered",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-waitlist-offer",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-waitlist-offer",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br0",
+        "waitlistId": "waitlistId-001",
+        "customerId": "customerId-001",
+        "outcome": "sample-outcome",
+        "answeredAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "accepted"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.PromoteFromWaitlist",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-waitlist-offer",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-waitlist-offer",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0",
+        "processName": "PromoteFromWaitlist",
+        "waitlistId": "waitlistId-001",
+        "customerId": "customerId-001",
+        "holdId": "holdId-001",
+        "$branch": "accepted",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "SimFailure.PromoteFromWaitlist.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-waitlist-offer",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-waitlist-offer",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0",
+        "failedPrecondition": "customerOnWaitlist",
+        "description": "Customer must be on the waitlist"
+      }
+    }
+  ]
+}

@@ -33,6 +33,7 @@
         "processName": "ConfirmPayment",
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
+        "$branch": "approved",
         "outcome": "approved"
       }
     },

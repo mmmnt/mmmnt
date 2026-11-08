@@ -126,7 +126,7 @@
   },
   "branchPredicates": {
     "moment-1-Availability-decision": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "seats-available",
       "routes": {
         "seats-available": "seats-available",

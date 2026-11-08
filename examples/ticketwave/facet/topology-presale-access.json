@@ -710,7 +710,7 @@
   },
   "branchPredicates": {
     "moment-1-Access-code-redemption": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "uses-remain",
       "routes": {
         "uses-remain": "uses-remain",
@@ -718,7 +718,7 @@
       }
     },
     "moment-2-Code-validation-outcome": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "valid",
       "routes": {
         "valid": "valid",

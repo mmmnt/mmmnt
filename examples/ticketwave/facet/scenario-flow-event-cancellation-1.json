@@ -209,6 +209,7 @@
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
         "refundAmount": 0,
+        "$branch": "partial-failure",
         "outcome": "partial-failure"
       }
     },
@@ -229,6 +230,7 @@
         "reason": "sample-reason",
         "refundAmount": 0,
         "refundedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "partial-failure",
         "outcome": "partial-failure"
       }
     },
@@ -249,6 +251,7 @@
         "failureReason": "sample-failureReason",
         "gatewayErrorCode": "sample-gatewayErrorCode",
         "failedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "partial-failure",
         "outcome": "partial-failure"
       }
     },
@@ -265,6 +268,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-6-Refund-processing::partialRefundFailure::PaymentFailed::br1",
+        "$branch": "partial-failure",
         "outcome": "partial-failure"
       }
     }

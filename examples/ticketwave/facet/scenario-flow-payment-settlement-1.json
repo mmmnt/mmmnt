@@ -42,6 +42,7 @@
         "quantity": 0,
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },
@@ -67,6 +68,7 @@
         "sessionId": "sessionId-001",
         "expiresAt": "2026-01-01T10:00:00.000Z",
         "heldAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },
@@ -86,6 +88,7 @@
         "paymentId": "paymentId-001",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },
@@ -105,6 +108,7 @@
         "processName": "ConvertHoldToReservation",
         "holdId": "holdId-001",
         "paymentConfirmationId": "paymentConfirmationId-001",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },
@@ -123,6 +127,7 @@
         "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br1",
         "holdId": "holdId-001",
         "closedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },
@@ -142,6 +147,7 @@
         "holdId": "holdId-001",
         "paymentConfirmationId": "paymentConfirmationId-001",
         "convertedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },

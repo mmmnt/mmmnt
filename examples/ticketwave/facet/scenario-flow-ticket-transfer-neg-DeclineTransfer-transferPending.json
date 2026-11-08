@@ -120,6 +120,7 @@
         "processName": "DeclineTransfer",
         "transferId": "transferId-001",
         "reason": "sample-reason",
+        "$branch": "declined",
         "outcome": "declined"
       }
     },

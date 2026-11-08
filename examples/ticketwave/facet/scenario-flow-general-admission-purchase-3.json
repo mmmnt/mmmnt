@@ -214,6 +214,7 @@
         "assessmentId": "assessmentId-001",
         "reason": "sample-reason",
         "evidencePayload": "sample-evidencePayload",
+        "$branch": "medium-risk",
         "outcome": "medium-risk"
       }
     },
@@ -233,6 +234,7 @@
         "assessmentId": "assessmentId-001",
         "reason": "sample-reason",
         "flaggedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "medium-risk",
         "outcome": "medium-risk"
       }
     },
@@ -249,6 +251,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-4-Hold-risk-decision::manualReview::FlaggedForManualReview::br2",
+        "$branch": "medium-risk",
         "outcome": "medium-risk"
       }
     },

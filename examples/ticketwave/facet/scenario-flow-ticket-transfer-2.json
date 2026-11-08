@@ -121,6 +121,7 @@
         "nodeId": "moment-2-Transfer-resolution::delivery::CancelTransfer::br2",
         "processName": "CancelTransfer",
         "transferId": "transferId-001",
+        "$branch": "expired",
         "outcome": "expired"
       }
     },
@@ -139,6 +140,7 @@
         "nodeId": "moment-2-Transfer-resolution::delivery::TransferCancelled::br2",
         "transferId": "transferId-001",
         "cancelledAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "expired",
         "outcome": "expired"
       }
     },
@@ -155,6 +157,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Transfer-resolution::transferExpired::TransferCancelled::br2",
+        "$branch": "expired",
         "outcome": "expired"
       }
     },

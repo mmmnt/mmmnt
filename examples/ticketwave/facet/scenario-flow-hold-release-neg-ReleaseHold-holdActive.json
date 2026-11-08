@@ -1,0 +1,50 @@
+{
+  "scenarioId": "scenario-flow-hold-release-neg-ReleaseHold-holdActive",
+  "flowId": "flow-hold-release",
+  "flowName": "hold-release",
+  "scenarioLabel": "Failure: Hold must be active not met",
+  "kind": "negative",
+  "description": "Negative scenario: Hold must be active precondition violation at ReleaseHold",
+  "given": "A holds released scenario is initiated",
+  "when": "ReleaseHold is invoked without satisfying holdActive",
+  "then": "The command ReleaseHold is rejected",
+  "expectedPath": [
+    "moment-0-Holds-released::inventory::ReleaseHold::main"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.ReleaseHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-hold-release",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-hold-release",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Holds-released::inventory::ReleaseHold::main",
+        "processName": "ReleaseHold",
+        "holdId": "holdId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "SimFailure.ReleaseHold.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-hold-release",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-hold-release",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Holds-released::inventory::ReleaseHold::main",
+        "failedPrecondition": "holdActive",
+        "description": "Hold must be active"
+      }
+    }
+  ]
+}

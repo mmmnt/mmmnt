@@ -85,7 +85,7 @@ describe('MCP Integration — tools/call', () => {
     const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
     expect(parsed.success).toBe(true);
     expect(parsed.contextCount).toBe(7);
-    expect(parsed.flowCount).toBe(6);
+    expect(parsed.flowCount).toBe(8);
   });
 
   it('moment_validate with invalid fixture returns diagnostics', async () => {

@@ -176,7 +176,7 @@
   },
   "branchPredicates": {
     "moment-0-Payment-processing": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "approved",
       "routes": {
         "approved": "approved",

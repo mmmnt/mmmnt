@@ -55,6 +55,11 @@ flow "checkout"
 
 Run `npx moment --help` for every command.
 
+## What's in 0.10
+
+- **A policy declares when it reacts (ADR-045).** `trigger Event when field = value` and `trigger Event after Other` say which occurrences of the trigger the policy reacts to. `policy-definitions.json` carries them as `condition`, and a scenario sets the declared value on the occurrence the reaction names. Rules V49 to V51 check them. A policy that declares nothing derives exactly as before.
+- **The branch stamp has its own key (ADR-046).** The arm a scenario took is in `payload.$branch` (a name no model field can have) and the topology's branch predicate names it; `payload.outcome` is still written for events that declare no `outcome` field, and never over one that does.
+
 ## What's in 0.6
 
 - **A complete modeling vocabulary (ADR-037).** Projections, queries, context-level rules with their enforcers, value objects, glossary terms and external systems, carried through code generation, specification documents and the context map.

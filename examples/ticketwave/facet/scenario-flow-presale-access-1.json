@@ -80,6 +80,7 @@
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
+        "$branch": "uses-remain",
         "outcome": "uses-remain",
         "whenState": "Open"
       }
@@ -103,6 +104,7 @@
         "eventId": "eventId-001",
         "windowId": "windowId-001",
         "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "uses-remain",
         "outcome": "uses-remain"
       }
     },
@@ -122,6 +124,7 @@
         "processName": "InvalidateAccessCode",
         "codeId": "codeId-001",
         "reason": "sample-reason",
+        "$branch": "invalid",
         "outcome": "invalid"
       }
     },
@@ -141,6 +144,7 @@
         "codeId": "codeId-001",
         "reason": "sample-reason",
         "invalidatedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "invalid",
         "outcome": "invalid"
       }
     },
@@ -157,6 +161,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::invalidCode::AccessCodeInvalidated::br1",
+        "$branch": "invalid",
         "outcome": "invalid"
       }
     }

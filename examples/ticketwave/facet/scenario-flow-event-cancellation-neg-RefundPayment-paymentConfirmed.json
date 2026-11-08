@@ -206,6 +206,7 @@
         "paymentId": "paymentId-001",
         "reason": "sample-reason",
         "refundAmount": 0,
+        "$branch": "all-successful",
         "outcome": "all-successful"
       }
     },

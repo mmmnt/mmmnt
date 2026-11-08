@@ -100,11 +100,11 @@ function saveOutput(filename, content) {
 console.log('\nMoment E2E Test Harness\n');
 console.log('=== Parse ===');
 
-test('parse: ticketwave (7 contexts, 6 flows)', (assert) => {
+test('parse: ticketwave (7 contexts, 8 flows)', (assert) => {
   const r = run('parse', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('7 context(s)'), 'reports 7 contexts');
-  assert(r.stdout.includes('6 flow(s)'), 'reports 6 flows');
+  assert(r.stdout.includes('8 flow(s)'), 'reports 8 flows');
 });
 
 test('parse: unified ordering (2 contexts, 1 flow)', (assert) => {
@@ -127,10 +127,10 @@ test('parse: missing file errors', (assert) => {
 
 console.log('\n=== Derive ===');
 
-test('derive: ticketwave produces 6 suites, 88 cases', (assert) => {
+test('derive: ticketwave produces 8 suites, 91 cases', (assert) => {
   const r = run('derive', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
-  assert(r.stdout.includes('6 suite'), 'reports 6 suites');
+  assert(r.stdout.includes('8 suite'), 'reports 8 suites');
   assert(r.stdout.includes('case'), 'reports test cases');
 });
 
@@ -144,10 +144,10 @@ test('derive: --json outputs valid topology JSON', (assert) => {
     parsed = null;
   }
   assert(parsed !== null, 'valid JSON');
-  assert(parsed?.suites?.length === 6, '6 suites');
+  assert(parsed?.suites?.length === 8, '8 suites');
   assert(
-    (parsed?.suites ?? []).reduce((n, s) => n + s.testCases.length, 0) >= 88,
-    '>=88 test cases',
+    (parsed?.suites ?? []).reduce((n, s) => n + s.testCases.length, 0) >= 91,
+    '>=91 test cases',
   );
   assert(parsed?.metadata?.sourceIrHash, 'has IR hash');
   saveOutput('derive-topology.json', JSON.stringify(parsed, null, 2));
@@ -165,11 +165,11 @@ test('generate: ticketwave produces features + specs + docs', (assert) => {
 
 console.log('\n=== Emit TypeScript ===');
 
-test('emit-ts: ticketwave produces 40 TS + 20 scaffolds', (assert) => {
+test('emit-ts: ticketwave produces 40 TS + 21 scaffolds', (assert) => {
   const r = run('emit-ts', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(r.stdout.includes('TypeScript'), 'reports TypeScript files');
-  assert(r.stdout.includes('20 scaffold'), '20 scaffold files');
+  assert(r.stdout.includes('21 scaffold'), '21 scaffold files');
 });
 
 test('emit-ts: --dry-run lists files without writing', (assert) => {
@@ -181,12 +181,12 @@ test('emit-ts: --dry-run lists files without writing', (assert) => {
 
 console.log('\n=== Simulate ===');
 
-test('simulate: ticketwave produces 6 scenarios, 102 events', (assert) => {
+test('simulate: ticketwave produces 8 scenarios, 111 events', (assert) => {
   const r = run('simulate', [TICKETWAVE]);
   assert(r.exitCode === 0, 'exit code 0');
   assert(
-    r.stdout.includes('Generated 6 simulation scenario(s), 102 events'),
-    '6 scenarios, 102 events',
+    r.stdout.includes('Generated 8 simulation scenario(s), 111 events'),
+    '8 scenarios, 111 events',
   );
   assert(r.stdout.includes('Branches: 2'), 'general-admission-purchase has 2 branches');
 });
@@ -201,7 +201,7 @@ test('simulate: --json outputs valid Facet scenario', (assert) => {
     parsed = null;
   }
   const first = parsed?.[0];
-  assert(Array.isArray(parsed) && parsed.length === 6, 'one scenario per flow (6)');
+  assert(Array.isArray(parsed) && parsed.length === 8, 'one scenario per flow (8)');
   assert(first?.scenarioId, 'has scenarioId');
   assert(first?.expectedPath?.length >= 32, '>=32 node path');
   assert(first?.activeBranches?.length === 2, '2 active branches');

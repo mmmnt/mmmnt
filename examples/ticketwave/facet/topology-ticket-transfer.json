@@ -346,7 +346,7 @@
   },
   "branchPredicates": {
     "moment-2-Transfer-resolution": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "accepted",
       "routes": {
         "accepted": "accepted",

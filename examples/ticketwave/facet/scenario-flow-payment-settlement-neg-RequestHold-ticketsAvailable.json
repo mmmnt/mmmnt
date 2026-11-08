@@ -37,6 +37,7 @@
         "quantity": 0,
         "customerId": "customerId-001",
         "sessionId": "sessionId-001",
+        "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
     },

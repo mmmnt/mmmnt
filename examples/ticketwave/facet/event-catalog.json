@@ -1390,7 +1390,11 @@
         "aggregate": "Waitlist",
         "command": "PromoteFromWaitlist"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Offer answered",
+        "momentIndex": 0
+      }
     },
     {
       "eventName": "WaitlistLeft",
@@ -1419,7 +1423,11 @@
         "aggregate": "Waitlist",
         "command": "LeaveWaitlist"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Offer answered",
+        "momentIndex": 0
+      }
     },
     {
       "eventName": "WaitlistPromotionNotified",
@@ -1453,7 +1461,49 @@
         "aggregate": "Waitlist",
         "command": "NotifyWaitlistPromotion"
       },
-      "consumers": []
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Holds released",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "WaitlistOfferAnswered",
+      "kind": "event",
+      "schema": {
+        "fields": [
+          {
+            "name": "waitlistId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "outcome",
+            "type": "string",
+            "isArray": false
+          },
+          {
+            "name": "answeredAt",
+            "type": "DateTime",
+            "isArray": false
+          }
+        ]
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "Waitlist",
+        "command": "AnswerWaitlistOffer"
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Offer answered",
+        "momentIndex": 0
+      }
     },
     {
       "eventName": "TicketsIssued",
@@ -2972,10 +3022,78 @@
         "moment": "Availability decision",
         "momentIndex": 1
       }
+    },
+    {
+      "eventName": "NotifyWaitlistPromotion",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Holds released",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "AnswerWaitlistOffer",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Offer answered",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "PromoteFromWaitlist",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Offer answered",
+        "momentIndex": 0
+      }
+    },
+    {
+      "eventName": "LeaveWaitlist",
+      "kind": "command",
+      "schema": {
+        "fields": []
+      },
+      "producer": {
+        "context": "Presale",
+        "aggregate": "",
+        "command": ""
+      },
+      "consumers": [],
+      "temporalLocation": {
+        "moment": "Offer answered",
+        "momentIndex": 0
+      }
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-08T00:29:18.034Z",
-    "totalEvents": 91
+    "generatedAt": "2026-11-08T02:38:23.460Z",
+    "totalEvents": 96
   }
 }

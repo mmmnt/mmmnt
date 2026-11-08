@@ -71,6 +71,7 @@
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
+        "$branch": "uses-remain",
         "outcome": "uses-remain",
         "whenState": "Open"
       }

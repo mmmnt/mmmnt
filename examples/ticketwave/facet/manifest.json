@@ -845,6 +845,80 @@
           "isNegative": true
         }
       ]
+    },
+    {
+      "flowId": "flow-hold-release",
+      "flowName": "hold-release",
+      "topology": "topology-hold-release.json",
+      "scenarios": [
+        {
+          "scenarioId": "scenario-flow-hold-release",
+          "scenarioLabel": "Happy Path: hold-release",
+          "kind": "happy",
+          "description": "A customer abandons the cart and the hold is released; later a hold expires. Only the expired release promotes the waitlist.",
+          "file": "scenario-flow-hold-release.json",
+          "eventCount": 5,
+          "pathLength": 5,
+          "branchCount": 0,
+          "isHappyPath": true,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-hold-release-neg-ReleaseHold-holdActive",
+          "scenarioLabel": "Failure: Hold must be active not met",
+          "kind": "negative",
+          "description": "Negative scenario: Hold must be active precondition violation at ReleaseHold",
+          "file": "scenario-flow-hold-release-neg-ReleaseHold-holdActive.json",
+          "eventCount": 2,
+          "pathLength": 1,
+          "branchCount": 0,
+          "isHappyPath": false,
+          "isNegative": true
+        }
+      ]
+    },
+    {
+      "flowId": "flow-waitlist-offer",
+      "flowName": "waitlist-offer",
+      "topology": "topology-waitlist-offer.json",
+      "scenarios": [
+        {
+          "scenarioId": "scenario-flow-waitlist-offer-0",
+          "scenarioLabel": "Happy Path: waitlist-offer",
+          "kind": "happy",
+          "description": "A waitlisted customer is offered seats and answers. The answer is the event's own outcome field; the branch is the arm the flow takes.",
+          "file": "scenario-flow-waitlist-offer-0.json",
+          "eventCount": 4,
+          "pathLength": 4,
+          "branchCount": 1,
+          "isHappyPath": true,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-waitlist-offer-1",
+          "scenarioLabel": "Variant: waitlist-offer [declined]",
+          "kind": "variant",
+          "description": "A waitlisted customer is offered seats and answers. The answer is the event's own outcome field; the branch is the arm the flow takes.",
+          "file": "scenario-flow-waitlist-offer-1.json",
+          "eventCount": 4,
+          "pathLength": 4,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": false
+        },
+        {
+          "scenarioId": "scenario-flow-waitlist-offer-neg-PromoteFromWaitlist-customerOnWaitlist",
+          "scenarioLabel": "Failure: Customer must be on the waitlist not met",
+          "kind": "negative",
+          "description": "Negative scenario: Customer must be on the waitlist precondition violation at PromoteFromWaitlist",
+          "file": "scenario-flow-waitlist-offer-neg-PromoteFromWaitlist-customerOnWaitlist.json",
+          "eventCount": 4,
+          "pathLength": 3,
+          "branchCount": 1,
+          "isHappyPath": false,
+          "isNegative": true
+        }
+      ]
     }
   ],
   "artifacts": {

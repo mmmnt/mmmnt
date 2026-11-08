@@ -120,6 +120,7 @@
         "processName": "AcceptTransfer",
         "transferId": "transferId-001",
         "recipientCustomerId": "recipientCustomerId-001",
+        "$branch": "accepted",
         "outcome": "accepted"
       }
     },

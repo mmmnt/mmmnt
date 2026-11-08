@@ -81,6 +81,7 @@
         "code": "sample-code",
         "customerId": "customerId-001",
         "eventId": "eventId-001",
+        "$branch": "last-use",
         "outcome": "last-use",
         "whenState": "OneUseLeft"
       }
@@ -104,6 +105,7 @@
         "eventId": "eventId-001",
         "windowId": "windowId-001",
         "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "last-use",
         "outcome": "last-use"
       }
     },
@@ -123,6 +125,7 @@
         "codeId": "codeId-001",
         "windowId": "windowId-001",
         "exhaustedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "last-use",
         "outcome": "last-use"
       }
     },
@@ -141,6 +144,7 @@
         "nodeId": "moment-2-Code-validation-outcome::presale::ClosePresaleWindow::br2",
         "processName": "ClosePresaleWindow",
         "windowId": "windowId-001",
+        "$branch": "window-expired",
         "outcome": "window-expired"
       }
     },
@@ -160,6 +164,7 @@
         "windowId": "windowId-001",
         "totalRedemptions": 0,
         "closedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "window-expired",
         "outcome": "window-expired"
       }
     },
@@ -176,6 +181,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::windowClosed::PresaleWindowClosed::br2",
+        "$branch": "window-expired",
         "outcome": "window-expired"
       }
     }

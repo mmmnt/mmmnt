@@ -119,6 +119,7 @@
         "nodeId": "moment-2-Transfer-resolution::delivery::CancelTransfer::br2",
         "processName": "CancelTransfer",
         "transferId": "transferId-001",
+        "$branch": "expired",
         "outcome": "expired"
       }
     },

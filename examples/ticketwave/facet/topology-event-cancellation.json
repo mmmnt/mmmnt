@@ -434,7 +434,7 @@
   },
   "branchPredicates": {
     "moment-6-Refund-processing": {
-      "field": "outcome",
+      "field": "$branch",
       "defaultRoute": "all-successful",
       "routes": {
         "all-successful": "all-successful",
