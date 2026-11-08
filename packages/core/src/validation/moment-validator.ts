@@ -335,7 +335,8 @@ export class MomentValidator {
   // those are alternative branch arms, not continuations.
   // =========================================================================
   checkTerminalIsLast(node: NodePlacement, accept: ValidationAcceptor): void {
-    if (node.modifier?.type !== 'terminal') return;
+    // `[outcome]` ends the flow as `[terminal]` does (ADR-043), so the same rule holds for both.
+    if (!endsFlow(node)) return;
     const container = node.$container;
     const siblings = 'nodes' in container ? container.nodes : [];
     const idx = siblings.indexOf(node);
@@ -883,4 +884,10 @@ export class MomentValidator {
     }
     return false;
   }
+}
+
+/** A placement that ends the flow: `[terminal]` (a failure exit) or `[outcome]` (a normal outcome). */
+function endsFlow(node: NodePlacement): boolean {
+  const type = node.modifier?.type;
+  return type === 'terminal' || type === 'outcome';
 }

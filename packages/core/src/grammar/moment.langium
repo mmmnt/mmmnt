@@ -207,9 +207,9 @@ NodePlacement:
         crossing=ContextCrossing?
         connections+=Connection*;
 
-// A lane may be named with a word ADR-040 made a keyword, so a model that already used it keeps parsing.
+// A lane may be named with a word ADR-040 or ADR-043 made a keyword, so a model that already used it keeps parsing.
 LaneName returns string:
-    ID | 'cause' | 'causes' | 'note';
+    ID | 'cause' | 'causes' | 'note' | 'outcome';
 
 Multiplicity:
     '(' '×' (count=INT | countVar=ID) ')';
@@ -217,8 +217,9 @@ Multiplicity:
 NodeModifier:
     '[' type=ModifierType ']';
 
+// `[terminal]` ends the flow at a failure exit; `[outcome]` ends it at a normal outcome (ADR-043).
 ModifierType returns string:
-    'optional' | 'terminal';
+    'optional' | 'terminal' | 'outcome';
 
 // --- Connections ---
 Connection:
@@ -259,7 +260,7 @@ InputName returns string:
 // or a field list would read the next declaration as a field.
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
-    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note';
+    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;

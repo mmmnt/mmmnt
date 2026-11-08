@@ -2828,6 +2828,10 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Keyword",
             "value": "note"
+          },
+          {
+            "$type": "Keyword",
+            "value": "outcome"
           }
         ]
       },
@@ -2934,6 +2938,10 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Keyword",
             "value": "terminal"
+          },
+          {
+            "$type": "Keyword",
+            "value": "outcome"
           }
         ]
       },
@@ -3375,6 +3383,10 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Keyword",
             "value": "note"
+          },
+          {
+            "$type": "Keyword",
+            "value": "outcome"
           }
         ]
       },

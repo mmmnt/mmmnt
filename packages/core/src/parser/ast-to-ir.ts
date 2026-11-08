@@ -714,14 +714,21 @@ function transformNodeToEntry(
     entry.cause = node.cause;
   }
 
-  const modifierType = node.modifier?.type;
+  applyModifier(entry, node.modifier?.type);
+
+  return entry;
+}
+
+function applyModifier(entry: MomentEntry, modifierType: string | undefined): void {
   if (modifierType === 'optional') {
     entry.optional = true;
   } else if (modifierType === 'terminal') {
     entry.terminal = true;
+  } else if (modifierType === 'outcome') {
+    // ADR-043: the flow ends here at a normal outcome, not a failure exit.
+    entry.terminal = true;
+    entry.exit = 'outcome';
   }
-
-  return entry;
 }
 
 function extractConnections(

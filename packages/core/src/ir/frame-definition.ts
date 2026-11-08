@@ -38,6 +38,12 @@ export interface MomentEntry {
   multiplicity?: number | string;
   optional?: boolean;
   terminal?: boolean;
+  /**
+   * How a terminal placement ends the flow (ADR-043). Set only by `[outcome]`, which also sets
+   * `terminal`, so every consumer that stops at a terminal behaves the same. Absent on `[terminal]`,
+   * which is a failure exit.
+   */
+  exit?: 'outcome';
   /** The cause the command is placed for (ADR-040 D2). */
   cause?: string;
 }

@@ -999,3 +999,69 @@ context "C" [Core]
     expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// ADR-043 — `[outcome]` is a second exit modifier; the word stays usable as a field, lane or input name
+// ---------------------------------------------------------------------------
+describe('ADR-043 D1 exit modifier', () => {
+  const errorsOf = async (input: string): Promise<string[]> => {
+    const doc = await parse(input);
+    return [
+      ...doc.parseResult.lexerErrors.map((e) => e.message),
+      ...doc.parseResult.parserErrors.map((e) => e.message),
+    ];
+  };
+
+  const FLOW = (placement: string): string => `
+flow "F"
+  lane l "L" [Core]
+  moment "M" [branch]
+    when a
+      l: First
+      ${placement}
+    when b
+      l: Other
+`;
+
+  it('parses [outcome] on a placement in an arm', async () => {
+    const src = FLOW('l: Done [outcome]');
+    expect(await errorsOf(src)).toEqual([]);
+    const doc = await parse(src);
+    const arm = doc.parseResult.value.flows[0].moments[0].whenBlocks[0];
+    expect(arm.nodes[1].modifier?.type).toBe('outcome');
+  });
+
+  it('leaves [terminal] and [optional] as they were', async () => {
+    for (const modifier of ['terminal', 'optional']) {
+      const src = FLOW(`l: Done [${modifier}]`);
+      expect(await errorsOf(src)).toEqual([]);
+      const doc = await parse(src);
+      expect(doc.parseResult.value.flows[0].moments[0].whenBlocks[0].nodes[1].modifier?.type).toBe(
+        modifier,
+      );
+    }
+  });
+
+  it('still rejects an unknown modifier', async () => {
+    expect((await errorsOf(FLOW('l: Done [result]'))).length).toBeGreaterThan(0);
+  });
+
+  it('parses a field, a lane and an input named outcome', async () => {
+    const src = `
+context "C" [Core]
+  aggregate "A"
+    identity outcome: UUID
+    command Do
+      input outcome: string, other: string
+      emits Done
+    event Done
+      outcome: string
+flow "F"
+  lane outcome "Outcome" [Core]
+  moment "M"
+    outcome: Foo
+    outcome: Bar
+`;
+    expect(await errorsOf(src)).toEqual([]);
+  });
+});

@@ -83,6 +83,7 @@ export type MomentKeywordNames =
     | "on"
     | "optional"
     | "orchestration"
+    | "outcome"
     | "policy"
     | "precondition"
     | "produces"
@@ -479,10 +480,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'reads' | 'sources' | 'state' | string;
+export type FieldName = 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'outcome' | 'reads' | 'sources' | 'state' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -609,16 +610,16 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
     return reflection.isInstance(item, LaneDeclaration.$type);
 }
 
-export type LaneName = 'cause' | 'causes' | 'note' | string;
+export type LaneName = 'cause' | 'causes' | 'note' | 'outcome' | string;
 
 export function isLaneName(item: unknown): item is LaneName {
-    return item === 'cause' || item === 'causes' || item === 'note' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
-export type ModifierType = 'optional' | 'terminal';
+export type ModifierType = 'optional' | 'outcome' | 'terminal';
 
 export function isModifierType(item: unknown): item is ModifierType {
-    return item === 'optional' || item === 'terminal';
+    return item === 'optional' || item === 'terminal' || item === 'outcome';
 }
 
 export interface MomentDeclaration extends langium.AstNode {

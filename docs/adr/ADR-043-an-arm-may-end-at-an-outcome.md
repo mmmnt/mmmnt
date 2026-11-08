@@ -58,6 +58,8 @@ A selected arm is classified by the **first terminal placement the walk stops at
 
 One advisory: a placement after a terminal or outcome in the same arm is unreachable (the walk stops). It is advisory because today's `[terminal]` has the same property and models rely on it. No new error.
 
+Build note (2026-11-07): V8 already makes a placement after a `[terminal]` in the same block an error, and `[outcome]` ends the flow the same way, so V8 applies to both modifiers; no separate advisory was added and no existing model is affected.
+
 ## Consequences
 
 - An author states the exit's nature in the place the exit is written. `failure` regains a single meaning.
