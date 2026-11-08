@@ -292,6 +292,10 @@ function renderNoteOnlyMoment(
   lines.push('');
 }
 
+function armEndsAtOutcome(branchEntries: readonly MomentEntry[]): boolean {
+  return branchEntries.find((e) => e.terminal)?.exit === 'outcome';
+}
+
 function renderTerminalBranchScenario(
   lines: string[],
   moment: MomentDefinition,
@@ -301,12 +305,15 @@ function renderTerminalBranchScenario(
   ctxMap: Map<string, ContextDefinition>,
   ir: IntermediateRepresentation,
 ): void {
-  const tags = ['@terminal', '@failure-path'];
+  // An arm that ends at [outcome] ends the flow at a normal outcome (ADR-043): not a failure path, and
+  // no failed precondition is attributed to it.
+  const endsAtOutcome = armEndsAtOutcome(branchEntries);
+  const tags = ['@terminal', endsAtOutcome ? '@alt-path' : '@failure-path'];
   lines.push(`    ${tags.join(' ')}`);
   lines.push(`    Scenario: ${moment.name} [${condition}]`);
   lines.push(...noteComments(moment, flow, '      '));
 
-  const failedPrecondition = findFailedPrecondition(moment, ctxMap);
+  const failedPrecondition = endsAtOutcome ? undefined : findFailedPrecondition(moment, ctxMap);
   lines.push(`      Given the ${moment.name.toLowerCase()} is evaluated`);
   if (failedPrecondition) {
     lines.push(`      When ${failedPrecondition.name} is not satisfied`);
@@ -324,7 +331,8 @@ function renderTerminalBranchScenario(
     lines.push(`      Then the flow terminates because ${failedPrecondition.description}`);
   } else {
     const terminalNode = branchEntries.find((e) => e.terminal)?.nodeName;
-    lines.push(`      Then the flow terminates${terminalNode ? ` at ${terminalNode}` : ''}`);
+    const verb = endsAtOutcome ? 'ends' : 'terminates';
+    lines.push(`      Then the flow ${verb}${terminalNode ? ` at ${terminalNode}` : ''}`);
   }
 
   const compensation = findCompensationForMoment(moment, ir);
@@ -531,7 +539,13 @@ function renderInternalEventStep(
   evt: EventDefinition | undefined,
   ctxName: string,
 ): void {
-  const modifier = entry.optional ? ' (optional)' : entry.terminal ? ' (terminal)' : '';
+  const modifier = entry.optional
+    ? ' (optional)'
+    : entry.terminal
+      ? entry.exit === 'outcome'
+        ? ' (outcome)'
+        : ' (terminal)'
+      : '';
   lines.push(`      Then ${ctxName} ${readOrEmit(entry)} ${entry.nodeName}${modifier}`);
 
   if (evt && evt.fields.length > 0) {

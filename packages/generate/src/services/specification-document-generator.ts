@@ -268,9 +268,12 @@ export class SpecificationDocumentGenerator {
     ir: IntermediateRepresentation,
   ): void {
     const usedConnections = new Set<string>();
-    const terminalNode = branch.entries.find((e) => e.terminal)?.nodeName;
+    const exit = branch.entries.find((e) => e.terminal);
+    const terminalNode = exit?.nodeName;
+    // An arm that ends at [outcome] ends the flow at a normal outcome, not a failure (ADR-043).
+    const [mark, verb] = exit?.exit === 'outcome' ? ['✅', 'ends'] : ['❌', 'terminates'];
     lines.push(
-      `  - ❌ **If ${branch.condition}:** flow terminates${terminalNode ? ` at **${terminalNode}**` : ''}`,
+      `  - ${mark} **If ${branch.condition}:** flow ${verb}${terminalNode ? ` at **${terminalNode}**` : ''}`,
     );
     for (const entry of branch.entries) {
       if (entry.terminal) continue;
@@ -761,9 +764,14 @@ export class SpecificationDocumentGenerator {
     ir: IntermediateRepresentation,
   ): void {
     const nonTerminal = moment.branches!.filter((b) => !b.entries.some((e) => e.terminal));
-    const terminal = moment.branches!.filter((b) => b.entries.some((e) => e.terminal));
+    // Arms that end the flow: a failure exit (`[terminal]`) and a normal outcome (`[outcome]`, ADR-043).
+    const ending = moment.branches!.filter((b) => b.entries.some((e) => e.terminal));
+    const isOutcome = (b: (typeof ending)[number]): boolean =>
+      b.entries.find((e) => e.terminal)?.exit === 'outcome';
+    const terminal = ending.filter((b) => !isOutcome(b));
+    const outcome = ending.filter(isOutcome);
 
-    if (nonTerminal.length === 0 && terminal.length === 0) return;
+    if (nonTerminal.length === 0 && ending.length === 0) return;
 
     for (let i = 0; i < nonTerminal.length; i++) {
       const branch = nonTerminal[i];
@@ -771,11 +779,15 @@ export class SpecificationDocumentGenerator {
       lines.push(`  ${keyword} ${branch.condition}`);
       this.renderSequenceEntries(lines, branch.entries, moment, branch.condition, flow, ir);
     }
-    if (terminal.length > 0) {
-      const keyword = nonTerminal.length === 0 ? 'alt' : 'else';
-      const labels = terminal.map((b) => b.condition).join(' / ');
-      lines.push(`  ${keyword} ${labels}`);
-      lines.push(`  Note over ${ctxName}: Flow terminates`);
+    let opened = nonTerminal.length > 0;
+    for (const [arms, note] of [
+      [terminal, 'Flow terminates'],
+      [outcome, 'Flow ends at an outcome'],
+    ] as const) {
+      if (arms.length === 0) continue;
+      lines.push(`  ${opened ? 'else' : 'alt'} ${arms.map((b) => b.condition).join(' / ')}`);
+      lines.push(`  Note over ${ctxName}: ${note}`);
+      opened = true;
     }
     lines.push('  end');
   }
@@ -1044,4 +1056,10 @@ export class SpecificationDocumentGenerator {
   }
 }
 
-type MomentEntry = { contextId: string; nodeName: string; nodeKind: string; terminal?: boolean };
+type MomentEntry = {
+  contextId: string;
+  nodeName: string;
+  nodeKind: string;
+  terminal?: boolean;
+  exit?: 'outcome';
+};
