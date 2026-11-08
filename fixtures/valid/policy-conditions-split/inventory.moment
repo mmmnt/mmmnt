@@ -1,0 +1,19 @@
+// ADR-045 corpus exemplar: the context that declares the event the Checkout policy waits for (TicketWave).
+context "Inventory" [Core]
+  aggregate "Hold"
+    identity holdId: UUID
+
+    command RequestHold
+      input holdId: UUID, quantity: number
+      emits SeatsHeld
+
+    command ConvertHoldToReservation
+      input holdId: UUID, paymentConfirmationId: UUID
+      emits HoldConvertedToReservation
+
+    event SeatsHeld
+      holdId: UUID
+      quantity: number
+
+    event HoldConvertedToReservation
+      holdId: UUID

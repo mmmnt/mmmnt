@@ -1,0 +1,18 @@
+// ADR-045 corpus exemplar: a policy condition that names an event declared in another file of the project (TicketWave).
+context "Checkout" [Core]
+  aggregate "Payment"
+    identity paymentId: UUID
+
+    command ConfirmPayment
+      input paymentId: UUID
+      emits PaymentConfirmed
+
+    event PaymentConfirmed
+      paymentId: UUID
+      gatewayTransactionId: string
+      confirmedAt: DateTime
+
+  policy ConvertHoldOnPayment
+    trigger PaymentConfirmed after SeatsHeld
+    action "Convert seat hold to permanent reservation after payment clears"
+    chains-to ConvertHoldToReservation
