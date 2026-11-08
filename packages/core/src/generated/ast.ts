@@ -25,6 +25,7 @@ export type MomentKeywordNames =
     | "->"
     | "."
     | ":"
+    | "="
     | "@"
     | "AnticorruptionLayer"
     | "Conformist"
@@ -48,6 +49,7 @@ export type MomentKeywordNames =
     | "[required]"
     | "]"
     | "action"
+    | "after"
     | "aggregate"
     | "boolean"
     | "branch-lane"
@@ -480,10 +482,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'outcome' | 'reads' | 'sources' | 'state' | string;
+export type FieldName = 'after' | 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'outcome' | 'reads' | 'sources' | 'state' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -610,10 +612,10 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
     return reflection.isInstance(item, LaneDeclaration.$type);
 }
 
-export type LaneName = 'cause' | 'causes' | 'note' | 'outcome' | string;
+export type LaneName = 'after' | 'cause' | 'causes' | 'note' | 'outcome' | string;
 
 export function isLaneName(item: unknown): item is LaneName {
-    return item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export type ModifierType = 'optional' | 'outcome' | 'terminal';
@@ -767,6 +769,9 @@ export interface PolicyDeclaration extends langium.AstNode {
     readonly $type: 'PolicyDeclaration';
     action: string;
     chainsTo: string;
+    conditionAfter?: string;
+    conditionField?: FieldName;
+    conditionValue?: AnnotationValue;
     gateways: Array<GatewayDeclaration>;
     name: string;
     trigger: string;
@@ -776,6 +781,9 @@ export const PolicyDeclaration = {
     $type: 'PolicyDeclaration',
     action: 'action',
     chainsTo: 'chainsTo',
+    conditionAfter: 'conditionAfter',
+    conditionField: 'conditionField',
+    conditionValue: 'conditionValue',
     gateways: 'gateways',
     name: 'name',
     trigger: 'trigger'
@@ -1690,6 +1698,18 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 chainsTo: {
                     name: PolicyDeclaration.chainsTo
+                },
+                conditionAfter: {
+                    name: PolicyDeclaration.conditionAfter,
+                    optional: true
+                },
+                conditionField: {
+                    name: PolicyDeclaration.conditionField,
+                    optional: true
+                },
+                conditionValue: {
+                    name: PolicyDeclaration.conditionValue,
+                    optional: true
                 },
                 gateways: {
                     name: PolicyDeclaration.gateways,

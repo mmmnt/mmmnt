@@ -1670,6 +1670,66 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
             }
           },
           {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "when"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "conditionField",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@50"
+                  },
+                  "arguments": []
+                }
+              },
+              {
+                "$type": "Keyword",
+                "value": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "conditionValue",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@10"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "?"
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "after"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "conditionAfter",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@56"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "?"
+          },
+          {
             "$type": "Keyword",
             "value": "action"
           },
@@ -2832,6 +2892,10 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Keyword",
             "value": "outcome"
+          },
+          {
+            "$type": "Keyword",
+            "value": "after"
           }
         ]
       },
@@ -3387,6 +3451,10 @@ export const MomentGrammar = (): Grammar => loadedMomentGrammar ?? (loadedMoment
           {
             "$type": "Keyword",
             "value": "outcome"
+          },
+          {
+            "$type": "Keyword",
+            "value": "after"
           }
         ]
       },

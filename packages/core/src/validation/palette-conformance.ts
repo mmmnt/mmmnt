@@ -1,5 +1,5 @@
 /**
- * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43) over an IR.
+ * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43, ADR-045's V49–V51) over an IR.
  *
  * Like V22–V28 they compare names across declarations: advisories per file, errors over a merged
  * project. Hand-built IR that predates ADR-038 carries no orchestration fields and is not checked
@@ -17,6 +17,7 @@ import type {
 } from '../ir/index.js';
 import { emittedEvents } from '../ir/emits.js';
 import { validateMultiEvent, type Finding as MultiEventFinding } from './multi-event.js';
+import { validatePolicyConditions } from './policy-condition.js';
 
 /**
  * A finding carries its own severity only when the rule can decide on what the IR holds; without one the
@@ -417,6 +418,7 @@ export function validatePaletteConformance(
     ...v41v42Placements(ir, commands),
     ...v43(ir),
     ...validateMultiEvent(ir, options),
+    ...validatePolicyConditions(ir),
     ...(ir.externals ?? []).flatMap((e) =>
       gatewayFindings(`external '${e.name}'`, e.gateways ?? [], known),
     ),

@@ -480,6 +480,16 @@ function transformPolicy(
     trigger: pol.trigger,
     action: pol.action,
     chainsTo: pol.chainsTo,
+    ...(pol.conditionField !== undefined || pol.conditionAfter !== undefined
+      ? {
+          condition: {
+            ...(pol.conditionField !== undefined
+              ? { field: pol.conditionField, equals: pol.conditionValue }
+              : {}),
+            ...(pol.conditionAfter !== undefined ? { after: pol.conditionAfter } : {}),
+          },
+        }
+      : {}),
     ...gatewaysOf(pol.gateways),
   };
 }

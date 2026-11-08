@@ -166,7 +166,19 @@ export interface PolicyDefinition {
   action: string;
   /** The command the policy invokes; the grammar requires it, hand-built IR may omit it. */
   chainsTo?: string;
+  /** The condition under which the policy reacts to an occurrence of its trigger (ADR-045); absent when the policy reacts to every occurrence. */
+  condition?: PolicyConditionDefinition;
   gateways?: GatewayDefinition[];
+}
+
+/**
+ * `trigger E when <field> = <value> after <Event>` (ADR-045 D1). `field` and `equals` come as a pair: the
+ * trigger event's own field has that value. `after`: the occurrence has that event among its causes.
+ */
+export interface PolicyConditionDefinition {
+  field?: string;
+  equals?: string;
+  after?: string;
 }
 
 /**

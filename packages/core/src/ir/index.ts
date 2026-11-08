@@ -18,6 +18,7 @@ export type {
   InvariantDefinition,
   DomainServiceDefinition,
   PolicyDefinition,
+  PolicyConditionDefinition,
   SagaDefinition,
   SagaTransitionDefinition,
   AnnotationDefinition,

@@ -126,9 +126,13 @@ DomainServiceDeclaration:
         'description' description=STRING;
 
 // --- Policy (ADR-038 §1): When one domain event, Then one command ---
+// The trigger may carry the condition under which the policy reacts (ADR-045): one equality on a field of
+// the trigger event, and/or a cause. `after` is a keyword, escaped in FieldName and LaneName as ADR-043's `outcome` was.
 PolicyDeclaration:
     'policy' name=ID
         'trigger' trigger=ID
+        ('when' conditionField=FieldName '=' conditionValue=AnnotationValue)?
+        ('after' conditionAfter=ID)?
         'action' action=STRING
         'chains-to' chainsTo=ID
         gateways+=GatewayDeclaration*;
@@ -209,7 +213,7 @@ NodePlacement:
 
 // A lane may be named with a word ADR-040 or ADR-043 made a keyword, so a model that already used it keeps parsing.
 LaneName returns string:
-    ID | 'cause' | 'causes' | 'note' | 'outcome';
+    ID | 'cause' | 'causes' | 'note' | 'outcome' | 'after';
 
 Multiplicity:
     '(' '×' (count=INT | countVar=ID) ')';
@@ -260,7 +264,7 @@ InputName returns string:
 // or a field list would read the next declaration as a field.
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
-    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome';
+    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome' | 'after';
 
 TypeReference:
     typeName=TypeName isArray?='[]'?;

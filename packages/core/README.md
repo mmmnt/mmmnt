@@ -75,7 +75,7 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 | Rule | context | `rule <Id> "<description>" enforced-by <ServiceOrQuery>`, or `enforced-by "<external enforcer>"`. |
 | Value object | context or aggregate | `value-object <Name>` followed by fields. |
 | Glossary term | context | `term "<term>" "<definition>"` |
-| Policy | context | `policy <Name> trigger <Event> action "<text>" chains-to <Command>` -- one domain event, one command. |
+| Policy | context | `policy <Name> trigger <Event> [when <field> = <value>] [after <Event>] action "<text>" chains-to <Command>` -- one domain event, one command. `when` and `after` (ADR-045) say which occurrences of the trigger the policy reacts to; a number value is written as a string. |
 | Orchestration | context | `orchestration <Name>` (`saga` is an alias) with its own `command`s, the `event`s those commands emit, `invoked-by`, `issues`, `states`, `compensation` and `timeout`. |
 | Process event | orchestration | `event <Name>` with fields, declared inside an orchestration. An orchestration command emits it with `emits`. It is a domain event owned by the process. |
 | Emits clause | command | `emits A` records one event. `emits A, B` records both in one transaction. `emits A \| B` records one of them, chosen by the aggregate's state. `emits A when Open \| A, B when OneUseLeft` names the declared state that chooses each outcome (ADR-041). |
@@ -272,6 +272,9 @@ V22–V43 compare names across declarations, so their severity depends on how mu
 | V46 | A `when` guard names a declared state of the aggregate (or orchestration), no two outcomes carry the same state, and a command guards every outcome or none. Alternatives with no guard are an advisory. |
 | V47 | The events a flow places after one placement of a multi-event command come from one outcome. Part of an outcome is an advisory. |
 | V48 | Every outcome of a command with alternatives is placed by some flow. An advisory, over a merged project only. |
+| V49 | A policy's `when <field> = <value>` names a field its trigger event declares (ADR-045). A guard on a field named `outcome` is allowed. |
+| V50 | A policy's `after <Event>` names a declared event. |
+| V51 | A policy's `after <Event>` is placed before its trigger by some flow. An advisory, and only when a flow places the trigger. |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
@@ -308,7 +311,7 @@ Because these rules can report errors on a model that parsed under 0.5.0, check 
 | `ValueObjectDefinition` | A value object with its fields. |
 | `FieldDefinition` | A typed field within a command, event, value object, projection, or query. |
 | `InvariantDefinition` | A business invariant that must hold for an aggregate. |
-| `PolicyDefinition` | A reactive policy: one triggering domain event and the command it chains to. |
+| `PolicyDefinition` | A reactive policy: one triggering domain event and the command it chains to, and the optional `condition` (`PolicyConditionDefinition`: `field` and `equals`, and/or `after`) under which it reacts. |
 | `SagaDefinition` | An orchestration (written `orchestration` or `saga`) with its commands, issued commands, states, compensations, and timeout. |
 | `SagaTransitionDefinition`, `OrchestrationCommandDefinition`, `IssuedCommandDefinition`, `CompensationDefinition` | The parts of an orchestration. |
 | `DomainServiceDefinition` | A stateless domain service that consumes and produces a named event or value object. |
