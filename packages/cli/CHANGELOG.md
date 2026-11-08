@@ -1,5 +1,23 @@
 # @mmmnt/cli
 
+## 0.10.1
+
+### Patch Changes
+
+- Project mode no longer reports a per-file V49, V50 or V51 that the merged project does not report (ADR-045).
+
+  - core: `ProjectLoader` drops a per-file diagnostic only for the rules the merged validation re-checks, and matched V22 to V48. A policy `trigger X after Y` in one context file, with `Y` declared in another file, got a spurious V50 in `moment parse <dir>`. Every rule from V22 on is now treated as checked over the merge, so a rule added later needs no change here.
+
+- Updated dependencies []:
+  - @mmmnt/core@0.10.1
+  - @mmmnt/derive@0.10.1
+  - @mmmnt/emit-ts@0.10.1
+  - @mmmnt/generate@0.10.1
+  - @mmmnt/harness@0.10.1
+  - @mmmnt/schema@0.10.1
+  - @mmmnt/sync@0.10.1
+  - @mmmnt/viz@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes
