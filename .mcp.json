@@ -5,10 +5,10 @@
       "command": "uvx",
       "args": ["mcp-atlassian"],
       "env": {
-        "JIRA_URL": "https://winnovation.atlassian.net/",
+        "JIRA_URL": "https://coada.atlassian.net/",
         "JIRA_USERNAME": "${ATLASSIAN_USERNAME}",
         "JIRA_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
-        "CONFLUENCE_URL": "https://winnovation.atlassian.net/wiki",
+        "CONFLUENCE_URL": "https://coada.atlassian.net/wiki",
         "CONFLUENCE_USERNAME": "${ATLASSIAN_USERNAME}",
         "CONFLUENCE_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
       }
