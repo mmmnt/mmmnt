@@ -1,0 +1,287 @@
+// Sift — C4 Clarification (Core). One file per context.
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n; section 4 C4 Clarification, section 11.1 consumers, section 0.1) and the accepted
+// ADRs docs/adrs/SIFT-ADR-0*.md (SIFT-ADR-072 for answers, SIFT-ADR-065 for the gate). Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE is NOT a source.
+//
+// CONVENTIONS OF THIS CONTEXT
+//  - Every declaration ends with a trailing comment: S:<line> and a short quote of the spec's own words, on that exact line of the spec of record.
+//  - `precondition` is used only for a refusal or no-op code the spec names (naming rule: model/README.md). A rule or an outcome the spec states without a code
+//    is an `invariant`, cited at the line that states it (an orchestration cannot hold an invariant, so a context-level `rule` carries it there).
+//  - A refusal records no event; its derived negative scenario `neg-<Command>-<Precondition>` is its representation (founder ruling 2026-11-05).
+//  - A policy is named from the spec's words, cited at the line that states its RULE (and the row of the consumers table, 11.1), and carries the board id as a
+//    trailing `// board:` comment so that the board sync can match it.
+//  - A Moment command emits one event (Moment 0.7.2). A spec command that records two events together cannot be expressed; the second event is declared, drawn
+//    in the flows where the spec draws it, and has no emitter: model/README.md, "HALT items".
+//  - "Answers with no effect" record NO Question event: they are ReceiptProcessed{None(reason)} on the request Receipt plus a notice (S:1042).
+//  - The poster and the notices are side effects, not commands. The question sweep and the re-ask policy are policies on DocumentVersionProcessed and the construct
+//    events (declared in the DesignModel context beside the other policies of those events); the session-boundary arm of the sweep has no command trigger: note below.
+
+// ============================================================================
+// THE BOUNDED CONTEXT
+// ============================================================================
+
+context "Clarification" [Core]  // S:170 "| C4 Clarification | Core | Question |"
+  description "Sift asks; the conversation answers: one question stream per base subject with generations inside, waivers granted on a ruling and revoked when the ruling is superseded"
+
+  value-object WithdrawalCause  // S:1028 "WithdrawalCause"
+    cause: string
+    repostedAs: number
+
+  value-object Waiver  // S:1181 "Waiver {Gap, ruling Pointer, granted by}"
+    gap: GapKey
+    rulingPointer: Pointer
+    grantedBy: string
+
+  value-object RecipientRule  // S:1181 "RecipientRule"
+    author: string
+    cascadeLevel: string
+
+  value-object QuestionId  // S:1181 "QuestionId"
+    value: string
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Question — one stream per base subject, generations inside · 5 commands, 6 events
+  // --------------------------------------------------------------------------
+  aggregate "Question"  // S:1021 "### Question (aggregate; one stream per base subject, with generations inside it)"
+    identity questionId: string
+
+    command AskQuestion  // S:1027 "AskQuestion(causedBy, recipientRule). On an open generation it records QuestionCompounded."
+      input causedBy: string, recipientRule: RecipientRule
+      precondition NoOpGathered: "An AskQuestion whose causedBy is already gathered is NoOp{gathered} (except Repost, rows left open, set-aside re-ask)"  // S:1045 "An AskQuestion whose causedBy is already gathered in any generation of this stream is NoOp{gathered}"
+      emits QuestionAsked | QuestionCompounded  // S:1027 "On an open generation it records QuestionCompounded. Otherwise it opens the next generation"
+
+    // WithdrawalCause: Mooted | Computed | Carried | Reposted{repostedAs} | Answered | Held; group precedence Held, Answered, Computed, Carried, Mooted.
+    invariant AskQuestionCauseCurrent "Every asking policy checks its cause is still current (D-3); a stale cause asks nothing" scope Question  // S:1133 "every asking policy checks its cause is current"
+    command ResolveQuestion  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+      input answer: string, requestPointer: Pointer, withdrawn: WithdrawalCause, answeredBy: string
+      causes Answer, Withdrawn  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      precondition Unauthorised cause Answer: "without the role (waivers, ratifications and rejections need answeredBy with the operator role), or a non-waiver answer on a Refuse question: the answer records no Question event; recorded on the request Receipt as None(Unauthorised); the person who answered gets a notice"  // S:1042 "the reason code being Unauthorised for no role or a non-waiver answer on a Refuse question"
+      precondition Closed cause Answer: "on a resolved generation from a different request Pointer: no Question event; None(Closed) (a reason code, not the closed state of a Receipt)"  // S:1042 "Closed for a resolved generation"
+      precondition Stale cause Answer: "an answer that reaches a generation Sift withdrew is recorded as stale (naming repostedAs when the withdrawal was Reposted), never applied as current: no Question event; None(Stale)"  // S:1042 "An answer that reaches a generation Sift withdrew is recorded as stale"
+      precondition Invalid cause Answer: "an answer is refused (no effect) when a name or id it gives was not offered by the question, Attach names no arm, Context names no context, Defined gives no definition, Retype names no palette kind, Owner or Homonym names no context, Move names no live bounded context, Waive is given on a question none of whose causes is a Gap or on a contradiction question: None(Invalid)"  // S:1075 "an answer is refused (no effect, above) when a name or id it gives was not offered by the question"
+      precondition Undecided cause Answer: "it says it is undecided (an undecided answer is no answer: the question stays open, and the answer is recorded on its request Receipt as effect None(Undecided))"  // S:1075 "it says it is undecided (an undecided answer is no answer"
+      precondition NoOpRepeat cause Answer: "A repeat from the same request Pointer is a silent NoOp{repeat}; replacement answers are one-to-one"  // S:1133 "replacement answers are one-to-one"
+      precondition NoOpAlreadyAnswered cause Withdrawn: "a Withdrawn on a generation that is already resolved is a no-op, NoOp{already-answered} when an answer resolved it"  // S:1050 "NoOp{already-answered} when an answer resolved it"
+      precondition RefusedDisabled cause Answer: "While disabled, request-stream entries (answers) are refused with the disable cause and a notice (the gate refuses feed, request-stream and erasure-stream entries)"  // S:295 "This covers feed, request-stream and erasure-stream entries"
+      emits QuestionResolved
+
+    command GrantWaiver  // S:1029 "GrantWaiver(…, ruling Pointer) (NoOp{waiver-active} while a waiver is active"
+      input gapRef: GapKey, rulingPointer: Pointer, answeredBy: string
+      causes ManagementApi, Answer  // S:1040 "a command refusal on the management API path; an answer carries its own Pointer as the ruling and cannot meet it"
+      precondition RulingRequired cause ManagementApi: "Refused{RulingRequired} (GrantWaiver names no ruling Pointer)"  // S:1040 "Refused{RulingRequired}"
+      precondition RulingNotADecision cause ManagementApi: "Refused{RulingNotADecision} (the Pointer names neither a feed decision entry nor that operator's own answer)"  // S:1040 "Refused{RulingNotADecision}"
+      precondition RulingSuperseded cause ManagementApi: "Refused{RulingSuperseded} (the ruling is a decision entry a later feed entry already supersedes)"  // S:1040 "Refused{RulingSuperseded}"
+      precondition DeferralNotWaivable: "Refused{DeferralNotWaivable} (a Defer-sourced Contradiction / Divergence Gap): GrantWaiver through the management API on it is refused, with no WaiverGranted and no event"  // S:792 "is refused as Refused{DeferralNotWaivable}, with no WaiverGranted and no event"
+      precondition NoOpWaiverActive: "GrantWaiver is NoOp{waiver-active} while a waiver is active"  // S:1029 "NoOp{waiver-active} while a waiver is active"
+      emits WaiverGranted
+
+    command RevokeWaiver  // S:1030 "RevokeWaiver(waiver, requestKey) (a repeat whose requestKey is already recorded on a WaiverRevoked is a silent NoOp{repeat}"
+      input waiver: Waiver, requestKey: string
+      causes ManagementApi, System  // S:1030 "requestKey is the management API request key, or the Pointer of the entry that superseded the ruling the waiver rests on (issued by the system"
+      precondition NotOperator cause ManagementApi: "RevokeWaiver(waiver) is a management API request for an operator on the customer workspace (Refused{NotOperator})"  // S:283 "RevokeWaiver(waiver) (operator on the customer workspace)"
+      precondition NoOpRepeat: "a repeat whose requestKey is already recorded on a WaiverRevoked is a silent NoOp{repeat}, checked first"  // S:1030 "a repeat whose requestKey is already recorded on a WaiverRevoked is a silent NoOp{repeat}, checked first"
+      precondition NoOpNoActiveWaiver: "a superseded ruling with no active waiver on it revokes nothing: NoOp{no-active-waiver} (the waiver check of Entry dispatch issues no RevokeWaiver)"  // S:819 "revokes nothing: NoOp{no-active-waiver}"
+      precondition Superseded: "Refused{Superseded}: it applies only to the active waiver it names, else Refused{Superseded}"  // S:1030 "otherwise it applies only to the active waiver it names, else Refused{Superseded}"
+      emits WaiverRevoked
+
+    command ReaddressQuestion  // S:1031 "ReaddressQuestion(recipientRule, keyGeneration)."
+      input recipientRule: RecipientRule, keyGeneration: number
+      precondition NoOpResolved: "NoOp{resolved}: a no-op on a resolved generation"  // S:1031 "This is NoOp{resolved} on a resolved generation"
+      precondition NoOpCurrent: "NoOp{current}: a no-op if the latest posting event already carries that recipientRule and key generation"  // S:1031 "and NoOp{current} if the latest posting event already carries that recipientRule and key generation"
+      emits QuestionReaddressed
+
+    invariant C4-01 "Generations; an AskQuestion whose causedBy is already gathered is a no-op" scope Question  // S:1022 "generation number is the `version` field flmnt sees"
+    invariant C4-02 "Waivers, ratifications, rejections need an operator; no-effect answers record no Question event; notice to the answerer" scope Question  // S:1042 "Answers with no effect:"
+    invariant C4-03 "Every asking policy checks its cause is current (D-3); a stale cause asks nothing" scope Question  // S:1133 "every asking policy checks its cause is current"
+    invariant C4-04 "Withdrawn per causedBy; notices only when asked" scope Question  // S:1028 "Withdrawn"
+    invariant C4-05 "Posting currency and keys: the poster reads the Question stream, skips a resolved or superseded-by-later-posting event; key hash(Question ID, generation)" scope Question  // S:1092 "It skips the post if the event's generation is resolved, or if a later posting event exists in its generation"
+    invariant C4-07 "A retirement answer routes per construct" scope Question  // S:1024 "retirement"
+    invariant C4-08 "Gathered, flushed once per base subject; steer and closures immediate" scope Question  // S:373 "one post per base subject"
+    invariant C4-11 "WithdrawalCauses and precedence; repost; a stale answer is never applied" scope Question  // S:1059 "Repost (R28-H8, H10"
+    invariant C4-12 "Placement questions before gate questions; groups; left-out rows asked again" scope Question  // S:1094 "placement questions"
+    invariant C4-13 "Answer validation; replacement answers one-to-one; Invalid / Undecided reason on the request Receipt + notice" scope Question  // S:1075 "Validation (R28-H13)"
+    invariant C4-14 "Posted body; id encoding; split over flmnt limits, never cut; only Sift pointers, questions, their closures and withdrawals, and notices are written to flmnt" scope Question  // S:92 "The only things Sift writes into the customer's flmnt workspace are Sift pointers"
+    invariant C4-15 "An answer set aside by later text re-asks once; the earlier answer stands until a decided answer" scope Question  // S:34 "set aside by later text is asked again"
+    invariant C4-16 "Sweep, routing rows, no answer revokes a waiver (+ flmnt contract tests, ADR-072)" scope Question  // S:373 "which never revokes a waiver"
+
+    // Every event carries an Actor (S:102); Moment has no shared event envelope, so each event declares `actor: Actor`.
+    event QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      generation: number
+      causedBy: string
+      recipientRule: RecipientRule
+      corpusVersion: string
+      subjectVersionsShown: SubjectVersions
+      actor: Actor
+
+    event QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      generation: number
+      resolution: string
+      answeredBy: string
+      requestPointer: Pointer
+      actor: Actor
+
+    event QuestionCompounded  // S:1035 "QuestionCompounded {generation, causedBy, recipientRule};"
+      generation: number
+      causedBy: string
+      recipientRule: RecipientRule
+      actor: Actor
+
+    event WaiverGranted  // S:1036 "WaiverGranted {…, ruling}"
+      gapRef: GapKey
+      ruling: Pointer
+      grantedBy: string
+      actor: Actor
+
+    event WaiverRevoked  // S:1037 "WaiverRevoked {waiver, requestKey};"
+      waiver: Waiver
+      requestKey: string
+      actor: Actor
+
+    event QuestionReaddressed  // S:1038 "QuestionReaddressed {recipientRule, keyGeneration}."
+      recipientRule: RecipientRule
+      keyGeneration: number
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // PROJECTIONS (RM3, RM8; RM1, RM2, RM4 sit in DesignModel)
+  // --------------------------------------------------------------------------
+  projection OpenQuestionsBySubject  // S:1003 "open questions by subject: each generation's rows"
+    sources QuestionAsked, QuestionCompounded, QuestionResolved, QuestionReaddressed, ReceiptProcessed
+    description "open questions by subject: each generation's rows, state, WithdrawalCause (+ repostedAs), reason code of the latest no-effect answer. Read by Setup step 2 (ReaddressQuestion), the poster (currency), the all-terminal withdrawal"
+    field subject: string
+    field generation: number
+
+  projection Overlay  // S:1008 "the overlay: committed Term constructs, active waivers and resolved questions"
+    sources ConstructCommitted, WaiverGranted, WaiverRevoked, QuestionResolved
+    description "the overlay: active waivers (the waiver check of Entry dispatch); committed Terms; resolved questions. Projected into the agent workspace; never promoted to the global corpus (ADR-074 section 6)"
+    field activeWaiver: string
+    field committedTerm: string
+
+  // --------------------------------------------------------------------------
+  // POLICIES (routing, S "Routing" under Answers). One event leads to one command; several commands for one event are several policies.
+  // The names are the NDD board's labels; the spec's policies are unnumbered and each cites the consumers-table row of its trigger.
+  // --------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
+  // RoutingGapAnswerDisposesGap Routing on QuestionResolved, once per causedBy gathered, each routed command with its own role check:
+  policy RoutingGapAnswerDisposesGap  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05a
+    trigger QuestionResolved
+    action "a Gap event -> DisposeGap(Fixed | Distinct)"
+    chains-to DisposeGap
+
+  policy RoutingSameAsAnswerMarksSameAs  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05a2
+    trigger QuestionResolved
+    action "a Gap event, SameAs -> MarkSameAs + DisposeGap(SameAs) (+ AddAlias)"
+    chains-to MarkSameAs
+
+  policy RoutingSameAsAnswerOnBoundaryProposes  // S:1105 "a SameAs answer on boundary constructs → ContextMap Propose(duplicateMerge"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05a3
+    trigger QuestionResolved
+    action "a Gap event, boundary -> Propose(duplicateMerge)"
+    chains-to Propose
+
+  policy RoutingWaiveAnswerGrantsWaiver  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05a4
+    trigger QuestionResolved
+    action "a Gap event, Waive -> GrantWaiver (the answer's request Pointer as ruling)"
+    chains-to GrantWaiver
+
+  policy RoutingContradictionAnswerAppliesAnswer  // S:1106 "a Gap event of a Contradiction Gap"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05b
+    trigger QuestionResolved
+    action "b Contradiction Gap -> ApplyAnswer on the Deferred Placement (Supersedes, SameAs, New distinct) then DisposeGap(Resolved{Fixed})"
+    chains-to ApplyAnswer
+
+  policy RoutingDivergenceAnswerAppliesAnswer  // S:1107 "a Gap event of a Divergence Gap whose CauseKey names a Deferred Placement"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05c
+    trigger QuestionResolved
+    action "c Divergence Gap (Deferred Placement) -> ApplyAnswer (Continue | Return) then DisposeGap(Resolved{Fixed}); d Steer Gap on a stated replacement -> Continue as deciding case, Return nothing, Gap Resolved{Fixed}"
+    chains-to ApplyAnswer
+
+  policy RoutingDeferAnswerAppliesAnswer  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05e
+    trigger QuestionResolved
+    action "e Defer event -> ApplyAnswer; k PlacementMarkedStale -> ApplyAnswer; i Retire, ReplacedBy X, Retype on any cause (and on a Defer cause also settle the Placement)"
+    chains-to ApplyAnswer
+
+  policy RoutingRetirementAnswerSupersedes  // S:1111 "a PlacementDecided gathered by a retirement question"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05g
+    trigger QuestionResolved after PlacementDecided
+    action "g PlacementDecided by a retirement question -> per construct SupersedeConstruct(Answered) | Propose(retire | replace) | Keep none | Move to C StoreConstruct / Propose(move)"
+    chains-to SupersedeConstruct
+
+  policy RoutingRetirementAnswerProposes  // S:1111 "a PlacementDecided gathered by a retirement question"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05g2
+    trigger QuestionResolved after PlacementDecided
+    action "g retirement question: Propose(retire | replace); Move to C: Propose(move)"
+    chains-to Propose
+
+  policy RoutingVersionRetirementAnswerSupersedes  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05h
+    trigger QuestionResolved after DocumentVersionProcessed
+    action "h DocumentVersionProcessed by a version-retirement question -> per construct SupersedeConstruct(Answered, Pointer of the asking version) | Propose; X not live -> asked again"
+    chains-to SupersedeConstruct
+
+  policy RoutingProposalAnswerRatifies  // S:1124 "BoundaryChangeProposed → Ratify or Reject"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05j1
+    trigger QuestionResolved after BoundaryChangeProposed
+    action "j BoundaryChangeProposed -> Ratify"
+    chains-to Ratify
+
+  policy RoutingProposalAnswerRejects  // S:1124 "BoundaryChangeProposed → Ratify or Reject"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-05j2
+    trigger QuestionResolved after BoundaryChangeProposed
+    action "j BoundaryChangeProposed -> Reject"
+    chains-to Reject
+
+  // f ConstructStored by a missing-arm question -> none; l DocumentVersionProcessed on the document version's subject -> none; m a Withdrawn -> none.
+  // i (continued): Attach X, NewRoot, Defined, Owner C, Homonym, NotATerm, Context C, Move C, Waive (-> GrantWaiver with the answer's request Pointer as ruling), PerConstruct.
+
+  policy WaiverGrantedDisposesGap  // S:1128 "WaiverGranted → DisposeGap(Waived) on the Gap"; row S:1341 "| WaiverGranted | DisposeGap(Waived); the overlay |" // board: P4-06
+    trigger WaiverGranted
+    action "DisposeGap(Waived) · Sys"
+    chains-to DisposeGap
+
+  policy WaiverRevokedReopensGap  // S:1129 "WaiverRevoked → ReopenGap on the Gap"; row S:1342 "| WaiverRevoked | ReopenGap; the overlay |" // board: P4-07
+    trigger WaiverRevoked
+    action "ReopenGap (with handling Ask); the construct stays committed"
+    chains-to ReopenGap
+
+  policy AnswerReCheck  // S:1061 "The answer re-check policy: PlacementDecided on that entry or section"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P4-10
+    trigger PlacementDecided
+    action "Answer set aside by later text: PlacementDecided on a later Live deciding entry or newer document version section naming a concerned construct of an answered generation -> AskQuestion (next generation; gathers old causes plus the new cause) · once per answer generation; not for a Waive / Waived Gap; a Replay arrival never sets one aside"
+    chains-to AskQuestion
+
+  policy RowsLeftOpenAsksQuestion  // S:1113 "a generation asked again for rows left open or set aside by later text"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P4-12
+    trigger QuestionResolved
+    action "Rows left open: AskQuestion for the constructs a PerConstruct answer left out or a version-retirement answer could not apply · carries the original causedBy values"
+    chains-to AskQuestion
+
+  // --------------------------------------------------------------------------
+  // NOT A DECLARED CONSTRUCT (notes; the spec's rules that Moment has no construct for)
+  // --------------------------------------------------------------------------
+  // Question poster (external call with a key, not a command: posts, closures, withdrawals, notices) with currency check; not a domain service. The question sweep
+  //   (after a document close) and the re-ask policy are declared as policies beside the other policies of DocumentVersionProcessed and the construct events (DesignModel).
+  // Recipient rules (S:1064-1070): gap / Defer / document / retirement -> all architects cascading to admins and owners; refusal -> plus the
+  //   construct's placing author; ratification -> as in ContextMap; staleness -> the source entry's author; contradiction -> both authors;
+  //   steer -> the diverging entry's author, the author who decided the target, plus architects.
+  // Option sets (S:1077-1084): missing-arm, arm's context, contradiction (no Waive), divergence (Continue, Return), gap, refusal / Unevaluable,
+  //   Defer, retirement and version-retirement, term-owner.
+  // Policies not expressible as a trigger event -> command:
+  //   Posting: QuestionAsked | QuestionCompounded | QuestionReaddressed -> gathered until the workspace's next session boundary, then
+  //          one post per base subject; a steer from a Live arrival and every closure post immediately; Replay and Document steers gathered;
+  //          the Replay's and the intake's one flush · currency: the poster reads the Question stream, skips a resolved or superseded-by-later-posting event; key hash(Question ID, generation)
+  //   Order and grouping at the flush: placement questions (missing-arm, steer, retirement, Defer) before gate questions; gate questions as
+  //          one group per bounded context and rule, one row per construct; a gate question on a provisional / unsettled construct waits
+  //   QuestionResolved -> closure post; a Withdrawn resolution -> withdrawal post with the WithdrawalCause reason (+ repostedAs) · closures always posted
+  //   Question sweep, the session-boundary arm: the entry's Cycle runs the sweep before it flushes, Live or replayed (S:1100); the document-close arm is declared as the policies
+  //          QuestionSweepWithdrawsKeptQuestions and QuestionSweepAsksHeldGaps (DesignModel).
+  //   Request-stream entry (an answer Pointer, dereferenced) -> gate -> RecordReceipt -> ResolveQuestion(answer); never ResolveQuestion
+  //          (Withdrawn); never revokes a waiver · answeredBy {sub, clientId, verified roles}
+  //   Re-ask on a relevant change: declared as ReAskOnConstructStored, ReAskOnConstructAccepted, ReAskOnBoundaryChangeRatified and ReAskOnDocumentVersionProcessed (DesignModel).
+  //   Repost: ResolveQuestion(Withdrawn{Reposted{repostedAs n+1}}) + AskQuestion generation n+1 gathering the same causes, in one unit of
+  //          work · never the same generation
+  //   ReceiptProcessed{None(reason)} for a request-stream Receipt -> a notice to the answerer (not for ReceiptClosed, not for a resolver's computed answer)
+
+  // --------------------------------------------------------------------------
+  // RELATIONSHIPS (section 0.1)
+  // --------------------------------------------------------------------------
+  relationship Flmnt -> Clarification  // S:185 "flmnt -> C2 and C4 (the feed, request and erasure streams; tenancy): Anticorruption Layer"
+    type AnticorruptionLayer
+    contract "ingress translators over the feed, request and erasure streams; tenancy"
+
+  relationship Clarification -> Flmnt  // S:186 "C4 -> flmnt's question stream: Conformist to flmnt's contract."
+    type Conformist
+    contract "flmnt's question contract (QPOST, QWD); changes asked of flmnt are self-standing improvements for flmnt alone (c02a47c6)"
+
+  relationship OAuth2Broker -> Clarification  // S:190 "the global OAuth2 service -> C1 and C4: Conformist"
+    type Conformist
+    contract "the caller's claims (who, which client)"

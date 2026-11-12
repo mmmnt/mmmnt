@@ -1,0 +1,1808 @@
+// Sift — C3 Design Model (Core). One file per context. Six aggregates inside one context (the spec's recorded limit exception).
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n; section 3 C3 Design Model: Placement, Construct, Lineage, Sift pointers, Assessment, Gap,
+// ContextMap, Sagas and Cycle records, Encryption, Read models, Erasure entries; section 11 structural tables; section 8 value objects; section 0.1 context map) and the
+// accepted ADRs docs/adrs/SIFT-ADR-0*.md. Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE is NOT a source of this model.
+//
+// CONVENTIONS OF THIS CONTEXT
+//  - Every declaration ends with a trailing comment: S:<line> and a short quote of the spec's own words, on that exact line of the spec of record.
+//  - `precondition` is used only for a refusal or no-op code the spec names (naming rule: model/README.md). A rule or an outcome the spec states without a code
+//    is an `invariant`, cited at the line that states it (an orchestration cannot hold an invariant, so a context-level `rule` carries it there).
+//  - A refusal records no event; its derived negative scenario `neg-<Command>-<Precondition>` is its representation (founder ruling 2026-11-05).
+//  - A policy is named from the spec's words, cited at the line that states its RULE (and the row of the consumers table, 11.1), and carries the board id as a
+//    trailing `// board:` comment so that the board sync can match it.
+//  - A Moment command emits one event (Moment 0.7.2). A spec command that records two events together cannot be expressed; the second event is declared, drawn
+//    in the flows where the spec draws it, and has no emitter: model/README.md, "HALT items".
+//  - Actor on every event (S:102) and a CorpusVersion stamp on every Construct and Lineage write (S:582, S:631): each event declares `actor: Actor` (and
+//    `corpusVersion: CorpusVersion`) itself, because Moment has no shared event envelope.
+//  - The SequenceRecords stream (S:955) is one orchestration here: StartCycle, CompleteCycle, RecordStepFailure, CompleteReplay, ReadModelDestruction,
+//    RecordGateDecision, RecordPassTrigger and RecordGatewayResult with their events. IntakeDocument is declared with Document intake (Intake context, S:955).
+//  - Judgment (RequestJudgment, ClaimJudgment, AnswerJudgment; SIFT-ADR-078) is substrate, not an L2 aggregate. Resolvers (DEF-003, DEF-005, TAC-011, DUP, DEF-008, LAN-006,
+//    owner keeping, missing-arm, restated-arm, section-context, term-use, dropped-word, source-authority) are named in policy text: no construct.
+//  - Policies whose target is a fan-out, a notice or a resolver, and the external CorpusVersionReleased: notes at the end of the context.
+
+// ============================================================================
+// EXTERNAL SYSTEMS used by C3
+// ============================================================================
+
+external ModelProvider "model provider: the agent behind Extraction, PlacementResolution step 4, the meaning judgement, the coherence judge, the RecordLag check; every call a Judgment (SIFT-ADR-078) within the BudgetCap"  // S:1181 "BudgetCap {the bound on what one agent step may take in one attempt" (Judgment is substrate, not an L2 aggregate (SIFT-ADR-078))
+
+external Consumers "consumers: Moment, Trace. Read the emitted Cycle (CycleStarted, NodeChanged, CycleCompleted, Pointers only), live by subscription and by query by position (SIFT-ADR-084)"  // S:193 "C3 -> consumers of the emitted Cycle: Published Language"
+
+// ============================================================================
+// THE BOUNDED CONTEXT
+// ============================================================================
+
+context "DesignModel" [Core]  // S:169 "| C3 Design Model | Core | Placement"
+  description "The customer's design as constructs of 13 palette kinds: entries and document sections become Placements, constructs with lineage, assessed by passes that find Gaps and ContextMap proposals"
+
+  term "Placement key" "The entry Pointer plus the candidate Fingerprint; identifies one Placement"  // S:1181 "PlacementKey" ; S:428 "keyed by Candidate: the entry Pointer and the candidate's Fingerprint"
+  term "Offer set" "The targets PlacementResolution offers the agent; the offer is the limit"  // S:1181 "OfferSet {the targets PlacementResolution offers its step 4"
+  term "Committed" "A construct state reached only when the commit invariant holds"  // S:567 "Commit only if"
+
+  value-object Pointer  // S:1181 "Pointer (with position; an ingress reference to an flmnt entry or a document"
+    customerWorkspace: string
+    entryId: string
+    position: number
+    documentId: string
+    versionKey: string
+    intakeOrdinal: number
+    sectionIndex: number
+    sectionFingerprint: string
+
+  value-object RecordRef  // S:1181 "RecordRef {stream, position} (a position on Sift's SequenceRecords stream"
+    stream: string
+    position: number
+
+  value-object EventRef  // S:1181 "EventRef {stream, position} (an event recorded on one of Sift's domain streams"
+    stream: string
+    position: number
+
+  value-object RequestRef  // S:1181 "RequestRef {scope: customer workspace or license, request key} (the caller-supplied request key of a management API request"
+    requestScope: string
+    requestKey: string
+
+  value-object ObservationRef  // S:1181 "ObservationRef {customer workspace, source: message | reconciliation, id} (the identity of an entitlement observation"
+    customerWorkspace: string
+    source: string
+    id: string
+
+  value-object CorpusReleaseRef  // S:1181 "CorpusReleaseRef {customer workspace, CorpusVersion} (the identity of a CorpusVersionReleased for one customer workspace"
+    customerWorkspace: string
+    corpusVersion: string
+
+  value-object TickRef  // S:1181 "TickRef {run, customer workspace} (the identity of a tick's unit of work for one customer workspace"
+    run: string
+    customerWorkspace: string
+
+  value-object CycleTrigger  // S:1181 "CycleTrigger = Pointer | RecordRef | EventRef | RequestRef | ObservationRef | CorpusReleaseRef | TickRef (what CycleStarted's trigger carries"
+    kind: string
+    pointer: Pointer
+    recordRef: RecordRef
+    eventRef: EventRef
+    requestRef: RequestRef
+    observationRef: ObservationRef
+    corpusReleaseRef: CorpusReleaseRef
+    tickRef: TickRef
+
+  value-object Actor  // S:102 "Every event carries an Actor {sub, clientId?, roles?, kind: user | api | system}."
+    sub: string
+    clientId: string
+    roles: string[]
+    kind: string
+    causedBy: string
+
+  value-object Fingerprint  // S:1181 "Fingerprint . Candidate (Round 28: also its stated renames, stated negations and"
+    value: string
+
+  value-object SectionFingerprint  // S:1181 "SectionFingerprint . ContentHash . NormalisedKey . CanonicalLabel . HeadingPath . Versio"
+    value: string
+
+  value-object Candidate  // S:440 "Candidate = one construct an entry yields at Extraction"
+    candidateType: string
+    name: string
+    content: string
+    contextName: string
+    arm: string
+    fingerprint: string
+    statedReplacements: string[]
+    statedRenames: string[]
+    statedNegations: string[]
+    droppedWords: string[]
+    documentStatus: string
+
+  value-object Addition  // S:1181 "Addition . LineageLink . CorpusVersion . RulesVersion . CauseTag . CauseKey ."
+    content: string
+    replacedField: string
+    priorValue: string
+
+  value-object LineageLink  // S:1181 "LineageLink . CorpusVersion . RulesVersion . CauseTag . CauseKey . GapKey {rule,"
+    source: Pointer
+    target: string
+
+  value-object CorpusVersion  // S:1181 "CorpusVersion . RulesVersion . CauseTag . CauseKey . GapKey {rule, construct or ord"
+    value: string
+
+  value-object RulesVersion  // S:1181 "RulesVersion . CauseTag . CauseKey . GapKey {rule, construct or ordered construct"
+    value: string
+
+  value-object CauseTag  // S:1181 "CauseTag . CauseKey . GapKey {rule, construct or ordered construct pair (the p"
+    value: string
+
+  value-object CauseKey  // S:1181 "CauseKey . GapKey {rule, construct or ordered construct pair (the pair of a Du"
+    sourceKey: string
+    corpusVersion: string
+    rulesVersion: string
+
+  value-object PlacementKey  // S:1181 "PlacementKey . SpacedForm . QuestionId . ProposeId. A value object is written in C"
+    pointer: Pointer
+    fingerprint: string
+
+  value-object GapKey  // S:1181 "GapKey {rule, construct or ordered construct pair (the pair of a Duplicate,"
+    ruleId: string
+    constructs: string[]
+    origins: string[]
+    declinedCommand: string
+
+  value-object GapHandling  // S:1181 "GapHandling {Ask | Refuse | Boundary | Steer | Covered{undeclared | waiver | dist"
+    kind: string
+    covered: string
+
+  value-object FindingIdentity  // S:1181 "FindingIdentity {rule, finding kind, input values; DG-20} . RuleRef (Round 28: handli"
+    ruleId: string
+    findingKind: string
+    inputValues: string[]
+
+  value-object RuleRef  // S:1181 "RuleRef (Round 28: handling adds Advisory, which becomes Covered{advisory} on"
+    id: string
+    family: string
+    source: string
+    opinion: string
+    remedy: string
+    handling: string
+    cadence: string
+    evaluates: string
+    unevaluable: string
+
+  value-object MeaningVerdict  // S:1181 "MeaningVerdict (Round 27 A-4) . LinkField (Round 27 A-5) . PrimaryDocument (Round 27"
+    pair: string[]
+    definitionHashes: string[]
+    verdict: string
+    rationale: string
+
+  value-object ConvergenceSnapshot  // S:1181 "ConvergenceSnapshot . CycleId . WorkspaceLink . BudgetCap {the bound on what one agent st"
+    errors: number
+    blockingGaps: number
+    coveredGaps: number
+    warnings: number
+
+  value-object CycleId  // S:1181 "CycleId . WorkspaceLink . BudgetCap {the bound on what one agent step may tak"
+    value: string
+
+  value-object BudgetCap  // S:1181 "BudgetCap {the bound on what one agent step may take in one attempt; past it th"
+    bound: number
+
+  value-object PlacementOutcome  // S:1181 "PlacementOutcome . Arrival (a Document Arrival also carries the location, a reference"
+    kind: string
+    target: string
+    addition: Addition
+    change: string
+    deferCause: string
+    direction: string
+    retypeKind: string
+
+  value-object SubjectVersions  // S:1181 "SubjectVersions {reads, writes} (boundary versions) . SupersedeCause {Successor | Rat"
+    reads: string[]
+    writes: string[]
+
+  value-object SupersedeCause  // S:1181 "SupersedeCause {Successor | Ratified | Rejected | SubjectChanged | Answered | Stated"
+    kind: string
+    pointer: Pointer
+    pass: string
+
+  value-object Alias  // S:1181 "Alias {name, Pointer} . SourceAuthority {Ask | Sift | Conversation} . Waive"
+    name: string
+    pointer: Pointer
+
+  value-object OfferSet  // S:1181 "OfferSet {the targets PlacementResolution offers its step 4: name and canonica"
+    targets: string[]
+
+  value-object NormalisedKey  // S:1181 "NormalisedKey . CanonicalLabel . HeadingPath . VersionKey (the version key of a doc"
+    value: string
+
+  value-object CanonicalLabel  // S:1181 "CanonicalLabel . HeadingPath . VersionKey (the version key of a document version, §0"
+    value: string
+
+  value-object ContextKey  // S:1181 "ContextKey . PlacementKey . SpacedForm . QuestionId . ProposeId. A value object"
+    value: string
+
+  value-object SpacedForm  // S:1181 "SpacedForm . QuestionId . ProposeId. A value object is written in CamelCase here"
+    value: string
+
+  value-object HeadingPath  // S:1181 "HeadingPath . VersionKey (the version key of a document version, §0 Language) . C"
+    value: string
+
+  value-object VersionKey  // S:1181 "VersionKey (the version key of a document version, §0 Language) . ConstructId ."
+    value: string
+
+  value-object ConstructId  // S:1181 "ConstructId . DataKeyId . Actor . SubjectVersions {reads, writes} (boundary versi"
+    value: string
+
+  value-object DataKeyId  // S:1181 "DataKeyId . Actor . SubjectVersions {reads, writes} (boundary versions) . Super"
+    value: string
+
+  value-object ProposeId  // S:1181 "ProposeId. A value object is written in CamelCase here and as its spaced term i"
+    value: string
+
+  value-object LinkField  // S:1181 "LinkField (Round 27 A-5) . PrimaryDocument (Round 27 A-6) . ConvergenceSnapshot"
+    field: string
+    value: string
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Placement — keyed by the Placement key (S:428-531) · 4 commands, 4 events
+  // --------------------------------------------------------------------------
+  aggregate "Placement"  // S:428 "### Placement (aggregate; keyed by Candidate: the entry Pointer and the candidat"
+    identity placementKey: string
+
+    // States: MatchedUndecided, Decided, Deferred, Stale. MarkStale applies to a proposal raised from this Placement's own boundary outcome (the Placement is then Decided) or to
+    // the Gap its Defer observed while still Deferred; ApplyAnswer applies when Deferred or Stale, and the two reopenings (the dropped-word computed answer, a re-asked answer)
+    // reopen a Decided Placement (Decided -> Decided).  // S:457 "MarkStale applies only to a proposal raised from this Placement's own boundary outcome"
+    state initial MatchedUndecided  // S:449 "MatchCandidate once per Placement (its Pointer and Fingerprint)"
+    state MatchedUndecided -> Decided on DecidePlacement  // S:450 "exactly one decided outcome at a time"
+    state MatchedUndecided -> Deferred on DecidePlacement  // S:459 "unsure → Defer{Unsure}"
+    state Deferred -> Decided on ApplyAnswer  // S:452 "ApplyAnswer only when Deferred or Stale"
+    state Stale -> Decided on ApplyAnswer  // S:452 "ApplyAnswer only when Deferred or Stale"
+    state Deferred -> Stale on MarkStale  // S:457 "once that Gap is mooted and while the Placement is still Deferred"
+    state Decided -> Stale on MarkStale  // S:457 "MarkStale applies only to a proposal raised from this Placement's own boundary outcome"
+    state Decided -> Decided on ApplyAnswer  // S:452 "an answered Placement that later text re-opens is ApplyAnswer-eligible"
+
+    // Pol (Extraction, once per candidate).
+    command MatchCandidate  // S:430 "MatchCandidate(Pointer, Fingerprint, Arrival)"
+      input pointer: Pointer, fingerprint: string, arrival: Arrival
+      precondition NoOpRepeat: "MatchCandidate once per Placement; a repeat is NoOp"  // S:449 "MatchCandidate once per Placement"
+      emits CandidateMatched
+
+    // Pol (PlacementResolution). PlacementOutcome = New | SameAs {target, addition?} | Supersedes {target} | ImpliesBoundary {change: new | split | merge | move | replace | relationship | duplicateMerge | rename} | Defer {Unsure | Contradiction | Divergence}; (ApplyAnswer only) Retire | ReplacedBy {target} | Retype {kind}.
+    invariant ExtractionNameWithoutKey "Extraction (domain service, step 2) refuses a candidate whose name has an empty normalised key (Refused{NameWithoutKey}): it has no Fingerprint, no MatchCandidate is issued for it, and the entry's other candidates are unaffected" scope Placement  // S:475 "Refused{NameWithoutKey}:"
+    command DecidePlacement  // S:431 "DecidePlacement(PlacementOutcome, construct type, rationale, alternatives[], observed Subj"
+      input outcome: PlacementOutcome, constructType: string, rationale: string, alternatives: string[], observedSubjectVersions: SubjectVersions
+      precondition RefusedTargetNotOffered: "A target outside the offer set is refused with no event; the agent decides again within the BudgetCap; a candidate left with no valid decision is Defer{Unsure}"  // S:460 "a target outside it is Refused{TargetNotOffered}, with no event and the agent decides again within the Budget"
+      emits PlacementDecided
+
+    // Mem by routing (an answer); computed = Sys (resolver; records kind system with causedBy the trigger).
+    invariant DecidePlacementExactlyOneOutcome "Exactly one decided outcome at a time; a reopening leaves the earlier outcome in the record" scope Placement  // S:450 "a dropped word, or the answer to a question asked again after later text set an answer asi…"
+    invariant DecidePlacementNotADecidingEntry "An exploration entry, or a section of a document stating it is Proposed, does not decide: what it states is asked, never applied" scope Placement  // S:447 "An exploration entry, or a section of a document stating it is Proposed, does not decide: what it states is asked, never applied"
+    invariant DecidePlacementLinkFieldSameAsIsSupersedes "a SameAs that carries a replaced link-field value is treated by both placement gates (contradiction, divergence) as a Supersedes of its target" scope Placement  // S:445 "SameAs that carries one as they treat a Supersedes of its target."
+    invariant DecidePlacementCrossKindSameAsDefers "a SameAs of a candidate of one kind against a target of a neighbouring kind is a Retype when this entry is a deciding entry, and a Defer{Unsure} when it is not" scope Placement  // S:464 "and a Defer{Unsure} when it is not"
+    invariant DecidePlacementNoRetypeOutcome "No Retype outcome from DecidePlacement; the lump rule (a SameAs never renames a lump; two candidates of one entry never take the same target); one Relationship per direction; arm-first; a terminal supersession target stores without supersession; replacement is one-to-one" scope Placement  // S:531 "the lump rule and a SameAs never renames a lump;"
+    invariant DecidePlacementDivergenceGate "Divergence gate, checked first, across narrative and document sources: Defer{Divergence{target, direction: NarrativeAhead | DocumentAhead}}; SourceAuthority Ask defers, Sift applies and observes Covered{sourceAuthority}, Conversation never applies and retires the provisional with cause Computed" scope Placement  // S:531 "a Supersedes, a replacing boundary change or a would-be Contradiction across the narrative…"
+    invariant DecidePlacementContradictionGate "Contradiction gate: different author; Defer{Contradiction{target}}; system actors on either side never contradict; an entry that explicitly supersedes the target's Sift pointer passes both gates" scope Placement  // S:472 "kind system) on either side is not a different author and records no Contradiction, since …"
+    command ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, ob"
+      input outcome: PlacementOutcome, source: string, subject: string, generation: number, computedRule: string, computedTrigger: string, observedSubjectVersions: SubjectVersions
+      emits AnswerApplied
+
+    // Sys. Only on a proposal of this Placement's own boundary outcome or on the Gap its Defer observed while still Deferred (idempotent per proposal or Gap).
+    invariant ApplyAnswerDeferredOrStale "ApplyAnswer only when Deferred or Stale (two reopenings excepted: the dropped-word computed answer and a re-asked answer)" scope Placement  // S:531 "ApplyAnswer only when Deferred or Stale, except the two reopenings, the dropped word and t…"
+    invariant ApplyAnswerOneAnswerPerGeneration "At most one applied answer per question generation or per computed attempt (one per rule and triggering change)" scope Placement  // S:452 "pass-3 B-1)), and at most one applied answer per question generation"
+    invariant ApplyAnswerDeferralSettledByAnswerOnly "A Deferred Placement of a Contradiction or Divergence is settled only by an ApplyAnswer on it; no Waive settles it" scope Placement  // S:451 "a Deferred Placement of a Contradiction or a Divergence is settled only by an ApplyAnswer …"
+    invariant ApplyAnswerRecordSettledIsComputed "A record-settled arm or context is a computed answer only" scope Placement  // S:469 "a record-settled arm or context is a recorded computed answer"
+    command MarkStale  // S:433 "MarkStale(proposal | gap)."
+      input target: string
+      emits PlacementMarkedStale
+
+    invariant MarkStaleOwnProposalOrGap "MarkStale only on a proposal of this Placement's own boundary outcome or on the Gap its Defer observed while still Deferred; idempotent per proposal or Gap" scope Placement  // S:457 "the proposal ID is derived from the Placement's event), or to the Gap that this Placement'…"
+    invariant C3-01 "One Placement per candidate; MatchCandidate once; exactly one decided outcome; ApplyAnswer only when Deferred or Stale; no event on a repeat" scope Placement  // S:531 "-C3-01 (one Placement per candidate, keyed by Pointer and Fingerprint, Round 13; MatchCandi" (docs/feat-backlog.md SIFT-FEAT-C3-01)
+    invariant C3-34 "Extraction: one MatchCandidate per candidate in reading order; none for an entry that yields none (Receipt processed None(no candidate)); empty normalised key refused with NameWithoutKey for that candidate" scope Placement  // S:531 "C3-34 (Round 13: Extraction issues one MatchCandidate per candidate the entry yields, in r" (docs/feat-backlog.md SIFT-FEAT-C3-34)
+    invariant C3-02 "Contradiction gate: different user/api author -> Defer{Contradiction}; system actors none; no Waive; the question goes to both authors" scope Placement  // S:531 "C3-02 (the contradiction gate: a Supersedes by a different user or api author becomes Defe" (docs/feat-backlog.md SIFT-FEAT-C3-02)
+    invariant C3-38 "Divergence gate across sources; SourceAuthority Ask / Sift / Conversation; a Sift-pointer override passes; a steer, immediately when Live" scope Placement  // S:531 "C3-38 (Round 15: the divergence gate: a Supersedes, a replacing boundary change or a would" (docs/feat-backlog.md SIFT-FEAT-C3-38)
+    invariant C3-04 "PlacementResolution step order and BudgetCap; the agent decides only in step 4; the offer is the limit: a target outside the offer set, no event, decide again; else Defer{Unsure}" scope Placement  // S:531 "C3-04 (PlacementResolution step order and BudgetCap; the agent decides only in step 4; ste" (docs/feat-backlog.md SIFT-FEAT-C3-04)
+    invariant C3-03 "Split supersessions: one Placement per component; per-component outcomes" scope Placement  // S:531 "C3-03 (split supersessions place per component, A-1), C3-04 (PlacementResolution step orde" (docs/feat-backlog.md SIFT-FEAT-C3-03)
+    invariant C3-52 "Step 1 canonical forms; the offer set legs; lump rule; same rule under new wording; record-settled arm or context is a computed answer; offered targets recorded on PlacementDecided (C3-56, C3-57, C3-58, C3-59, C3-60, C3-61)" scope Placement  // S:531 "C3-52 (Round 27 A-2: step 1 matches canonical forms, the context component dropped when ei" (docs/feat-backlog.md SIFT-FEAT-C3-52)
+    invariant C3-32 "Missing arm / arm's context questions compound once per arm; Defer{Unsure} for a missing context or arm; undecided re-post; one question per arm (C3-33, C3-42, C3-55)" scope Placement  // S:531 "C3-32 (Round 10, reworded Rounds 11 and 12: when an arm is stored, the one open question f" (docs/feat-backlog.md SIFT-FEAT-C3-32)
+    invariant C3-36 "Retirement question per superseded entry; stated replacement; version-retirement question; a question listing constructs; nothing retired without the answer (C3-44, C3-51)" scope Placement  // S:531 "C3-36 (Round 14: one retirement question per superseded entry E, on E's retirement subject" (docs/feat-backlog.md SIFT-FEAT-C3-36)
+
+    event CandidateMatched  // S:435 "CandidateMatched {Fingerprint} (the candidate's Fingerprint, as Extraction computed it"
+      fingerprint: string
+      actor: Actor
+
+    event PlacementDecided  // S:436 "PlacementDecided {outcome, rationale, alternatives[]}"
+      outcome: PlacementOutcome
+      rationale: string
+      alternatives: string[]
+      actor: Actor
+
+    event AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger} (73d00215 (pass-1 D-2): a co"
+      outcome: PlacementOutcome
+      question: string
+      computedBy: string
+      computedTrigger: string
+      actor: Actor
+
+    event PlacementMarkedStale  // S:438 "PlacementMarkedStale {proposal | gap, cause: SubjectChanged | Mooted, n}, where n is the s"
+      proposal: string
+      gap: string
+      cause: string
+      n: number
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Construct — customer constructs of 13 palette kinds (S:533-600) · 5 commands, 7 events
+  // --------------------------------------------------------------------------
+  aggregate "Construct"  // S:533 "### Construct (aggregate)"
+    identity constructId: string
+
+    state initial Stored  // S:560 "- stored;"
+    state Stored -> Accepted on AcceptConstruct  // S:562 "- accepted;"
+    state Accepted -> Committed on CommitConstruct  // S:563 "- committed;"
+    state Stored -> Committed on CommitConstruct  // S:569 "if it has proposedFor, it has been accepted"
+    state Stored -> Superseded on SupersedeConstruct  // S:564 "- superseded or invalidated, which are terminal."
+    state Accepted -> Superseded on SupersedeConstruct  // S:564 "- superseded or invalidated, which are terminal."
+    state Committed -> Superseded on SupersedeConstruct  // S:564 "- superseded or invalidated, which are terminal."
+
+    // Pol (outcome policies; routing from ApplyAnswer and retirement answers; arm re-derivation; ConstructRetyped policies; LAN-006 resolver).
+    command StoreConstruct  // S:546 "StoreConstruct(Pointer, proposedFor?, supersedes?)"
+      input pointer: Pointer, proposedFor: string, supersedes: string
+      precondition NoOpRepeat: "Repeats are NoOp{repeat} by derived ID; stable IDs (never derived from current fields); a CorpusVersion stamp on every write; never destructive"  // S:600 "repeats are NoOp{repeat} by derived ID), C3-08"
+      emits ConstructStored, ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+
+    // Sys (S:1173).
+    invariant StoreConstructBoundaryProposedFor "A boundary-type construct is always stored with proposedFor, accepted only by Ratification, and retired / replaced / renamed only through ContextMap" scope Construct  // S:600 "boundary types accepted, and retired, replaced or renamed, only through ContextMap and its…"
+    invariant StoreConstructDefinitionInSourceWords "A definition is in the source's own words or empty" scope Construct  // S:579 "A definition is in the source's own words or empty;"
+    command AcceptConstruct  // S:547 "AcceptConstruct(by: Ratification{proposal} | Answer{question} | Answer{computed {rule, tri"
+      input by: string
+      precondition NoOpRepeat: "Repeated AcceptConstruct is a no-op by derived ID"  // S:572 "Round 6 A-1), Commit on a committed construct, SupersedeConstruct on a terminal construct,…"
+      emits ConstructAccepted
+
+    // Sys (the ConstructCleared policy).
+    invariant AcceptConstructAnswerOnlyForNonBoundary "AcceptConstruct(Answer) applies only to a non-boundary construct stored proposedFor UnsurePlacement" scope Construct  // S:577 "AcceptConstruct(Answer) applies only to a non-boundary construct stored proposedFor Unsure…"
+    command CommitConstruct  // S:548 "CommitConstruct(pass, startPosition), system-only"
+      input pass: string, startPosition: number
+      emits ConstructCommitted
+
+    // Pol / Mem by routing; Sys for a resolver. cause: Successor | Ratified | Rejected | SubjectChanged | Answered | Stated | Computed | Computed{pass}.
+    invariant CommitConstructCommitInvariant "Commit only if: not superseded / invalidated; if proposedFor then accepted; names its context and (unless BC) its arm (NO ORPHANS at commit, L1-006); startPosition >= position of its last content write (ConstructStored, ConstructAccepted, a MarkedSameAs that carries an addition, ConstructRenamed, ConstructMoved)" scope Construct  // S:600 "a MarkedSameAs that carries an addition is a content write:"
+    command SupersedeConstruct  // S:549 "SupersedeConstruct(by?, cause: Successor | Ratified | Rejected | SubjectChanged | Answered"
+      input by: string, cause: SupersedeCause
+      precondition NoOpRepeat: "SupersedeConstruct on a terminal construct is a no-op"  // S:572 "Round 6 A-1), Commit on a committed construct, SupersedeConstruct on a terminal construct,…"
+      emits ConstructSuperseded | ConstructSuperseded, ConstructLinked | ConstructInvalidated | ConstructInvalidated, ConstructLinked  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"; S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"; S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+
+    // Pol / Mem by routing; a resolver's computed addition is a self-addition (Sys).
+    invariant SupersedeConstructSupersessionRefused "A successor is another construct, live, the head of its lineage: otherwise SupersessionRefused (Lineage), found as a Gap by TAC-013" scope Construct  // S:580 "A successor is another construct, live, and the head of its own supersession lineage"
+    command MarkSameAs  // S:550 "MarkSameAs(LineageLink, Pointer?, addition?)"
+      input lineageLink: LineageLink, pointer: Pointer, addition: Addition
+      precondition NoOpRepeat: "MarkSameAs on a recorded LineageLink with the same addition, ConstructLinked already recorded: no-op"  // S:572 "Round 6 A-1), Commit on a committed construct, SupersedeConstruct on a terminal construct,…"
+      emits MarkedSameAs | MarkedSameAs, ConstructLinked  // S:558 "MarkSameAs given a Pointer records it with MarkedSameAs (SameAs)"
+
+    invariant C3-05 "Commit invariant (not terminal, accepted if proposed, names context and arm, startPosition >= last content write); not committed, the Gap stays" scope Construct  // S:600 "-C3-05 (commit invariant), C3-06 (boundary types accepted, and retired, replaced or renamed" (docs/feat-backlog.md SIFT-FEAT-C3-05)
+    invariant C3-06 "Boundary types accepted, retired, replaced or renamed only through ContextMap; a proposal and a ratification question" scope Construct  // S:600 "C3-06 (boundary types accepted, and retired, replaced or renamed, only through ContextMap" (docs/feat-backlog.md SIFT-FEAT-C3-06)
+    invariant C3-07 "Repeats are NoOp{repeat} by derived ID; never destructive; NO ORPHANS at commit (C3-08, C3-09); no event on a repeat" scope Construct  // S:600 "C3-07 (repeats are NoOp{repeat} by derived ID), C3-08 (never destructive; supersession and inval" (docs/feat-backlog.md SIFT-FEAT-C3-07)
+    invariant C3-31 "ConstructLinked with every store, SameAs-with-Pointer and successor supersession; graph edges = the fold (parity suite, C3-26); an entry->construct edge" scope Construct  // S:600 "C3-31 (Round 9: ConstructLinked recorded with every store, every MarkSameAs that carries a" (docs/feat-backlog.md SIFT-FEAT-C3-31)
+    invariant C3-35 "A MarkedSameAs with an addition is a content write (boundary version increments, Live pass starts); re-evaluated against what it gained" scope Construct  // S:600 "C3-35 (Round 13: a MarkedSameAs that carries an addition is a content write: the construct" (docs/feat-backlog.md SIFT-FEAT-C3-35)
+    invariant C3-54 "Arm re-derivation: a replaced enforcedBy / producer or invalidated arm re-places the Invariant / Event; different context via Propose(move); successor stored, or a ratification question" scope Construct  // S:600 "C3-54 (Round 27 A-11, extended to an Event's producer by ff9705c9 (R28-E11): a replaced en" (docs/feat-backlog.md SIFT-FEAT-C3-54)
+    invariant C3-62 "13 kinds, arm table, successor is a live head else SupersessionRefused, definition in source words; the refusal is found as a TAC-013 Gap (C3-45)" scope Construct  // S:600 "C3-62 (Round 28: 13 palette kinds, a Rule owned by a BC with no Aggregate and no refusal s" (docs/feat-backlog.md SIFT-FEAT-C3-62)
+    invariant C3-47 "Sift pointer per Sift decision; supersession carries a section, entry or answer; never skipped for erasure; not metered; the conversation sees the compound truth (C3-48, C3-49, C3-50)" scope Construct  // S:549 "a resolver's or merge supersession, whose Pointer is the answer, or the entry or section w…" (docs/feat-backlog.md SIFT-FEAT-C3-47)
+
+    event ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      arrival: Arrival
+      attempt: number
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructAccepted  // S:553 "ConstructAccepted"
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructCommitted  // S:554 "ConstructCommitted"
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor (it records the ca"
+      cause: string
+      pointer: Pointer
+      pass: string
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none (it records the cause, the Poi"
+      cause: string
+      pointer: Pointer
+      pass: string
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?} (ruling 0e02cbd7, Round 13: with an addition, the co"
+      lineageLink: LineageLink
+      addition: Addition
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructLinked  // S:558 "ConstructLinked {Pointer, construct, kind: Placed | SameAs | Supersedes} (Round 9, bf5cd88"
+      pointer: Pointer
+      construct: string
+      kind: string
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Lineage — one stream per construct (S:602-651) · 5 commands, 5 events
+  // --------------------------------------------------------------------------
+  aggregate "Lineage"  // S:602 "### Lineage (aggregate; Round 28, DG-14; one stream per construct, keyed by the "
+    identity constructId: string
+
+    // All Pol / Mem by routing, none operator-gated, recording the Cycle's actor (a resolver's is Sys).
+    command AddAlias  // S:610 "AddAlias(construct, name, Pointer)"
+      input construct: string, name: string, pointer: Pointer
+      precondition NoOpAlreadyAlias: "NoOp{already-alias} when the name's canonical label is already the construct's name of record or an alias"  // S:624 "AddAlias is NoOp{already-alias}"
+      precondition NoOpTerminal: "NoOp{terminal} on a terminal construct; a boundary construct takes an alias only from a ratified duplicateMerge or a ratified rename"  // S:624 "NoOp{terminal} on a terminal construct"
+      emits ConstructAliased
+
+    command RenameConstruct  // S:611 "RenameConstruct(construct, name, cause: DefiningSection | StatedRename | Ratified, Pointer"
+      input construct: string, name: string, cause: string, pointer: Pointer
+      causes DefiningSection, StatedRename, Ratified  // S:611 "RenameConstruct(construct, name, cause: DefiningSection | StatedRename | Ratified, Pointer)"
+      emits ConstructRenamed
+
+    invariant RenameConstructRenameOnlyFromDefinition "Rename only from a defining section or stated rename, at most one per construct per document version, newest defining name wins, boundary constructs only via ratified Propose(rename)" scope Lineage  // S:651 "rename only from a defining section or a stated rename, of a boundary type only as a ratif…"
+    command MoveConstruct  // S:612 "MoveConstruct(construct, context, cause: DefiningSection | DecidingRuling | Ratified | Car"
+      input construct: string, contextName: string, cause: string, pointer: Pointer
+      causes DefiningSection, DecidingRuling, Ratified, Carried, Computed, Answered  // S:612 "MoveConstruct(construct, context, cause: DefiningSection | DecidingRuling | Ratified | Carried | Computed | Answered, Pointer)"
+      precondition NoOpRepeat cause Computed, Carried: "a MoveConstruct of cause Computed (owner keeping, its ID derived from the DocumentVersionProcessed) or Carried (one per construct) is NoOp{repeat} by that construct's derived ID"  // S:641 "is NoOp{repeat} on a repeat by its ID derived from the DocumentVersionProcessed"
+      emits ConstructMoved
+
+    invariant MoveConstructMoveOnlyOnNewerText "Move (cause DefiningSection, DecidingRuling or Computed) only on newer text, changes the arm with the context; a construct armed to an Aggregate moves only as carried by its arm; a boundary construct only via Propose(move); a move beside a same-name construct does not merge them itself (DUP resolver does)" scope Lineage  // S:626 "A move that lands a construct beside a live construct of the same kind and name does not m…"
+    invariant MoveConstructArmedToAggregate "a statement that names another context for a construct armed to an Aggregate is declined: the command writes no Lineage event" scope Lineage  // S:629 "a statement that names another context for a construct armed to an Aggregate"
+    invariant MoveConstructDeclinedByGate "an answered move that a gate would defer is declined: no Lineage event, the answerer gets a notice, the Gap that asked stays Open" scope Lineage  // S:629 "an answered move or retype that a gate would defer"
+    command RetypeConstruct  // S:613 "RetypeConstruct(construct, kind, successor, cause: Answer | DecidingEntry, Pointer)"
+      input construct: string, kind: string, successor: string, cause: string, pointer: Pointer
+      causes Answer, DecidingEntry  // S:613 "RetypeConstruct(construct, kind, successor, cause: Answer | DecidingEntry, Pointer)"
+      emits ConstructRetyped
+
+    // Sys. reason: Self | NotLive | NotHead.
+    invariant RetypeConstructRetypeKind "The new kind is a palette kind other than the kind of record; the successor carries the record; across a boundary type via ContextMap" scope Lineage  // S:627 "the new kind is a palette kind other than the construct's kind of record;"
+    invariant RetypeConstructRetypeToOwnKind "a retype to the construct's own kind of record is declined: the command writes no Lineage event" scope Lineage  // S:629 "a retype to the construct's own kind of record"
+    invariant RetypeConstructDeclinedByGate "an answered retype that a gate would defer is declined: no Lineage event, the answerer gets a notice, the Gap that asked stays Open" scope Lineage  // S:629 "an answered move or retype that a gate would defer"
+    command RefuseSupersession  // S:614 "RefuseSupersession(construct, by, reason: Self | NotLive | NotHead), system-only."
+      input construct: string, by: string, reason: string
+      emits SupersessionRefused
+
+    invariant RefuseSupersessionSelf "Reason Self: the successor is the construct itself" scope Lineage  // S:614 "RefuseSupersession(construct, by, reason:"
+    invariant RefuseSupersessionNotLive "Reason NotLive: the successor is not live" scope Lineage  // S:614 "RefuseSupersession(construct, by, reason:"
+    invariant RefuseSupersessionNotHead "Reason NotHead: the successor is not the head of its lineage" scope Lineage  // S:628 "RefuseSupersession records that a successor was the construct itself, was terminal, or was…"
+    invariant C3-64 "Aliases (names for matching), once per canonical label; boundary construct alias only from ratified merge / rename; a declined command writes no event and is observed on the next pass as Covered{declined} (an answered move or retype that a gate would defer is declined: the answerer gets a notice, the Gap stays Open)" scope Lineage  // S:626 "a declined command is observed, below), the answerer gets a notice, and the Gap that asked…" (docs/feat-backlog.md SIFT-FEAT-C3-64)
+    invariant C3-65 "Rename only from a defining section or stated rename; move only on newer text, changes the arm; carry one MoveConstruct each; ConstructRenamed / ConstructMoved in NodeChanged; rename and move are content writes (boundary version increments, Live pass starts except in a Replay-dispatched entry or document section)" scope Lineage  // S:651 "C3-65 (rename only from a defining section or a stated rename, of a boundary type only as" (docs/feat-backlog.md SIFT-FEAT-C3-65)
+    invariant C3-67 "Retype and the supersession guard: SupersessionRefused -> TAC-013 Gap (C3-66)" scope Lineage  // S:651 "C3-67 (retype and the supersession guard: the ConstructRetyped policies store the successo" (docs/feat-backlog.md SIFT-FEAT-C3-67)
+
+    event ConstructAliased  // S:616 "ConstructAliased {name, Pointer}"
+      name: string
+      pointer: Pointer
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructRenamed  // S:617 "ConstructRenamed {from, to, cause, Pointer}"
+      from: string
+      to: string
+      cause: string
+      pointer: Pointer
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructMoved  // S:618 "ConstructMoved {from, to, cause, Pointer} (the constructs a move carries are each moved by"
+      from: string
+      to: string
+      cause: string
+      pointer: Pointer
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event ConstructRetyped  // S:619 "ConstructRetyped {from kind, to kind, successor, cause, Pointer}"
+      fromKind: string
+      toKind: string
+      successor: string
+      cause: string
+      pointer: Pointer
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+    event SupersessionRefused  // S:620 "SupersessionRefused {by, reason}."
+      by: string
+      reason: string
+      actor: Actor
+      corpusVersion: CorpusVersion
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Assessment — one per pass (S:666-739) · 3 commands, 5 events
+  // --------------------------------------------------------------------------
+  aggregate "Assessment"  // S:666 "### Assessment (aggregate; one per pass)"
+    identity passId: string
+
+    state initial Started  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+    state Started -> Completed on CompletePass  // S:723 "Completion: GatesEvaluated → CompletePass"
+
+    // Pol (S:1172; a pass trigger fan-out is not a command issuer; create-if-absent by derived pass ID; a Resume StartPass carries no CauseKey).
+    // Pass types: scoped = Live, Invalidation, Document, scoped Convergence; model-wide = Bootstrap, Resume, CorpusRelease, ThresholdOverride, Convergence.
+    command StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?). A Resume StartPass carries no CauseKey: the gate r"
+      input causeTag: CauseTag, passScope: string, causeKey: CauseKey
+      precondition NoOpRepeat: "StartPass is create-if-absent by derived pass ID: a repeat is NoOp{repeat}"  // S:689 "StartPass is create-if-absent by its derived pass ID:"
+      precondition NoOpStaleTrigger: "A pass trigger whose CorpusVersion / RulesVersion is older than the one read at startPosition is a NoOp"  // S:735 "A pass trigger whose CorpusVersion or RulesVersion is older than the one read at its start…"
+      emits PassStarted
+
+    // Pol (GateRun; a repeat is a no-op). Also records GatesEvaluated {judgements} at the end of its sequence.
+    invariant StartPassNotInsideReplayOrIntake "nothing model-wide starts inside a Replay or an intake: a child of the running Replay or intake, whatever its Arrival, starts no model-wide pass; the pass that ends the Replay or the intake declares the verdict" scope Assessment  // S:359 "Nothing model-wide starts inside a Replay or an intake."
+    command RecordGateResults  // S:669 "RecordGateResults(sequence number, evaluated constructs[], findings[]): the results of a p"
+      input sequenceNumber: number, evaluatedConstructs: string[], findings: FindingIdentity[]
+      emits GapIdentified | GatesEvaluated | GapIdentified, GatesEvaluated  // S:669 "it records one GapIdentified per finding not yet identified in the pass, and the last call records GatesEvaluated"
+
+    // Pol (GatesEvaluated policy). Also records ConstructCleared per cleared construct.
+    invariant RecordGateResultsBetweenStartAndEvaluated "RecordGateResults only between PassStarted and GatesEvaluated" scope Assessment  // S:690 "RecordGateResults only between PassStarted and GatesEvaluated"
+    invariant RecordGateResultsGapKeyOnce "A GapKey already identified in a pass is a no-op" scope Assessment  // S:683 "GateRun does not compute the finding again in that pass, and a GapKey already identified i…"
+    command CompletePass  // S:670 "CompletePass."
+      emits PassCompleted | PassCompleted, ConstructCleared  // S:723 "records PassCompleted plus ConstructCleared for each evaluated construct with no blocking Gap"
+
+    invariant CompletePassOneCompletion "One PassCompleted, only after GatesEvaluated" scope Assessment  // S:691 "one PassCompleted, and only after GatesEvaluated;"
+    invariant CompletePassNoSystemValidatedInsideReplayOrIntake "a pass that a child of a running Replay or intake starts never records SystemValidated; the Document pass stays scoped and never records SystemValidated" scope Assessment  // S:359 "A pass that such a child starts never records SystemValidated"
+    invariant CompletePassClearedOnlyWhenUnblocked "ConstructCleared only for evaluated constructs with no blocking Gap whose attached constructs are accepted or committed (a dependent waits on its boundary's ratification); passes skip superseded / invalidated constructs" scope Assessment  // S:692 "ConstructCleared only for constructs in the pass's evaluated constructs[], and only for th…"
+    invariant C3-10 "StartPass create-if-absent; RecordGateResults only between PassStarted and GatesEvaluated; one PassCompleted; no duplicate pass" scope Assessment  // S:739 "-C3-10 (StartPass create-if-absent; gate results only between PassStarted and GatesEvaluate" (docs/feat-backlog.md SIFT-FEAT-C3-10)
+    invariant C3-11 "ConstructCleared only with no blocking Gap and attached constructs accepted or committed; the construct waits on its boundary" scope Assessment  // S:739 "C3-11 (ConstructCleared only with no blocking Gap and attached constructs accepted or comm" (docs/feat-backlog.md SIFT-FEAT-C3-11)
+    invariant C3-12 "Verdict: SystemValidated only if, as of asOf, no blocking Gap, no construct proposed, no ContextMap proposal open, no Placement Deferred / Stale / matched-and-undecided, no Receipt quarantined, none failed and open, no document version's intake open; a Receipt is not counted by a pass of its own unit of work; the Document pass never records SystemValidated; a pass started by a child of a running Replay or intake never records SystemValidated; open work of an erased source is left out; designState open vs SystemValidated" scope Assessment  // S:739 "C3-12 (one verdict per CompletePass; new CauseKey exempt once; a late older pass never rep" (docs/feat-backlog.md SIFT-FEAT-C3-12)
+    invariant C3-13 "Unevaluable finding when an input is absent; a Gap that names the missing input" scope Assessment  // S:739 "C3-13 (Unevaluable finding when an input is absent, D-5; GateRun repeat-safe), C3-37 (Roun" (docs/feat-backlog.md SIFT-FEAT-C3-13)
+    invariant C3-37 "Cadence: scoped = Live only (+ LAN-007 for a moved construct); model-wide all; Document pass runs REC-001 (C3-41, C3-68)" scope Assessment  // S:739 "C3-37 (Round 14: a scoped pass evaluates Live-cadence rules only, and LAN-007 for the cons" (docs/feat-backlog.md SIFT-FEAT-C3-37)
+    invariant C3-53 "Meaning judgement recorded on GatesEvaluated; triggers by Event; inputs through lineage (C3-69, C3-70)" scope Assessment  // S:739 "C3-53 (Round 27 A-4: LAN-002's "different definitions" is the agent's meaning verdict, ask" (docs/feat-backlog.md SIFT-FEAT-C3-53)
+
+    event PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      startPosition: number
+      corpusVersion: string
+      rulesVersion: string
+      actor: Actor
+
+    event GapIdentified  // S:673 "GapIdentified {GapKey {rule, construct, origin} (§3 Identity and hashing item 17), origins"
+      gapKey: GapKey
+      origins: string[]
+      causeKey: CauseKey
+      finding: FindingIdentity
+      corpusVersion: string
+      actor: Actor
+
+    event GatesEvaluated  // S:674 "GatesEvaluated {judgements} (Round 27 A-4: every MeaningVerdict this pass asked the judge "
+      judgements: MeaningVerdict[]
+      actor: Actor
+
+    // verdict: SystemValidated | Decreased (zero in scope) | Decreased | Stalled.
+    event PassCompleted  // S:675 "PassCompleted {ConvergenceSnapshot, verdict, actor, CorpusVersion, RulesVersion, startPosi"
+      convergenceSnapshot: ConvergenceSnapshot
+      verdict: string
+      actor: Actor
+      corpusVersion: string
+      rulesVersion: string
+      startPosition: number
+      asOf: number
+      causeKey: CauseKey
+
+    event ConstructCleared  // S:676 "ConstructCleared."
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Gap — one per customer workspace and GapKey (S:741-824) · 5 commands, 7 events
+  // --------------------------------------------------------------------------
+  aggregate "Gap"  // S:741 "### Gap (aggregate; one per customer workspace and GapKey)"
+    identity gapKey: string
+
+    // States and transitions (S:757 States; the handling table S:760-780). Resolved{Distinct} is its own state, because the table says it never reopens by a finding (S:776,
+    // S:789 "Resolved{Distinct} and Waived Gaps are Covered and never reopen by a finding"): ObserveGap records GapObserved {Covered{distinct}} and the state stays.
+    state initial Open  // S:757 "States: Open{handling}"
+    state Open -> Resolved on DisposeGap  // S:745 "DisposeGap(Resolved {Fixed | SameAs | Distinct, rationale?, computedBy?, carriedFrom?} | Waived {waiver ref, ruling Pointer}"
+    state Open -> ResolvedDistinct on DisposeGap  // S:776 "Resolved{Distinct} | any | GapObserved {Covered{distinct}} (R2)"
+    state Open -> Waived on DisposeGap  // S:745 "Waived {waiver ref, ruling Pointer}"
+    state Waived -> Open on ReopenGap  // S:786 "ReopenGap only while Waived (it reopens with handling Ask)"
+    // Only Mooted is terminal; a Mooted{Evaluated} Gap is reopenable, so it is its own state (MootedEvaluated). MootGap(Evaluated) applies only while Open (S:787), so
+    // only Open reaches MootedEvaluated; every other cause (a construct event, Erased) reaches Mooted, which has no outgoing transition.
+    state Open -> Mooted on MootGap  // S:780 "Mooted (any other cause) | any | NoOp{mooted}"
+    state Open -> MootedEvaluated on MootGap  // S:787 "MootGap(Evaluated) applies only while Open"
+    // Reopening through a re-observation (not through GapReopened): a Resolved{Fixed | SameAs} Gap whose finding fires again, and a Mooted{Evaluated} Gap (construct not terminal)
+    // whose finding is a Plain, Duplicate, BoundaryDuplicate or Divergence finding, handled as a first observation (GapOpened). ObserveGap records GapOpened or GapObserved.
+    state Resolved -> Open on ObserveGap  // S:763 "none, or Resolved{Fixed | SameAs} | Plain, rule handling Ask | GapOpened / GapObserved {Ask}"
+    state MootedEvaluated -> Open on ObserveGap  // S:778 "Mooted{Evaluated}, whatever its old kind (Round 27 A-7, A-13), construct not terminal"
+    state Resolved -> Mooted on MootGap  // S:787 "MootGap on any non-terminal state"
+    state ResolvedDistinct -> Mooted on MootGap  // S:787 "MootGap on any non-terminal state"
+    state Waived -> Mooted on MootGap  // S:787 "MootGap on any non-terminal state"
+
+    // Sys, only from a pass.
+    command ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a"
+      input pass: string, startPosition: number, finding: FindingIdentity, origins: string[], causeKey: CauseKey
+      precondition NoOpRepeat: "ObserveGap by a pass already recorded is NoOp{repeat}"  // S:784 "ObserveGap by a pass already recorded is NoOp{repeat}"
+      precondition RefusedNotInPass: "ObserveGap is accepted only from a pass between its PassStarted and its GatesEvaluated; from any other pass it is Refused{NotInPass}"  // S:784 "it is Refused{NotInPass}"
+      precondition NoOpMooted: "ObserveGap on a Mooted Gap: Mooted{Evaluated} with an Unevaluable or any other kind of finding, or Mooted of any other cause, is NoOp{mooted}; records nothing"  // S:779 "Mooted{Evaluated} (Round 27 A-13) | Unevaluable, or any other kind | NoOp{mooted}"
+      emits GapOpened | GapObserved  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"; S:751 "GapObserved {handling, pass, finding} (a re-observation by another pass"
+
+    // Mem by routing / Sys. Resolved {Fixed | SameAs | Distinct, rationale?, computedBy?, carriedFrom?} | Waived {waiver ref, ruling Pointer}; may carry setsAside.
+    command DisposeGap  // S:745 "DisposeGap(Resolved {Fixed | SameAs | Distinct, rationale?, computedBy?, carriedFrom?} | W"
+      input disposal: string, rationale: string, computedBy: string, carriedFrom: string, waiver: string, ruling: Pointer, setsAside: Pointer
+      precondition NoOpNotOpen: "DisposeGap only while Open (otherwise NoOp) except with setsAside"  // S:785 "otherwise NoOp{not-open}, except a DisposeGap that carries setsAside"
+      emits GapResolved | GapWaived  // S:745 "DisposeGap(Resolved {Fixed | SameAs | Distinct, rationale?, computedBy?, carriedFrom?} | Waived {waiver ref, ruling Pointer}"; S:753 "GapWaived {waiver, ruling}"
+
+    // Sys.
+    invariant DisposeGapWaivedNotAdmitted "A Waived Gap is not admitted; only RevokeWaiver ends it" scope Gap  // S:785 "A Waived Gap is not admitted:"
+    invariant DisposeGapDeferralNotWaivable "A Defer-sourced Gap closes only together with its Placement; DisposeGap(Waived) not admitted; GrantWaiver refused DeferralNotWaivable" scope Gap  // S:792 "a Defer-sourced Gap closes only together with its Placement"
+    command ReopenGap  // S:746 "ReopenGap(cause: WaiverRevoked), system-only"
+      input cause: string
+      emits GapReopened
+
+    // Sys. cause: construct event | Evaluated | Erased.
+    invariant ReopenGapOnlyWhileWaived "ReopenGap only while Waived (cause WaiverRevoked)" scope Gap  // S:746 "ReopenGap(cause:"
+    command MootGap  // S:747 "MootGap(cause: construct event | Evaluated | Erased), system-only (Erased: the origin's"
+      input cause: string
+      causes ConstructEvent, Evaluated, Erased  // S:747 "MootGap(cause: construct event | Evaluated | Erased)"
+      precondition NoOpRepeat: "MootGap on any non-terminal state; a repeat is NoOp{repeat}"  // S:787 "a repeat is NoOp{repeat}"
+      precondition RefusedNotOpen cause Evaluated: "MootGap(Evaluated) applies only while Open, otherwise Refused{NotOpen}"  // S:787 "MootGap(Evaluated) applies only while Open, otherwise Refused{NotOpen} (Round 27 A-7)"
+      emits GapMooted
+
+    // Sys. cause: RecordLag {field, passage Pointer, document version}.
+    invariant MootGapAnyNonTerminal "MootGap on any non-terminal state (cause a construct event or Erased); MootGap(Evaluated) is the exception that applies only while Open (Refused{NotOpen})" scope Gap  // S:788 "A Gap whose origin is erased is closed by the erasure, and the erasure's model-wide pass r…"
+    invariant MootGapMootOnlyWhenTheRecordFixedIt "MootGap(Evaluated) only for an Open Gap whose finding is Unevaluable and whose rule now evaluates without a finding, or whose construct was fixed by the record (its last content write after the Gap's latest GapOpened, touching what the rule reads) and whose rule now evaluates without a finding" scope Gap  // S:720 "for every Open Gap in scope whose finding is Unevaluable and whose rule now evaluates without a finding"
+    command HoldGap  // S:748 "HoldGap(cause: RecordLag {field, passage Pointer, document version}, requestKey: the ID"
+      input cause: string, field: string, passage: Pointer, documentVersion: DocumentVersion, requestKey: string
+      precondition RefusedHoldNotAllowed: "HoldGap only while Open on Plain / Unevaluable except STR-004, TAC-013, Contradiction, Divergence; refused (no event, the question is asked) when the cited text says the field is absent, names another live construct, or a different causing event repeats the same field and passage"  // S:808 "R28-G14)), and the question is asked, when the cited text says the field is absent, when i…"
+      emits GapHeldForRecord
+
+    invariant C3-14 "Handling table per finding kind (Ask / Refuse / Boundary / Steer / Covered); a Gap whose origin is erased is closed by the erasure and re-raised against a live source (6a9a1163); the finding persists under a live origin or disappears; C3-15" scope Gap  // S:824 "-C3-14 (one row of the handling table per finding kind and state, Refuse included, D-1; 6a9" (docs/feat-backlog.md SIFT-FEAT-C3-14)
+    invariant C3-40 "Divergence -> Steer; Defer-sourced Gaps close only with their Placement" scope Gap  // S:824 "C3-40 (Round 15: a Divergence finding opens with handling Steer, blocking; its question po" (docs/feat-backlog.md SIFT-FEAT-C3-40)
+    invariant C3-43 "Awaiting placement (provisional) blocks but is not asked; released on acceptance" scope Gap  // S:824 "C3-43 (Round 20: a Gap on a provisional construct is awaiting placement, blocking and unas" (docs/feat-backlog.md SIFT-FEAT-C3-43)
+    invariant C3-16 "Refuse asks with rule, source, opinion, remedy; only an operator's waiver answers it from a person; other answers: no effect + notice" scope Gap  // S:824 "C3-16 (a Refuse Gap asks with the rule, source, opinion and remedy; only an operator's wai" (docs/feat-backlog.md SIFT-FEAT-C3-16)
+    invariant C3-17 "Disposal only while Open; mooted on terminal both orders; moot only when the record fixed it; question withdrawn (C3-16b, C3-45)" scope Gap  // S:824 "C3-17 (disposal only while Open, except the answer to the re-ask of an answer set aside, w" (docs/feat-backlog.md SIFT-FEAT-C3-17)
+    invariant C3-46 "Unevaluable Covered{undeclared}: not asked" scope Gap  // S:824 "C3-46 (Round 21: an Unevaluable finding on a rule whose Unevaluable branch is Observe open" (docs/feat-backlog.md SIFT-FEAT-C3-46)
+    invariant C3-71 "Computed answers (resolvers) are system disposals; carry; reopen; RecordLag hold; a waiver rests on a ruling; nothing asked / held with citation (C3-72, C3-73, C3-74, C3-75, C3-76)" scope Gap  // S:824 "C3-71 (Round 28: a computed answer is a system disposal naming the resolver's rule, effect" (docs/feat-backlog.md SIFT-FEAT-C3-71)
+
+    event GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+      handling: GapHandling
+      pass: string
+      finding: FindingIdentity
+      carriedFrom: string
+      actor: Actor
+
+    event GapObserved  // S:751 "GapObserved {handling, pass, finding} (a re-observation by another pass"
+      handling: GapHandling
+      pass: string
+      finding: FindingIdentity
+      actor: Actor
+
+    event GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?} (Round 28: computedBy name"
+      resolution: string
+      rationale: string
+      computedBy: string
+      carriedFrom: string
+      actor: Actor
+
+    event GapWaived  // S:753 "GapWaived {waiver, ruling} (Round 28 DG-21: the ruling the waiver rests on, mandatory, 73"
+      waiver: string
+      ruling: Pointer
+      actor: Actor
+
+    event GapReopened  // S:754 "GapReopened (only for WaiverRevoked)"
+      cause: string
+      actor: Actor
+
+    event GapMooted  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried, construct event, Evaluated or"
+      cause: string
+      actor: Actor
+
+    event GapHeldForRecord  // S:756 "GapHeldForRecord {field, passage Pointer, document version, requestKey, askedBefore} (Roun"
+      field: string
+      passage: Pointer
+      documentVersion: DocumentVersion
+      requestKey: string
+      askedBefore: number
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: ContextMap — one per customer workspace (S:826-898) · 4 commands, 6 events
+  // --------------------------------------------------------------------------
+  aggregate "ContextMap"  // S:826 "### ContextMap (aggregate; one per customer workspace; replaces BoundaryProposal"
+    identity customerWorkspace: string
+
+    // Pol (without ratifiedBy) / Op (ratifiedBy). changes: new, split, merge, move, replace, relationship, duplicateMerge, retire, rename.
+    command Propose  // S:831 "Propose(change, source: entry Pointer | Gap, created constructs, SubjectVersions {reads"
+      input change: string, source: string, createdConstructs: string[], subjectVersions: SubjectVersions, ratifiedBy: string, addition: Addition
+      precondition RefusedPairNotDistinctLive: "A duplicateMerge's pair must be two distinct live constructs or the Propose is refused with no event; the survivor is the older"  // S:861 "a Propose whose pair is not two distinct live constructs is Refused{PairNotDistinctLive}, with no event, so it i"
+      precondition NoOpRepeat: "Propose ID derived from the Gap event or the deciding event (repeat is NoOp{repeat}); overlapping proposals allowed"  // S:863 "§3 Gap), and the Propose ID is derived from the Gap event, so a repeat is NoOp{repeat}"
+      emits BoundaryChangeProposed | BoundaryChangeProposed, ProposalWithdrawn | BoundaryChangeProposed, BoundaryChangeRatified  // S:849 "BoundaryChangeProposed and ProposalWithdrawn in one write"; S:850 "BoundaryChangeProposed{ratifiedInline} and BoundaryChangeRatified in one write"; S:851 "else → BoundaryChangeProposed."
+
+    // Op.
+    invariant ProposeStaleVersionsWithdraw "Propose with stale observed versions -> BoundaryChangeProposed + ProposalWithdrawn in one write; with ratifiedBy operator -> BoundaryChangeProposed{ratifiedInline} + BoundaryChangeRatified in one write" scope ContextMap  // S:850 "else, with ratifiedBy holding the operator role -> BoundaryChangeProposed{ratifiedInline} …"
+    command Ratify  // S:832 "Ratify(proposal, answeredBy, answer ref)"
+      input proposal: string, answeredBy: string, answerRef: string
+      precondition NoOpRepeat: "a repeat carrying the same answer ref is a silent NoOp{repeat}"  // S:854 "A repeat carrying the same answer ref is a silent NoOp{repeat}"
+      precondition NotOpen: "RatificationRefused{NotOpen}: Ratify on a proposal not open"  // S:854 "if the proposal isn't open -> RatificationRefused{NotOpen}"
+      precondition Unauthorised: "Only an operator ratifies or rejects (else the answer has no effect, Unauthorised)"  // S:898 "only an operator ratifies or rejects;"
+      emits BoundaryChangeRatified | BoundaryChangeRatified, ProposalWithdrawn | RatificationRefused  // S:855 "otherwise → BoundaryChangeRatified. It increments"; S:854 "if the proposal isn't open → RatificationRefused{NotOpen}"; S:1335 "the write of Propose, Ratify, Reject or RetireProvisional (the cascade"
+
+    // Op.
+    command Reject  // S:833 "Reject(proposal, answeredBy, answer ref)"
+      input proposal: string, answeredBy: string, answerRef: string
+      precondition NoOpRepeat: "a repeat carrying the same answer ref is a silent NoOp{repeat} (the same rule as Ratify)"  // S:858 "with the same NoOp{repeat} rule"
+      precondition NotOpen: "RatificationRefused{NotOpen}: Reject on a proposal not open"  // S:854 "if the proposal isn't open -> RatificationRefused{NotOpen}"
+      precondition Unauthorised: "Only an operator ratifies or rejects (else the answer has no effect, Unauthorised)"  // S:898 "only an operator ratifies or rejects;"
+      emits BoundaryChangeRejected | BoundaryChangeRejected, ProposalWithdrawn | RatificationRefused  // S:859 "otherwise → BoundaryChangeRejected. It increments"; S:858 "if the proposal isn't open → RatificationRefused{NotOpen}, with the same NoOp{repeat} rule"; S:1335 "the write of Propose, Ratify, Reject or RetireProvisional (the cascade"
+
+    // Sys. cause: Answered | Computed.
+    command RetireProvisional  // S:834 "RetireProvisional(construct, cause: Answered | Computed), system-only."
+      input construct: string, cause: string
+      emits ProvisionalRetired | ProvisionalRetired, ProposalWithdrawn  // S:860 "RetireProvisional records ProvisionalRetired {cause}, increments that construct's boundary version, and then cascades"; S:1335 "the write of Propose, Ratify, Reject or RetireProvisional (the cascade"
+
+    invariant C3-18 "No open proposal survives a boundary version increment: the cascade (every boundary version increment withdraws, in the same write, each open proposal whose read set contains the incremented construct as ProposalWithdrawn{SubjectChanged}, actor system; a withdrawal increments its created constructs; finite); the cascade terminates" scope ContextMap  // S:845 "Every boundary version increment withdraws, in the same write, each open proposal whose re…" (docs/feat-backlog.md SIFT-FEAT-C3-18)
+    invariant C3-19 "Only an operator ratifies or rejects; NotOpen refused with a notice; the same answer ref silent; RatificationRefused{NotOpen} notice" scope ContextMap  // S:898 "C3-19 (only an operator ratifies or rejects; NotOpen refused with a notice; same answer re" (docs/feat-backlog.md SIFT-FEAT-C3-19)
+    invariant C3-20 "Read / write sets derived from the change type, never chosen by the agent" scope ContextMap  // S:898 "C3-20 (read and write sets derived from the change type, never chosen), C3-63 (Round 28: a" (docs/feat-backlog.md SIFT-FEAT-C3-20)
+    invariant C3-63 "duplicateMerge pair is two distinct live constructs; older survives; ratified move carries; rename only by ratified Propose(rename); Propose refused with no event" scope ContextMap  // S:898 "C3-63 (Round 28: a duplicateMerge's pair is two distinct live constructs or the Propose is" (docs/feat-backlog.md SIFT-FEAT-C3-63)
+
+    event BoundaryChangeProposed  // S:836 "BoundaryChangeProposed {source, ratifiedBy?, ratifiedInline}"
+      source: string
+      ratifiedBy: string
+      ratifiedInline: boolean
+      actor: Actor
+
+    event BoundaryChangeRatified  // S:837 "BoundaryChangeRatified {answer ref}"
+      answerRef: string
+      actor: Actor
+
+    event BoundaryChangeRejected  // S:838 "BoundaryChangeRejected {answer ref}"
+      answerRef: string
+      actor: Actor
+
+    event ProposalWithdrawn  // S:839 "ProposalWithdrawn {cause: SubjectChanged, by event}"
+      cause: string
+      byEvent: string
+      actor: Actor
+
+    event RatificationRefused  // S:840 "RatificationRefused {proposal, reason: NotOpen, actor}"
+      proposal: string
+      reason: string
+      actor: Actor
+
+    event ProvisionalRetired  // S:841 "ProvisionalRetired {cause}."
+      cause: string
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // THE SEQUENCE RECORDS STREAM (S:955, Round 29 amendment 2026-11-05): "a stream, not an aggregate". It holds the records of the Cycle and of the step sequences, so that no
+  // event is left without the command that records it. Declared as ONE orchestration, because Moment 0.7.2 has no stream construct and an orchestration is the only
+  // construct that owns events without being an aggregate (ADR-040 D1). It belongs to no context's aggregate limit and is not counted in section 9 (S:955).
+  // Each command emits the event(s) the spec's "Recorded by" column (11.1) names for it. NodeChanged is recorded by RecordNodeChange, once for each write of a Cycle (S:903).
+  // --------------------------------------------------------------------------
+  orchestration SequenceRecords  // S:955 "Sequence records (NEW stream, Round 29 amendment 2026-11-05; one per customer workspace, or per license for License-scope requests; a stream, not an aggregate)"
+    command StartCycle  // S:958 "StartCycle(trigger: CycleTrigger, decision: RecordRef, attempt, redrives?, replayPoint?, endPoint?);"
+      input cycleTrigger: CycleTrigger, decision: RecordRef, attempt: number, redrives: string, replayPoint: string, endPoint: string
+      emits CycleStarted  // S:902 "StartCycle(trigger: CycleTrigger, decision: RecordRef, attempt, redrives?, replayPoint?, endPoint?) (NEW) records CycleStarted {CycleId, trigger: CycleTrigger, decision: RecordRef, attempt, redrives?, replayPoint?, endPoint?} first, for every Cycle that starts."
+
+    command CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      input outcome: string, failedCommands: string, ingressEffect: string, constructStates: string, designState: string, position: number
+      emits CycleCompleted  // S:905 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position) (NEW), issued by the Cycle's executor when the unit of work ends, records CycleCompleted"
+
+    command RecordStepFailure  // S:960 "RecordStepFailure(step?, reason codes, Pointers);"
+      input step: string, reasonCodes: string
+      emits SagaStepFailed  // S:926 "A failed attempt: RecordStepFailure (NEW), issued by the executor when a step fails after its brief retries, records SagaStepFailed before CompleteCycle records CycleCompleted{Failed}."
+
+    command CompleteReplay  // S:962 "CompleteReplay(kind, SiftEnabled: EventRef, replay point and end point per stream);"
+      input kind: string, enabledRef: EventRef, replayPoint: string, endPoint: string
+      emits ReplayCompleted  // S:386 "CompleteReplay(kind, SiftEnabled: EventRef, replay point and end point per stream) (NEW) records ReplayCompleted"
+
+    // The invariants below are rules of the command's steps, not refusal or no-op codes of the spec: they are invariants, cited (founder ruling 2026-11-05).
+    command ReadModelDestruction  // S:963 "ReadModelDestruction(scope: the customer workspace with the SiftDisabled: EventRef, an entry, or a document naming a section"
+      input destructionScope: string, keyGeneration: number, entryOrDocument: string, disabledRef: EventRef
+      emits ReadModelsDestroyed  // S:922 "ReadModelDestruction records ReadModelsDestroyed {scope"
+
+    command RecordGateDecision  // S:964 "RecordGateDecision(unit of work, decision ordinal, decision);"
+      input unitOfWork: string, decisionOrdinal: number, decision: string
+      precondition NoOpRepeat: "the key is the unit of work plus the decision ordinal: each decision is append-only, and a repeat of the same ordinal is NoOp{repeat} and returns the recorded event"  // S:982 "a repeat of the same ordinal is NoOp{repeat} and returns the recorded event"
+      emits GateDecisionRecorded  // S:982 "RecordGateDecision is issued by the hard-stop gate when work is taken (§1 Hard-stop gate) and records every decision, Admitted, Refused{reason}, Filtered, Postponed and NoOp alike, for every unit of work taken"
+
+    command RecordPassTrigger  // S:965 "RecordPassTrigger(cause kind, source, Cycle);"
+      input causeKind: string, source: string, cycleId: string
+      emits PassTriggerRecorded  // S:341 "issues RecordPassTrigger once for each attempt, with one cause, chosen by precedence"
+
+    command RecordNodeChange  // S:961 "RecordNodeChange(write Pointer or RecordRef, CycleId);"
+      input writePointer: Pointer, writeRecordRef: RecordRef, cycleId: string
+      emits NodeChanged  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged. The Cycle's executor issues it once for each write the Cycle makes"
+
+    command RecordGatewayResult  // S:966 "RecordGatewayResult(license, customer workspace, owner sub, request key, enable flag, creator);"
+      input license: string, customerWorkspace: string, ownerSub: string, requestKey: string, enableFlag: boolean, creator: string
+      emits GatewayResultRecorded  // S:983 "Gateway result: the Cycle of CreateCustomerWorkspace calls the gateway"
+
+    // Process events (ADR-040): the records of the Cycle and of the step sequences, on the SequenceRecords stream.
+    event CycleStarted  // S:902 "CycleStarted {CycleId, trigger: CycleTrigger, decision: RecordRef, attempt, redrives?, replayPoint?, endPoint?}"
+      cycleId: string
+      cycleTrigger: CycleTrigger
+      decision: RecordRef
+      redrives: string
+      attempt: number
+      replayPoint: string
+      endPoint: string
+      actor: Actor
+    event NodeChanged  // S:970 "NodeChanged {the write's Pointer or RecordRef, CycleId}"
+      pointer: Pointer
+      recordRef: RecordRef
+      cycleId: string
+      actor: Actor
+    event CycleCompleted  // S:905 "CycleCompleted {outcome: Succeeded | Failed, failedCommands?"
+      cycleId: string
+      outcome: string
+      failedCommands: string
+      ingressEffect: string
+      constructStates: string
+      designState: string
+      position: number
+      actor: Actor
+    event SagaStepFailed  // S:926 "SagaStepFailed {step?, reason codes and Pointers only}"
+      step: string
+      reasonCodes: string
+      cycleId: string
+      actor: Actor
+    event ReplayCompleted  // S:386 "records ReplayCompleted {Bootstrap | Resume, replay point and end point per stream}"
+      kind: string
+      replayPoint: string
+      endPoint: string
+      actor: Actor
+    event ReadModelsDestroyed  // S:922 "ReadModelDestruction records ReadModelsDestroyed {scope, key generation, entry or document, notReachable"
+      destructionScope: string
+      keyGeneration: number
+      entryOrDocument: string
+      notReachable: string
+      actor: Actor
+    event GateDecisionRecorded  // S:976 "GateDecisionRecorded {decision: Admitted | Refused{reason} | Filtered | Postponed | NoOp, decision ordinal};"
+      decision: string
+      decisionOrdinal: number
+      unitOfWork: string
+    event PassTriggerRecorded  // S:977 "PassTriggerRecorded {cause kind: RedoSucceeded | ErasureDestroyed | ClosedAtDispatch, source, Cycle} (mechanism: SIFT-ADR-082);"
+      causeKind: string
+      source: string
+      cycleId: string
+      actor: Actor
+    event GatewayResultRecorded  // S:978 "GatewayResultRecorded {license, customer workspace, owner sub, request key, enable flag, creator}"
+      license: string
+      customerWorkspace: string
+      ownerSub: string
+      requestKey: string
+      enableFlag: boolean
+      creator: string
+      actor: Actor
+
+    invoked-by StartCycle
+    issues RecordFailedAttempt, MarkProcessed, RetireKeyGeneration, CloseReceipt
+    states Started
+    compensation none
+    timeout "none"
+
+  // The settle step (Round 30 pass 2, 0aea6e03 (F1)) is a step of the Cycle, not a policy: no event leads to it. It runs after the Cycle's closures (the CloseReceipt commands and, in an erasure,
+  // the MootGap(cause: Erased) closures) and before CompleteCycle, and issues RecordPassTrigger. Its three causes (RedoSucceeded, ErasureDestroyed, ClosedAtDispatch) are the cause kinds of PassTriggerRecorded.
+  rule SettleStepIssuesRecordPassTriggerOncePerAttempt "the Cycle's settle step runs after the closures and before CompleteCycle, only in a Cycle that has not failed, and issues RecordPassTrigger once for each attempt, so that a Cycle records at most one PassTriggerRecorded however many causes hold" enforced-by "SequenceRecords (the Cycle's executor issues the settle step; an orchestration cannot hold an invariant)"  // S:341 "issues RecordPassTrigger once for each attempt, with one cause, chosen by precedence: ErasureDestroyed, then ClosedAtDispatch, then RedoSucceeded"
+  rule SettleStepCauseByPrecedence "one cause, chosen by precedence: ErasureDestroyed (the Cycle is an erasure Entry's of entry or document scope; a retention is not one), then ClosedAtDispatch (the Cycle recorded the closure of a Receipt whose source already has a scope tombstone, or a tick's Cycle redoes the pass of that closure; the closure an erasure records is not one), then RedoSucceeded (the Cycle redoes a Receipt that has an AttemptFailed recorded before it; a first-time success has none)" enforced-by "SequenceRecords (the settle step)"  // S:341 "ErasureDestroyed applies when the Cycle is an erasure Entry's of entry scope or document scope"
+  rule SettleStepNeverInsideReplayOrIntake "the settle step is never issued inside a Replay or an intake (a child of a running Replay or intake, whatever its Arrival), where the end pass covers it, and never for a document version's Receipt, because its intake ends with its own release pass" enforced-by "SequenceRecords (the settle step)"  // S:341 "The settle step is never issued inside a Replay or an intake"
+  rule ClosureAtDispatchRedoneByTick "a closure at dispatch that has no completed model-wide pass after it is redone by a tick, in a ready customer workspace only, in a Cycle of the tick's own that runs the settle step and records its own PassTriggerRecorded{ClosedAtDispatch} for that attempt; the Receipt is closed and final, so RecordFailedAttempt on it is a no-op and no Receipt state changes; the redo ends when any later model-wide pass of the workspace completes and is bounded like a Receipt, after which there is only the alarm and no lever" enforced-by "the order of work (the tick) and the settle step"  // S:341 "A closure at dispatch that has no completed model-wide pass after it is redone by a tick"
+
+  rule ReadModelDestructionRetentionNoEffect "customer-workspace scope: first RetireKeyGeneration(SiftDisabled: EventRef); if the result is NoOp{none} or Refused{Reenabled}, the Cycle ends Completed with no effect: CycleCompleted {outcome: Succeeded, ingressEffect: None(noEffect)}" enforced-by "SequenceRecords (an orchestration cannot hold an invariant)"  // S:915 "If the result is NoOp{none} or Refused{Reenabled}, the Cycle ends Completed with no effect"
+  rule ReadModelDestructionTombstonedKeyIsNeverRecreated "a data key is created once, and only by a write conditional on no scope tombstone covering that entry or key generation; a tombstoned key is never re-created, and an encryption that fails on a tombstoned key counts as erased, the write skipped" enforced-by "SequenceRecords (an orchestration cannot hold an invariant)"  // S:993 "A tombstoned key is never re-created"
+  rule ReadModelDestructionAlreadyGoneIsSuccess "'Already gone' counts as success; a retention whose RetireKeyGeneration names a key generation always runs to completion on that key generation, even after a re-enable" enforced-by "SequenceRecords (an orchestration cannot hold an invariant)"  // S:924 "\"Already gone\" counts as success."
+
+  // --------------------------------------------------------------------------
+  // DOMAIN SERVICES (stateless between invocations, S:1206)
+  // --------------------------------------------------------------------------
+  // SV.Extraction (2 steps): 1 dereference + fingerprint; 2 the agent extracts what the entry decides, arm-first, each with Fingerprint; NameWithoutKey.
+  service Extraction  // S:1206 "Extraction (2 steps"
+    consumes Pointer
+    produces Fingerprint
+    description "SV.Extraction: step 1 dereference (the entry's content, read on Sift's credentials, never metered) and fingerprint; step 2 the agent extracts what the entry decides, arm first, each candidate with its Fingerprint (type, name, definition, context and arm as named, stated replacements, renames, negations, dropped words, status of a document section); refuses NameWithoutKey; P2.02 then issues MatchCandidate once per candidate"
+
+  // SV.PlacementResolution (4 steps).
+  service PlacementResolution  // S:1206 "PlacementResolution (4 steps)"
+    consumes CandidateMatched
+    produces PlacementDecided
+    description "SV.PlacementResolution: step 1 exact canonical form (type, canonical label or alias, contexts by identity then key); step 2 lineage (flmnt causal, supersession, MARKED_MISTAKE and CORRECTS links joined with the fold of ConstructLinked, RM1; a Sift pointer the entry supersedes counts as the construct it names); step 3 search typed index (RM1), then flmnt text search, then flmnt context query over the agent workspace (RM7), then the renamed-target offer; step 4 the agent decides among the offered targets only. Offer set legs: exact hit, name-only hit, lineage, search, renamed target, near name, same ends, interface twins, named target (S:478-488)"
+
+  // SV.GateRun (3 steps).
+  service GateRun  // S:720 "GateRun (domain service; 3 numbered steps"
+    consumes PassStarted
+    produces GatesEvaluated
+    description "SV.GateRun: step 1 catch-up; step 2 evaluate the rules whose cadence admits the pass (effective catalogue, C5), the duplicate gate DUP, derive Declined findings, issue the moots (RecordGateResults); step 3 GatesEvaluated {judgements}"
+
+  // --------------------------------------------------------------------------
+  // PROJECTIONS (CQRS read side): the spec's read models, all rebuildable and destroyable, partitioned by key generation. They are data, not documents: no findings
+  // page, decision brief or gap report is a Sift output. The open-questions and overlay read models sit in Clarification, the Sift-workspaces read model in Enablement;
+  // the global CorpusVersion read model has an external event as its source and is a note at the end of this context.
+  // --------------------------------------------------------------------------
+  projection Graph  // S:1001 "graph: its entry->construct edges are the fold of ConstructLinked"
+    sources ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs, ConstructLinked, ConstructAliased, ConstructRenamed, ConstructMoved, ConstructRetyped, SupersessionRefused, BoundaryChangeProposed, BoundaryChangeRatified, BoundaryChangeRejected, ProposalWithdrawn
+    description "graph (+ the typed index): constructs by type, context, arm, normalised key (PlacementResolution step 3 first); entry->construct edges = fold of ConstructLinked (step 2 after the catch-up); names, aliases, context of record, kind of record (step 1, duplicate gate); names derived from an erased source skipped (Encryption rule 5). Parity suite: graph edges equal the ConstructLinked fold (C3-31, C3-26)"
+    field constructId: string
+    field construct: string
+
+  projection Convergence  // S:1002 "the convergence read model: the baseline per customer workspace"
+    sources PassStarted, GatesEvaluated, PassCompleted, GapOpened, GapObserved, GapResolved, GapWaived, GapReopened, GapMooted, GapHeldForRecord, BoundaryChangeProposed, BoundaryChangeRatified, BoundaryChangeRejected, ProposalWithdrawn, CandidateMatched, PlacementDecided, AnswerApplied, PlacementMarkedStale, ReceiptRecorded, AttemptFailed, QuarantineLifted, ReceiptProcessed, ReceiptClosed, QuestionAsked, ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated
+    description "convergence: baseline per workspace; every Gap's state and handling; Gaps each pass identified; constructs proposed; open ContextMap proposals; Placements Deferred / Stale / matched-and-undecided; Receipts quarantined / failed-and-open / document versions whose intake failed or is open; Held state of every Gap (GapHeldForRecord vs QuestionAsked count); latest MeaningVerdict per Term pair; computed answers listed by rule; erased scopes by Pointer (left out of every fold). Read by CompletePass (asOf, 'the named exception'), the verdict, designState, the sweep; query 'catch-up to position'. Also folds ReadModelsDestroyed (a non-aggregate event, not nameable here)"
+    field baseline: string
+    field designState: string
+
+  projection Trajectory  // S:1004 "trajectory by GapKey origin, and cascading impact by CauseKey"
+    sources GapIdentified, PassCompleted, GapResolved, GapWaived, GapMooted
+    description "trajectory by GapKey origin; cascading impact by CauseKey: the convergence report (counts pass by pass, counted never targeted; root questions); one read model with two folds; not the recent slice shown to a steer's recipient"
+    field gapKeyOrigin: string
+    field causeKey: string
+
+  // The agent workspace (the seventh read model) folds the construct events its writer reads; the corpus-version read model has an external event as its source and is a note.
+  projection AgentWorkspace  // S:477 "the agent workspace (ruling f9025299, Round 10)"
+    sources ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs, ConstructLinked, ConstructAliased, ConstructRenamed, ConstructMoved, ConstructRetyped, QuestionAsked
+    description "agent workspace (Sift's construct memory in flmnt): every Cycle's writes through the agent-workspace writer; each construct entry superseding the previous (SUPERSEDED_BY). Held in flmnt: not encrypted at application level (OPS-03, H1)"
+    field constructId: string
+    field headEntry: string
+
+  // --------------------------------------------------------------------------
+  // POLICIES (one event leads to one command; a rule that lists several commands for one event is several policies run in the
+  // order listed inside the one Cycle; the Cycle runs the commands of all policies of an event before any reaction to the events they record, S:133)
+  // Names P3-nn[x] are the NDD board's labels; an 'a/b' suffix splits one spec bullet by trigger event or by command, in listed order. Notices and posts are
+  // side effects of the poster, not commands.
+  // --------------------------------------------------------------------------
+  // --- Placement ---
+  policy CandidateMatchedPlacementResolution  // S:476 "CandidateMatched → PlacementResolution"; row S:1304 "| CandidateMatched | PlacementResolution (domain service) -> DecidePla" // board: P3-01
+    trigger CandidateMatched
+    action "after catch-up: PlacementResolution (SV), the agent decides only in step 4 among offered targets, then DecidePlacement (service hop)"
+    chains-to DecidePlacement
+
+  policy NewOutcomeStoresConstruct  // S:491 "New → StoreConstruct"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-02a
+    trigger PlacementDecided
+    action "New: StoreConstruct · once per construct"
+    chains-to StoreConstruct
+
+  policy NewOutcomeStoresConstructOnAnswer  // S:491 "New → StoreConstruct"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-02b
+    trigger AnswerApplied
+    action "New: StoreConstruct · once per construct"
+    chains-to StoreConstruct
+
+  policy NewOutcomeAcceptsProvisionalOnAnswer  // S:491 "it issues AcceptConstruct(Answer)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-02c
+    trigger AnswerApplied
+    action "an answer on a non-boundary provisional: AcceptConstruct(Answer) instead"
+    chains-to AcceptConstruct
+
+  policy SameAsOutcomeMarksSameAs  // S:492 "SameAs {target, addition?} (non-boundary) → MarkSameAs"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-03a
+    trigger PlacementDecided
+    action "SameAs {target, addition?} (non-boundary): MarkSameAs(target, Pointer, addition?); a MarkedSameAs with an addition starts the Live pass (MarkedSameAsWithAdditionStartsLivePass)"
+    chains-to MarkSameAs
+
+  policy SameAsOutcomeMarksSameAsOnAnswer  // S:492 "SameAs {target, addition?} (non-boundary) → MarkSameAs"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-03b-1
+    trigger AnswerApplied
+    action "SameAs {target, addition?} (non-boundary): MarkSameAs(target, Pointer, addition?)"
+    chains-to MarkSameAs
+
+  policy SameAsOnlyStartsConvergencePass  // S:728 "an AnswerApplied or a PlacementDecided whose only effect is MarkSameAs"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-03b-2
+    trigger PlacementDecided
+    action "a SameAs-only PlacementDecided: StartPass(Convergence, scope: the SameAs target) · D-3; S:492, S:728"
+    chains-to StartPass
+
+  policy SameAsOnlyStartsConvergencePassOnAnswer  // S:728 "an AnswerApplied or a PlacementDecided whose only effect is MarkSameAs"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-03b-3
+    trigger AnswerApplied
+    action "a SameAs answer whose only effect is MarkSameAs (nothing stored / accepted / retired, no addition, no rename / move / retype): StartPass(Convergence, scope: the SameAs target) · D-3"
+    chains-to StartPass
+
+  policy SupersedesOutcomeStoresConstruct  // S:493 "Supersedes (non-boundary) → StoreConstruct(supersedes X)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-04
+    trigger PlacementDecided
+    action "Supersedes {target} (non-boundary): StoreConstruct(supersedes X), unless X is terminal"
+    chains-to StoreConstruct
+
+  policy RetireOutcomeSupersedesProvisional  // S:494 "Retire (an architect's answer to a Defer question"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-05a
+    trigger AnswerApplied
+    action "Retire (architect's answer to a Defer, dropped-word, or source-authority computed answer): SupersedeConstruct(by: none, cause Answered | Stated | Computed) · settles the Placement"
+    chains-to SupersedeConstruct
+
+  policy RetireOutcomeRetiresBoundaryProvisional  // S:494 "Retire (an architect's answer to a Defer question"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-05b
+    trigger AnswerApplied
+    action "Retire, boundary provisional: RetireProvisional · settles the Placement"
+    chains-to RetireProvisional
+
+  policy ReplacedByOutcomeSupersedesProvisional  // S:495 "ReplacedBy {target} (an architect"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-06a
+    trigger AnswerApplied
+    action "ReplacedBy {target}: SupersedeConstruct(by: target, cause Answered) · settles the Placement"
+    chains-to SupersedeConstruct
+
+  policy ReplacedByOutcomeRetiresBoundaryProvisional  // S:495 "ReplacedBy {target} (an architect"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-06b
+    trigger AnswerApplied
+    action "ReplacedBy {target}, boundary: RetireProvisional · settles the Placement"
+    chains-to RetireProvisional
+
+  policy RetypeOutcomeRetypesProvisional  // S:496 "Retype {kind} (an architect"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-07
+    trigger AnswerApplied
+    action "Retype {kind}: RetypeConstruct(provisional, kind, cause Answer) · settles the Placement"
+    chains-to RetypeConstruct
+
+  policy ImpliesBoundaryStoresCreatedConstructs  // S:498 "1. StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-08
+    trigger PlacementDecided
+    action "ImpliesBoundary 1: StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates · rename creates none"
+    chains-to StoreConstruct
+
+  policy ImpliesBoundaryProposes  // S:499 "2. ContextMap Propose(change, source: the entry Pointer"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-09
+    trigger PlacementDecided
+    action "ImpliesBoundary 2: ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions, ratifiedBy when the author is an operator)"
+    chains-to Propose
+
+  policy ImpliesBoundaryNewRootAcceptsProvisional  // S:500 "3. (a NewRoot answer only"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-10
+    trigger AnswerApplied
+    action "ImpliesBoundary 3, NewRoot answer only: AcceptConstruct(Answer{question}) on the first gathered Placement's provisional"
+    chains-to AcceptConstruct
+
+  policy DeferUnsureStoresProvisional  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-11
+    trigger PlacementDecided
+    action "Defer{Unsure} 1: StoreConstruct(proposedFor: UnsurePlacement)"
+    chains-to StoreConstruct
+
+  policy DeferUnsureAppliesComputedAnswer  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-12a
+    trigger PlacementDecided
+    action "Defer{Unsure} 2: before asking, ApplyAnswer(computed{rule}) (restated-arm, section-context, term-use) when a predicate holds · only if still Deferred (D-3)"
+    chains-to ApplyAnswer
+
+  policy DeferUnsureAsksQuestion  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-12b
+    trigger PlacementDecided
+    action "Defer{Unsure} 2: otherwise AskQuestion (subject: the Defer event; missing-arm subject; arm's context subject) · only if still Deferred (D-3)"
+    chains-to AskQuestion
+
+  policy DeferDivergenceStoresProvisional  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-13a
+    trigger PlacementDecided
+    action "Defer{Divergence} a: StoreConstruct(proposedFor: UnsurePlacement)"
+    chains-to StoreConstruct
+
+  policy DeferDivergenceStartsLivePass  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-13b
+    trigger PlacementDecided
+    action "Defer{Divergence} b: StartPass(Live, scope: that provisional)"
+    chains-to StartPass
+
+  policy DeferDivergenceObservesGap  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-13c
+    trigger PlacementDecided
+    action "Defer{Divergence} c: ObserveGap on the target (Divergence, handling Steer; DIV-001) in that pass · observation runs in a pass (S:117)"
+    chains-to ObserveGap
+
+  policy DeferDivergenceAppliesSourceAuthorityAnswer  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-13d
+    trigger PlacementDecided
+    action "Defer{Divergence} d: under SourceAuthority Conversation, ApplyAnswer(computed{source-authority}) -> Retire, cause Computed"
+    chains-to ApplyAnswer
+
+  policy DeferContradictionStoresProvisional  // S:503 "Defer{Contradiction{target}} → three policies on the event"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-14a
+    trigger PlacementDecided
+    action "Defer{Contradiction} a: StoreConstruct(proposedFor: UnsurePlacement)"
+    chains-to StoreConstruct
+
+  policy DeferContradictionStartsLivePass  // S:503 "Defer{Contradiction{target}} → three policies on the event"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-14b
+    trigger PlacementDecided
+    action "Defer{Contradiction} b: StartPass(Live, scope: that provisional)"
+    chains-to StartPass
+
+  policy DeferContradictionObservesGap  // S:503 "Defer{Contradiction{target}} → three policies on the event"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-14c
+    trigger PlacementDecided
+    action "Defer{Contradiction} c: ObserveGap on the target (Contradiction, handling Refuse; CON-001) in that pass · question to both authors; no Waive"
+    chains-to ObserveGap
+
+  policy AppliedAcrossSourcesStartsLivePass  // S:504 "Applied across sources under SourceAuthority Sift"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-15a
+    trigger PlacementDecided
+    action "Applied across sources under SourceAuthority Sift, a: StartPass(Live, scope: the target)"
+    chains-to StartPass
+
+  policy AppliedAcrossSourcesObservesGap  // S:504 "Applied across sources under SourceAuthority Sift"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-15b
+    trigger PlacementDecided
+    action "Applied across sources under SourceAuthority Sift, b: ObserveGap (Divergence, Covered{sourceAuthority}) in that pass · never blocking, never asked"
+    chains-to ObserveGap
+
+  policy ProvisionalNotReusedRetiresBoundaryProvisional  // S:507 "boundary type → ContextMap RetireProvisional"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-16a
+    trigger AnswerApplied
+    action "provisional an answer does not reuse, boundary type: ContextMap RetireProvisional · exempt: waits on a proposed NewRoot root"
+    chains-to RetireProvisional
+
+  policy ProvisionalNotReusedSupersedesProvisional  // S:508 "other types → SupersedeConstruct(by: none, cause: Answered)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-16b
+    trigger AnswerApplied
+    action "provisional an answer does not reuse, other: SupersedeConstruct(by: none, cause Answered) · exempt: waits on a proposed NewRoot root"
+    chains-to SupersedeConstruct
+
+  policy GapMootedMarksPlacementStale  // S:510 "GapMooted of a Gap that a Defer{Contradiction} or Defer{Divergence} observed"; row S:1330 "| GapMooted | ResolveQuestion(Withdrawn, cause Mooted), or the questio" // board: P3-17
+    trigger GapMooted
+    action "a Defer-sourced Gap (any cause but Erased), Placement still Deferred: MarkStale(the Placement the Gap's CauseKey names) · Sys; PlacementMarkedStale{gap, Mooted}"
+    chains-to MarkStale
+
+  policy PlacementMarkedStaleAsksQuestion  // S:511 "PlacementMarkedStale → AskQuestion"; row S:1307 "| PlacementMarkedStale | AskQuestion (the entry's author, or the Gap's" // board: P3-18
+    trigger PlacementMarkedStale
+    action "AskQuestion (subject: the entry Pointer; recipient: source author; or the mooted Gap's recipients) · only if still Stale"
+    chains-to AskQuestion
+
+  policy RetirementQuestionForSupersededEntry  // S:512 "Retirement (ruling 7090385c, Round 14):"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-19
+    trigger PlacementDecided
+    action "Retirement: the entry's lineage names a superseded entry E: AskQuestion (retirement subject for E; all architects) listing the live constructs placed from E · only if at least one is live"
+    chains-to AskQuestion
+
+  policy StatedReplacementStartsLivePass  // S:514 "exactly one, X, that the divergence gate (above) covers"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-20a
+    trigger PlacementDecided
+    action "Stated replacement (outcome stores / accepts C), a exactly one X the divergence gate covers: StartPass(Live, X)"
+    chains-to StartPass
+
+  policy StatedReplacementObservesGap  // S:514 "exactly one, X, that the divergence gate (above) covers"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-20a2
+    trigger PlacementDecided
+    action "Stated replacement a: then ObserveGap (Steer under Ask; Covered{sourceAuthority} under Sift / Conversation)"
+    chains-to ObserveGap
+
+  policy StatedReplacementSupersedesReplaced  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-20b
+    trigger PlacementDecided
+    action "Stated replacement b exactly one X and a deciding entry: SupersedeConstruct(X, by C, cause Stated)"
+    chains-to SupersedeConstruct
+
+  policy StatedReplacementProposesReplace  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-20b2
+    trigger PlacementDecided
+    action "Stated replacement b exactly one X and a deciding entry: or Propose(replace)"
+    chains-to Propose
+
+  policy StatedReplacementAsksRetirementQuestion  // S:516 "exactly one, and this entry is not a deciding entry, or several"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-20c
+    trigger PlacementDecided
+    action "Stated replacement c exactly one X non-deciding, or several: AskQuestion (retirement for this entry) · d none: nothing; then members of a retired BC / Aggregate listed in the same question"
+    chains-to AskQuestion
+
+  policy StatedNegationSupersedesNegated  // S:519 "Stated negation (Round 28; 3d95589b S1):"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-21a
+    trigger PlacementDecided
+    action "Stated negation (deciding entry): SupersedeConstruct(X, none, cause Stated)"
+    chains-to SupersedeConstruct
+
+  policy StatedNegationProposesRetire  // S:519 "Stated negation (Round 28; 3d95589b S1):"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-21b
+    trigger PlacementDecided
+    action "Stated negation (deciding entry): or Propose(retire X)"
+    chains-to Propose
+
+  policy StatedNegationAsksRetirementQuestion  // S:519 "Stated negation (Round 28; 3d95589b S1):"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-21c
+    trigger PlacementDecided
+    action "Stated negation (deciding entry): or listed in the retirement question"
+    chains-to AskQuestion
+
+  policy ConstructStoredStartsLivePass  // S:586 "ConstructStored without proposedFor → StartPass(Live, that construct)"; row S:1308 "| ConstructStored | StartPass(Live) (Live arrivals; none for a store p" // board: P3-30
+    trigger ConstructStored
+    action "ConstructStored without proposedFor -> StartPass(Live, that construct) · not by a child of a running Replay or intake (left to the pass that ends it); a store by a redone entry / section outside one starts it"
+    chains-to StartPass
+
+  policy StoredSupersedesSupersedesPredecessor  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this"; row S:1308 "| ConstructStored | StartPass(Live) (Live arrivals; none for a store p" // board: P3-34
+    trigger ConstructStored
+    action "Stored(supersedes X): SupersedeConstruct(X, by: this, cause Successor, Pointer of the ConstructLinked{Placed})"
+    chains-to SupersedeConstruct
+
+  policy MissingArmArrivedAsksQuestion  // S:528 "Missing arm arrived (ruling f9025299"; row S:1308 "| ConstructStored | StartPass(Live) (Live arrivals; none for a store p" // board: P3-24
+    trigger ConstructStored
+    action "Missing arm arrived (a BC or Aggregate stored): on the one open missing-arm question, PlacementResolution step 1 on each gathered provisional, then AskQuestion on that subject (compounds) · once per arm"
+    chains-to AskQuestion
+
+  policy UndecidedQuestionRepostedOnArmStore  // S:529 "Undecided question re-posted on an arm or context store"; row S:1308 "| ConstructStored | StartPass(Live) (Live arrivals; none for a store p" // board: P3-25
+    trigger ConstructStored
+    action "Undecided re-post: an Aggregate / BC stored that an undecided missing-arm or arm's-context question's constructs could attach to: generation withdrawn Reposted (ResolveQuestion(Withdrawn)), next generation at the next boundary · once per stored arm per question"
+    chains-to ResolveQuestion
+
+  policy ReAskOnConstructStored  // S:1060 "Re-ask on a relevant change (R28-H9"; row S:1308 "| ConstructStored | StartPass(Live)"
+    trigger ConstructStored
+    action "re-ask: a construct a posted question could now offer as an arm, a context or a target gives the resolver one more try; otherwise the question is reposted"
+    chains-to ResolveQuestion
+
+  policy ArmContextSettledAppliesAnswer  // S:530 "An arm's context settled (Round 19"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P3-26
+    trigger QuestionResolved
+    action "An arm's context settled: the Context answer -> ApplyAnswer to the Placement that stored the arm, and an answer naming the arm on every gathered Placement"
+    chains-to ApplyAnswer
+
+  // --- Construct ---
+
+  policy MarkedSameAsWithAdditionStartsLivePass  // S:587 "MarkedSameAs with an addition → StartPass(Live, that construct)"; row S:1313 "| MarkedSameAs | graph read model (LineageLink edge, which for a self-" // board: P3-31
+    trigger MarkedSameAs
+    action "MarkedSameAs with an addition -> StartPass(Live, that construct); boundary version increments · same Replay / intake exception"
+    chains-to StartPass
+
+  policy ConstructAcceptedStartsLivePass  // S:588 "ConstructAccepted → StartPass(Live, that construct and the stored, uncommitted constructs attached to it)"; row S:1309 "| ConstructAccepted | StartPass(Live, with attached); graph read model" // board: P3-32
+    trigger ConstructAccepted
+    action "StartPass(Live, that construct and the stored, uncommitted constructs attached to it) · D-1"
+    chains-to StartPass
+
+  policy GapsAwaitingPlacementReleased  // S:813 "Gaps awaiting placement released (Round 20):"; row S:1309 "| ConstructAccepted | StartPass(Live, with attached); graph read model" // board: P3-76
+    trigger ConstructAccepted
+    action "ConstructAccepted | a Ratification that accepts -> every Open Gap awaiting placement on it: GapHandlingAsksQuestion runs as if just opened"
+    chains-to AskQuestion
+
+  policy ReAskOnConstructAccepted  // S:1060 "Re-ask on a relevant change (R28-H9"; row S:1309 "| ConstructAccepted | StartPass(Live, with attached)"
+    trigger ConstructAccepted
+    action "re-ask: a construct a posted question could now offer gives the resolver one more try; otherwise the question is reposted"
+    chains-to ResolveQuestion
+
+  policy FixedDisposalOfRec001QuestionMarksSameAs  // S:589 "The Fixed disposal of a Gap's REC-001 question"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P3-33
+    trigger QuestionResolved
+    action "the Fixed disposal of a REC-001 question (QuestionResolved routing): MarkSameAs(LineageLink from the cited section's Pointer to the construct, no addition) · document source"
+    chains-to MarkSameAs
+
+  policy ConstructSupersededStartsInvalidationPass  // S:591 "ConstructSuperseded or ConstructInvalidated, as three policies on the one event"; row S:1311 "| ConstructSuperseded | StartPass(Invalidation); MootGap scan; the all" // board: P3-35a
+    trigger ConstructSuperseded
+    action "StartPass(Invalidation, dependents) · three policies, listed order"
+    chains-to StartPass
+
+  policy ConstructInvalidatedStartsInvalidationPass  // S:591 "ConstructSuperseded or ConstructInvalidated, as three policies on the one event"; row S:1312 "| ConstructInvalidated | StartPass(Invalidation); the arm re-derivatio" // board: P3-35b
+    trigger ConstructInvalidated
+    action "StartPass(Invalidation, dependents) · three policies, listed order"
+    chains-to StartPass
+
+  policy ConstructSupersededMootsGaps  // S:593 "MootGap for every Gap on that construct that isn"; row S:1311 "| ConstructSuperseded | StartPass(Invalidation); MootGap scan; the all" // board: P3-36a
+    trigger ConstructSuperseded
+    action "MootGap for every non-terminal Gap on that construct"
+    chains-to MootGap
+
+  policy ConstructInvalidatedMootsGaps  // S:593 "MootGap for every Gap on that construct that isn"; row S:1312 "| ConstructInvalidated | StartPass(Invalidation); the arm re-derivatio" // board: P3-36b
+    trigger ConstructInvalidated
+    action "MootGap for every non-terminal Gap on that construct"
+    chains-to MootGap
+
+  policy ConstructSupersededWithdrawsAllTerminalQuestions  // S:594 "ResolveQuestion(Withdrawn) for every open question generation that gathers or lists constructs"; row S:1311 "| ConstructSuperseded | StartPass(Invalidation); MootGap scan; the all" // board: P3-37a
+    trigger ConstructSuperseded
+    action "ResolveQuestion(Withdrawn) for every open generation whose gathered / listed constructs are now all terminal"
+    chains-to ResolveQuestion
+
+  policy ConstructInvalidatedWithdrawsAllTerminalQuestions  // S:594 "ResolveQuestion(Withdrawn) for every open question generation that gathers or lists constructs"; row S:1312 "| ConstructInvalidated | StartPass(Invalidation); the arm re-derivatio" // board: P3-37b
+    trigger ConstructInvalidated
+    action "ResolveQuestion(Withdrawn) for every open generation whose gathered / listed constructs are now all terminal"
+    chains-to ResolveQuestion
+
+  policy ArmReDerivedSameContextOnMarkedSameAs  // S:595 "The arm re-derived (Round 27 A-11"; row S:1313 "| MarkedSameAs | graph read model (LineageLink edge, which for a self-" // board: P3-38a
+    trigger MarkedSameAs
+    action "Arm re-derived (a MarkedSameAs replacing an Invariant's enforcedBy or an Event's producer), a same context: StoreConstruct(successor, supersedes) · no arm moves without a recorded statement"
+    chains-to StoreConstruct
+
+  policy ArmReDerivedSameContextOnInvalidatedAggregate  // S:595 "The arm re-derived (Round 27 A-11"; row S:1312 "| ConstructInvalidated | StartPass(Invalidation); the arm re-derivatio" // board: P3-38b
+    trigger ConstructInvalidated
+    action "Arm re-derived (a ConstructInvalidated Aggregate), a same context: StoreConstruct(successor, supersedes); c BC with no Aggregate: store provisional (missing-arm); d nothing resolves: nothing"
+    chains-to StoreConstruct
+
+  policy ArmReDerivedOtherContextProposesMove  // S:595 "The arm re-derived (Round 27 A-11"; row S:1313 "| MarkedSameAs | graph read model (LineageLink edge, which for a self-" // board: P3-38c
+    trigger MarkedSameAs
+    action "Arm re-derived, b different context: StoreConstruct(proposedFor BoundaryRatification) + Propose(move)"
+    chains-to Propose
+
+  policy ConstructClearedCommits  // S:724 "ConstructCleared → CommitConstruct"; row S:1324 "| ConstructCleared | CommitConstruct |" // board: P3-39
+    trigger ConstructCleared
+    action "CommitConstruct"
+    chains-to CommitConstruct
+
+  // --- Lineage ---
+  policy SameAsOutcomeAddsAlias  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-40a
+    trigger PlacementDecided
+    action "{SameAs} outcome, no gate defers, target not a lump: AddAlias(target, candidate name) when the name differs and the candidate does not rename · four policies, listed order"
+    chains-to AddAlias
+
+  policy SameAsOutcomeAddsAliasOnAnswer  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-40b
+    trigger AnswerApplied
+    action "{SameAs} outcome, no gate defers, target not a lump: AddAlias(target, candidate name) when the name differs and the candidate does not rename"
+    chains-to AddAlias
+
+  policy SameAsOutcomeRenames  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-41a
+    trigger PlacementDecided
+    action "{SameAs}: RenameConstruct when the candidate comes from a defining section or states a rename · previous name alias via ConstructRenamedAddsPreviousNameAlias"
+    chains-to RenameConstruct
+
+  policy SameAsOutcomeRenamesOnAnswer  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-41b
+    trigger AnswerApplied
+    action "{SameAs}: RenameConstruct when the candidate comes from a defining section or states a rename · previous name alias via ConstructRenamedAddsPreviousNameAlias"
+    chains-to RenameConstruct
+
+  policy SameAsOutcomeMoves  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-42a
+    trigger PlacementDecided
+    action "{SameAs}: MoveConstruct when a defining section or deciding ruling names another context"
+    chains-to MoveConstruct
+
+  policy SameAsOutcomeMovesOnAnswer  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-42b
+    trigger AnswerApplied
+    action "{SameAs}: MoveConstruct when a defining section or deciding ruling names another context"
+    chains-to MoveConstruct
+
+  policy SameAsOutcomeRetypes  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-43a
+    trigger PlacementDecided
+    action "{SameAs}: RetypeConstruct when the candidate is of a neighbouring kind and the entry is a deciding entry"
+    chains-to RetypeConstruct
+
+  policy SameAsOutcomeRetypesOnAnswer  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-43b
+    trigger AnswerApplied
+    action "{SameAs}: RetypeConstruct when the candidate is of a neighbouring kind and the entry is a deciding entry"
+    chains-to RetypeConstruct
+
+  policy DecidingRulingMovesOwnedConstructs  // S:635 "PlacementDecided or AnswerApplied (never a Defer) for a deciding narrative ruling"; row S:1305 "| PlacementDecided | outcome policies (StoreConstruct . MarkSameAs . P" // board: P3-44
+    trigger PlacementDecided
+    action "deciding ruling in words of ownership: MoveConstruct(cause DecidingRuling) for each live non-boundary construct armed to a BC, each only when neither gate would defer it"
+    chains-to MoveConstruct
+
+  policy BoundaryChangeRatifiedAcceptsCreated  // S:884 "AcceptConstruct(Ratification) for each created construct"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-91a
+    trigger BoundaryChangeRatified
+    action "a AcceptConstruct(Ratification) for each created construct"
+    chains-to AcceptConstruct
+
+  policy BoundaryChangeRatifiedSupersedesRetired  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-91b
+    trigger BoundaryChangeRatified
+    action "b SupersedeConstruct(by successor | none, cause Ratified) per construct retired"
+    chains-to SupersedeConstruct
+
+  policy BoundaryChangeRatifiedMergesDuplicate  // S:886 "for a duplicate merge, also MarkSameAs, carrying the proposal"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-91c
+    trigger BoundaryChangeRatified
+    action "c duplicate merge: MarkSameAs (+ proposal's addition) and AddAlias (RatifiedDuplicateMergeAddsAliases); d Move: MoveConstruct(Ratified) (RatifiedMoveMovesArmedConstructs); e rename: RenameConstruct(Ratified) (RatifiedRenameRenamesConstruct)"
+    chains-to MarkSameAs
+
+  policy RatifiedDuplicateMergeAddsAliases  // S:636 "BoundaryChangeRatified for a duplicateMerge → AddAlias on the survivor"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-45
+    trigger BoundaryChangeRatified
+    action "for a duplicateMerge: AddAlias on the survivor for each name of the newer"
+    chains-to AddAlias
+
+  policy RatifiedMoveMovesArmedConstructs  // S:637 "BoundaryChangeRatified for a Move X: A → B → MoveConstruct"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-46
+    trigger BoundaryChangeRatified
+    action "for a Move X: A -> B: MoveConstruct(cause Ratified) for each construct armed directly to X that sat in A"
+    chains-to MoveConstruct
+
+  policy RatifiedRenameRenamesConstruct  // S:639 "BoundaryChangeRatified for a rename S → N → RenameConstruct"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-48
+    trigger BoundaryChangeRatified
+    action "for a rename S -> N: RenameConstruct(S, N, cause Ratified)"
+    chains-to RenameConstruct
+
+  policy GapSourcedProposalRatifiedDisposesGap  // S:820 "Gap-sourced proposals (by ContextMap outcome)"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct; SupersedeConstruct (retire" // board: P3-80a
+    trigger BoundaryChangeRatified
+    action "Gap-sourced ContextMap outcome: DisposeGap(Resolved{SameAs})"
+    chains-to DisposeGap
+
+  policy ReAskOnBoundaryChangeRatified  // S:1060 "Re-ask on a relevant change (R28-H9"; row S:1333 "| BoundaryChangeRatified | AcceptConstruct"
+    trigger BoundaryChangeRatified
+    action "re-ask: a ratified boundary construct a posted question could now offer gives the resolver one more try; otherwise the question is reposted"
+    chains-to ResolveQuestion
+
+  policy ConstructMovedCarriesArmedConstructs  // S:638 "ConstructMoved → MoveConstruct(cause Carried)"; row S:1317 "| ConstructMoved | graph read model (the context of record and the typ" // board: P3-47
+    trigger ConstructMoved
+    action "MoveConstruct(cause Carried) for each live construct armed directly to the moved one that sat in its old context · transitive"
+    chains-to MoveConstruct
+
+  policy ConstructRenamedAddsPreviousNameAlias  // S:640 "ConstructRenamed → AddAlias(the construct, the previous name"; row S:1316 "| ConstructRenamed | graph read model (the primary name and the typed" // board: P3-49
+    trigger ConstructRenamed
+    action "AddAlias(construct, the previous name, Pointer of the rename) · no-op if already an alias"
+    chains-to AddAlias
+
+  policy RoutingRetypeAnswerRetypesConstruct  // S:642 "QuestionResolved routing: a Retype answer → RetypeConstruct"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P3-51a
+    trigger QuestionResolved
+    action "routing: a Retype answer -> RetypeConstruct"
+    chains-to RetypeConstruct
+
+  policy RoutingSameAsUnderAnotherNameAddsAlias  // S:642 "QuestionResolved routing: a Retype answer → RetypeConstruct"; row S:1339 "| QuestionResolved | the closure post (a Withdrawn resolution posts a" // board: P3-51b
+    trigger QuestionResolved
+    action "routing: a SameAs answer under another name -> AddAlias"
+    chains-to AddAlias
+
+  policy ConstructRetypedStoresSuccessor  // S:643 "ConstructRetyped, as four policies on that event"; row S:1318 "| ConstructRetyped | the four ConstructRetyped policies (§3 Lineage: S" // board: P3-52a
+    trigger ConstructRetyped
+    action "a StoreConstruct(S', supersedes S) when neither is boundary and no live twin · order listed"
+    chains-to StoreConstruct
+
+  policy ConstructRetypedSupersedesForLiveTwin  // S:643 "ConstructRetyped, as four policies on that event"; row S:1318 "| ConstructRetyped | the four ConstructRetyped policies (§3 Lineage: S" // board: P3-52b
+    trigger ConstructRetyped
+    action "b SupersedeConstruct(S, by T) when a live twin T is the successor"
+    chains-to SupersedeConstruct
+
+  policy ConstructRetypedStoresBoundarySuccessor  // S:643 "ConstructRetyped, as four policies on that event"; row S:1318 "| ConstructRetyped | the four ConstructRetyped policies (§3 Lineage: S" // board: P3-52c
+    trigger ConstructRetyped
+    action "c StoreConstruct(S', proposedFor BoundaryRatification) when boundary-sided"
+    chains-to StoreConstruct
+
+  policy ConstructRetypedProposesReplace  // S:643 "ConstructRetyped, as four policies on that event"; row S:1318 "| ConstructRetyped | the four ConstructRetyped policies (§3 Lineage: S" // board: P3-52d
+    trigger ConstructRetyped
+    action "d Propose(replace S -> S') when S, S' or T is boundary"
+    chains-to Propose
+
+  policy SupersessionRefusedStartsLivePass  // S:722 "SupersessionRefused (§3 Lineage; Round 28"; row S:1319 "| SupersessionRefused | StartPass(Live, the construct) (the Assessment" // board: P3-54
+    trigger SupersessionRefused
+    action "StartPass(Live, the construct whose supersession was refused; CauseKey: Placement key of the refused write, or the request-stream Pointer of the answer / ratification) · TAC-013 evaluated in it; the one definition (S:722)"
+    chains-to StartPass
+
+  policy ConstructRenamedStartsLivePass  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)"; row S:1316 "| ConstructRenamed | graph read model (the primary name and the typed" // board: P3-55a
+    trigger ConstructRenamed
+    action "StartPass(Live, that construct) · not in a child of a running Replay / intake"
+    chains-to StartPass
+
+  policy ConstructMovedStartsLivePass  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)"; row S:1317 "| ConstructMoved | graph read model (the context of record and the typ" // board: P3-55b
+    trigger ConstructMoved
+    action "StartPass(Live, that construct) · not in a child of a running Replay / intake"
+    chains-to StartPass
+
+  // --- Assessment (and fan-out) ---
+  policy PassStartedRunsGates  // S:720 "Gate run: PassStarted → GateRun"; row S:1320 "| PassStarted | GateRun (domain service) |" // board: P3-60
+    trigger PassStarted
+    action "GateRun (SV.GateRun): catch-up, evaluate the rules of the cadence, then RecordGateResults"
+    chains-to RecordGateResults
+
+  policy GapIdentifiedObservesGap  // S:721 "GapIdentified → ObserveGap"; row S:1321 "| GapIdentified | ObserveGap; trajectory and cascading-impact read mod" // board: P3-61
+    trigger GapIdentified
+    action "ObserveGap(pass, finding, origins, CauseKey) on that GapKey's Gap"
+    chains-to ObserveGap
+
+  policy GatesEvaluatedCompletesPass  // S:723 "Completion: GatesEvaluated → CompletePass"; row S:1322 "| GatesEvaluated | CompletePass; convergence read model (the latest Me" // board: P3-62
+    trigger GatesEvaluated
+    action "CompletePass (PassCompleted + ConstructCleared per cleared construct) · every ObserveGap of the pass already ran"
+    chains-to CompletePass
+
+  policy DecreasedVerdictStartsConvergencePass  // S:727 "Decreased (model-wide, with blocking Gaps in scope) → StartPass(Convergence)"; row S:1323 "| PassCompleted | convergence triggers (Decreased -> StartPass(Converg" // board: P3-63a
+    trigger PassCompleted when verdict = Decreased
+    action "Convergence triggers a: a PassCompleted Decreased (model-wide, blocking Gaps in scope) -> StartPass(Convergence) · model-wide ones wait inside a Replay or intake (P2.14)"
+    chains-to StartPass
+
+  policy GapResolvedStartsConvergencePass  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)"; row S:1327 "| GapResolved | StartPass(Convergence, scope); the carry (a Resolved G" // board: P3-63c-1
+    trigger GapResolved
+    action "Convergence triggers c: every Gap disposal, except cause Erased -> StartPass(Convergence, scope: that Gap's construct)"
+    chains-to StartPass
+
+  policy GapWaivedStartsConvergencePass  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)"; row S:1328 "| GapWaived | StartPass(Convergence, scope); convergence read model; t" // board: P3-63c-2
+    trigger GapWaived
+    action "Convergence triggers c: every Gap disposal -> StartPass(Convergence, scope: that Gap's construct)"
+    chains-to StartPass
+
+  policy GapMootedStartsConvergencePass  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)"; row S:1330 "| GapMooted | ResolveQuestion(Withdrawn, cause Mooted), or the questio" // board: P3-63c-3
+    trigger GapMooted
+    action "Convergence triggers c: every Gap disposal, except cause Erased -> StartPass(Convergence, scope: that Gap's construct)"
+    chains-to StartPass
+
+  policy BoundaryChangeRejectedStartsConvergencePass  // S:733 "a ContextMap proposal that ends with no construct to accept"; row S:1334 "| BoundaryChangeRejected | SupersedeConstruct(by: none, cause: Rejecte" // board: P3-63g-1
+    trigger BoundaryChangeRejected
+    action "Convergence triggers g: a ContextMap proposal ending with no construct to accept -> StartPass(Convergence, model-wide) · Stalled otherwise waits"
+    chains-to StartPass
+
+  policy ProposalWithdrawnStartsConvergencePass  // S:733 "a ContextMap proposal that ends with no construct to accept"; row S:1335 "| ProposalWithdrawn | ResolveQuestion(Withdrawn); SupersedeConstruct(S" // board: P3-63g-2
+    trigger ProposalWithdrawn
+    action "Convergence triggers g: a ContextMap proposal ending with no construct to accept -> StartPass(Convergence, model-wide)"
+    chains-to StartPass
+
+  // --- Gap ---
+  policy GapOpenedMootsGapOnTerminalConstruct  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-70a
+    trigger GapOpened
+    action "construct superseded / invalidated -> MootGap (nothing else) · read of the Construct stream first"
+    chains-to MootGap
+
+  policy GapObservedMootsGapOnTerminalConstruct  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap"; row S:1326 "| GapObserved | Gap policies when it reopens; the rationale refresh; c" // board: P3-70b
+    trigger GapObserved
+    action "a reopening GapObserved, construct superseded / invalidated -> MootGap (nothing else)"
+    chains-to MootGap
+
+  policy GapReopenedMootsGapOnTerminalConstruct  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap"; row S:1329 "| GapReopened | Gap policies (Ask); convergence read model |" // board: P3-70c
+    trigger GapReopened
+    action "construct superseded / invalidated -> MootGap (nothing else)"
+    chains-to MootGap
+
+  policy ComputedAnswerMarksSameAs  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-72a1
+    trigger GapOpened
+    action "Computed answer (before asking, on Ask and Refuse Gaps, not Contradiction / Divergence), step 1: the resolver's command MarkSameAs{addition} self-addition · Sys; one attempt per triggering change; resolvers DEF-003 DEF-005 TAC-011 DUP DEF-008 LAN-006 owner-keeping missing-arm"
+    chains-to MarkSameAs
+
+  policy ComputedAnswerSupersedes  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-72a2
+    trigger GapOpened
+    action "Computed answer step 1: the resolver's command SupersedeConstruct Computed"
+    chains-to SupersedeConstruct
+
+  policy ComputedAnswerAddsAlias  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-72a3
+    trigger GapOpened
+    action "Computed answer step 1: the resolver's command AddAlias"
+    chains-to AddAlias
+
+  policy ComputedAnswerMoves  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-72a4
+    trigger GapOpened
+    action "Computed answer step 1: the resolver's command MoveConstruct"
+    chains-to MoveConstruct
+
+  policy ComputedAnswerStoresConstruct  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-72a5
+    trigger GapOpened
+    action "Computed answer step 1: the resolver's command StoreConstruct"
+    chains-to StoreConstruct
+
+  policy ComputedAnswerDisposesGap  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1314 "| ConstructLinked | graph read model (the entry->construct edge, which" // board: P3-72b
+    trigger ConstructLinked
+    action "Computed answer step 2: on the last command's event -> DisposeGap(Resolved{computedBy}) only when the field is filled"
+    chains-to DisposeGap
+
+  policy ComputedAnswerWithdrawsQuestion  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)"; row S:1327 "| GapResolved | StartPass(Convergence, scope); the carry (a Resolved G" // board: P3-72c
+    trigger GapResolved
+    action "Computed answer step 3: GapResolved{computedBy} -> ResolveQuestion(Withdrawn, Computed)"
+    chains-to ResolveQuestion
+
+  policy CarryDisposesGap  // S:807 "Carry (Round 28, ruling 791da7c4"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-73a
+    trigger GapOpened
+    action "Carry (same rule, same finding identity, lineage root has a Resolved Gap): DisposeGap(Resolved{carriedFrom}) · never for a Contradiction or Divergence"
+    chains-to DisposeGap
+
+  policy CarryAsksQuestion  // S:807 "Carry (Round 28, ruling 791da7c4"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-73b
+    trigger GapOpened
+    action "Carry: AskQuestion on the successor's GapKey (if the old question is open)"
+    chains-to AskQuestion
+
+  policy CarryWithdrawsOldQuestion  // S:807 "Carry (Round 28, ruling 791da7c4"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-73c
+    trigger GapOpened
+    action "Carry: ResolveQuestion(Withdrawn, Carried) on the old subject"
+    chains-to ResolveQuestion
+
+  policy RecordLagHoldsGap  // S:808 "RecordLag hold (Round 28, rulings 3b5aeb42 B4"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-74a
+    trigger GapOpened
+    action "RecordLag hold: GapOpened | reopening -> HoldGap · never STR-004, TAC-013, Contradiction, Divergence; the hold ends when the question is asked again"
+    chains-to HoldGap
+
+  policy RecordLagWithdrawsHeldQuestion  // S:808 "RecordLag hold (Round 28, rulings 3b5aeb42 B4"; row S:1331 "| GapHeldForRecord | the Gap RecordLag policy (ResolveQuestion(Withdra" // board: P3-74b
+    trigger GapHeldForRecord
+    action "RecordLag hold: GapHeldForRecord -> ResolveQuestion(Withdrawn, Held) on the open question"
+    chains-to ResolveQuestion
+
+  policy GapHandlingAsksQuestion  // S:809 "Ask → AskQuestion (subject: GapKey"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-75a
+    trigger GapOpened
+    action "Handling: Ask -> AskQuestion (subject GapKey; all architects cascading to admins and owners); Refuse -> AskQuestion (+ the placing author); Steer -> AskQuestion (posted immediately when Live)"
+    chains-to AskQuestion
+
+  policy BoundaryHandlingProposesDuplicateMerge  // S:811 "Boundary → ContextMap Propose(duplicateMerge"; row S:1325 "| GapOpened | Gap policies (the computed answer and the carry first; t" // board: P3-75b
+    trigger GapOpened
+    action "Handling: Boundary -> ContextMap Propose(duplicateMerge, source: the Gap)"
+    chains-to Propose
+
+  policy GapMootedWithdrawsQuestion  // S:815 "GapMooted → ResolveQuestion(Withdrawn, cause Mooted"; row S:1330 "| GapMooted | ResolveQuestion(Withdrawn, cause Mooted), or the questio" // board: P3-77
+    trigger GapMooted
+    action "ResolveQuestion(Withdrawn, Mooted) + a notice only when a question was asked; with a successor and a gate question, kept for the successor's Gap until the sweep"
+    chains-to ResolveQuestion
+
+  // Policies on the process events (ADR-040). ReadModelsDestroyedMootsErasedGaps is the erasure's: it names no Gap, one policy per Gap, in the erasure's Cycle, before its model-wide pass.
+  policy ReadModelsDestroyedMootsErasedGaps  // S:817 "ReadModelsDestroyed (an entry-scope or document-scope erasure) → MootGap"; row S:817 "ReadModelsDestroyed (an entry-scope or document-scope erasure) → MootGap(cause: Erased) for each Gap any of whose origins' entry or section is in the erased scope" // board: P3-78
+    trigger ReadModelsDestroyed
+    action "MootGap(cause: Erased) for each Gap any of whose origins' entry or section is in the erased scope · one policy per Gap · before the erasure's model-wide pass; a repeat is NoOp{repeat}"
+    chains-to MootGap
+
+  // The Receipt policies RedoSucceeded, ClosedAtDispatch and ErasureDestroyed are GONE (Round 30 pass 2, 0aea6e03 (F1)): RecordPassTrigger is issued by the Cycle's settle step, a step and not
+  // a policy, because ReceiptProcessed follows CycleCompleted and the trigger belongs inside the Cycle. The three are the CAUSES of the one PassTriggerRecorded (rules SettleStep... below).
+
+  policy DocumentVersionProcessedStartsDocumentPass  // S:397 "run the policies of DocumentVersionProcessed in their listed order (§11.1): StartPass(Document, scope: the constructs the document version's sections placed) first" // board: StartDocumentPass
+    trigger DocumentVersionProcessed
+    action "StartPass(Document, scope: the constructs the document version's sections placed) first, started and not awaited; the Document pass runs REC-001 and never records SystemValidated"
+    chains-to StartPass
+
+  policy OwnerKeepingMovesTerm  // S:641 "owner keeping (§3 Gap): DocumentVersionProcessed of a document version that states the owner"; row S:641 "owner keeping (§3 Gap): DocumentVersionProcessed of a document version that states the owner of a Term another context restated" // board: P3-50
+    trigger DocumentVersionProcessed
+    action "MoveConstruct(the Term, the stated owner's context, cause: Computed, Pointer: the stated owner's section) for each such Term whose newest stated owner differs from its context of record · kind system · NoOp{repeat} on a repeat by its ID derived from the DocumentVersionProcessed"
+    chains-to MoveConstruct
+
+  policy DocumentPassRec001Questions  // S:1350 "the Document pass's REC-001 questions on the document version's subject"; row S:1350 "| DocumentVersionProcessed | StartPass(Document)"
+    trigger DocumentVersionProcessed
+    action "the Document pass runs REC-001, and its questions are asked on the document version's subject"
+    chains-to AskQuestion
+
+  policy RetirementByOmissionAsksQuestion  // S:521 "Retirement by omission (Round 27 A-1"; row S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4) → two policies on the event, in this order: (1) AskQuestion" // board: P3-23a
+    trigger DocumentVersionProcessed
+    action "Retirement by omission (1): AskQuestion (subject: the version-retirement subject for V; causedBy: the DocumentVersionProcessed), listing the live constructs placed only from earlier versions that V does not restate"
+    chains-to AskQuestion
+
+  policy RetirementByOmissionWithdrawsQuestion  // S:521 "Retirement by omission (Round 27 A-1"; row S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4) → two policies on the event, in this order: (1) AskQuestion" // board: P3-23b
+    trigger DocumentVersionProcessed
+    action "Retirement by omission (2): ResolveQuestion(Withdrawn) for the questions of earlier versions that V's restatements empty"
+    chains-to ResolveQuestion
+
+  policy QuestionSweepWithdrawsKeptQuestions  // S:1100 "(1) each question kept for a successor's Gap"; row S:1350 "| DocumentVersionProcessed | StartPass(Document)"
+    trigger DocumentVersionProcessed
+    action "question sweep (1): each question kept for a successor's Gap that no Gap took is withdrawn, cause Mooted"
+    chains-to ResolveQuestion
+
+  policy QuestionSweepAsksHeldGaps  // S:1100 "(2) each Gap still Open under a RecordLag hold"; row S:1350 "| DocumentVersionProcessed | StartPass(Document)"
+    trigger DocumentVersionProcessed
+    action "question sweep (2): each Gap still Open under a RecordLag hold that an earlier Cycle recorded is asked as the next generation, only if still Open under that hold"
+    chains-to AskQuestion
+
+  policy ReAskOnDocumentVersionProcessed  // S:1060 "Re-ask on a relevant change (R28-H9"; row S:1350 "| DocumentVersionProcessed | StartPass(Document)"
+    trigger DocumentVersionProcessed
+    action "re-ask: a document version that touches a construct a posted question gathered gives the resolver one more try; otherwise the question is reposted"
+    chains-to ResolveQuestion
+
+  policy GapSourcedProposalRejectedDisposesGap  // S:820 "Gap-sourced proposals (by ContextMap outcome)"; row S:1334 "| BoundaryChangeRejected | SupersedeConstruct(by: none, cause: Rejecte" // board: P3-80b
+    trigger BoundaryChangeRejected
+    action "Gap-sourced ContextMap outcome: DisposeGap(Resolved{Distinct})"
+    chains-to DisposeGap
+
+  policy GapSourcedProposalWithdrawnDisposesGap  // S:820 "Gap-sourced proposals (by ContextMap outcome)"; row S:1335 "| ProposalWithdrawn | ResolveQuestion(Withdrawn); SupersedeConstruct(S" // board: P3-80c
+    trigger ProposalWithdrawn
+    action "Gap-sourced ContextMap outcome: DisposeGap(Resolved{Fixed, rationale SubjectChanged})"
+    chains-to DisposeGap
+
+  // --- ContextMap ---
+  policy BoundaryChangeProposedAsksQuestion  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)"; row S:1332 "| BoundaryChangeProposed | AskQuestion (ratification) unless ratifiedI" // board: P3-90
+    trigger BoundaryChangeProposed
+    action "(not ratifiedInline, not withdrawn in the same write) AskQuestion (subject: this event) · recipient: the author if an operator, else all architects with a notice to the author; Gap source: all architects"
+    chains-to AskQuestion
+
+  policy BoundaryChangeRejectedSupersedesCreated  // S:889 "BoundaryChangeRejected → SupersedeConstruct(by: none, cause: Rejected)"; row S:1334 "| BoundaryChangeRejected | SupersedeConstruct(by: none, cause: Rejecte" // board: P3-92
+    trigger BoundaryChangeRejected
+    action "SupersedeConstruct(by none, cause Rejected) for each created construct"
+    chains-to SupersedeConstruct
+
+  // --- AnswerApplied twins (the outcome policies are shared by PlacementDecided and AnswerApplied) ---
+  policy SupersedesOutcomeStoresConstructOnAnswer  // S:493 "Supersedes (non-boundary) → StoreConstruct(supersedes X)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-04-ans
+    trigger AnswerApplied
+    action "Supersedes {target} (non-boundary): StoreConstruct(supersedes X), unless X is terminal [the AnswerApplied twin of SupersedesOutcomeStoresConstruct: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StoreConstruct
+
+  policy ImpliesBoundaryStoresCreatedConstructsOnAnswer  // S:498 "1. StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-08-ans
+    trigger AnswerApplied
+    action "ImpliesBoundary 1: StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates · rename creates none [the AnswerApplied twin of ImpliesBoundaryStoresCreatedConstructs: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StoreConstruct
+
+  policy ImpliesBoundaryProposesOnAnswer  // S:499 "2. ContextMap Propose(change, source: the entry Pointer"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-09-ans
+    trigger AnswerApplied
+    action "ImpliesBoundary 2: ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions, ratifiedBy when the author is an operator) [the AnswerApplied twin of ImpliesBoundaryProposes: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to Propose
+
+  policy DeferUnsureStoresProvisionalOnAnswer  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-11-ans
+    trigger AnswerApplied
+    action "Defer{Unsure} 1: StoreConstruct(proposedFor: UnsurePlacement) [the AnswerApplied twin of DeferUnsureStoresProvisional: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StoreConstruct
+
+  policy DeferDivergenceStoresProvisionalOnAnswer  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-13a-ans
+    trigger AnswerApplied
+    action "Defer{Divergence} a: StoreConstruct(proposedFor: UnsurePlacement) [the AnswerApplied twin of DeferDivergenceStoresProvisional: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StoreConstruct
+
+  policy DeferDivergenceStartsLivePassOnAnswer  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-13b-ans
+    trigger AnswerApplied
+    action "Defer{Divergence} b: StartPass(Live, scope: that provisional) [the AnswerApplied twin of DeferDivergenceStartsLivePass: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StartPass
+
+  policy DeferDivergenceObservesGapOnAnswer  // S:502 "Defer{Divergence{target, direction}} (Round 15)"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-13c-ans
+    trigger AnswerApplied
+    action "Defer{Divergence} c: ObserveGap on the target (Divergence, handling Steer; DIV-001) in that pass · observation runs in a pass (S:117) [the AnswerApplied twin of DeferDivergenceObservesGap: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to ObserveGap
+
+  policy DeferContradictionStoresProvisionalOnAnswer  // S:503 "Defer{Contradiction{target}} → three policies on the event"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-14a-ans
+    trigger AnswerApplied
+    action "Defer{Contradiction} a: StoreConstruct(proposedFor: UnsurePlacement) [the AnswerApplied twin of DeferContradictionStoresProvisional: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StoreConstruct
+
+  policy DeferContradictionStartsLivePassOnAnswer  // S:503 "Defer{Contradiction{target}} → three policies on the event"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-14b-ans
+    trigger AnswerApplied
+    action "Defer{Contradiction} b: StartPass(Live, scope: that provisional) [the AnswerApplied twin of DeferContradictionStartsLivePass: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StartPass
+
+  policy DeferContradictionObservesGapOnAnswer  // S:503 "Defer{Contradiction{target}} → three policies on the event"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-14c-ans
+    trigger AnswerApplied
+    action "Defer{Contradiction} c: ObserveGap on the target (Contradiction, handling Refuse; CON-001) in that pass · question to both authors; no Waive [the AnswerApplied twin of DeferContradictionObservesGap: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to ObserveGap
+
+  policy AppliedAcrossSourcesStartsLivePassOnAnswer  // S:504 "Applied across sources under SourceAuthority Sift"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-15a-ans
+    trigger AnswerApplied
+    action "Applied across sources under SourceAuthority Sift, a: StartPass(Live, scope: the target) [the AnswerApplied twin of AppliedAcrossSourcesStartsLivePass: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StartPass
+
+  policy AppliedAcrossSourcesObservesGapOnAnswer  // S:504 "Applied across sources under SourceAuthority Sift"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-15b-ans
+    trigger AnswerApplied
+    action "Applied across sources under SourceAuthority Sift, b: ObserveGap (Divergence, Covered{sourceAuthority}) in that pass · never blocking, never asked [the AnswerApplied twin of AppliedAcrossSourcesObservesGap: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to ObserveGap
+
+  policy StatedReplacementStartsLivePassOnAnswer  // S:514 "exactly one, X, that the divergence gate (above) covers"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-20a-ans
+    trigger AnswerApplied
+    action "Stated replacement (outcome stores / accepts C), a exactly one X the divergence gate covers: StartPass(Live, X) [the AnswerApplied twin of StatedReplacementStartsLivePass: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to StartPass
+
+  policy StatedReplacementObservesGapOnAnswer  // S:514 "exactly one, X, that the divergence gate (above) covers"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-20a2-ans
+    trigger AnswerApplied
+    action "Stated replacement a: then ObserveGap (Steer under Ask; Covered{sourceAuthority} under Sift / Conversation) [the AnswerApplied twin of StatedReplacementObservesGap: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to ObserveGap
+
+  policy StatedReplacementSupersedesReplacedOnAnswer  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-20b-ans
+    trigger AnswerApplied
+    action "Stated replacement b exactly one X and a deciding entry: SupersedeConstruct(X, by C, cause Stated) [the AnswerApplied twin of StatedReplacementSupersedesReplaced: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to SupersedeConstruct
+
+  policy StatedReplacementProposesReplaceOnAnswer  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-20b2-ans
+    trigger AnswerApplied
+    action "Stated replacement b exactly one X and a deciding entry: or Propose(replace) [the AnswerApplied twin of StatedReplacementProposesReplace: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to Propose
+
+  policy StatedReplacementAsksRetirementQuestionOnAnswer  // S:516 "exactly one, and this entry is not a deciding entry, or several"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-20c-ans
+    trigger AnswerApplied
+    action "Stated replacement c exactly one X non-deciding, or several: AskQuestion (retirement for this entry) · d none: nothing; then members of a retired BC / Aggregate listed in the same question [the AnswerApplied twin of StatedReplacementAsksRetirementQuestion: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to AskQuestion
+
+  policy StatedNegationSupersedesNegatedOnAnswer  // S:519 "Stated negation (Round 28; 3d95589b S1):"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-21a-ans
+    trigger AnswerApplied
+    action "Stated negation (deciding entry): SupersedeConstruct(X, none, cause Stated) [the AnswerApplied twin of StatedNegationSupersedesNegated: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to SupersedeConstruct
+
+  policy StatedNegationProposesRetireOnAnswer  // S:519 "Stated negation (Round 28; 3d95589b S1):"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-21b-ans
+    trigger AnswerApplied
+    action "Stated negation (deciding entry): or Propose(retire X) [the AnswerApplied twin of StatedNegationProposesRetire: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to Propose
+
+  policy StatedNegationAsksRetirementQuestionOnAnswer  // S:519 "Stated negation (Round 28; 3d95589b S1):"; row S:1306 "| AnswerApplied | outcome policies (the Defer{Contradiction} and Defer" // board: P3-21c-ans
+    trigger AnswerApplied
+    action "Stated negation (deciding entry): or listed in the retirement question [the AnswerApplied twin of StatedNegationAsksRetirementQuestion: the outcome policies are shared by PlacementDecided and AnswerApplied]"
+    chains-to AskQuestion
+
+  policy ProposalWithdrawnWithdrawsQuestion  // S:891 "ResolveQuestion(Withdrawn) for its ratification question"; row S:1335 "| ProposalWithdrawn | ResolveQuestion(Withdrawn); SupersedeConstruct(S" // board: P3-93a
+    trigger ProposalWithdrawn
+    action "ResolveQuestion(Withdrawn) (+ notice)"
+    chains-to ResolveQuestion
+
+  policy ProposalWithdrawnSupersedesCreated  // S:892 "SupersedeConstruct(by: none, cause: SubjectChanged) for each created construct"; row S:1335 "| ProposalWithdrawn | ResolveQuestion(Withdrawn); SupersedeConstruct(S" // board: P3-93b
+    trigger ProposalWithdrawn
+    action "SupersedeConstruct(none, SubjectChanged) per created construct"
+    chains-to SupersedeConstruct
+
+  policy ProposalWithdrawnMarksPlacementStale  // S:893 "an entry source → Placement MarkStale(proposal)"; row S:1335 "| ProposalWithdrawn | ResolveQuestion(Withdrawn); SupersedeConstruct(S" // board: P3-93c
+    trigger ProposalWithdrawn
+    action "entry source: MarkStale(proposal); Gap source: DisposeGap (GapSourcedProposalRatifiedDisposesGap); a notice to the answerer if the Propose carried ratifiedBy"
+    chains-to MarkStale
+
+  policy ProvisionalRetiredSupersedes  // S:896 "ProvisionalRetired → SupersedeConstruct(by: none"; row S:1337 "| ProvisionalRetired | SupersedeConstruct(by: none, cause: Answered, o" // board: P3-95
+    trigger ProvisionalRetired
+    action "SupersedeConstruct(by none, cause Answered | Computed)"
+    chains-to SupersedeConstruct
+
+  policy DroppedWordAppliesComputedAnswer  // S:520 "Dropped word (Round 28; c9256057):"; row S:1305 "| PlacementDecided | outcome policies"
+    trigger PlacementDecided
+    action "a glossary section or an owner sentence of the newest document version drops a word: for each live Term of that word, ApplyAnswer(computed{dropped-word}) on that Term's Placement (Retire)"
+    chains-to ApplyAnswer
+
+  policy DroppedWordAppliesComputedAnswerOnAnswer  // S:520 "Dropped word (Round 28; c9256057):"; row S:1306 "| AnswerApplied | outcome policies"
+    trigger AnswerApplied
+    action "a glossary section or an owner sentence of the newest document version drops a word: for each live Term of that word, ApplyAnswer(computed{dropped-word}) on that Term's Placement (Retire)"
+    chains-to ApplyAnswer
+
+  policy AdmittedGateDecisionStartsCycle  // S:982 "An Admitted decision is followed by StartCycle"; row S:1352 "| GateDecisionRecorded | StartCycle"
+    trigger GateDecisionRecorded when decision = Admitted
+    action "an Admitted decision starts the Cycle: StartCycle follows it"
+    chains-to StartCycle
+
+  policy CycleCompletedMarksProcessed  // S:344 "is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded"; row S:1347 "| CycleCompleted | external consumers"
+    trigger CycleCompleted when outcome = Succeeded
+    action "MarkProcessed is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded"
+    chains-to MarkProcessed
+
+  policy PassTriggerRecordedStartsConvergencePass  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)"; row S:1353 "| PassTriggerRecorded | the policy on it"
+    trigger PassTriggerRecorded
+    action "on PassTriggerRecorded, StartPass(Convergence, scope: the customer workspace, model-wide), for a redo, for every erasure and for a closure at dispatch; the pass is the Cycle's own, so CompleteCycle follows it"
+    chains-to StartPass
+
+  // --------------------------------------------------------------------------
+  // NOT A DECLARED CONSTRUCT (notes; the spec's rules that Moment has no construct for)
+  // --------------------------------------------------------------------------
+  //  - The policies that issue SupersedeConstruct (Stored(supersedes), stated replacement, stated negation, retirement routing), when the successor fails the guard, issue
+  //    RefuseSupersession instead; reason Self | NotLive | NotHead.  // S:648 "the policies that issue SupersedeConstruct (the Stored(supersedes) policy, the stated-replacement and stated-negation policies, retirement routing), when the successor fails the guard"
+  //  - CorpusVersionReleased (external) is a pass trigger for every customer workspace that has Sift, after the Sift-workspaces read model has caught up; the admission gate
+  //    decides per customer workspace and a disabled one picks it up in its Resume pass: a fan-out, not a policy.  // S:737 "CorpusVersionReleased (external, from the corpus release pipeline) → a pass trigger for every customer workspace that has Sift"
+  //  - ThresholdOverridden is a pass trigger for that customer workspace, or for License scope every inheriting one: a fan-out, not a policy.  // S:738 "ThresholdOverridden → a pass trigger for that customer workspace"
+  //  - A pass trigger whose CorpusVersion or RulesVersion is older than the one read at its startPosition is NoOp{stale-trigger} (precondition of StartPass).  // S:735 "A pass trigger whose CorpusVersion or RulesVersion is older than the one read at its startPosition is NoOp{stale-trigger}"
+  //  - The session-boundary arm of the question sweep (a feed entry of the boundary kind) has no command trigger: the entry's Cycle runs the sweep, then flushes the gathered postings.  // S:1100 "a step of the session-boundary entry's Cycle, run before it flushes the postings"
+  //  - The Replay's one flush and the intake's one flush are the question poster's, an external call with a key, not a command.  // S:258 "The Replay's one flush follows the pass"
+  //  - A GapOpened on a provisional construct is awaiting placement: no command, nothing asked; released by GapsAwaitingPlacementReleased. Steer and Contradiction Gaps are never awaiting placement.  // S:796 "if the construct is provisional"
+  //  - Rationale refresh: a GapObserved with a different rationale on an Open Gap records the new finding, and the open question's body is the current rationale (no command).  // S:818 "Rationale refresh"
+  //  - RatificationRefused{NotOpen} -> a notice to the answerer (a poster side effect).  // S:895 "RatificationRefused{NotOpen} → a notice to the answerer"
+  //
+  // The global current CorpusVersion read model: CorpusVersionReleased (external) · CorpusVersion read at startPosition
+  // The agent workspace (Sift's construct memory in its own flmnt workspace): every Cycle's writes through the agent-workspace writer; each
+  //      construct entry stamped with the construct ID, superseding the previous (SUPERSEDED_BY) · the construct's current agent-workspace entry
+  //      = head; flmnt's context query over it (PlacementResolution step 3, last); a Sift pointer resolves to the head · held in flmnt: NOT
+  //      encrypted at application level (OPS-03, H1); also writes the Sift pointer into the customer's flmnt workspace
+  // Data stores (teal): Sift's own KurrentDB (the event store, kept for ever; ADR-080), read-model stores partitioned by key generation ,
+  //      held document sections (each under its own data key).
+  // Replay point: a direct query over Receipts, NOT a read model (see Intake).
+  // Cycle records (process events of the SequenceRecords orchestration above): CycleStarted {CycleId, trigger, attempt}; NodeChanged {Pointer, CycleId} per write; CycleCompleted
+  //      {Succeeded | Failed, constructStates, designState, position}; SagaStepFailed {step?, codes and Pointers}; SG.Cycle failure path: step
+  //      fails -> brief retries (SysArch default) -> SagaStepFailed -> CycleCompleted{Failed} + alarm -> RecordFailedAttempt -> the work moves on.
+  // Settled order note (not a hotspot): the spec fixes 'MootGap(Erased) after ReadModelsDestroyed and before the erasure's model-wide pass' (S:788,
+  //      S:817); Accepted ADR-082 D6 fixes the Receipt closures (closures, then the settle step).
+  // Resolvers named in the Gap aggregate (S:797-806): DEF-003, DEF-005, TAC-011, DUP, DEF-008, LAN-006, owner keeping, missing-arm;
+  //      Placement-sourced: restated-arm, section-context, term-use, dropped-word, source-authority. The carry (finding identity, lineage root; never
+  //      for a Contradiction or Divergence). RecordLag hold (cites a passage and names an empty rule input; the hold ends when the question is asked again).
+  // Finding kinds: Plain | Duplicate{inBoundary} | BoundaryDuplicate | Contradiction | Divergence | Declined | Unevaluable; assessment gates = duplicate
+  //      gate (DUP) + GateRun; placement gates are in Placement. Gap states: Open{handling} (in at most one hold: awaiting placement, or Held) |
+  //      Resolved{Fixed|SameAs|Distinct} | Waived{ruling} | Mooted{cause} (only Mooted terminal; Mooted{Evaluated} reopenable by a later Plain /
+  //      Duplicate / BoundaryDuplicate / Divergence finding). Handling: Ask | Refuse | Boundary | Steer | Covered{undeclared | waiver | distinct |
+  //      sourceAuthority | advisory | declined}. Blocking = Open with Ask, Boundary, Refuse or Steer.
+
+  // --------------------------------------------------------------------------
+  // RELATIONSHIPS (section 0.1)
+  // --------------------------------------------------------------------------
+  relationship DesignModel -> Clarification  // S:181 "C3 <-> C4: Partnership."
+    type Partnership
+    contract "Gaps, Placements and proposals ask (AskQuestion); answers route back (QuestionResolved routing)"
+
+  relationship DesignModel -> Flmnt  // S:187 "C3 -> the customer's flmnt workspace (Sift pointers, Round 23): Conformist to flmnt's write contract"
+    type Conformist
+    contract "flmnt's write contract (PTR), by the agent-workspace writer; flmnt's self-write guard keeps Sift pointers off the feed"
+
+  relationship CorpusReleasePipeline -> DesignModel  // S:192 "the corpus release -> C3 and C5: Conformist (CorpusVersionReleased)."
+    type Conformist
+    contract "CorpusVersionReleased"
+
+  relationship DesignModel -> Consumers  // S:193 "C3 -> consumers of the emitted Cycle: Published Language"
+    type PublishedLanguage
+    contract "CycleStarted -> NodeChanged -> CycleCompleted, with Pointers (ADR-084)"
+
+  relationship Clarification -> DesignModel  // S:181 "C3 <-> C4: Partnership."
+    type Partnership
+    contract "answers route back (QuestionResolved routing); the partnership is two-way"

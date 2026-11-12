@@ -1,0 +1,147 @@
+// T7 — A source is erased and the design forgets it
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T7.O7 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T7.M2 · Sift receives it: ASourceArrivesAfterItsErasure (former flow t7-a-source-arrives-after-its-erasure.moment)
+//   T7.M2 · Sift receives it: AnErasedDocumentIsTakenInAgain (former flow t7-an-erased-document-is-taken-in-again.moment)
+//   T7.M2 · Sift receives it: TheErasureEntryIsRefusedWhileSiftIsDisabled (former flow t7-erasure-is-refused-while-disabled.moment)
+//   T7.M4 · The read models are destroyed: TheDestructionFails (former flow t7-the-destruction-fails.moment)
+//   T7.M6 · The verdict is recorded without it (continued): AGapWhoseOriginIsErasedIsReRaisedAgainstALiveSource (former flow t7-a-gap-is-re-raised-against-a-live-source-after-the-erasure.moment)
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T7 — A source is erased and the design forgets it"
+  description "T7 — A source is erased and the design forgets it. The story of the thread from its start to its T7.O7 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane flmnt "Flmnt" [External]
+  lane intake "Intake" [Core]
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T7.M1 · An erasure is requested in flmnt"
+    note flmnt: "A person requests erasure of an entry, a document section, a document version or a document. an erasure Entry names a Pointer; what crosses to Sift carries the Pointer only"  // S:375 "an erasure Entry names a Pointer"
+
+  moment "T7.M2 · Sift receives it" [branch]
+    when TheMainPath
+      // the main path of the story
+      // gate (C1) then Entry dispatch (S:366-370): the gate runs before RecordReceipt (S:309); the erasure stream dispatches ReadModelDestruction (S:373, S:1011).
+      intake: RecordReceipt  // S:1011 "An entry (§2): gate → RecordReceipt → ReadModelDestruction(entry scope)"; S:369
+      intake: ReceiptRecorded  // S:321
+    when ASourceArrivesAfterItsErasure
+      // former flow: t7-a-source-arrives-after-its-erasure.moment
+      // T7.M2·B1 · when the source already has a scope tombstone (an entry or a section arrives after its erasure, or while it is being recorded)
+      // T7.N1 · Closed at dispatch (terminal): RecordReceipt, then CloseReceipt(erased), in a Cycle of its own; the work of an erased source is never started (S:372).
+      intake: RecordReceipt  // S:372 "a source with a scope tombstone ... RecordReceipt, then CloseReceipt(erased)"; S:369
+      intake: ReceiptRecorded  // S:321
+      intake: CloseReceipt  // S:372; S:330
+      intake: ReceiptClosed  // S:326 "ReceiptClosed {erased}"
+      design: RecordPassTrigger  // S:341 "RecordPassTrigger is issued by the Cycle's settle step"
+      // the Cycle's settle step issues it, once for each attempt, with one cause by precedence (a step, not a policy; cause ClosedAtDispatch)  // S:341 "ClosedAtDispatch applies when the Cycle recorded the closure of a Receipt whose source already has a scope tombstone"
+      design: PassTriggerRecorded  // S:341 "each model-wide pass of a Receipt's redo, of an erasure and of a closure at dispatch is started on a PassTriggerRecorded"
+      // A model-wide pass of the closure follows, outside a Replay and an intake, where it waits (S:340, S:372).
+      design: StartPass  // S:372 "the settle step of that Cycle then starts a model-wide pass of the closure (ClosedAtDispatch)"; S:340
+        triggered-by PassTriggerRecorded  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)" (policy PassTriggerRecordedStartsConvergencePass)
+      design: PassStarted  // S:672
+      design: PassCompleted [outcome]  // S:675
+    when AnErasedDocumentIsTakenInAgain
+      // former flow: t7-an-erased-document-is-taken-in-again.moment
+      // T7.M7·B1 · when an operator takes the erased document in again with IntakeDocument
+      intake: IntakeDocument  // S:375 "A repeat IntakeDocument of an erased document version never restores what was destroyed"; S:1013
+      // T7.N2 · A re-intake is a new intake (terminal): the intake carries the next intake ordinal, so its Section Pointers, Receipts, Placement keys, Construct IDs, CauseKeys and data-key IDs are all new; the erased sections stay skipped (S:375, S:394, S:1013).
+      intake: RecordReceipt  // S:394 "the intake is a new one with the next intake ordinal, whose Pointers and Receipts are new"
+      intake: ReceiptRecorded [outcome]  // S:321
+    when TheErasureEntryIsRefusedWhileSiftIsDisabled
+      // former flow: t7-erasure-is-refused-while-disabled.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Covers T7.M1·B1 and T7.H1 (continues in T2.N1). Why separate: a gate refusal and a dispatch are mutually exclusive outcomes of the gate (S:295). The entry gets no Receipt; the Replay dispatches it after the re-enable (S:297, S:379).
+      // T7.M1·B1 · when Sift is disabled
+      // The refusal of an erasure-stream entry: only a Live arrival gets a notice, and only once a SiftEnabled or SiftDisabled is recorded (S:297); the notice carries Pointers and the cause only (S:300).
+      design: RecordGateDecision  // S:1410 "RecordGateDecision | the hard-stop gate, when work is taken"
+      design: GateDecisionRecorded [terminal]  // S:1352 "GateDecisionRecorded | StartCycle (an Admitted decision starts the Cycle); the refusal notice (§1 Hard-stop gate, Refusal notices)"
+
+  moment "T7.M4 · The read models are destroyed" [branch]
+    // SG.ReadModelDestruction.1 (S:913-919): entry scope: tombstone the entry, destroy its data keys in every key generation; document scope: tombstone each named section's key and the data key of the document version,
+    // destroy them in every key generation; no other section's key is touched; the step is keyed per data-key ID and runs again on every attempt. The four steps are one orchestration command (S:912).
+    design: ReadModelDestruction  // S:912 "ReadModelDestruction(scope) (a command; 4 numbered steps; each records its start)"; S:1011
+
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when TheDestructionFails
+      // former flow: t7-the-destruction-fails.moment
+      // T7.M4·B1 · when the destruction fails
+      // The erasure Cycle ends Failed; redone as a new Cycle from current state; "already gone" counts as success (S:924). A failed entry is redone by the next live arrival, quarantined at the bound (S:354).
+      intake: RecordFailedAttempt  // S:345 "RecordFailedAttempt ... is issued when an entry's processing fails"; S:354
+      intake: AttemptFailed [terminal]  // S:323
+
+  moment "T7.M4 · The read models are destroyed (main path)"
+    // the main path of the story
+    // note design: "Steps 2 and 3 of ReadModelDestruction: Sift destroys the read models it hosts in scope and the document sections and bytes it holds, then verifies that nothing it hosts in scope is readable. Kurrent is never shredded; the copies hosted in flmnt stay readable"  // S:920 "destroy the read models Sift itself hosts in scope"
+    design: ReadModelsDestroyed  // S:922 "ReadModelDestruction records ReadModelsDestroyed {scope, key generation, entry or document, notReachable"
+    design: RecordNodeChange  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged"
+    design: NodeChanged  // S:979 "ReplayCompleted, ReadModelsDestroyed, DocumentVersionProcessed, PassTriggerRecorded and GatewayResultRecorded are writes for which RecordNodeChange records NodeChanged"
+
+  moment "T7.M5 · Receipts and Gaps of the source are closed"
+    // After ReadModelsDestroyed (S:340): CloseReceipt(erased) for every unprocessed Receipt of the erased sources (quarantined, failed and open, or recorded and not processed), final, out of the verdict,
+    // a RedriveCycle of it a NoOp (S:330, S:360); MootGap(cause Erased) for each Gap any of whose origins is in the scope: no Placement marked stale, nothing re-asked (S:1015).
+    intake: CloseReceipt  // S:330 "CloseReceipt is a system command: the erasure's Cycle issues it for every unprocessed Receipt of the erased sources"; S:319
+      triggered-by ReadModelsDestroyed
+    intake: ReceiptClosed  // S:326 "ReceiptClosed {erased}"
+    design: ReadModelsDestroyedMootsErasedGaps  // S:817 "ReadModelsDestroyed (an entry-scope or document-scope erasure) → MootGap(cause: Erased) for each Gap any of whose origins' entry or section is in the erased scope"
+      triggered-by ReadModelsDestroyed
+    design: MootGap cause Erased  // S:1015 "The erasure closes every Gap any of whose origins' entry or section is erased ... with MootGap(cause: Erased)"; S:747
+      triggered-by ReadModelsDestroyedMootsErasedGaps
+    design: GapMooted  // S:755 "GapMooted {cause}"
+
+  moment "T7.M6 · The verdict is recorded without it"
+    // Every erasure starts one model-wide pass after its ReadModelsDestroyed, once per erasure Entry, whether or not a Receipt closed (S:340, S:731); inside a Replay it waits (S:339).
+    // The pass evaluates every construct from the sources that remain live: a finding a live source still supports is observed under a new GapKey and asked, none otherwise (S:1015).
+    design: RecordPassTrigger  // S:341 "RecordPassTrigger is issued by the Cycle's settle step"
+    // the Cycle's settle step issues it, once for each attempt, with one cause by precedence (a step, not a policy; cause ErasureDestroyed)  // S:341 "ErasureDestroyed applies when the Cycle is an erasure Entry's of entry scope or document scope"
+    design: PassTriggerRecorded  // S:341 "each model-wide pass of a Receipt's redo, of an erasure and of a closure at dispatch is started on a PassTriggerRecorded"
+    design: RecordNodeChange  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged"
+    design: NodeChanged  // S:979 "ReplayCompleted, ReadModelsDestroyed, DocumentVersionProcessed, PassTriggerRecorded and GatewayResultRecorded are writes for which RecordNodeChange records NodeChanged"
+    design: StartPass  // S:731 "an erasure ... StartPass(Convergence, scope: the customer workspace, model-wide), once per erasure Entry"
+      triggered-by PassTriggerRecorded  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)"
+      triggered-by ReadModelsDestroyed  // S:340 "after the erasure's ReadModelsDestroyed and its closures (CloseReceipt, MootGap(cause: Erased)) are recorded, StartPass"
+
+  moment "T7.M6 · The verdict is recorded without it (continued)" [branch]
+    design: PassStarted  // S:672
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when AGapWhoseOriginIsErasedIsReRaisedAgainstALiveSource
+      // former flow: t7-a-gap-is-re-raised-against-a-live-source-after-the-erasure.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): B-18 of B-corpus-to-model.md. t7-a-source-is-erased-and-the-design-forgets-it keeps the case where no live source supports the finding ("opens nothing", S:788); this flow is the exclusive case where a live source still does.
+      // carried from the former flow, its header: Which live source becomes the origin is the execution ADR's (S:788 "(4) left to the execution ADR (SIFT-ADR-082)"); the model states no rule for it. ReadModelsDestroyed is a process event of the SequenceRecords stream (S:922, S:926), and the closure is the hop ReadModelsDestroyed, policy ReadModelsDestroyedMootsErasedGaps, MootGap (S:817).
+      // carried from the former flow, T7.M5 · The Gap of the erased origin is closed: design: MootGap cause Erased  // S:788 "is closed by MootGap(cause: Erased), whatever its state"
+      // carried from the former flow, T7.M5 · The Gap of the erased origin is closed: design: GapMooted  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried"
+      // carried from the former flow, T7.M6 · The erasure's model-wide pass re-raises the finding: design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // T7.M6 · The erasure's model-wide pass re-raises the finding
+      design: RecordGateResults  // S:788 "the erasure's model-wide pass (§3 Assessment, Convergence triggers) evaluates every construct"
+        triggered-by PassStarted  // S:720 "Gate run: PassStarted → GateRun" (policy PassStartedRunsGates)
+      design: GapIdentified  // S:788 "a finding that still holds from a live source is observed under a GapKey whose origin is that live source"
+      design: GatesEvaluated  // S:669 "it records one GapIdentified per finding not yet identified in the pass, and the last call records GatesEvaluated"
+      design: ObserveGap  // S:721 "**GapIdentified** → ObserveGap(pass, finding, origins, CauseKey) on that GapKey's Gap."
+        triggered-by GapIdentified  // S:721 "GapIdentified → ObserveGap" (policy GapIdentifiedObservesGap)
+      design: GapOpened  // S:788 "which is a Gap of its own"
+      // with no answer, resolution or waiver of the closed Gap carried to it, because those rested on the erased origin's key  // S:788 "with no answer, resolution or waiver of the closed Gap carried to it"
+      clarification: AskQuestion  // S:788 "asked and blocking by the handling table above"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+
+  moment "T7.M6 · The verdict is recorded without it (continued, main path)"
+    // the main path of the story
+    design: PassCompleted  // S:675; S:337 "records the verdict without it"
+
+  moment "T7.M7 · The requester is told the limit"
+    // [person] the requester reads the notice in flmnt (external: narrative). The notice states the limit: the copies Sift hosts are unreadable, the flmnt-hosted copies stay readable; ReadModelsDestroyed.notReachable names them (S:1017).
+    // A notice carries Pointers and codes only (S:300); the poster's notice is a side effect, not a command.
+    intake: MarkProcessed  // S:373 "erasure stream: ReadModelDestruction(entry scope)"; S:344
+
+  moment "T7.O7 · The design forgot the source (terminal)"
+    // PROVES: ReadModelsDestroyed recorded (the process event of M3's command, S:922); every unprocessed Receipt of the source ReceiptClosed (M5); Gaps of the erased origin GapMooted {Erased} (M5); the erasure's PassCompleted records
+    // the verdict without the erased source's open work (M6); Kurrent still holds every event; the requester's notice states the limit (S:1017).
+    intake: ReceiptProcessed [terminal]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"; S:373
+    // T7.N1 Closed at dispatch: t7-a-source-arrives-after-its-erasure. T7.N2 A re-intake is a new intake: t7-an-erased-document-is-taken-in-again.

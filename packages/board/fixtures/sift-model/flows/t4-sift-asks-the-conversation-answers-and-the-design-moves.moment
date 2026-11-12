@@ -1,0 +1,741 @@
+// T4 — Sift asks, the conversation answers, and the design moves
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE.md is a derived document: it gives the thread structure and the titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T4.O4 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T4.M1 · A gap needs a person: APerConstructAnswerLeavesOutAConstruct (former flow t4-a-per-construct-answer-leaves-out-a-construct.moment)
+//   T4.M1 · A gap needs a person: TheAnswerNamesTheContextCOfAnArm (former flow t4-the-answer-names-the-context-of-an-arm.moment)
+//   T4.M1 · A gap needs a person: TheAnswerSaysNotATerm (former flow t4-the-answer-says-not-a-term.moment)
+//   T4.M1 · A gap needs a person: TheAnswerSettlesADeferredPlacement (former flow t4-the-answer-settles-a-deferred-placement.moment)
+//   T4.M1 · A gap needs a person: TheHomonymAnswerSettlesThePlacementsOfATerm (former flow t4-the-homonym-answer-settles-the-placements-of-a-term.moment)
+//   T4.M1 · A gap needs a person: TheOwnerAnswerSettlesThePlacementsOfATerm (former flow t4-the-owner-answer-settles-the-placements-of-a-term.moment)
+//   T4.M1 · A gap needs a person (continued): AResolvedGapOfTheSameRuleAndFindingIdentityIsCarried (former flow t4-a-resolved-gap-of-the-same-identity-is-carried.moment)
+//   T4.M1 · A gap needs a person (continued): AnOpenQuestionIsCarriedToTheSuccessorsGap (former flow t4-an-open-question-is-carried-to-the-successors-gap.moment)
+//   T4.M1 · A gap needs a person (continued): TheConstructIsProvisionalSoTheGapAwaitsPlacement (former flow t4-the-construct-is-provisional-so-the-gap-awaits-placement.moment)
+//   T4.M1 · A gap needs a person (continued): TheRecordAlreadyAnswersTheGap (former flow t4-the-record-already-answers-the-gap.moment)
+//   T4.M1 · A gap needs a person (continued): TheResolverAnswersTheGapSoNothingIsAsked (former flow t4-the-resolver-answers-the-gap-so-nothing-is-asked.moment)
+//   T4.M2 · The questions are gathered, then posted together: ALaterPassReObservesTheGapWithADifferentRationale (former flow t4-a-later-pass-re-observes-the-gap-with-a-different-rationale.moment)
+//   T4.M2 · The questions are gathered, then posted together: ARelevantConstructEventGivesTheResolverOneMoreTry (former flow t4-a-posted-question-is-given-to-the-resolver-again.moment)
+//   T4.M2 · The questions are gathered, then posted together: ARelevantChangeCouldNowSettleAPostedQuestion (former flow t4-a-relevant-change-could-now-settle-a-posted-question.moment)
+//   T4.M2 · The questions are gathered, then posted together: TheArchitectCascadeChangesAtATickReCheck (former flow t4-the-architect-cascade-changes-at-a-tick-re-check.moment)
+//   T4.M2 · The questions are gathered, then posted together: TheOptionsOrPremiseChangedAfterThePost (former flow t4-the-options-or-premise-changed-after-the-post.moment)
+//   T4.M2 · The questions are gathered, then posted together: TheQuestionSweepRunsAtADocumentCloseWhenAQuestionWasKeptForASuccessorsGapAndNoGapTookIt (former flow t4-the-question-sweep-runs-at-a-document-close.moment)
+//   T4.M2 · The questions are gathered, then posted together: TheQuestionSweepRunsAtADocumentCloseWhenAGapIsStillOpenUnderARecordLagHold (former flow t4-the-question-sweep-runs-at-a-document-close.moment)
+//   T4.M5 · The answer is routed: ASameAsAnswerOnNonBoundaryConstructs (former flow t4-a-same-as-answer-on-non-boundary-constructs.moment)
+//   T4.M5 · The answer is routed: ASameAsAnswerUnderAnotherNameThanTheTargets (former flow t4-a-same-as-answer-under-another-name.moment)
+//   T4.M5 · The answer is routed: TheAnswerDefinesAnUnevaluableDefinition (former flow t4-the-answer-defines-an-unevaluable-definition.moment)
+//   T4.M5 · The answer is routed: TheAnswerMovesAConstructOnALAN007Gap (former flow t4-the-answer-moves-a-construct-to-another-context.moment)
+//   T4.M5 · The answer is routed: TheAnswerNamesTheOwnerCOfATermOnALAN006GapAndC (former flow t4-the-answer-names-the-owner-of-a-term-and-c-holds-none.moment)
+//   T4.M5 · The answer is routed: TheAnswerNamesTheOwnerCOfATermOnALAN006Gap (former flow t4-the-answer-names-the-owner-of-a-term.moment)
+//   T4.M6 · The design moves: LaterTextSetsTheAnswerAside (former flow t4-later-text-sets-the-answer-aside.moment)
+//   T4.M6 · The design moves: TheAnswerIsHomonymOnALAN006Gap (former flow t4-the-answer-is-homonym-on-a-language-gap.moment)
+//   T4.M6 · The design moves: TheAnswerSaysNotAnIssueAndTheGapIsDistinct (former flow t4-the-answer-says-not-an-issue.moment)
+// REFUSALS BY A PRECONDITION on a command of the main path (derived as negative scenarios for every path of the flow, Moment 0.9.0 ADR-042) (a derived `neg-<Command>-<Precondition>` scenario): T4.M1·B5 AskQuestion.CauseCurrent and AskQuestion.NoOpGathered (T4.N1);
+// T4.M4·B1..B6 ResolveQuestion.Unauthorised, .Closed, .Stale, .Invalid, .Undecided and .NoOpRepeat (T4.N2, T4.N3); DisposeGap.NoOpNotOpen and .DeferralNotWaivable.
+// T4.M5·B1 ApplyAnswer.DeferredOrStale is a precondition of ApplyAnswer, which is on the Defer route, so it is reached in the branch TheAnswerSettlesADeferredPlacement.
+// DIFFERENCES FROM NDD-SOURCE (the spec wins): the Receipt precedes ResolveQuestion (gate -> RecordReceipt -> ResolveQuestion, S:1130), as NDD T4.M4 says; NDD T4.M5 lists every route as one chain, the spec
+// gives them as rows by cause (S:1101-1127); NDD "RM3" is the open-questions read model (S:1003); the QANS payload of NDD T4.M3 is flmnt's question contract and is not in the spec.
+// carried from the former main flow, its header: Waive -> GrantWaiver (T15.M2)  // S:1124 "BoundaryChangeProposed → Ratify or Reject;"
+// carried from the former main flow, its header: comment): T4.M2·B1 a steer raised by a Live arrival is posted immediately (S:1086); T4.M2·B2 a question that exceeds flmnt's limits is split into parts, never truncated (S:1097).
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T4 — Sift asks, the conversation answers, and the design moves"
+  description "T4 — Sift asks, the conversation answers, and the design moves. The story of the thread from its start to its T4.O4 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane flmnt "Flmnt" [External]
+  lane intake "Intake" [Core]
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T4.M1 · A gap needs a person" [branch]
+    when TheMainPath
+      // the main path of the story
+      // GapOpened {handling Ask} comes from the pass (T3.M5); first the Construct stream is read: a terminal construct -> MootGap and nothing else; a provisional construct -> awaiting placement; then the computed answer, the carry and the RecordLag hold (the alternatives below); then Ask  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap, and nothing else"
+      design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?};"
+    when APerConstructAnswerLeavesOutAConstruct
+      // former flow: t4-a-per-construct-answer-leaves-out-a-construct.moment
+      // Outcome: a PerConstruct answer leaves out a construct (or a version-retirement answer names an X not offered or no longer live), so those constructs are asked again as the next generation, with their original causedBy values; the other rows apply (NDD: returns-to T4.M2).
+      // T4.M1 · A gap needs a person
+      // a Defer asks through its own outcome, not through a Gap: the Defer{Unsure} outcome -> AskQuestion (subject: the event that recorded the Defer)  // S:501 "AskQuestion (subject: the event that recorded the Defer, PlacementDecided or AnswerApplied"
+      design: PlacementDecided  // S:436 "PlacementDecided {outcome, rationale, alternatives[]};"
+      clarification: AskQuestion  // S:501 "AskQuestion (subject: the event that recorded the Defer, PlacementDecided or AnswerApplied"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      clarification: OpenQuestionsBySubject  // S:1338 "QuestionAsked | the question poster"
+      // T4.M3 · A person answers
+      // [person] a recipient answers {option?, text?}; flmnt lands the answer on the request stream  // S:1131 "the clientId names the surface that answered"
+      // note flmnt: "A recipient answers {option?, text?}; flmnt lands the answer on the request stream as an `answer` entry, and what crosses to Sift is its Pointer"  // S:1181 "an `answer` entry of the request stream"
+      // T4.M4 · The answer is received and recorded
+      // the request Receipt: gate -> RecordReceipt -> ResolveQuestion(answer)  // S:1130 "**Request-stream entries** are entries (§2): gate → RecordReceipt → ResolveQuestion(answer)."
+      intake: RecordReceipt  // S:1130 "gate → RecordReceipt → ResolveQuestion(answer)"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival};"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      // T4.M5 · The answer is routed
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1106 "a Gap event of a Contradiction Gap" (policy RoutingContradictionAnswerAppliesAnswer)
+      // T4.M5·B2 · when a PerConstruct answer leaves out a construct, or a version-retirement answer names an X not offered or no longer live
+      // rows left open: a generation is never partly open; when an answer is applied, a construct a PerConstruct answer leaves out is asked again as the next generation, for those constructs only  // S:1074 "a construct a PerConstruct answer leaves out, and a construct of a version-retirement answer whose successor was not offered or is no longer live, are asked again as the next generation"
+      clarification: AskQuestion  // S:1074 "the policy QuestionResolved → AskQuestion carries **the causedBy values those constructs were gathered under**"
+        triggered-by QuestionResolved  // S:1113 "a generation asked again for rows left open or set aside by later text" (policy RowsLeftOpenAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when TheAnswerNamesTheContextCOfAnArm
+      // former flow: t4-the-answer-names-the-context-of-an-arm.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Route of the arm's-context question (S:501 "the arm's context subject"); Context C is one of its options (S:1079 "arm's context (Round 19; 46306455 (pass-2 B-5)): Context, Retype, Retire, ReplacedBy").
+      // carried from the former flow, its description: description "T4 — a Context C answer to an arm's-context question applies to the Placement that stored the arm, so the arm takes C. Spec of record S:1121, S:530."
+      // T4.M1 · A construct under a stored arm names no context
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:501 "for a missing context under a stored arm that has none, the arm's context subject"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T4.M4 · The answer is received and recorded
+      // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion (S:1130).
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T4.M5 · The answer is routed
+      design: ApplyAnswer  // S:1121 "Context C (an arm's-context question) → as the arm's context settled (§3 Placement): ApplyAnswer to the Placement that stored the arm, so the arm takes C"
+        triggered-by QuestionResolved  // S:530 "An arm's context settled (Round 19" (policy ArmContextSettledAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      // for every Placement the subject gathered, an answer naming the arm, which is New and accepts each provisional, its context now the arm's  // S:530 "for every Placement the subject gathered, as an answer naming the arm, which is New and accepts each provisional, its context now the arm's"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The arm took the context (terminal)
+      // note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1001 "graph: its entry→construct edges are the fold of ConstructLinked (Round 9); it carries **the typed index**"
+      // PROVES: AnswerApplied on the Placement that stored the arm; nothing is stored again (S:530 "Nothing is stored again").
+    when TheAnswerSaysNotATerm
+      // former flow: t4-the-answer-says-not-a-term.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T4 — a NotATerm answer to a Defer question retires each gathered provisional Term as a Retire does. Spec of record S:501, S:1109, S:1120."
+      // T4.M1 · A Defer is asked
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:501 "otherwise AskQuestion (subject: the event that recorded the Defer"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T4.M4 · The answer is received and recorded
+      // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion (S:1130).
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T4.M5 · The answer is routed
+      design: SupersedeConstruct  // S:1120 "NotATerm → as Retire on each gathered provisional Term: SupersedeConstruct(by: none, cause: Answered"
+        triggered-by QuestionResolved  // S:1111 "a PlacementDecided gathered by a retirement question" (policy RoutingRetirementAnswerSupersedes)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: ConstructInvalidated {Answered} for the gathered provisional Term (S:1120).
+    when TheAnswerSettlesADeferredPlacement
+      // former flow: t4-the-answer-settles-a-deferred-placement.moment
+      // T4.M1 · A gap needs a person
+      // a Defer asks through its own outcome, not through a Gap: the Defer{Unsure} outcome -> AskQuestion (subject: the event that recorded the Defer)  // S:501 "AskQuestion (subject: the event that recorded the Defer, PlacementDecided or AnswerApplied"
+      design: PlacementDecided  // S:436 "PlacementDecided {outcome, rationale, alternatives[]};"
+      clarification: AskQuestion  // S:501 "AskQuestion (subject: the event that recorded the Defer, PlacementDecided or AnswerApplied"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      clarification: OpenQuestionsBySubject  // S:1338 "QuestionAsked | the question poster"
+      // T4.M3 · A person answers
+      // [person] a recipient answers {option?, text?}; flmnt lands the answer on the request stream  // S:1131 "the clientId names the surface that answered"
+      // note flmnt: "A recipient answers {option?, text?}; flmnt lands the answer on the request stream as an `answer` entry, and what crosses to Sift is its Pointer"  // S:1181 "an `answer` entry of the request stream"
+      // T4.M4 · The answer is received and recorded
+      // the request Receipt: gate -> RecordReceipt -> ResolveQuestion(answer)  // S:1130 "**Request-stream entries** are entries (§2): gate → RecordReceipt → ResolveQuestion(answer)."
+      intake: RecordReceipt  // S:1130 "gate → RecordReceipt → ResolveQuestion(answer)"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival};"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      // T4.M5 · The answer is routed
+      // the event that recorded a Defer -> ApplyAnswer on the Placement it recorded; ApplyAnswer only when Deferred or Stale  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded."
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1106 "a Gap event of a Contradiction Gap" (policy RoutingContradictionAnswerAppliesAnswer)
+      // T4.M6 · The design moves
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      // AnswerApplied -> the outcome policies by the outcome the answer names (New, Retire, ReplacedBy, Retype, SameAs, ...: T3, T5, T14); the Placement is settled, no longer Deferred  // S:443 "each settles the Placement, which is then no longer Deferred"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?);"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)};"
+      // T4.O4 · The conversation moved the design (terminal)
+      // PROVES: QuestionResolved -> AnswerApplied recorded for the generation; the Placement is settled  // S:1306 "convergence read model"
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1306 "convergence read model"
+    when TheHomonymAnswerSettlesThePlacementsOfATerm
+      // former flow: t4-the-homonym-answer-settles-the-placements-of-a-term.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T4 — a Homonym answer to a term-owner question on a Placement cause applies New with the row's context to each gathered Placement; each Term is its own and none is a SameAs of another. Spec of record S:1119, S:470."
+      // T4.M1 · A Term names no context and no one context uses the word
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:470 "the Defer is asked on the term-owner subject (§4), which offers every live context"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T4.M4 · The answer is received and recorded
+      // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion (S:1130).
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T4.M5 · The answer is routed
+      design: ApplyAnswer  // S:1119 "Homonym → on a Placement cause: ApplyAnswer(New, context: the row's context) for each gathered Placement, each Term its own and none a SameAs of another"
+        triggered-by QuestionResolved  // S:530 "An arm's context settled (Round 19" (policy ArmContextSettledAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · Each Term is its own (terminal)
+      // note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1001 "graph: its entry→construct edges are the fold of ConstructLinked (Round 9); it carries **the typed index**"
+      // PROVES: AnswerApplied {New, context: the row's context} for each gathered Placement (S:1119).
+    when TheOwnerAnswerSettlesThePlacementsOfATerm
+      // former flow: t4-the-owner-answer-settles-the-placements-of-a-term.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T4 — an Owner C answer to a term-owner question on a Placement cause applies New with context C to the first gathered Placement and SameAs that Term to the others of the same word. Spec of record S:1118, S:470, S:1084."
+      // T4.M1 · A Term names no context and no one context uses the word
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:470 "the Defer is asked on the term-owner subject (§4), which offers every live context"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T4.M4 · The answer is received and recorded
+      // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion (S:1130).
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T4.M5 · The answer is routed
+      design: ApplyAnswer  // S:1118 "Owner C → on a Placement cause: ApplyAnswer(New, context: C) on the first gathered Placement of the Term and ApplyAnswer(SameAs, target: that Term) on the others of the same word"
+        triggered-by QuestionResolved  // S:530 "An arm's context settled (Round 19" (policy ArmContextSettledAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The Term has its owner (terminal)
+      // note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1001 "graph: its entry→construct edges are the fold of ConstructLinked (Round 9); it carries **the typed index**"
+      // PROVES: AnswerApplied {New, context: C} on the first Placement and {SameAs, target} on the others (S:1118).
+
+  moment "T4.M1 · A gap needs a person (continued)" [branch]
+    when TheMainPath
+      // the main path of the story
+      clarification: AskQuestion  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event; recipients: all architects, cascading to admins and owners"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+    when AResolvedGapOfTheSameRuleAndFindingIdentityIsCarried
+      // former flow: t4-a-resolved-gap-of-the-same-identity-is-carried.moment
+      // Outcome: the lineage root has a Resolved Gap of the same rule and the same finding identity, so the new Gap is disposed identically and nothing is asked (NDD: returns-to T4.M2).
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T4.M1 · A gap needs a person: GapOpened {handling Ask} comes from the pass (T3.M5); the Gap policies run in the order the spec lists them  // S:794 "On GapOpened, GapObserved that reopens (from Resolved{Fixed | SameAs}), or GapReopened:"
+      // T4.M1·B4 · when the lineage root has a Resolved Gap of the same rule and finding identity
+      // the carry: when a Gap opens on a construct whose lineage root has an earlier construct with a Resolved Gap of the same rule and finding identity, the new Gap is disposed identically and nothing is asked  // S:807 "→ DisposeGap(Resolved {…, carriedFrom: that GapKey}), the new Gap being disposed identically and nothing asked"
+      design: DisposeGap  // S:807 "→ DisposeGap(Resolved {…, carriedFrom: that GapKey})"
+        triggered-by GapOpened  // S:807 "Carry (Round 28, ruling 791da7c4" (policy CarryDisposesGap)
+      design: GapResolved [outcome]  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+    when AnOpenQuestionIsCarriedToTheSuccessorsGap
+      // former flow: t4-an-open-question-is-carried-to-the-successors-gap.moment
+      // Outcome: the earlier Gap's question is still open, so it is carried: AskQuestion on the successor's GapKey and the old subject's question withdrawn Carried (NDD: returns-to T4.M2).
+      // T4.M1·B4 · when the lineage root has a Resolved Gap of the same rule and finding identity
+      // when that earlier Gap's question is still open, it is carried  // S:807 "when that earlier Gap's question is still open, it is carried"
+      clarification: AskQuestion  // S:807 "→ AskQuestion on the successor's GapKey (causedBy: this GapOpened), which continues the question there"
+        triggered-by GapOpened  // S:807 "Carry (Round 28, ruling 791da7c4" (policy CarryAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      clarification: ResolveQuestion cause Withdrawn  // S:807 "→ ResolveQuestion(Withdrawn, cause Carried) on the old subject's question"
+        triggered-by GapOpened  // S:807 "Carry (Round 28, ruling 791da7c4" (policy CarryWithdrawsOldQuestion)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when TheConstructIsProvisionalSoTheGapAwaitsPlacement
+      // former flow: t4-the-construct-is-provisional-so-the-gap-awaits-placement.moment
+      // Outcome: the construct is provisional, so the Gap is awaiting placement (Open, blocking, nothing asked) and is released when the construct is accepted (NDD: returns-to T4.M1).
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T4.M1 · A gap needs a person: the construct is provisional (proposedFor UnsurePlacement or BoundaryRatification): the Gap is awaiting placement; none of the policies below issues AskQuestion, Propose or MarkSameAs for it yet  // S:796 "the Gap is **awaiting placement**"
+      // T4.M1·B3 · when the construct is provisional
+      // released when the construct is accepted: for every Open Gap awaiting placement on it, the policy runs as if the Gap had just opened  // S:813 "ConstructAccepted, or a Ratification that accepts the construct → for every Open Gap awaiting placement on it"
+      design: AcceptConstruct  // S:547 "AcceptConstruct(by: Ratification{proposal} | Answer{question} | Answer{computed {rule, trigger}});"
+      design: ConstructAccepted  // S:553 "ConstructAccepted;"
+      // ConstructAccepted starts the Live pass on the accepted construct and the stored, uncommitted constructs attached to it, and releases the Gaps awaiting placement on it  // S:588 "ConstructAccepted → StartPass(Live, that construct"
+      design: StartPass  // S:588 "ConstructAccepted → StartPass(Live, that construct"
+        triggered-by ConstructAccepted  // S:588 "ConstructAccepted → StartPass(Live, that construct" (policy ConstructAcceptedStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      clarification: AskQuestion  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event; recipients: all architects, cascading to admins and owners"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+        triggered-by ConstructAccepted  // S:813 "ConstructAccepted, or a Ratification that accepts the construct → for every Open Gap awaiting placement on it" (policy GapsAwaitingPlacementReleased)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when TheRecordAlreadyAnswersTheGap
+      // former flow: t4-the-record-already-answers-the-gap.moment
+      // Outcome: a passage of the record already answers the question, so it is held with that passage and never put to people (NDD: returns-to T4.M2). HoldGap is refused, and the question asked, in three cases (its precondition RefusedHoldNotAllowed).
+      // T4.M1·B2 · when the record already answers it (RecordLag hold)
+      // RecordLag hold: before AskQuestion, the question of a Gap whose finding is Plain or Unevaluable is checked against the record; asked again at the next boundary or document close by the sweep, or on a later document version's fresh text  // S:808 "the question is **held with that passage** and never put to people"
+      design: HoldGap  // S:748 "HoldGap(cause: RecordLag {field, passage Pointer, document version}, requestKey: the ID of the event that caused the check), system-only"
+        triggered-by GapOpened  // S:808 "RecordLag hold (Round 28, rulings 3b5aeb42 B4" (policy RecordLagHoldsGap)
+      design: GapHeldForRecord [outcome]  // S:756 "GapHeldForRecord {field, passage Pointer, document version, requestKey, askedBefore}"
+      // GapHeldForRecord -> ResolveQuestion(Withdrawn, cause Held) on the Gap's open question, if one was asked  // S:808 "GapHeldForRecord → ResolveQuestion(Withdrawn, cause Held) on the Gap's open question, if one was asked"
+    when TheRecordAnswersAGapWhoseQuestionWasAlreadyAsked
+      // T4.M1·B2 · when the record already answers it and a question was asked before (RecordLag hold, askedBefore)
+      // GapOpened (or a reopening) -> HoldGap, which records GapHeldForRecord {..., askedBefore}; GapHeldForRecord -> ResolveQuestion(Withdrawn, cause Held) on the Gap's open question, if one was asked  // S:808 "GapHeldForRecord → ResolveQuestion(Withdrawn, cause Held) on the Gap's open question, if one was asked"
+      design: HoldGap  // S:748 "HoldGap(cause: RecordLag {field, passage Pointer, document version}, requestKey: the ID"
+        triggered-by GapOpened  // S:808 "RecordLag hold (Round 28, rulings 3b5aeb42 B4" (policy RecordLagHoldsGap)
+      design: GapHeldForRecord  // S:756 "GapHeldForRecord {field, passage Pointer, document version, requestKey, askedBefore}"
+      clarification: ResolveQuestion cause Withdrawn  // S:808 "GapHeldForRecord → ResolveQuestion(Withdrawn, cause Held)"
+        triggered-by GapHeldForRecord  // S:808 "GapHeldForRecord → ResolveQuestion(Withdrawn, cause Held)" (policy RecordLagWithdrawsHeldQuestion)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when TheResolverAnswersTheGapSoNothingIsAsked
+      // former flow: t4-the-resolver-answers-the-gap-so-nothing-is-asked.moment
+      // Outcome: the Gap's resolver predicate holds, so the computed answer disposes the Gap before anything is asked.
+      // T4.M1·B1 · when the Gap's resolver predicate holds
+      // when the Gap's resolver predicate holds: before anything is asked, the resolver the rule names (DEF-003, DEF-005, TAC-011, DUP, DEF-008, LAN-006, owner keeping, missing-arm) runs on an Ask Gap and on a Refuse Gap; nothing is asked  // S:797 "**Computed answer** (Round 28, ruling a84f79a6 (6) \"Apply, recorded as computed\"): before anything is asked"
+      design: DisposeGap  // S:745 "DisposeGap(Resolved {Fixed | SameAs | Distinct, rationale?, computedBy?, carriedFrom?}"
+        triggered-by GapOpened  // S:807 "Carry (Round 28, ruling 791da7c4" (policy CarryDisposesGap)
+      design: GapResolved [outcome]  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+    when TheResolverMarksTheGapSameAsAndDisposesIt
+      // T4.M1·B1 · when the resolver's command is MarkSameAs{addition}: step 1 is the command, step 2 disposes the Gap on the command's event
+      design: MarkSameAs  // S:797 "MarkSameAs{addition} on the construct, a self-addition"
+        triggered-by GapOpened  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerMarksSameAs)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: ConstructLinked  // S:558 "MarkSameAs given a Pointer records it with MarkedSameAs (SameAs)"
+      design: DisposeGap  // S:745 "DisposeGap(Resolved {Fixed | SameAs | Distinct, rationale?, computedBy?, carriedFrom?}"
+        triggered-by ConstructLinked  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerDisposesGap)
+      design: GapResolved [outcome]  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+    when TheResolverAddsAnAliasForTheGap
+      // T4.M1·B1 · when the resolver's command is AddAlias
+      design: AddAlias  // S:610 "AddAlias(construct, name, Pointer)"
+        triggered-by GapOpened  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerAddsAlias)
+      design: ConstructAliased [outcome]  // S:616 "ConstructAliased {name, Pointer}"
+    when TheResolverMovesTheConstructForTheGap
+      // T4.M1·B1 · when the resolver's command is MoveConstruct
+      design: MoveConstruct cause Computed  // S:612 "MoveConstruct(construct, context, cause: DefiningSection | DecidingRuling | Ratified | Car"
+        triggered-by GapOpened  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerMoves)
+      design: ConstructMoved [outcome]  // S:618 "ConstructMoved {from, to, cause, Pointer}"
+
+  moment "T4.M2 · The questions are gathered, then posted together" [branch]
+    clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    clarification: OpenQuestionsBySubject  // S:1338 "QuestionAsked | the question poster"
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when ALaterPassReObservesTheGapWithADifferentRationale
+      // former flow: t4-a-later-pass-re-observes-the-gap-with-a-different-rationale.moment
+      // Outcome: a GapObserved on an Open Gap records the new finding and the open question's body becomes the current rationale, so a post not yet sent carries it (NDD: returns-to T4.M2).
+      // T4.M1·B6 · when a later pass re-observes the Gap with a different rationale
+      // Rationale refresh: a GapObserved on an Open Gap whose finding carries a different rationale records the new finding; the open question has the current rationale as its body  // S:818 "**Rationale refresh** (ff9705c9 (R28-G16)): a GapObserved on an Open Gap whose finding carries a rationale different from the Gap's latest records the new finding"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+      design: GapObserved [outcome]  // S:751 "GapObserved {handling, pass, finding}"
+    when AReopeningObservationOnASupersededOrInvalidatedConstructMootsTheGap
+      // T4.M1·B7 · when a pass observes a Resolved Gap again (a reopening GapObserved) and its construct is superseded or invalidated
+      // On GapObserved that reopens, the Construct stream is read first: a superseded or invalidated construct -> MootGap, and nothing else (no question is asked)  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+      design: GapObserved  // S:751 "GapObserved {handling, pass, finding}"
+      design: MootGap cause ConstructEvent  // S:747 "MootGap(cause: construct event | Evaluated | Erased), system-only"
+        triggered-by GapObserved  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap" (policy GapObservedMootsGapOnTerminalConstruct)
+      design: GapMooted [outcome]  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried"
+    when ARelevantConstructEventGivesTheResolverOneMoreTry
+      // former flow: t4-a-posted-question-is-given-to-the-resolver-again.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: The resolver is the only automated answerer: it answers with answeredBy of kind system naming its rule as computedBy, and needs no role (S:1060).
+      // carried from the former flow, its description: description "T4 — A construct a posted question could now offer as an arm, a context or a target is stored: the re-ask policy gives the resolver one more try before the question is reposted to a person. Spec of record S:1060, S:1308."
+      // T4.M5·B4 · when a construct a posted question could now offer is stored
+      design: StoreConstruct  // S:1308 "ConstructStored | StartPass(Live) (Live arrivals"
+      design: ConstructStored  // S:1308 "ConstructStored | StartPass(Live) (Live arrivals"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      // T4.M5·B5 · the re-ask policy gives the resolver one more try
+      design: ReAskOnConstructStored  // S:1060 "Re-ask on a relevant change (R28-H9"
+        triggered-by ConstructStored
+      clarification: ResolveQuestion cause Withdrawn  // S:1060 "If it settles the question, the question is resolved as any computed answer (the posted question withdrawn Computed)"
+        triggered-by ReAskOnConstructStored
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when AnAcceptedConstructGivesTheResolverOneMoreTry
+      // T4.M5·B4 · when a construct a posted question could now offer is accepted
+      // the re-ask policy: ConstructAccepted of a construct that a posted question could now offer as an arm, a context or a target gives the resolver one more try (answeredBy kind system, needs no role)  // S:1060 "ConstructStored, ConstructAccepted or BoundaryChangeRatified of a construct that a posted question could now offer"
+      design: AcceptConstruct  // S:547 "AcceptConstruct(by: Ratification{proposal} | Answer{question} | Answer{computed {rule, trigger}});"
+      design: ConstructAccepted  // S:553 "ConstructAccepted;"
+      clarification: ResolveQuestion cause Withdrawn  // S:1060 "If it settles the question, the question is resolved as any computed answer (the posted question withdrawn Computed)"
+        triggered-by ConstructAccepted  // S:1060 "ConstructStored, ConstructAccepted or BoundaryChangeRatified of a construct that a posted question could now offer" (policy ReAskOnConstructAccepted)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when ARelevantChangeCouldNowSettleAPostedQuestion
+      // former flow: t4-a-relevant-change-could-now-settle-a-posted-question.moment
+      // Outcome: a relevant change could now settle a posted question, so the resolver gets one more try before the question is reposted; here it settles it and the question is withdrawn Computed (when it does not, the question is reposted: t4-the-options-or-premise-changed-after-the-post.moment). NDD: returns-to T4.M2.
+      // T4.M5·B4 · when a relevant change could now settle a posted question (an arm, a context, a target stored or ratified; a document version touching a gathered construct)
+      // the re-ask policy: ConstructStored, ConstructAccepted or BoundaryChangeRatified of a construct that a posted question could now offer, or DocumentVersionProcessed of a document version that touches a gathered construct, gives the resolver one more try (answeredBy kind system, needs no role)  // S:1060 "gives the **resolver** the rule names (§3 Gap, computed answers) one more try before the question is reposted to a person"
+      design: DisposeGap  // S:1060 "If it settles the question, the question is resolved as any computed answer (the posted question withdrawn Computed)"
+        triggered-by GapOpened  // S:807 "Carry (Round 28, ruling 791da7c4" (policy CarryDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      clarification: ResolveQuestion cause Withdrawn  // S:1060 "the posted question withdrawn Computed"
+        triggered-by GapResolved  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerWithdrawsQuestion)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when TheArchitectCascadeChangesAtATickReCheck
+      // former flow: t4-the-architect-cascade-changes-at-a-tick-re-check.moment
+      // Outcome: the recipient cascade changed at a tick re-check (or a rebuild moved the key generation), so the question is readdressed and posted again; a no-op on a resolved generation (NDD: returns-to T4.M3).
+      // T4.M2·B4 · when the architect cascade changes at a tick re-check (P1.03), or a rebuild moves the key generation (SG.Setup.2)
+      // ReaddressQuestion(recipientRule, keyGeneration): a no-op on a resolved generation, and a no-op if the latest posting event already carries that recipientRule and key generation  // S:1031 "This is NoOp{resolved} on a resolved generation, and NoOp{current} if the latest posting event already carries that recipientRule and key generation."
+      clarification: ReaddressQuestion  // S:1031 "ReaddressQuestion(recipientRule, keyGeneration)."
+      clarification: QuestionReaddressed [outcome]  // S:1038 "QuestionReaddressed {recipientRule, keyGeneration}."
+    when TheOptionsOrPremiseChangedAfterThePost
+      // former flow: t4-the-options-or-premise-changed-after-the-post.moment
+      // Outcome: Repost: the generation is withdrawn Reposted and the next generation is asked in one unit of work, never the same generation again (NDD: returns-to T4.M3).
+      // T4.M2·B3 · when the options or premise changed after the post (Repost)
+      // Repost: in one unit of work, ResolveQuestion(Withdrawn{Reposted{repostedAs: n + 1}}) closes generation n and AskQuestion opens generation n + 1; flmnt refuses the same generation again as a duplicate  // S:1059 "In one unit of work, ResolveQuestion(Withdrawn{Reposted{repostedAs: n + 1}}) closes generation n and AskQuestion opens generation n + 1"
+      clarification: ResolveQuestion cause Withdrawn  // S:1059 "ResolveQuestion(Withdrawn{Reposted{repostedAs: n + 1}}) closes generation n"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      clarification: AskQuestion  // S:1059 "AskQuestion opens generation n + 1"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when TheQuestionSweepRunsAtADocumentCloseWhenAQuestionWasKeptForASuccessorsGapAndNoGapTookIt
+      // former flow: t4-the-question-sweep-runs-at-a-document-close.moment (path 1 of 2)
+      // T4.M6 · A document version closes
+      intake: IntakeDocument  // S:390 "IntakeDocument(location, documentId, version), issued by whoever placed the document"
+      intake: DocumentVersionProcessed  // S:397 "IntakeDocument records DocumentVersionProcessed {documentVersion, sections, upTo}"
+      // T4.M6·B1 · when a question was kept for a successor's Gap and no Gap took it
+      design: QuestionSweepWithdrawsKeptQuestions  // S:1100 "(1) each question kept for a successor's Gap"
+        triggered-by DocumentVersionProcessed
+      clarification: ResolveQuestion cause Withdrawn  // S:1100 "ResolveQuestion(Withdrawn{Mooted}, causedBy: the GapMooted that kept it)"
+        triggered-by QuestionSweepWithdrawsKeptQuestions
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when TheQuestionSweepRunsAtADocumentCloseWhenAGapIsStillOpenUnderARecordLagHold
+      // former flow: t4-the-question-sweep-runs-at-a-document-close.moment (path 2 of 2)
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Two exclusive arms of the one sweep (S:1100 (1) and (2)); each only when its condition holds. The session-boundary arm of the sweep has no command trigger (note in the Clarification context).
+      // carried from the former flow, its description: description "T4 — A question kept for a successor's Gap that no Gap took is withdrawn, and a Gap still held for the record is asked as the next generation, by the question sweep at a document version's close. Spec of record S:1100, S:1350."
+      // T4.M6 · A document version closes
+      intake: IntakeDocument  // S:390 "IntakeDocument(location, documentId, version), issued by whoever placed the document"
+      intake: DocumentVersionProcessed  // S:397 "IntakeDocument records DocumentVersionProcessed {documentVersion, sections, upTo}"
+      // T4.M6·B1 · when a question was kept for a successor's Gap and no Gap took it
+      design: QuestionSweepAsksHeldGaps  // S:1100 "(2) each Gap still Open under a RecordLag hold"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:1100 "AskQuestion on its GapKey as the next generation (causedBy: its GapHeldForRecord)"
+        triggered-by QuestionSweepAsksHeldGaps
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when AnArmOrContextStoreRepostsAnUndecidedQuestion
+      // T4.M2 · an Aggregate or BC is stored that an undecided missing-arm or arm's-context question could attach to
+      design: StoreConstruct  // S:1308 "ConstructStored | StartPass(Live) (Live arrivals"
+      design: ConstructStored  // S:1308 "ConstructStored | StartPass(Live) (Live arrivals"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: ResolveQuestion cause Withdrawn  // S:529 "Undecided question re-posted on an arm or context store"
+        triggered-by ConstructStored  // S:529 "Undecided question re-posted on an arm or context store" (policy UndecidedQuestionRepostedOnArmStore)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    when ADocumentVersionTouchingAGatheredConstructGivesTheResolverOneMoreTry
+      // T4.M2 · a document version that touches a construct a posted question gathered
+      intake: IntakeDocument  // S:390 "IntakeDocument(location, documentId, version), issued by whoever placed the document"
+      intake: DocumentVersionProcessed  // S:397 "IntakeDocument records DocumentVersionProcessed {documentVersion, sections, upTo}"
+      clarification: ResolveQuestion cause Withdrawn  // S:1060 "If it settles the question, the question is resolved as any computed answer (the posted question withdrawn Computed)"
+        triggered-by DocumentVersionProcessed  // S:1060 "Re-ask on a relevant change (R28-H9" (policy ReAskOnDocumentVersionProcessed)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+
+  moment "T4.M2 · The questions are gathered, then posted together (main path)"
+    // the main path of the story
+    // [flmnt] posting is the question poster's side effect (QPOST), not a command; the questions stay gathered until the session boundary, whose Cycle runs the sweep and the flush (T2.M6)  // S:1086 "**gathered** until the customer workspace's next session boundary"
+    // A second cause on the open generation compounds it, so one session's questions arrive compounded and together  // S:1086 "so one session's questions arrive compounded and together"
+    clarification: AskQuestion  // S:1027 "AskQuestion(causedBy, recipientRule). On an open generation it records QuestionCompounded."
+      triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+    clarification: QuestionCompounded  // S:1035 "QuestionCompounded {generation, causedBy, recipientRule};"
+
+  moment "T4.M3 · A person answers"
+    // [person] a recipient (dashboard, CLI or MCP client) answers {option?, text?}; flmnt lands the answer on the request stream stamped answeredBy {sub, clientId, verified roles}; the clientId names the surface  // S:1131 "the clientId names the surface that answered"
+    note flmnt: "A recipient answers {option?, text?}; flmnt lands the answer on the request stream as an `answer` entry, and what crosses to Sift is its Pointer"  // S:1181 "an `answer` entry of the request stream"
+
+  moment "T4.M4 · The answer is received and recorded"
+    // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion(answer)  // S:1130 "**Request-stream entries** are entries (§2): gate → RecordReceipt → ResolveQuestion(answer)."
+    intake: RecordReceipt  // S:1130 "gate → RecordReceipt → ResolveQuestion(answer)"
+    intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival};"
+    clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+
+  moment "T4.M5 · The answer is routed" [branch]
+    clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    clarification: OpenQuestionsBySubject  // S:1339 "the overlay (resolved questions); open-questions read model"
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when ASameAsAnswerOnNonBoundaryConstructs
+      // former flow: t4-a-same-as-answer-on-non-boundary-constructs.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: The conditional AddAlias for a SameAs answer under another name than the target's (S:1104) is a conditional policy and is not drawn. The boundary-construct row (S:1105) is t13-a-gap-sourced-duplicate-merge-is-ratified.
+      // carried from the former flow, its header: The lead-in (the Gap, its question, the received answer, the Receipt) is the main flow's T4.M1 and T4.M4; only the routing row differs (S:1101: "Each routed command applies its own role check"; the preconditions of ResolveQuestion are reached in the main flow).
+      // carried from the former flow, T4.M1 · A gap needs a person: design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+      // carried from the former flow, T4.M1 · A gap needs a person: clarification: AskQuestion  // S:809 "AskQuestion (subject: GapKey; causedBy: this event; recipients: all architects"
+      // T4.M5 · The answer is routed
+      design: MarkSameAs  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs (with the addition the answer names, if any; Round 13), then DisposeGap(Resolved{SameAs})"
+        triggered-by QuestionResolved  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs" (policy RoutingSameAsAnswerMarksSameAs)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: DisposeGap  // S:1104 "then DisposeGap(Resolved{SameAs})"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:729 "StartPass(Convergence, scope: that Gap's construct)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: MarkedSameAs then GapResolved {SameAs} (S:1104).
+    when ASameAsAnswerUnderAnotherNameThanTheTargets
+      // former flow: t4-a-same-as-answer-under-another-name.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T4 — a SameAs answer on non-boundary constructs, under another name than the target's, also adds the name as an alias. Spec of record S:1104, S:642."
+      // T4.M5 · The answer is routed
+      design: MarkSameAs  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs (with the addition the answer names, if any; Round 13), then DisposeGap(Resolved{SameAs})"
+        triggered-by QuestionResolved  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs" (policy RoutingSameAsAnswerMarksSameAs)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: AddAlias  // S:1104 "a SameAs answer under another name than the target's also issues AddAlias"
+        triggered-by QuestionResolved  // S:642 "QuestionResolved routing: a Retype answer → RetypeConstruct" (policy RoutingSameAsUnderAnotherNameAddsAlias)
+      design: ConstructAliased  // S:616 "ConstructAliased {name, Pointer}"
+      design: DisposeGap  // S:1104 "then DisposeGap(Resolved{SameAs})"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: MarkedSameAs, ConstructAliased for the name, then GapResolved {SameAs} (S:1104).
+    when TheAnswerDefinesAnUnevaluableDefinition
+      // former flow: t4-the-answer-defines-an-unevaluable-definition.moment
+      // T4.M5 · The answer is routed
+      design: MarkSameAs  // S:1117 "Defined (an Unevaluable definition) → MarkSameAs(LineageLink to the answer's request Pointer, addition: the definition"
+        triggered-by QuestionResolved  // S:589 "The Fixed disposal of a Gap's REC-001 question" (policy FixedDisposalOfRec001QuestionMarksSameAs)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: ConstructLinked  // S:558 "MarkSameAs given a Pointer records it with MarkedSameAs (SameAs)"
+      // the definition is an addition: MarkedSameAs with an addition starts the Live pass on that construct  // S:587 "MarkedSameAs with an addition → StartPass(Live, that construct)"
+      design: StartPass  // S:587 "MarkedSameAs with an addition → StartPass(Live, that construct)"
+        triggered-by MarkedSameAs  // S:587 "MarkedSameAs with an addition → StartPass(Live, that construct)" (policy MarkedSameAsWithAdditionStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: DisposeGap  // S:1117 "then DisposeGap(Resolved{Fixed})"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:729 "StartPass(Convergence, scope: that Gap's construct)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: MarkedSameAs {addition: the definition} then GapResolved {Fixed} (S:1117).
+    when TheAnswerMovesAConstructOnALAN007Gap
+      // former flow: t4-the-answer-moves-a-construct-to-another-context.moment
+      // T4.M5 · The answer is routed
+      design: MoveConstruct cause Answered  // S:1122 "Move C (a LAN-007 Gap cause) → MoveConstruct(the construct the answer names, context: C, cause: Answered"
+      design: ConstructMoved  // S:618 "ConstructMoved {from, to, cause, Pointer}"
+      design: StartPass  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)"
+        triggered-by ConstructMoved  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)" (policy ConstructMovedStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: ConstructMoved {cause: Answered}, then the Live pass the move starts (S:650, S:1122).
+    when TheAnswerNamesTheOwnerCOfATermOnALAN006GapAndC
+      // former flow: t4-the-answer-names-the-owner-of-a-term-and-c-holds-none.moment
+      // T4.M5 · C takes a Term and the other copies become uses
+      design: StoreConstruct  // S:1118 "C holding none takes one by StoreConstruct with the answer's request Pointer"
+        triggered-by GapOpened  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerStoresConstruct)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: SupersedeConstruct  // S:1118 "each other copy becomes a use and is SupersedeConstruct(by: the owner's Term, cause: Answered"
+        triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      design: DisposeGap  // S:1118 "then DisposeGap(Resolved{Fixed})"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: ConstructStored for the owner's Term in C, ConstructSuperseded for each other copy by it, then GapResolved {Fixed} (S:1118).
+    when TheAnswerNamesTheOwnerCOfATermOnALAN006Gap
+      // former flow: t4-the-answer-names-the-owner-of-a-term.moment
+      // T4.M5 · The answer is routed
+      design: SupersedeConstruct  // S:1118 "each other copy becomes a use and is SupersedeConstruct(by: the owner's Term, cause: Answered"
+        triggered-by QuestionResolved  // S:1111 "a PlacementDecided gathered by a retirement question" (policy RoutingRetirementAnswerSupersedes)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      design: DisposeGap  // S:1118 "then DisposeGap(Resolved{Fixed})"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:729 "StartPass(Convergence, scope: that Gap's construct)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: ConstructSuperseded for each other copy by the owner's Term, then GapResolved {Fixed} (S:1118).
+    when ASameAsAnswerWhoseOnlyEffectIsMarkSameAsStartsAConvergencePass
+      // T4.M5 · the answer is routed: a SameAs outcome whose only effect is the MarkSameAs
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: MarkSameAs  // S:492 "SameAs {target, addition?} (non-boundary) → MarkSameAs"
+        triggered-by AnswerApplied  // S:492 "SameAs {target, addition?} (non-boundary) → MarkSameAs" (policy SameAsOutcomeMarksSameAsOnAnswer)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: StartPass  // S:728 "an AnswerApplied or a PlacementDecided whose only effect is MarkSameAs"
+        triggered-by AnswerApplied  // S:728 "an AnswerApplied or a PlacementDecided whose only effect is MarkSameAs" (policy SameAsOnlyStartsConvergencePassOnAnswer)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+    when ASameAsAnswerUnderAnotherNameAddsAnAlias
+      // T4.M5 · the SameAs outcome, the candidate name differs from the target's and it does not rename
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: AddAlias  // S:610 "AddAlias(construct, name, Pointer)"
+        triggered-by AnswerApplied  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeAddsAliasOnAnswer)
+      design: ConstructAliased [outcome]  // S:616 "ConstructAliased {name, Pointer}"
+    when ASameAsAnswerFromADefiningSectionRenamesTheTarget
+      // T4.M5 · the SameAs outcome, the candidate comes from a defining section or states a rename
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: RenameConstruct cause DefiningSection  // S:611 "RenameConstruct(construct, name, cause: DefiningSection | StatedRename | Ratified, Pointer"
+        triggered-by AnswerApplied  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeRenamesOnAnswer)
+      design: ConstructRenamed [outcome]  // S:617 "ConstructRenamed {from, to, cause, Pointer}"
+    when ASameAsAnswerNamingAnotherContextMovesTheTarget
+      // T4.M5 · the SameAs outcome, a defining section or deciding ruling names another context
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: MoveConstruct cause DefiningSection  // S:612 "MoveConstruct(construct, context, cause: DefiningSection | DecidingRuling | Ratified | Car"
+        triggered-by AnswerApplied  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeMovesOnAnswer)
+      design: ConstructMoved [outcome]  // S:618 "ConstructMoved {from, to, cause, Pointer}"
+    when ADivergenceDeferAnswerStartsALivePassAndObservesTheGap
+      // T4.M5 · the answer settles a Defer{Divergence}: the AnswerApplied twins of the PlacementDecided policies
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+        triggered-by AnswerApplied  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceStartsLivePassOnAnswer)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+        triggered-by AnswerApplied  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceObservesGapOnAnswer)
+      design: GapOpened [outcome]  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+    when AContradictionDeferAnswerStartsALivePassAndObservesTheGap
+      // T4.M5 · the answer settles a Defer{Contradiction}: the AnswerApplied twins of the PlacementDecided policies
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+        triggered-by AnswerApplied  // S:503 "Defer{Contradiction{target}} → three policies on the event" (policy DeferContradictionStartsLivePassOnAnswer)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+        triggered-by AnswerApplied  // S:503 "Defer{Contradiction{target}} → three policies on the event" (policy DeferContradictionObservesGapOnAnswer)
+      design: GapOpened [outcome]  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+    when AnAnswerAppliedAcrossSourcesUnderSourceAuthoritySift
+      // T4.M5 · the answer is applied across sources under SourceAuthority Sift: the AnswerApplied twins
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+        triggered-by AnswerApplied  // S:504 "Applied across sources under SourceAuthority Sift" (policy AppliedAcrossSourcesStartsLivePassOnAnswer)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+        triggered-by AnswerApplied  // S:504 "Applied across sources under SourceAuthority Sift" (policy AppliedAcrossSourcesObservesGapOnAnswer)
+      design: GapOpened [outcome]  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+    when AStatedReplacementAnswerObservesTheDivergenceOnX
+      // T4.M5 · the answer stores or accepts C and C states exactly one X that the divergence gate covers: the AnswerApplied twins
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+        triggered-by AnswerApplied  // S:514 "exactly one, X, that the divergence gate (above) covers" (policy StatedReplacementStartsLivePassOnAnswer)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+        triggered-by AnswerApplied  // S:514 "exactly one, X, that the divergence gate (above) covers" (policy StatedReplacementObservesGapOnAnswer)
+      design: GapOpened [outcome]  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+    when AStatedReplacementAnswerThatIsNotADecidingEntryAsksARetirementQuestion
+      // T4.M5 · exactly one X and the entry is not a deciding entry, or several: the AnswerApplied twin
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      clarification: AskQuestion  // S:516 "(AskQuestion, subject: this entry's Pointer qualified as retirement, §4; causedBy: this event"
+        triggered-by AnswerApplied  // S:516 "exactly one, and this entry is not a deciding entry, or several" (policy StatedReplacementAsksRetirementQuestionOnAnswer)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when AStatedNegationAnswerAsksARetirementQuestion
+      // T4.M5 · stated negation by a deciding entry: the negated construct is listed in the retirement question (the AnswerApplied twin)
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      clarification: AskQuestion  // S:516 "(AskQuestion, subject: this entry's Pointer qualified as retirement, §4; causedBy: this event"
+        triggered-by AnswerApplied  // S:519 "Stated negation (Round 28; 3d95589b S1):" (policy StatedNegationAsksRetirementQuestionOnAnswer)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when ADroppedWordAnswerAppliesTheComputedAnswerToTheTerm
+      // T4.M5 · a document version drops a word: the answer is applied and each live Term of the word gets ApplyAnswer(computed{dropped-word}) (the AnswerApplied twin)
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: ApplyAnswer  // S:520 "ApplyAnswer(computed{dropped-word}) on that Term's Placement"
+        triggered-by AnswerApplied  // S:520 "Dropped word (Round 28; c9256057):" (policy DroppedWordAppliesComputedAnswerOnAnswer)
+      design: AnswerApplied [outcome]  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+
+  moment "T4.M6 · The design moves" [branch]
+    // the main path of the story
+    // Routing on QuestionResolved, once for every causedBy the generation gathered, each routed command with its own role check; a Gap event -> DisposeGap(Resolved{Fixed}) (the option Fixed)  // S:1101 "once for every causedBy gathered in that generation (QuestionAsked plus each QuestionCompounded)"
+    design: DisposeGap  // S:1103 "DisposeGap(Resolved{Fixed | Distinct}: the option Fixed disposes Resolved{Fixed}"
+      triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when LaterTextSetsTheAnswerAside
+      // former flow: t4-later-text-sets-the-answer-aside.moment
+      // Outcome: a later Live deciding entry, or a section of a newer document version, names a concerned construct of an answered generation, so the answer is set aside and the question asked again of people as the next generation (NDD: returns-to T4.M2).
+      // T4.M5·B3 · when later text sets the answer aside
+      // the answer re-check: PlacementDecided on a later Live deciding entry (or a section of a newer document version) naming a concerned construct of an answered generation -> AskQuestion, which opens the next generation, gathering the old causes plus the new cause; the earlier answer stands until a decided answer arrives; never for a Waive or a Waived Gap; a Replay arrival never sets an answer aside  // S:1061 "The answer re-check policy: PlacementDecided on that entry or section, naming a concerned construct of an answered generation that no re-ask has followed"
+      clarification: AskQuestion  // S:1061 "→ AskQuestion (causedBy: that PlacementDecided; recipients as for the answered question), which opens the next generation"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when TheAnswerIsHomonymOnALAN006Gap
+      // former flow: t4-the-answer-is-homonym-on-a-language-gap.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T4.M5 · The answer is routed: design: DisposeGap  // S:1119 "on a LAN-006 Gap cause: DisposeGap(Resolved{Distinct}) with the answer's text as the rationale"
+      // T4.M5 · The answer is routed
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:729 "StartPass(Convergence, scope: that Gap's construct)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: GapResolved {Distinct} with the answer's text as rationale, Covered{distinct}; LAN-002 then judges the definitions by meaning (S:1119).
+    when TheAnswerSaysNotAnIssueAndTheGapIsDistinct
+      // former flow: t4-the-answer-says-not-an-issue.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T4.M5 · The answer is routed: design: DisposeGap  // S:1103 "NotAnIssue disposes Resolved{Distinct}"
+      // T4.M5 · The answer is routed
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:729 "StartPass(Convergence, scope: that Gap's construct)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T4.O4 · The conversation moved the design (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: GapResolved {Distinct} for the generation, then the disposal pass (S:1103, S:729).
+
+  moment "T4.M6 · The design moves (main path)"
+    // the main path of the story
+    design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+    // GapResolved -> StartPass(Convergence, scope: that Gap's construct), its ID derived from the disposal event; it re-evaluates, clears and commits if nothing blocks; a disposal pass does not re-ask  // S:729 "**every Gap disposal** (GapResolved, GapWaived or GapMooted) → StartPass(Convergence, scope: that Gap's construct)"
+    design: StartPass  // S:729 "**every Gap disposal** (GapResolved, GapWaived or GapMooted) → StartPass(Convergence, scope: that Gap's construct)"
+      triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+    design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+    design: RecordGateResults  // S:669 "RecordGateResults(sequence number, evaluated constructs[], findings[])"
+      triggered-by PassStarted  // S:720 "Gate run: PassStarted → GateRun" (policy PassStartedRunsGates)
+    design: GatesEvaluated  // S:674 "GatesEvaluated {judgements}"
+    design: CompletePass  // S:723 "**Completion:** GatesEvaluated → CompletePass."
+      triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+    design: PassCompleted  // S:675 "PassCompleted {ConvergenceSnapshot, verdict, actor, CorpusVersion, RulesVersion, startPosition, asOf, CauseKey}"
+    design: ConstructCleared  // S:723 "records PassCompleted plus ConstructCleared for each evaluated construct with no blocking Gap"
+    design: CommitConstruct  // S:724 "ConstructCleared → CommitConstruct."
+      triggered-by ConstructCleared  // S:724 "ConstructCleared → CommitConstruct" (policy ConstructClearedCommits)
+    design: ConstructCommitted  // S:554 "ConstructCommitted;"
+    // QuestionResolved -> the closure post (always posted: a poster side effect) and the other Gaps' questions withdrawn Mooted (T5)  // S:1099 "**Closing:** QuestionResolved → a closure post with the same key rule. Closures are always posted."
+    // The request Receipt ends with MarkProcessed, the unit of work's last command (effect Applied when any command ran)  // S:373 "effect Applied when any command ran in the Cycle"
+    intake: MarkProcessed  // S:317 "MarkProcessed(effect?);"
+    intake: ReceiptProcessed [terminal]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)};"
+
+  moment "T4.O4 · The conversation moved the design (terminal)"
+    // PROVES: QuestionResolved -> GapResolved recorded for the generation (AnswerApplied, GapWaived and BoundaryChangeRatified are the other routes' flows); the closure is posted; the construct is committed; the disposal pass completed  // S:1327 "GapResolved | StartPass(Convergence, scope); the carry (a Resolved Gap of the same rule and finding identity on a lineage-root predecessor); convergence read model (computed answers listed by rule)"
+    note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1327 "convergence read model (computed answers listed by rule)"

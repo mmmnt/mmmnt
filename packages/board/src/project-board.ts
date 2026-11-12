@@ -23,13 +23,23 @@ function framesOf(
   bc: ReturnType<typeof makeContext>,
   ptr: PointerIndex,
 ): BoardFrame[] {
-  const captions = ir.contexts.flatMap((ctx) => [
+  // Contexts sit in number order (C1, C2, ...), whatever order the files loaded in.
+  const ordered = [...ir.contexts].sort(
+    (a, b) =>
+      Number(contextNumber(bc, a.name).number.slice(1)) -
+      Number(contextNumber(bc, b.name).number.slice(1)),
+  );
+  const captions = ordered.flatMap((ctx) => [
     captionFrame(bc, ctx),
     ...ctx.aggregates.map((a) => aggregateFrame(bc, ctx, a, ptr)),
   ]);
-  const services = ir.contexts.map((ctx) => servicesFrame(bc, ctx, ptr));
+  const services = ordered.map((ctx) => servicesFrame(bc, ctx, ptr));
   const rest = [projectionFrame(bc, ptr), policiesFrame(bc, ptr), coverageFrame(bc)];
-  const threads = ir.flows.map((flow, i) => threadFrame(bc, flow, bc.flows[i]!, ptr));
+  // Threads sit in number order (prefix, then number), not in the order the files loaded.
+  const threads = ir.flows
+    .map((flow, i) => ({ flow, nf: bc.flows[i]! }))
+    .sort((a, b) => a.nf.prefix.localeCompare(b.nf.prefix) || a.nf.n - b.nf.n)
+    .map(({ flow, nf }) => threadFrame(bc, flow, nf, ptr));
   return [
     legendFrame(),
     grammarFrame(bc),
@@ -91,5 +101,3 @@ export function projectBoard(
 export function boardExtent(projection: BoardProjection): { width: number; height: number } {
   return extent(projection.manifest.frames.map((f) => f.placement));
 }
-
-void contextNumber;

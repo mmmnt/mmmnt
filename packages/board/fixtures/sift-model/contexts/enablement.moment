@@ -1,0 +1,265 @@
+// Sift — C1 Enablement (Supporting). One of five bounded contexts; one file per context.
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n; section 1 C1 Enablement, section 0 principles, section 0.1 context map)
+// and the accepted ADRs docs/adrs/SIFT-ADR-0*.md. Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE is NOT a source of this model.
+// Grammar: Moment CLI 0.7.2. Nothing of Sift is built.
+//
+// CONVENTIONS OF THIS CONTEXT
+//  - Every declaration ends with a trailing comment: S:<line> and a short quote of the spec's own words, on that exact line of the spec of record.
+//  - `precondition` is used only for a refusal or no-op code the spec names (naming rule: model/README.md). A rule or an outcome the spec states without a code
+//    is an `invariant`, cited at the line that states it (an orchestration cannot hold an invariant, so a context-level `rule` carries it there).
+//  - A refusal records no event; its derived negative scenario `neg-<Command>-<Precondition>` is its representation (founder ruling 2026-11-05).
+//  - A policy is named from the spec's words, cited at the line that states its RULE (and the row of the consumers table, 11.1), and carries the board id as a
+//    trailing `// board:` comment so that the board sync can match it.
+//  - A Moment command emits one event (Moment 0.7.2). A spec command that records two events together cannot be expressed; the second event is declared, drawn
+//    in the flows where the spec draws it, and has no emitter: model/README.md, "HALT items".
+//  - The Setup is a step sequence run inside the unit of work that records SiftEnabled (S:241). It has no command of its own in the spec: its steps are the commands
+//    ProvisionAgentWorkspace, StartKeyGeneration, CompleteReplay, CompleteSetup and StartPass, and the policies where the spec names a triggering event.
+//  - The records of the gate (RecordGateDecision) and the gateway (RecordGatewayResult) are on the SequenceRecords stream, declared in the DesignModel context (S:955).
+
+// ============================================================================
+// EXTERNAL SYSTEMS used by C1 (section 0.1 "With external systems")
+// ============================================================================
+
+external Billing "billing: entitlement observations, billing messages and scheduled reconciliation against the entitlement lookup and the enterprise entitlement lookup"  // S:265 "Billing observations (billing messages; scheduled reconciliation against the entitlement lookup and the enterprise entitlement lookup)"
+
+// The person: an operator, a member who answers a question, an architect who ratifies, or the person or agent who records in flmnt. An external with no gateway.
+external Person "The person: an operator (owner, admin or architect on the customer workspace), a member who answers a question, an architect who ratifies, or the person or agent who records a decision, an exploration or a keyframe in flmnt"  // S:219 "Person requires an operator claim on the customer workspace"
+
+external OAuth2Broker "OAuth2 / broker: the caller's claims on a management API request, who the caller is and the client it came from (clientId); flmnt workspace membership is the one source of the architect role"  // S:190 "the global OAuth2 service -> C1 and C4: Conformist"
+
+// ============================================================================
+// THE BOUNDED CONTEXT
+// ============================================================================
+
+context "Enablement" [Supporting]  // S:167 "| C1 Enablement | Supporting | SiftEnablement |"
+  description "The workspace lifecycle: a customer workspace is enabled, provisioned, given a key generation and set up, and disabled; every other context conforms to this state through the admission gate"
+
+  value-object WorkspaceLink  // S:212 "WorkspaceLink"
+    customerWorkspace: string
+    externalKey: string
+
+  value-object KeyGeneration  // S:198 "KeyGeneration"
+    n: number
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: SiftEnablement · 6 commands, 6 events
+  // --------------------------------------------------------------------------
+  aggregate "SiftEnablement"  // S:197 "### SiftEnablement (aggregate; one per customer workspace; it holds the workspace lifecycle)"
+    identity customerWorkspace: string
+
+    // Binding principle (it has no id in the spec or in docs/feat-backlog.md, so it is not an invariant row): every lifecycle decision is bound to the
+    // identity it concerns (its SiftEnabled, its SiftDisabled, key generation n), never to "current" or "latest" at the moment of reading.  // S:200 "Binding principle: every lifecycle decision is bound to the identity it concerns"
+
+    command EnableSift  // S:203 "EnableSift(origin: Person | Reactivation | Reconciliation, entitlement, billingEventId?)"
+      input origin: string, entitlement: string, billingEventId: string
+      causes Person, Reactivation, Reconciliation  // S:203 "EnableSift(origin: Person | Reactivation | Reconciliation, entitlement, billingEventId?)"
+      precondition NotOperator cause Person: "Refused{NotOperator}: Person requires an operator claim on the customer workspace; for a workspace created by CreateCustomerWorkspace{enable} the owner claim counts only if the gateway's recorded owner is the caller's sub"  // S:219 "Person requires an operator claim on the customer workspace; otherwise the result is Refused{NotOperator}"
+      precondition NoOpAlreadyEnabled cause Person: "EnableSift(Person) on an enabled customer workspace records nothing new and returns the latest SiftEnabled (NoOp{already-enabled}); its unit of work then runs the setup from the current state, which on a ready workspace runs step 4: an incomplete setup pass resumes with the flush as one new attempt in its own Cycle, and once the setup pass has completed it is a no-op"  // S:220 "it records nothing new and returns that SiftEnabled"
+      precondition NoOpNotPersonEnabled cause Reactivation, Reconciliation: "Reactivation and Reconciliation enable only customer workspaces that a person had enabled; for a workspace no person had enabled, the observation is Admitted (recorded) and the command answers NoOp{not-person-enabled} in its Cycle and records nothing; a workspace has Sift when the stream has a SiftEnabled"  // S:221 "the observation is Admitted (recorded) and the reactivation command in its Cycle answers NoOp{not-person-enabled} and records nothing"
+      emits SiftEnabled
+
+    invariant EnableSiftEntitlementActive "the entitlement must be active. The issuing Cycle resolves it and carries it in the command. The spec names no refusal code for an inactive entitlement" scope SiftEnablement  // S:217 "EnableSift: the entitlement must be active" (no code in the spec)
+    invariant EnableSiftFlmntWorkspaceExists "Sift is enabled on a customer workspace only once that flmnt workspace exists. The issuing Cycle's tenancy resolution carries this in the command. The spec names no refusal code for a missing workspace" scope SiftEnablement  // S:225 "Sift is enabled on a customer workspace only once that flmnt workspace exists" (no code in the spec)
+    command DisableSift  // S:204 "DisableSift(cause: LicenseLapsed | Suspended, entitlement as resolved, billingEventId)"
+      input cause: string, entitlement: string, billingEventId: string
+      precondition NoOpNoChange: "DisableSift only if the latest event is a SiftEnabled, or a SiftDisabled with a different cause; billing decides only on a state change: an observation that changes nothing starts no Cycle and is recorded as NoOp{no-change}, a gate decision"  // S:267 "DisableSift only if it is a SiftEnabled, or a SiftDisabled with a different cause"
+      emits SiftDisabled
+
+    invariant DisableSiftEntitlementInactiveOrLocked "the resolved entitlement is inactive (LicenseLapsed) or locked (Suspended)" scope SiftEnablement  // S:218 "DisableSift: the resolved entitlement is inactive (LicenseLapsed) or locked (Suspended)"
+    invariant DisableSiftBillingEventOnce "billingEventId is provenance; two observations of the same change can't both apply it: the later one's state-change rule reads the earlier one's event" scope SiftEnablement  // S:223 "Two observations of the same change can't both apply it"
+    command ProvisionAgentWorkspace  // S:205 "ProvisionAgentWorkspace;" (the spec lists no input)
+      emits AgentWorkspaceProvisioned
+
+    invariant ProvisionAgentWorkspaceCreateIfAbsent "One WorkspaceLink per customer workspace, never deleted. ProvisionAgentWorkspace is create-if-absent (external key hash(customer workspace))" scope SiftEnablement  // S:224 "ProvisionAgentWorkspace is create-if-absent"
+    command StartKeyGeneration  // S:206 "StartKeyGeneration(n);"
+      input n: number
+      precondition NoOpNotNext: "applies only if no key generation exists, or the current one is retired, and n = current + 1. Otherwise it is a NoOp{not-next}"  // S:226 "applies only if no key generation exists, or the current one is retired, and n = current + 1"
+      emits KeyGenerationStarted
+
+    command RetireKeyGeneration  // S:207 "RetireKeyGeneration(SiftDisabled: EventRef);"
+      input disabledRef: EventRef
+      precondition NoOpNone: "Case 1: no such n exists -> NoOp{none}"  // S:228 "no such n exists -> NoOp{none}"
+      precondition NoOpAlreadyRetired: "Case 2: n is already retired -> NoOp{already-retired}, naming the existing KeyGenerationRetired{n}"  // S:229 "n is already retired → NoOp{already-retired}, naming the existing KeyGenerationRetired{n}"
+      precondition Reenabled: "Case 3: a SiftEnabled was recorded after d -> Refused{Reenabled}"  // S:230 "a SiftEnabled was recorded after d -> Refused{Reenabled}"
+      emits KeyGenerationRetired
+
+    command CompleteSetup  // S:208 "CompleteSetup(kind: Bootstrap | Resume, SiftEnabled: EventRef, keyGeneration)"
+      input kind: string, enabledRef: EventRef, keyGeneration: number
+      precondition NoOpAlreadyCompleted: "a second SetupCompleted for the same SiftEnabled is a NoOp{already-completed}"  // S:232 "A second SetupCompleted for the same SiftEnabled is a NoOp{already-completed}"
+      emits SetupCompleted
+
+    invariant CompleteSetupKeyGenerationCurrent "its key generation is current and not retired, else refused. The spec names no code" scope SiftEnablement  // S:232 "CompleteSetup: its key generation is current and not retired" (no code in the spec)
+    invariant C1-01 "EnableSift needs an active entitlement and an existing flmnt workspace; the person enable needs an operator claim (owner claim only if the gateway's recorded owner is the caller); otherwise Refused{NotOperator}" scope SiftEnablement  // S:239 "SIFT-FEAT-C1-01 (entitlement active, operator claim, workspace exists"
+    invariant C1-02 "One WorkspaceLink per customer workspace, ProvisionAgentWorkspace create-if-absent" scope SiftEnablement  // S:239 "C1-02 (one WorkspaceLink, create-if-absent)"
+    invariant C1-03 "StartKeyGeneration n = current + 1, else NoOp{not-next}" scope SiftEnablement  // S:239 "C1-03 (StartKeyGeneration n = current + 1 else NoOp{not-next})"
+    invariant C1-04 "RetireKeyGeneration cases 1-4 (NoOp{none}, NoOp naming KeyGenerationRetired{n}, Refused{Reenabled}, KeyGenerationRetired{n, d})" scope SiftEnablement  // S:239 "C1-04 (RetireKeyGeneration cases 1-4)"
+    invariant C1-05 "CompleteSetup on a retired generation refused; a second SetupCompleted is NoOp{already-completed}" scope SiftEnablement  // S:239 "C1-05 (CompleteSetup on a retired generation refused; second SetupCompleted NoOp{already-completed})"
+    invariant C1-06 "Person enable on an enabled workspace returns the latest SiftEnabled (D-3); the setup runs from current state: step 4 resumes an incomplete setup pass and the flush as one new attempt in its own Cycle, and is a no-op once the setup pass has completed" scope SiftEnablement  // S:239 "C1-06 (D-3: Person enable on an enabled workspace returns the latest SiftEnabled)"
+    invariant C1-07 "Each setup step reads the recorded events; a rebuild only when the current generation follows a retired one and no SetupCompleted records it; CompleteSetup before StartPass" scope SiftEnablement  // S:262 "asserted spec SIFT-FEAT-C1-07 (each step reads the recorded events"
+    invariant C1-08 "A failed setup is redone by the next tick from the current state (D-4); a setup that fails before CompleteSetup is retried by every tick with an alarm on each failure and no bound; a setup that fails after CompleteSetup is redone by the tick in a ready customer workspace (the latest SetupCompleted s, selected by recorded state: while its pass has no PassCompleted or the postings gathered up to the position of its pass are unposted, and a setup Cycle of s has ended CycleCompleted{Failed}; a Cycle that only no-ops neither ends the redo nor loops), bounded like a Receipt by the tick Cycles that ended CycleCompleted{Failed}, with an alarm at the bound; forced-failure test" scope SiftEnablement  // S:262 "forced-failure test SIFT-FEAT-C1-08 (a failed setup is redone by the next tick from the current state, D-4; a setup that fails after CompleteSetup is redone by the tick in a ready customer workspace"
+
+    // Actor on every event: "Every event carries an Actor {sub, clientId?, roles?, kind: user | api | system}". Moment has no shared event envelope,
+    // so each event declares `actor: Actor` itself; a system actor records causedBy (value-object Actor). // S:102 "Every event carries an Actor {sub, clientId?, roles?, kind: user | api | system}"
+    event SiftEnabled  // S:210 "SiftEnabled {origin, personallyEnabled, billingEventId?}"
+      origin: string
+      personallyEnabled: boolean
+      billingEventId: string
+      actor: Actor
+
+    event SiftDisabled  // S:211 "SiftDisabled {cause, billingEventId}"
+      cause: string
+      billingEventId: string
+      actor: Actor
+
+    event AgentWorkspaceProvisioned  // S:212 "AgentWorkspaceProvisioned {WorkspaceLink}"
+      workspaceLink: WorkspaceLink
+      actor: Actor
+
+    event KeyGenerationStarted  // S:213 "KeyGenerationStarted {n}"
+      n: number
+      actor: Actor
+
+    event KeyGenerationRetired  // S:214 "KeyGenerationRetired {n, SiftDisabled: EventRef}"
+      n: number
+      disabledRef: EventRef
+      actor: Actor
+
+    event SetupCompleted  // S:215 "SetupCompleted {kind, SiftEnabled: EventRef, keyGeneration}"
+      kind: string
+      enabledRef: EventRef
+      keyGeneration: number
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // NON-AGGREGATE COMMAND, declared as an orchestration command (it emits no domain event)
+  // --------------------------------------------------------------------------
+  // CreateCustomerWorkspace{enable?} is a Cycle, not an aggregate command; its Cycle calls the gateway and RecordGatewayResult records the result as GatewayResultRecorded.
+  // With `enable` the EnableSift(Person) that follows is NOT issued by the creation: a policy on the GatewayResultRecorded of the creation issues it as a new unit of work
+  // (ChainedEnableOnGatewayResult, below). The creation is exempt from the gate (License scope). Its issuer is the management API.
+  orchestration CreateCustomerWorkspaceRun  // S:1402 "CreateCustomerWorkspace (a Cycle, not an aggregate command)"
+    command CreateCustomerWorkspace  // S:287 "CreateCustomerWorkspace{enable?} (operator on the license, checked before the gateway is called; its Cycle calls the gateway, keyed by the request key of the request"
+      input enable: boolean, requestKey: string
+      precondition NotOperator: "Refused{NotOperator}: an operator on the license (checked by the Cycle from the verified claims, before the gateway is called; the operator check reads no result)"  // S:1170 "Operator-gated (checked by the command, or by its Cycle for CreateCustomerWorkspace and RedriveCycle, from the verified claims"
+    invoked-by CreateCustomerWorkspace
+    issues EnableSift  // HALT (Moment V33): `issues` is mandatory on an orchestration and takes aggregate commands only, so it can name neither RecordGatewayResult (the creation's own record, S:966) nor "nothing". The spec's chained EnableSift(Person) is the policy ChainedEnableOnGatewayResult's, a unit of work of its own after the creation (S:288); the one aggregate command of the chain is declared here as before.
+    states Requested
+    compensation none
+    timeout "none"
+
+  rule CreateCustomerWorkspaceRequestKeyOnce "every management API request is idempotent by its caller-supplied request key, and the API keeps its first answer per key" enforced-by "CreateCustomerWorkspaceRun (an orchestration cannot hold an invariant)"  // S:279 "every management API request is idempotent by its caller-supplied request key, and the API keeps its first answer per key"
+
+  // --------------------------------------------------------------------------
+  // POLICIES of Setup (S:241, a step sequence run inside the unit of work that records SiftEnabled; policies where the spec names a triggering event)
+  // --------------------------------------------------------------------------
+  policy SetupStep1Provision  // S:243 "1. Provision, if not provisioned."; row S:1292 "| SiftEnabled | Setup (same unit of work)"
+    trigger SiftEnabled
+    action "Setup runs in the unit of work that records SiftEnabled; step 1 provisions the agent workspace, if not provisioned"
+    chains-to ProvisionAgentWorkspace
+
+  policy SetupStep4Complete  // S:254 "If no SetupCompleted for e exists and the customer workspace is not ready → CompleteSetup(kind, e, n)."; row S:1349 "| ReplayCompleted | Setup step 4"
+    trigger ReplayCompleted
+    action "Setup step 4: if no SetupCompleted for e exists and the customer workspace is not ready, CompleteSetup(kind, e, n)"
+    chains-to CompleteSetup
+
+  policy SetupStep4StartsPass  // S:255 "If a SetupCompleted for e exists, or the customer workspace is ready through another SiftEnabled's SetupCompleted f → StartPass in the same Cycle"; row S:1297 "| SetupCompleted | Setup step 4 (StartPass)"
+    trigger SetupCompleted
+    action "Setup step 4: if a SetupCompleted for e exists, StartPass in the same Cycle with the kind and the derived pass ID of that SetupCompleted; the Replay's one flush follows the pass"
+    chains-to StartPass
+
+  // The chained enable (CreateCustomerWorkspace{enable}): a unit of work of its own, issued by a policy on the creation's GatewayResultRecorded, keyed by the creation's
+  // request key and the new customer workspace, with the creator as actor, exempt from the gate, in its own Cycle after the creation. The policy reads the request key,
+  // the enable flag and the creator from the event; when the creation repeats its request is NoOp{repeat}. Whether the chained enable is typed a RecordRef or a
+  // RequestRef is open (open-items D2) and is not modelled.
+  policy ChainedEnableOnGatewayResult  // S:288 "a policy on the GatewayResultRecorded of the creation issues the per-workspace EnableSift(Person) request as a new unit of work"; row S:1354 "the policy on it of a CreateCustomerWorkspace{enable}: EnableSift(Person) for the new customer workspace"
+    trigger GatewayResultRecorded when enableFlag = true
+    action "when the creation has enable: EnableSift(Person) for the new customer workspace, a request issued as a new unit of work keyed by the creation's request key and the new customer workspace, with the creator as actor, read with the enable flag from the event; when the creation repeats its request is NoOp{repeat}; exempt from the gate, in its own Cycle after the creation"
+    chains-to EnableSift
+
+  // --------------------------------------------------------------------------
+  // PROJECTION: the Sift-workspaces read model
+  // --------------------------------------------------------------------------
+  projection SiftWorkspaces  // S:1005 "the Sift-workspaces read model: the customer workspaces that have Sift (for fan-out)"
+    sources SiftEnabled, SiftDisabled
+    description "the customer workspaces that have Sift (fan-out target set, reconciliation, ticks); fan-outs wait until it reaches the release's position"
+    field customerWorkspace: string
+
+  // --------------------------------------------------------------------------
+  // THE HARD-STOP GATE (not an aggregate): its enforcers are the asserted specs C1-09, C1-10, C1-11
+  // --------------------------------------------------------------------------
+  rule C1-09 "While disabled, every user ingress is refused with the disable cause (a gate refusal); the exempt list is admitted (the enablement path, operational retention, ticks, the License-scope CreateCustomerWorkspace and EnableSift fan-out, the chained EnableSift(Person) of a CreateCustomerWorkspace{enable}, global read models; an exempt unit is never Refused, Postponed or Filtered, and its decision is still recorded)" enforced-by "SIFT-FEAT-C1-09: the gate reads the latest SiftEnabled / SiftDisabled directly and runs before RecordReceipt"  // S:310 "SIFT-FEAT-C1-09 (refusal with cause for every user ingress while disabled; the exempt list admitted)"
+  rule C1-10 "A disable takes effect for the next unit of work; admitted work finishes, even if a disable arrives meanwhile" enforced-by "SIFT-FEAT-C1-10: the gate"  // S:310 "C1-10 (a disable takes effect for the next unit of work; admitted work finishes)"
+  rule C1-11 "Gated work is Postponed until the customer workspace is ready, then decided again as ordinal 2 (Admitted or Refused{Disabled}, a further GateDecisionRecorded for the same unit of work); refused if disabled meanwhile" enforced-by "SIFT-FEAT-C1-11: the gate"  // S:310 "C1-11 (Postponed until ready, then decided again as ordinal 2; refused if disabled meanwhile)"
+  rule C1-12 "RecordGateDecision is keyed by the unit of work and the decision ordinal and records every gate decision, an exempt unit's included, outside any Cycle: each decision is append-only and a repeat of the same ordinal is NoOp{repeat}; every taken unit of work has one GateDecisionRecorded for each decision" enforced-by "SIFT-FEAT-C1-12: the gate (RecordGateDecision)"  // S:310 "C1-12 (RecordGateDecision, keyed by the unit of work and the decision ordinal, records every gate decision, an exempt unit's included, outside any Cycle)"
+  rule C1-13 "RecordGatewayResult records the gateway result of CreateCustomerWorkspace, which the chained enable's owner claim reads; GatewayResultRecorded carries the request key, the enable flag and the creator; the chained enable's key is the creation's request key and the new customer workspace, and a repeated creation's policy request is NoOp{repeat}" enforced-by "SIFT-FEAT-C1-13: RecordGatewayResult and the chained enable policy"  // S:291 "asserted spec SIFT-FEAT-C1-13 (RecordGatewayResult records the gateway result of CreateCustomerWorkspace"
+  rule IdleTickRecordsNothing "a tick that selects no item is idle: it issues no StartCycle, records nothing (no GateDecisionRecorded) and has no code; a tick that selects items is taken once, with one gate decision for all of them, and starts one Cycle for each item it selects, each carrying that decision; a question re-check that has work is an item the tick selects, with its own Cycle, its trigger a TickRef {run, customer workspace}, and its failure counts toward no other unit's bound" enforced-by "the order of work (the tick is a trigger of StartCycle, not a command)"  // S:275 "The same tick, when it has nothing at all to do, issues no StartCycle, records nothing and has no code"
+  rule TickRedoesFailedSetupInReadyWorkspace "in a ready customer workspace the tick selects by recorded state the latest SetupCompleted s while its pass has no PassCompleted, or while the postings gathered up to the position of its pass are unposted, and a setup Cycle of s has ended CycleCompleted{Failed}; with both done the tick is idle for s; the Cycle it starts reruns the pass and the flush, the redo ends when both are done, and a Cycle that only no-ops neither ends it nor loops; and it is bounded like a Receipt by the tick Cycles that ended CycleCompleted{Failed} for that SetupCompleted, with an alarm at the bound; a stopped setup is not work for the tick, so a tick that has only that is idle" enforced-by "the order of work (the tick; a setup Cycle of a SetupCompleted is defined in section 1 Setup failure)"  // S:275 "selected by recorded state (while s's pass has no PassCompleted, or the postings gathered up to the position of s's pass are unposted, and a setup Cycle of s has ended CycleCompleted{Failed}"
+  rule TickRedoesRetentionUnbounded "the tick redoes every incomplete retention destruction that is due or whose RetireKeyGeneration is recorded; the redo is an obligation, not bounded: every tick retries it, with an alarm on each failure" enforced-by "the order of work (the tick)"  // S:275 "every incomplete retention destruction that is due or whose RetireKeyGeneration is recorded"
+  rule TickRedoesClosureAtDispatchInReadyWorkspace "in a ready customer workspace only, the tick redoes the pass of every closure at dispatch that has no completed model-wide pass after it, in a Cycle of its own that runs the settle step and records its own PassTriggerRecorded{ClosedAtDispatch}; the redo ends when any later model-wide pass of the workspace completes and is bounded like a Receipt, with an alarm at the bound and no operator lever" enforced-by "the order of work (the tick; the settle step is stated in section 2 Receipt, Policies)"  // S:275 "redoes the pass of every closure at dispatch that has no completed model-wide pass after it"
+
+  // --------------------------------------------------------------------------
+  // NOT A DECLARED CONSTRUCT (notes; the spec's rules that Moment has no construct for)
+  // --------------------------------------------------------------------------
+  // Management API request rules: idempotent by request key; refusals known on arrival (a disabled customer workspace, a caller who is not an operator)
+  //   are returned in the response with the reason; refusals only the order of work can determine (Refused{Superseded}, a disable between acceptance and
+  //   processing) are sent as a notice.  // S:279 "Refusals known on arrival (a disabled customer workspace"
+  // Hard-stop gate: not a command; records its decision; refuses all user ingress while disabled with the disable cause; OverrideThreshold at License
+  //   scope is admitted if any customer workspace under the license is enabled; gate-refusal, Refused{code} and Postponed notices carry Pointers and the
+  //   cause or code only. Its decisions are recorded by RecordGateDecision as GateDecisionRecorded (SequenceRecords stream, S:955).  // S:300 "gate-refusal, Refused{code} and Postponed notices carry Pointers and the cause or code only"
+  // Billing translator: past_due stays enabled (NoOp{past-due}, a no-op gate decision: the observation is recorded as GateDecisionRecorded); canceled / enterprise lapsed / cancelled /
+  //   extended:false -> DisableSift(LicenseLapsed) and the operational retention clock starts as a reaction keyed by that SiftDisabled; locked -> DisableSift(Suspended), no clock;
+  //   only on a state change. An observation is identified by an ObservationRef {customer workspace, source: message | reconciliation, id} (the billing eventId, or the run's scheduled slot) and is the trigger of the Cycle it starts; a repeat is NoOp{repeat}.  // S:272 "`past_due` → NoOp{past-due}, a no-op gate decision (codes draft A7): it stays enabled;"
+  // Reactions of this context (trigger or target not declarable, V29/V30):
+  //   when a SiftDisabled{LicenseLapsed} is recorded, start the operational retention clock  // S:273 "The operational retention clock starts as a reaction to that SiftDisabled"
+  //   when an entitlement observation arrives, on a state change only: EnableSift(Reactivation | Reconciliation) only if the latest event is a SiftDisabled;
+  //     DisableSift only if it is a SiftEnabled, or a SiftDisabled with a different cause  // S:266 "EnableSift(Reactivation for a billing-message source, Reconciliation for a reconciliation source) only if the latest event is a SiftDisabled"
+  //   when a tick runs for a ready customer workspace, ReaddressQuestion (the recipient cascade re-check); the same tick redoes a failed setup (in a ready customer workspace, the latest SetupCompleted s, selected
+  //     by recorded state: its pass or its flush undone and a setup Cycle of s failed, bounded like a Receipt; a question re-check with work is an item of its own, TickRef), any incomplete retention destruction that is due or whose RetireKeyGeneration is recorded (not bounded), the pass of
+  //     every closure at dispatch that has no completed model-wide pass after it (ready customer workspace only, bounded), and every document intake recorded and neither processed, closed nor quarantined; it
+  //     starts one Cycle for each item it selects, and an idle tick issues no StartCycle, records nothing and has no code (rules IdleTickRecordsNothing and Tick... above)  // S:275 "The same tick, when it has nothing at all to do, issues no StartCycle, records nothing and has no code (§0 Language)"
+  //
+  // Setup (4 numbered steps, S Setup; a step sequence, not a Moment saga: each step would need its own commands and a chaining policy):  // S:241 "Setup (runs inside the unit of work that records SiftEnabled e"
+  //   1 Provision, if not provisioned
+  //   2 Key generation: StartKeyGeneration(current + 1) if none or retired; if the current key generation follows a retired one and no SetupCompleted
+  //     records it, rebuild every read model under n skipping erased entries, then ReaddressQuestion for every open question whose sources are not erased
+  //   3 Replay, if not ready and no SetupCompleted for e: kind Bootstrap (from the stream start) or Resume (from the Receipt replay point); end point =
+  //     the stream head read when e is taken
+  //   4 Complete, then pass: CompleteSetup(kind, e, n), then StartPass in the same Cycle; if ready through another SiftEnabled f with no SetupCompleted
+  //     for e, step 3 and CompleteSetup are skipped and only f's pass runs; the Replay's one flush follows the pass
+  //   Failure: Failed with an alarm; redone by the next tick or a person's new enable request (an operator's RedriveCycle is gated work, so it is not a route for a customer workspace that is not ready).  // S:260 "Setup failure (item 1): a setup that fails after brief retries ends Failed with an alarm"
+  // Derived state: provisioned; the current key generation and whether it is retired; bootstrapped; ready = provisioned and the current key generation
+  //   not retired and a SetupCompleted whose SiftEnabled ref comes after the latest SiftDisabled.  // S:238 "ready = provisioned"
+
+  // --------------------------------------------------------------------------
+  // RELATIONSHIPS (section 0.1)
+  // --------------------------------------------------------------------------
+  relationship Enablement -> Intake  // S:178 "C1 -> C2: Customer-Supplier. The setup runs Replay."
+    type CustomerSupplier
+    contract "the setup runs Replay"
+
+  relationship Enablement -> DesignModel  // S:179 "C1 -> C3: Customer-Supplier. The setup runs the pass and the rebuild; retention runs ReadModelDestruction."
+    type CustomerSupplier
+    contract "the setup runs the pass and the rebuild; retention runs ReadModelDestruction"
+
+  relationship Intake -> Enablement  // S:183 "C2, C3, C4, C5 -> C1: Conformist."
+    type Conformist
+    contract "every unit of work conforms to C1's enablement state through the gate"
+
+  relationship DesignModel -> Enablement  // S:183 "C2, C3, C4, C5 -> C1: Conformist."
+    type Conformist
+    contract "every unit of work conforms to C1's enablement state through the gate"
+
+  relationship Clarification -> Enablement  // S:183 "C2, C3, C4, C5 -> C1: Conformist."
+    type Conformist
+    contract "every unit of work conforms to C1's enablement state through the gate"
+
+  relationship Governance -> Enablement  // S:183 "C2, C3, C4, C5 -> C1: Conformist."
+    type Conformist
+    contract "every unit of work conforms to C1's enablement state through the gate"
+
+  relationship Billing -> Enablement  // S:189 "billing -> C1: Anticorruption Layer"
+    type AnticorruptionLayer
+    contract "the billing translator and reconciliation"
+
+  relationship OAuth2Broker -> Enablement  // S:190 "the global OAuth2 service -> C1 and C4: Conformist"
+    type Conformist
+    contract "the caller's claims (who, which client)"

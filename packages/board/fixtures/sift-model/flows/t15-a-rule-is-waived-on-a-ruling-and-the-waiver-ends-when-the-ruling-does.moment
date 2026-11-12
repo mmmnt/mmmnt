@@ -1,0 +1,135 @@
+// T15 — A rule is waived on a ruling, and the waiver ends when the ruling does
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE section 6 gives thread structure and titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T15.O15 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T15.M2 · An operator waives it, citing a ruling: ByAnswer (former flow t15-an-operator-waives-by-answering.moment)
+//   T15.M3 · The ruling is superseded: RevokedByRequest (former flow t15-an-operator-revokes-the-waiver-by-request.moment)
+// DIFFERENCE FROM NDD-SOURCE (spec wins): NDD walked T15.M3 and T15.M4 on one waiver; T15.M4 needs an active waiver and T15.M3 had already revoked
+//   it, so M4 is its own branch.
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T15.M2·B1-B4 and B6 are GrantWaiver preconditions, not branch moments; each "valid arm" was DisposeGap, the
+//   policy reaction after WaiverGranted that skipped the guarded command (audit C-60).
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T15.M3 lists no RevokeWaiver node (see its note) and starts with the arriving Receipt in the Intake lane;
+//   NDD named the Intake lane but drew no node (audit C-61).
+// carried from the former main flow, its description: description "T15 — A rule is waived on a ruling, and the waiver ends when the ruling does (O15). Context lanes: C3 Design Model (Gap), C4 Clarification (waivers), C2 Intake (Entry dispatch). Spec of record S:819, S:1029-1041, S:1123-1129."
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T15 — A rule is waived on a ruling, and the waiver ends when the ruling does"
+  description "T15 — A rule is waived on a ruling, and the waiver ends when the ruling does. The story of the thread from its start to its T15.O15 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane intake "Intake" [Core]
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T15.M1 · A rule blocks"
+    design: GapOpened  // S:750,799 a Refuse Gap (every Definitional rule; Tactical or Strategic where the catalogue says so)
+    clarification: AskQuestion  // S:810 Refuse -> AskQuestion to all architects (cascading to admins and owners) plus the construct's placing author; its only effective answer is an operator's waiver
+      triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+    // Resolved{Fixed} is not an effective answer on a Refuse Gap; the design changes by an entry or by a resolver's record change (S:810).
+    // T15.M2·B1 (no ruling Pointer), B2 (the Pointer names neither a feed decision entry nor that operator's own answer), B3 (the ruling is already
+    // superseded), B4 (a Defer-sourced Contradiction or Divergence Gap) and B6 (a waiver is already active) are not branch moments: they are
+    // GrantWaiver's preconditions RulingRequired, RulingNotADecision, RulingSuperseded, DeferralNotWaivable and NoOpWaiverActive (S:1040, S:792, S:1029),
+    // each a derived negative scenario. B4 is also drawn as an arm in T12 (T12.M4·B1). B5 is the one arm below: its refusal (Refused{NotOperator}) is
+    // not a GrantWaiver precondition in the contexts.
+
+  moment "T15.M2 · An operator waives it, citing a ruling" [branch]
+    clarification: QuestionAsked  // S:1033
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when ByAnswer
+      // former flow: t15-an-operator-waives-by-answering.moment
+      // T15.M2 · An operator waives it, citing a ruling
+      clarification: ResolveQuestion cause Answer  // S:1123,808 route (a): an operator answers Waive; the answer is itself the ruling
+      // The routed GrantWaiver (ruling = the answer's request-stream Pointer) always names a ruling, so RulingRequired, RulingNotADecision and
+      // RulingSuperseded cannot arise on this route; they are API-path refusals (S:1040), scoped to the cause ManagementApi, so the placement below names the cause Answer.
+      // T15.M2·B5 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      clarification: RoutingWaiveAnswerGrantsWaiver  // S:1339 "QuestionResolved | the closure post (a Withdrawn resolution posts a withdrawal with its reason and repostedAs, Round 28); routing (DisposeGap · GrantWaiver"
+        triggered-by QuestionResolved
+      clarification: GrantWaiver cause Answer  // S:1036,1083 GrantWaiver(ruling: the answer's request-stream Pointer) on each gathered Gap
+        triggered-by RoutingWaiveAnswerGrantsWaiver
+      clarification: WaiverGranted  // S:1036,1083 GrantWaiver(ruling: the answer's request-stream Pointer) on each gathered Gap
+      clarification: Overlay  // S:1341 "WaiverGranted | DisposeGap(Waived); the overlay"
+      design: DisposeGap  // S:1128 WaiverGranted -> DisposeGap(Waived)
+        triggered-by WaiverGranted  // S:1128 "WaiverGranted → DisposeGap(Waived) on the Gap" (policy WaiverGrantedDisposesGap)
+      design: GapWaived  // S:753 {waiver, ruling}
+      design: StartPass  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)"
+        triggered-by GapWaived  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapWaivedStartsConvergencePass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // sees: no effect (Unauthorised) and a notice (S:1041). A Waive on a question with no Gap cause fails validation: ResolveQuestion's Invalid
+      // precondition (S:1075). NDD terminal T15.N1 "No change".
+      // T15.O15 · The waiver ended with its ruling (terminal)
+      // note clarification: "The overlay read model folds ConstructCommitted (Term constructs), WaiverGranted, WaiverRevoked and QuestionResolved"  // S:1008 the overlay read model: active waivers; the waiver is no longer listed
+      // PROVES: WaiverGranted -> GapWaived, then WaiverRevoked -> GapReopened with handling Ask and the question asked again; the overlay no longer
+      // lists the waiver (S:753-754, S:1008, S:1128-1129).
+
+  moment "T15.M2 · An operator waives it, citing a ruling (main path)"
+    // the main path of the story
+    clarification: GrantWaiver cause ManagementApi  // S:1029,808 route (b): the management API GrantWaiver with the Pointer of a decision entry of the feed (the ruling)
+
+  moment "T15.M2·B5 · when the caller is an operator"
+    clarification: WaiverGranted  // S:1036 {..., ruling}
+    clarification: Overlay  // S:1341 "WaiverGranted | DisposeGap(Waived); the overlay"
+    design: DisposeGap  // S:1128 WaiverGranted -> DisposeGap(Waived {waiver ref, ruling Pointer})
+      triggered-by WaiverGranted  // S:1128 "WaiverGranted → DisposeGap(Waived) on the Gap" (policy WaiverGrantedDisposesGap)
+    // sees: Refused{NotOperator} on the API (S:1170). NDD exit returns-to T15.M1.
+
+  moment "T15.M3 · The ruling is superseded" [branch]
+    design: GapWaived  // S:753 {waiver, ruling}
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when RevokedByRequest
+      // former flow: t15-an-operator-revokes-the-waiver-by-request.moment
+      // T15.M4 · An operator revokes it by request
+      clarification: RevokeWaiver cause ManagementApi  // S:283,990 the management API, the only operator route (no answer names a waiver; S:1130)
+      clarification: WaiverRevoked  // S:1037 {waiver, requestKey}
+      clarification: Overlay  // S:1342 "WaiverRevoked | ReopenGap; the overlay"
+      design: ReopenGap  // S:1129 WaiverRevoked -> ReopenGap (as M3)
+        triggered-by WaiverRevoked  // S:1129 "WaiverRevoked → ReopenGap on the Gap" (policy WaiverRevokedReopensGap)
+      design: GapReopened  // S:754
+      clarification: AskQuestion  // S:794 GapReopened -> Ask
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033
+      // T15.M4·B1 (the named waiver is not the active one: Refused{Superseded}), B2 (its requestKey is already recorded on a WaiverRevoked: a silent
+      // no-op, checked first) and B3 (the caller is not an operator: Refused{NotOperator}) are RevokeWaiver's preconditions Superseded,
+      // NoOpRepeat and NotOperator (S:1030, S:283), each a derived negative scenario; not branch moments.
+      // T15.O15 · The waiver ended on request (terminal)
+      // note clarification: "The overlay read model folds ConstructCommitted (Term constructs), WaiverGranted, WaiverRevoked and QuestionResolved"  // S:1008 the overlay no longer lists the waiver
+      // PROVES: WaiverGranted -> GapWaived, then WaiverRevoked -> GapReopened with handling Ask and the question asked again (S:753-754, S:1129).
+    when RevokedByRequestAfterTheConstructWasSuperseded
+      // T15.M4 · An operator revokes it by request, and the waived Gap's construct has since been superseded or invalidated
+      // GapReopened: the Construct stream is read first; a superseded or invalidated construct -> MootGap, and nothing else (no question is asked)  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap"
+      clarification: RevokeWaiver cause ManagementApi  // S:283,990 the management API, the only operator route (no answer names a waiver; S:1130)
+      clarification: WaiverRevoked  // S:1037 {waiver, requestKey}
+      clarification: Overlay  // S:1342 "WaiverRevoked | ReopenGap; the overlay"
+      design: ReopenGap  // S:1129 WaiverRevoked -> ReopenGap (as M3)
+        triggered-by WaiverRevoked  // S:1129 "WaiverRevoked → ReopenGap on the Gap" (policy WaiverRevokedReopensGap)
+      design: GapReopened  // S:754 "GapReopened"
+      design: MootGap cause ConstructEvent  // S:747 "MootGap(cause: construct event | Evaluated | Erased), system-only"
+        triggered-by GapReopened  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap" (policy GapReopenedMootsGapOnTerminalConstruct)
+      design: GapMooted [outcome]  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried"
+
+  moment "T15.M3 · The ruling is superseded (main path)"
+    // the main path of the story
+    intake: ReceiptRecorded  // S:321,362 the decision.superseded entry of the ruling arrives; its Receipt is recorded before its Cycle
+    clarification: RevokeWaiver cause System  // S:1030 "requestKey is the management API request key, or the Pointer of the entry that superseded the ruling the waiver rests on (issued by the system"
+    clarification: WaiverRevoked  // S:1037,362 the waiver check before Extraction: RevokeWaiver(waiver, requestKey = that entry's Pointer), a system command, for each active waiver resting on the superseded ruling
+    clarification: Overlay  // S:1342 "WaiverRevoked | ReopenGap; the overlay"
+    design: ReopenGap  // S:1129 WaiverRevoked -> ReopenGap (cause WaiverRevoked)
+      triggered-by WaiverRevoked  // S:1129 "WaiverRevoked → ReopenGap on the Gap" (policy WaiverRevokedReopensGap)
+    design: GapReopened  // S:754 handling Ask
+    clarification: AskQuestion  // S:794 GapReopened -> Ask
+      triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+    clarification: QuestionAsked [terminal]  // S:1033
+    // The construct stays committed (S:1129). The entry then goes on to Extraction (S:373). RevokeWaiver is placed with the cause System: the system
+    // issues it (S:1173), and its precondition NotOperator is scoped to the cause ManagementApi (S:283). A superseded ruling with no active waiver revokes nothing; a waiver resting on an operator's answer has no feed trigger
+    // (S:819).
+
+  moment "T15.O15 · The waiver ended with its ruling (terminal)"
+    note clarification: "The overlay read model folds ConstructCommitted (Term constructs), WaiverGranted, WaiverRevoked and QuestionResolved"  // S:1008 the overlay read model: active waivers; the waiver is no longer listed
+    // PROVES: WaiverGranted -> GapWaived, then WaiverRevoked -> GapReopened with handling Ask and the question asked again; the overlay no longer
+    // lists the waiver (S:753-754, S:1008, S:1128-1129).

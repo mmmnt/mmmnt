@@ -1,0 +1,1 @@
+Copy of sift/model (contexts, flows, manifest.yaml) at sift commit ec6637d, taken read-only as the largest valid corpus for the board renderer (ADR-048 D5).

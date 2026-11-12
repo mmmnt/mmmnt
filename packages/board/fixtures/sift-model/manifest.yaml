@@ -1,0 +1,45 @@
+name: sift
+version: 0.1.0
+description: Sift — the Moment model, 1:1 with the spec of record docs/sidd/round30/pass7-domain-spec.md and the accepted ADRs docs/adrs/SIFT-ADR-0*.md (founder ruling 2026-11-04, Source = "Spec of record"). Five bounded contexts in contexts/ (the spec's own, section 0.1), 15 story flows in flows/ (one for each outcome O1 to O15 of the fifteen threads: the main path from start to finish, every alternative a branch at the moment where it diverges; founder ruling bd996f3e, "15 story flows, branches inside"); a refusal is the negative scenario Moment derives from a precondition named by the spec's code. Validate with the Moment CLI 0.9.0 (see README.md).
+contexts:
+  - name: Enablement
+    path: contexts/enablement.moment
+  - name: Intake
+    path: contexts/intake.moment
+  - name: DesignModel
+    path: contexts/design-model.moment
+  - name: Clarification
+    path: contexts/clarification.moment
+  - name: Governance
+    path: contexts/governance.moment
+flows:
+  - name: "T1 — Your workspace gets Sift, and its history becomes the first pass"
+    path: flows/t1-your-workspace-gets-sift-and-its-history-becomes-the-first-pass.moment
+  - name: "T2 — A decision lands and reaches Sift, and chatter never does"
+    path: flows/t2-a-decision-lands-and-reaches-sift-and-chatter-never-does.moment
+  - name: "T3 — A decision becomes design, with lineage"
+    path: flows/t3-a-decision-becomes-design-with-lineage.moment
+  - name: "T4 — Sift asks, the conversation answers, and the design moves"
+    path: flows/t4-sift-asks-the-conversation-answers-and-the-design-moves.moment
+  - name: "T5 — The design follows the conversation, and nothing is destroyed"
+    path: flows/t5-the-design-follows-the-conversation-and-nothing-is-destroyed.moment
+  - name: "T6 — A document version becomes design, section by section"
+    path: flows/t6-a-document-version-becomes-design-section-by-section.moment
+  - name: "T7 — A source is erased and the design forgets it"
+    path: flows/t7-a-source-is-erased-and-the-design-forgets-it.moment
+  - name: "T8 — Disabled means disabled, and Sift comes back where it left off"
+    path: flows/t8-disabled-means-disabled-and-sift-comes-back-where-it-left-off.moment
+  - name: "T9 — Work fails briefly, then moves on, and nothing is replayed late"
+    path: flows/t9-work-fails-briefly-then-moves-on-and-nothing-is-replayed-late.moment
+  - name: "T10 — The model is done when nothing is open (verdict, corpus release, thresholds)"
+    path: flows/t10-the-model-is-done-when-nothing-is-open-verdict-corpus-release-thresholds.moment
+  - name: "T11 — What Sift decided reaches Moment and Trace"
+    path: flows/t11-what-sift-decided-reaches-moment-and-trace.moment
+  - name: "T12 — Two sources or two authors disagree, and the design waits for the answer"
+    path: flows/t12-two-sources-or-two-authors-disagree-and-the-design-waits-for-the-answer.moment
+  - name: "T13 — A boundary change is proposed, ratified, rejected or withdrawn"
+    path: flows/t13-a-boundary-change-is-proposed-ratified-rejected-or-withdrawn.moment
+  - name: "T14 — A name, a home or a kind changes, and the construct keeps its identity"
+    path: flows/t14-a-name-a-home-or-a-kind-changes-and-the-construct-keeps-its-identity.moment
+  - name: "T15 — A rule is waived on a ruling, and the waiver ends when the ruling does"
+    path: flows/t15-a-rule-is-waived-on-a-ruling-and-the-waiver-ends-when-the-ruling-does.moment

@@ -3,7 +3,7 @@ import { loadSpecification } from '@mmmnt/core';
 import type { IntermediateRepresentation } from '@mmmnt/core';
 
 export const ROOT = resolve(import.meta.dirname, '../../../..');
-export const SIFT_MODEL = '/Volumes/Storage/development/projects/complai/sift/model';
+export const SIFT_MODEL = resolve(ROOT, 'packages/board/fixtures/sift-model');
 
 /** Load a model (a project directory or one `.moment` file); an absolute path is used as it is. */
 export async function loadIr(path: string): Promise<IntermediateRepresentation> {

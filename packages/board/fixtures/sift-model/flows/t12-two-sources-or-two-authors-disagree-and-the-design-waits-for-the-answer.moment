@@ -1,0 +1,252 @@
+// T12 — Two sources or two authors disagree, and the design waits for the answer
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE section 6 gives thread structure and titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T12.O12 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T12.M2 · The Placement is Deferred, the target stands: SourceAuthoritySift (former flow t12-a-divergence-is-applied-under-source-authority-sift.moment)
+//   T12.M2 · The Placement is Deferred, the target stands: SourceAuthorityConversation (former flow t12-a-divergence-is-covered-under-source-authority-conversation.moment)
+//   T12.M4 · The first answer settles the Placement and closes the Gap together: OriginErased (former flow t12-the-origin-of-the-question-is-erased.moment)
+//   T12.M4 · The first answer settles the Placement and closes the Gap together: TheTargetChanges (former flow t12-the-target-changes-while-the-question-waits.moment)
+//   T12.M4 · The first answer settles the Placement and closes the Gap together: TwoAuthorsAnsweredNew (former flow t12-two-authors-contradict-answered-new.moment)
+//   T12.M4 · The first answer settles the Placement and closes the Gap together: TwoAuthorsAnsweredSameAs (former flow t12-two-authors-contradict-answered-sameas.moment)
+//   T12.O12 · The disagreement was settled by the people (continued) (terminal): AnsweredContinue (former flow t12-a-divergence-is-answered-continue.moment)
+//   T12.O12 · The disagreement was settled by the people (continued) (terminal): TwoAuthors (former flow t12-two-authors-contradict-and-the-design-waits-for-the-answer.moment)
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T12.M2·B1 and T12.M2·B2 (SourceAuthority Sift and Conversation) are alternatives, not branches of the Ask
+//   path: separate branches.
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T12.M4 chain: NDD lists Supersede and RetireProvisional together; the answer is Continue or Return, which
+//   are alternatives (S:502), so each is its own branch.
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T12 — Two sources or two authors disagree, and the design waits for the answer"
+  description "T12 — Two sources or two authors disagree, and the design waits for the answer. The story of the thread from its start to its T12.O12 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T12.M1 · A decision conflicts with what stands"
+    design: DecidePlacement  // S:431,462 the divergence gate is checked first, then the contradiction gate (S:472-473); a system actor on either side is never a different author (S:472)
+    // DecidePlacement's gate preconditions (DivergenceGate, ContradictionGate and the others) each derive a negative scenario in this flow.
+
+  moment "T12.M2 · The Placement is Deferred, the target stands" [branch]
+    design: PlacementDecided  // S:436 Defer{Divergence{target, direction: NarrativeAhead | DocumentAhead}} under SourceAuthority Ask
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when SourceAuthoritySift
+      // former flow: t12-a-divergence-is-applied-under-source-authority-sift.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T12 — under SourceAuthority Sift the outcome is applied without deferring and the Divergence is observed Covered{sourceAuthority}: nobody is asked. Spec of record S:473, S:504."
+      // T12.M2 · The Placement is applied, the Divergence is observed
+      design: StoreConstruct  // S:493,493 the outcome applies (here a Supersedes -> StoreConstruct(supersedes X))
+        triggered-by PlacementDecided  // S:493 "Supersedes (non-boundary) → StoreConstruct(supersedes X)" (policy SupersedesOutcomeStoresConstruct)
+      design: ConstructStored  // S:552
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: StartPass  // S:504 first policy: StartPass(Live, scope: the target construct)
+        triggered-by PlacementDecided  // S:504 "Applied across sources under SourceAuthority Sift" (policy AppliedAcrossSourcesStartsLivePass)
+      design: PassStarted  // S:672
+      design: ObserveGap  // S:504 second policy: ObserveGap on the target, finding Divergence, handling Covered{sourceAuthority}, never blocking and never asked
+        triggered-by PlacementDecided  // S:504 "Applied across sources under SourceAuthority Sift" (policy AppliedAcrossSourcesObservesGap)
+      design: GapOpened [outcome]  // S:504,739 T12.N1 · No one was asked (terminal): the Divergence is visible Covered{sourceAuthority}
+      // No question is asked and no Placement waits (S:504).
+    when SourceAuthorityConversation
+      // former flow: t12-a-divergence-is-covered-under-source-authority-conversation.moment
+      // T12.M2 · The target stands, the candidate is not placed
+      design: StoreConstruct  // S:502 first policy: StoreConstruct(proposedFor: UnsurePlacement)
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: StartPass  // S:502 second policy
+        triggered-by ConstructStored  // S:586 "ConstructStored without proposedFor → StartPass(Live, that construct)" (policy ConstructStoredStartsLivePass)
+      design: PassStarted  // S:672
+      design: ObserveGap  // S:502 third policy: the Divergence is recorded Covered{sourceAuthority}, never asked
+        triggered-by PlacementDecided  // S:504 "Applied across sources under SourceAuthority Sift" (policy AppliedAcrossSourcesObservesGap)
+      design: GapOpened  // S:750
+      design: ApplyAnswer  // S:502 fourth policy: ApplyAnswer(computed{source-authority}) on this Placement
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceAppliesSourceAuthorityAnswer)
+      design: AnswerApplied  // S:437,491 {outcome: Retire, computedBy: source-authority}
+      design: SupersedeConstruct  // S:494 Retire (source-authority computed answer): SupersedeConstruct(by: none, cause: Computed); a boundary type is RetireProvisional (T13.M7)
+        triggered-by AnswerApplied  // S:494 "Retire (an architect's answer to a Defer question" (policy RetireOutcomeSupersedesProvisional)
+      design: ConstructInvalidated [outcome]  // S:556 T12.N1 · No one was asked (terminal): the provisional is retired with cause Computed and no Placement waits
+      // The Placement is settled by the computed answer (A deferral closes with its placement, S:502).
+
+  moment "T12.M2 · The Placement is Deferred, the target stands (main path)"
+    // the main path of the story
+    design: StoreConstruct  // S:502,492 first policy: StoreConstruct(proposedFor: UnsurePlacement)
+      triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+    design: ConstructStored  // S:552
+    design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+    design: StartPass  // S:502,492 second policy: StartPass(Live, scope: that provisional construct)
+      triggered-by ConstructStored  // S:586 "ConstructStored without proposedFor → StartPass(Live, that construct)" (policy ConstructStoredStartsLivePass)
+    design: PassStarted  // S:672
+    design: ObserveGap  // S:502 third policy: ObserveGap on the target, finding Divergence, handling Steer (rule DIV-001), issued in that pass
+      triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceObservesGap)
+    design: GapOpened  // S:812 Steer Gap
+    // The target stays committed (S:503). The Placement is Deferred and the Gap blocking (S:782).
+
+  moment "T12.M3 · The people who disagree are asked"
+    clarification: AskQuestion  // S:812 Steer -> AskQuestion to the diverging entry's author, the author who decided the target, and all architects; the two ways forward Continue | Return
+      triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+
+  moment "T12.M4 · The first answer settles the Placement and closes the Gap together" [branch]
+    clarification: QuestionAsked  // S:1033
+    design: Trajectory  // S:502,964 the steer carries where the last decisions lead (trajectory read model)
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when OriginErased
+      // former flow: t12-the-origin-of-the-question-is-erased.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T12 — the origin of a Deferred Placement's Gap is erased: the erasure closes the Gap, marks nothing stale, and the Placement stays as state. Spec of record S:788, S:897, S:1014-1015."
+      // T12.M5·B1 · when the origin is erased
+      design: ReadModelDestruction  // S:1011,975 an erasure Entry of the origin: ReadModelDestruction(entry scope)
+      design: ReadModelsDestroyed  // S:922 "ReadModelDestruction records ReadModelsDestroyed {scope, key generation, entry or document, notReachable"
+      design: RecordNodeChange  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged"
+      design: NodeChanged  // S:979 "ReplayCompleted, ReadModelsDestroyed, DocumentVersionProcessed, PassTriggerRecorded and GatewayResultRecorded are writes for which RecordNodeChange records NodeChanged"
+      design: ReadModelsDestroyedMootsErasedGaps  // S:817 "ReadModelsDestroyed (an entry-scope or document-scope erasure) → MootGap(cause: Erased) for each Gap any of whose origins' entry or section is in the erased scope"
+        triggered-by ReadModelsDestroyed
+      design: MootGap cause Erased  // S:788 "is closed by MootGap(cause: Erased), whatever its state"
+        triggered-by ReadModelsDestroyedMootsErasedGaps
+      design: GapMooted [outcome]  // S:756,777,975 the erasure closes the Gap with MootGap(Erased); nothing is marked stale; the Placement stays as state, left out of the verdict (S:897, S:1014)
+      // continues in T7.O7
+    when TheTargetChanges
+      // former flow: t12-the-target-changes-while-the-question-waits.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Placement, S:452).
+      // carried from the former flow, its description: description "T12 — the target of a Deferred Placement changes while its question waits: the Gap is mooted, the Placement is marked Stale and the question is asked again. Spec of record S:510-511, S:815."
+      // T12.M5 · The target changes while the question waits
+      design: ConstructSuperseded  // S:555,804 a construct event on the target (superseded or invalidated) moots the Gap
+      design: MootGap cause ConstructEvent  // S:747 "MootGap(cause: construct event | Evaluated | Erased), system-only"; S:1311 "ConstructSuperseded | StartPass(Invalidation); MootGap scan"
+        triggered-by ConstructSuperseded  // S:593 "MootGap for every Gap on that construct that isn" (policy ConstructSupersededMootsGaps)
+      design: GapMooted  // S:755,499 MootGap(construct event) is system-only (S:747)
+      design: GapMootedWithdrawsQuestion  // S:1330 "GapMooted | ResolveQuestion(Withdrawn, cause Mooted)"
+        triggered-by GapMooted
+      clarification: ResolveQuestion cause Withdrawn  // S:815 "GapMooted** → ResolveQuestion(Withdrawn, cause Mooted, causedBy: the Gap events it withdraws)"
+        triggered-by GapMootedWithdrawsQuestion
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: MarkStale  // S:510 MarkStale(the Gap) on the Placement the Gap's CauseKey names, only while still Deferred
+        triggered-by GapMooted  // S:510 "GapMooted of a Gap that a Defer{Contradiction} or Defer{Divergence} observed" (policy GapMootedMarksPlacementStale)
+      design: PlacementMarkedStale  // S:438 {gap, cause: Mooted}
+      clarification: AskQuestion  // S:511 asked again, to the steer's recipients, with the Defer's options and the target as it now stands
+        triggered-by PlacementMarkedStale  // S:511 "PlacementMarkedStale → AskQuestion" (policy PlacementMarkedStaleAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033
+      // The provisional stays proposed; the Placement is Stale and is settled by an answer (S:510).
+    when TwoAuthorsAnsweredNew
+      // former flow: t12-two-authors-contradict-answered-new.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T12.M1 · A decision conflicts with what stands: design: DecidePlacement  // S:472 "the contradiction gate (e2cb82a9"
+      // carried from the former flow, T12.M1 · A decision conflicts with what stands: design: PlacementDecided  // S:503 "Defer{Contradiction{target}}"
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: design: StoreConstruct  // S:503 "StoreConstruct(proposedFor: UnsurePlacement)"
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: design: StartPass  // S:503 "StartPass(Live, scope: that provisional construct"
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: design: ObserveGap  // S:503 "ObserveGap on the target construct with finding Contradiction{entries"
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+      // carried from the former flow, T12.M3 · The people who disagree are asked: clarification: AskQuestion  // S:503 "The Gap's question goes to **both** authors"
+      // carried from the former flow, T12.M3 · The people who disagree are asked: clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T12.M4 · The answer settles the Placement
+      clarification: ResolveQuestion cause Answer  // S:1106 "the one routing row for the answer to a contradiction"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: ApplyAnswer  // S:1106 "ApplyAnswer on the Placement the Gap's CauseKey names, which is still Deferred"
+        triggered-by QuestionResolved  // S:1106 "a Gap event of a Contradiction Gap" (policy RoutingContradictionAnswerAppliesAnswer)
+      design: AnswerApplied  // S:491 "If the answer is on a non-boundary provisional construct"
+      design: AcceptConstruct  // S:491 "it issues AcceptConstruct(Answer)"
+        triggered-by AnswerApplied  // S:500 "3. (a NewRoot answer only" (policy ImpliesBoundaryNewRootAcceptsProvisional)
+      design: ConstructAccepted  // S:553 "ConstructAccepted"
+      // T12.O12 · The people settled it (terminal)
+      design: DisposeGap  // S:1106 "then DisposeGap(Resolved{Fixed}): the Gap closes together with its Placement"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved [outcome]  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      // PROVES: AnswerApplied (New) on the Deferred Placement, the provisional accepted, and GapResolved {Fixed} in the same Cycle (S:491, S:1106).
+    when TwoAuthorsAnsweredSameAs
+      // former flow: t12-two-authors-contradict-answered-sameas.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T12 — a Contradiction between two authors is answered SameAs: the Deferred Placement takes the SameAs outcome, the provisional is retired, and the Gap closes with its Placement. Spec of record S:492, S:506-508, S:1106."
+      // T12.M4 · The answer settles the Placement
+      clarification: ResolveQuestion cause Answer  // S:1106 "the one routing row for the answer to a contradiction"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: ApplyAnswer  // S:1106 "ApplyAnswer on the Placement the Gap's CauseKey names, which is still Deferred"
+        triggered-by QuestionResolved  // S:1106 "a Gap event of a Contradiction Gap" (policy RoutingContradictionAnswerAppliesAnswer)
+      design: AnswerApplied  // S:492 "MarkSameAs(target, Pointer, addition?)"
+      design: MarkSameAs  // S:492 "MarkSameAs(target, Pointer, addition?)"
+        triggered-by AnswerApplied  // S:492 "SameAs {target, addition?} (non-boundary) → MarkSameAs" (policy SameAsOutcomeMarksSameAsOnAnswer)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: ConstructLinked  // S:558 "MarkSameAs given a Pointer records it with MarkedSameAs (SameAs)"
+      // The SameAs outcome also fires AddAlias when the candidate's name differs from the target's (S:634); that is a conditional policy, drawn in t14-a-name-a-home-or-a-kind-changes-and-the-construct-keeps-its-identity, not here.
+      design: SupersedeConstruct  // S:508 "other types → SupersedeConstruct(by: none, cause: Answered)"
+        triggered-by AnswerApplied  // S:494 "Retire (an architect's answer to a Defer question" (policy RetireOutcomeSupersedesProvisional)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      // T12.O12 · The people settled it (terminal)
+      design: DisposeGap  // S:1106 "then DisposeGap(Resolved{Fixed}): the Gap closes together with its Placement"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved [outcome]  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      // PROVES: AnswerApplied (SameAs) on the Deferred Placement and GapResolved {Fixed} in the same Cycle (S:792, S:1106); the provisional is retired because an answer that does not reuse it retires it (S:506-508); the Gap no longer blocks.
+
+  moment "T12.M4 · The first answer settles the Placement and closes the Gap together (main path)"
+    // the main path of the story
+    clarification: ResolveQuestion cause Answer  // S:1106,1067 the answer to the Gap's question routes by its one row as ApplyAnswer on the Deferred Placement
+    // Non-matching answers (a Waive on the contradiction question, an unoffered name) end in NoneInvalid: ResolveQuestion's Invalid precondition
+    // (S:1042, S:1075), its own derived negative scenario. T12.M4·B2 is not a branch moment for that reason.
+
+  moment "T12.M4·B1 · when no grant waiver names this gap"
+    clarification: QuestionResolved  // S:1034
+    design: ApplyAnswer  // S:432,1067 on the Placement the Gap's CauseKey names: Return
+      triggered-by QuestionResolved  // S:1107 "a Gap event of a Divergence Gap whose CauseKey names a Deferred Placement" (policy RoutingDivergenceAnswerAppliesAnswer)
+    // sees: Refused{DeferralNotWaivable}; no WaiverGranted, no event (S:126, S:792, S:1040). The same refusal is T15.M2·B4. NDD exit returns-to T12.M3
+    // (the question stays open): the scenario ends at the refusal here.
+
+  moment "T12.O12 · The disagreement was settled by the people (continued) (terminal)" [branch]
+    design: AnswerApplied  // S:437,491 Return: the provisional is retired as one an answer does not reuse
+
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when AnsweredContinue
+      // former flow: t12-a-divergence-is-answered-continue.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Separate flow of T12: the Steer is answered Continue (S:502, S:1107). The provisional the answer does not reuse is also superseded (S:506); that
+      // T12.O12 · The disagreement was settled by the people (terminal)
+      design: StoreConstruct  // S:493 Supersedes -> StoreConstruct(supersedes X)
+        triggered-by AnswerApplied  // S:493 "Supersedes (non-boundary) → StoreConstruct(supersedes X)" (policy SupersedesOutcomeStoresConstructOnAnswer)
+      design: ConstructStored  // S:552
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: SupersedeConstruct  // S:1308 ConstructStored with supersedes -> SupersedeConstruct(X)
+        triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+      design: ConstructSuperseded  // S:555
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      design: DisposeGap  // S:502,1067 Resolved{Fixed} in the same Cycle
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved [outcome]  // S:752
+      // PROVES: AnswerApplied on the Deferred Placement and GapResolved {Fixed} in the same Cycle (S:792, S:1106-1107); the contradiction/divergence
+      // Gap no longer blocks.
+    when TwoAuthors
+      // former flow: t12-two-authors-contradict-and-the-design-waits-for-the-answer.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: the other two are alternatives not drawn here. There is no Waive on it (S:503, S:1080).
+      // carried from the former flow, its description: description "T12 — a Contradiction between two authors Deferred and answered Supersedes: the Gap closes only together with its Placement. Spec of record S:472, S:503, S:810, S:1106."
+      // carried from the former flow, T12.M2 · The Placement is Deferred, the target stands: triggered-by PlacementDecided  // S:503 "Defer{Contradiction{target}} → three policies on the event" (policy DeferContradictionObservesGap)
+      // T12.O12 · The disagreement was settled by the people (terminal)
+      design: StoreConstruct  // S:493 Supersedes -> StoreConstruct(supersedes X)
+        triggered-by AnswerApplied  // S:493 "Supersedes (non-boundary) → StoreConstruct(supersedes X)" (policy SupersedesOutcomeStoresConstructOnAnswer)
+      design: ConstructStored  // S:552
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: SupersedeConstruct  // S:1308 ConstructStored with supersedes -> SupersedeConstruct(X)
+        triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+      design: ConstructSuperseded  // S:555
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      design: DisposeGap  // S:1106 DisposeGap(Resolved{Fixed}) together with the Placement
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved [outcome]  // S:752
+      // PROVES: AnswerApplied on the Deferred Placement and GapResolved {Fixed} in the same Cycle (S:792, S:1106-1107); the contradiction/divergence
+      // Gap no longer blocks.
+
+  moment "T12.O12 · The disagreement was settled by the people (continued) (terminal, main path)"
+    // the main path of the story
+    design: SupersedeConstruct  // S:502,495 non-boundary type: SupersedeConstruct(by: none, cause: Answered); a boundary type is RetireProvisional (T13)
+      triggered-by AnswerApplied  // S:494 "Retire (an architect's answer to a Defer question" (policy RetireOutcomeSupersedesProvisional)
+    design: ConstructInvalidated  // S:556
+    design: DisposeGap  // S:502,1067 Resolved{Fixed} in the same Cycle (a deferral closes with its placement)
+      triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+    design: GapResolved [terminal]  // S:752
+    // PROVES: AnswerApplied on the Deferred Placement and GapResolved {Fixed} in the same Cycle (S:792, S:1106-1107); the contradiction/divergence
+    // Gap no longer blocks.

@@ -1,0 +1,98 @@
+// T10 — The model is done when nothing is open (verdict, corpus release, thresholds)
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T10.O10 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T10.M1 · A pass evaluates the model (continued): TheVerdictStaysOpen (former flow t10-the-verdict-stays-open.moment)
+//   T10.M2 · A corpus release re-assesses every workspace (continued): ACorpusReleaseReachesADisabledWorkspace (former flow t10-a-corpus-release-reaches-a-disabled-workspace.moment)
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T10 — The model is done when nothing is open (verdict, corpus release, thresholds)"
+  description "T10 — The model is done when nothing is open (verdict, corpus release, thresholds). The story of the thread from its start to its T10.O10 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane enablement "Enablement" [Supporting]
+  lane design "DesignModel" [Core]
+  lane governance "Governance" [Supporting]
+
+  moment "T10.M1 · A pass evaluates the model"
+    // StartPass(CauseTag, scope, CauseKey?) (S:668) -> PassStarted; GateRun (domain service, 3 steps; S:720): catch-up, evaluate the effective catalogue by cadence (scoped passes: Live-cadence rules; model-wide: Live and ModelWide;
+    // the Document pass also the Document-cadence rules, REC-001), issue RecordGateResults, record GatesEvaluated {judgements}; Completion: GatesEvaluated -> CompletePass, which reads the convergence read model (asOf)
+    // and records PassCompleted {ConvergenceSnapshot, verdict, ...} (S:723). Rules that evaluate only when declared (STR-009, TAC-007, TAC-008) and Advisory rules (TAC-004, STR-012) are reported, never asked (C5-06).
+    design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+
+  moment "T10.M1 · A pass evaluates the model (continued)" [branch]
+    design: PassStarted  // S:672
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when TheVerdictStaysOpen
+      // former flow: t10-the-verdict-stays-open.moment
+      // T10.M5·B2 · when anything above is open
+      // T10.N1 · Open (terminal): the design state is open; the convergence read model lists what blocks: blocking Gaps, proposed constructs, open proposals, Deferred or Stale Placements, quarantined or failed-and-open Receipts, open intakes (S:713).
+      design: GatesEvaluated  // S:723; S:674
+      design: CompletePass  // S:670; S:716 "otherwise Decreased or Stalled"
+        triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+      design: PassCompleted [outcome]  // S:675; S:716 "otherwise **Decreased** or **Stalled**"
+
+  moment "T10.M1 · A pass evaluates the model (continued, main path)"
+    // the main path of the story
+    design: GatesEvaluated  // S:674 "GatesEvaluated {judgements}"; S:720
+    design: CompletePass  // S:670 "CompletePass"; S:723
+      triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+
+  moment "T10.M2 · A corpus release re-assesses every workspace (continued)" [branch]
+    design: PassCompleted  // S:675 "PassCompleted {ConvergenceSnapshot, verdict, actor, CorpusVersion, RulesVersion, startPosition, asOf, CauseKey}"
+
+    // [person] the corpus release pipeline releases a CorpusVersion (external: narrative; ADR-074, Conformist). CorpusVersionReleased is an external event and is not declarable (S:737).
+    // Fan-out (not a policy, S:737): a pass trigger for every customer workspace that has Sift, after the Sift-workspaces read model has reached the release's position; the admission gate decides per workspace; StartPass(CorpusRelease, model-wide, CauseKey = CorpusVersion; S:703).
+    enablement: SiftWorkspaces  // S:737 "a pass trigger for every customer workspace that has Sift. It waits first until the Sift-workspaces read model has reached the release's position"; S:1005
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when ACorpusReleaseReachesADisabledWorkspace
+      // former flow: t10-a-corpus-release-reaches-a-disabled-workspace.moment
+      // T10.M2·B1 · when a workspace is disabled
+      // The per-workspace pass trigger is refused by the gate (S:295 "per-customer-workspace corpus-release and threshold pass triggers"); the disabled workspace picks the CorpusVersion up in its Resume pass (S:737, T8.M4).
+      design: RecordGateDecision  // S:1410 "RecordGateDecision | the hard-stop gate, when work is taken"
+      design: GateDecisionRecorded [terminal]  // S:1352 "GateDecisionRecorded | StartCycle (an Admitted decision starts the Cycle); the refusal notice (§1 Hard-stop gate, Refusal notices)"
+
+  moment "T10.M2 · A corpus release re-assesses every workspace (continued, main path)"
+    // the main path of the story
+    design: StartPass  // S:737; S:695 "model-wide: Bootstrap, Resume (whole model), CorpusRelease, ThresholdOverride, Convergence"
+      triggered-by PassCompleted  // S:727 "Decreased (model-wide, with blocking Gaps in scope) → StartPass(Convergence)" (policy DecreasedVerdictStartsConvergencePass)
+    design: PassStarted  // S:672
+    // T10.M2·B2 (a trigger whose CorpusVersion is older than the one read at its startPosition is a NoOp, T10.N3; S:735) is the StartPass precondition NoOpStaleTrigger: Moment derives neg-StartPass-NoOpStaleTrigger.
+
+  moment "T10.M3 · An operator changes a threshold"
+    // [person] an operator sends OverrideThreshold at CustomerWorkspace or License scope (also SourceAuthority, PrimaryDocument; S:1149-1150); the management API reads observedOverrideId (the latest ThresholdOverridden on the scope) and carries it (S:1144).
+    governance: OverrideThreshold  // S:1138 "OverrideThreshold(…, observedOverrideId?) (management API)"; S:282, S:289
+    governance: ThresholdOverridden  // S:1139 "ThresholdOverridden {…, requestKey}"
+    // Fan-out (S:738): a pass trigger for that workspace, or for License scope every inheriting workspace (same catch-up) -> StartPass(ThresholdOverride, model-wide, CauseKey = RulesVersion; S:704). Effective = customer-workspace value, else license, else seed (S:1150).
+    design: StartPass  // S:738 "ThresholdOverridden → a pass trigger for that customer workspace, or, for License scope, for every inheriting customer workspace"; S:704
+      triggered-by PassCompleted  // S:727 "Decreased (model-wide, with blocking Gaps in scope) → StartPass(Convergence)" (policy DecreasedVerdictStartsConvergencePass)
+    design: PassStarted  // S:672
+    // Refusals T10.M3·B1 (NotOperator), B2 (Superseded), B3 (own repeat: a silent no-op, T10.N3), B4 (L1 never configurable: Refused{L1NotConfigurable}; no rule disabled: Refused{RuleNotDisableable}, S:1141-1142) and B5 (disabled workspace: RefusedDisabled) are the preconditions of OverrideThreshold;
+    // Moment derives neg-OverrideThreshold-NotOperator, -Superseded, -NoOpRepeat, -RefusedL1NotConfigurable, -RefusedRuleNotDisableable and -RefusedDisabled (S:1145-1147, S:307).
+
+  moment "T10.M4 · The passes follow the changes"
+    // Convergence triggers (S:725-732), model-wide ones starting nothing inside a Replay or an intake (S:726: the NotInsideReplayOrIntake precondition of StartPass, T10.M4·B1). The main one: a PassCompleted Decreased with blocking Gaps in scope -> StartPass(Convergence) (S:727).
+    // The others are alternatives by cause, noted: a SameAs-only AnswerApplied or PlacementDecided (S:728), every Gap disposal GapResolved, GapWaived or GapMooted except Erased (S:729), the redo of a Receipt (S:730, T9), an erasure (S:731, T7),
+    // the end of an intake (S:732, T6), a ContextMap proposal that ends with no construct to accept (S:733). Stalled waits for a relevant change (S:734). Scoped passes compare only their own subset; the in-scope blocking count must decrease GapKey by GapKey;
+    // a new CauseKey is exempt for one pass; Convergence passes are not coalesced and run one after another per workspace (S:708-717).
+    design: StartPass  // S:727 "Decreased (model-wide, with blocking Gaps in scope) → StartPass(Convergence)"
+      triggered-by PassCompleted  // S:727 "Decreased (model-wide, with blocking Gaps in scope) → StartPass(Convergence)" (policy DecreasedVerdictStartsConvergencePass)
+    design: PassStarted  // S:672
+
+  moment "T10.M5 · The verdict"
+    // SystemValidated only if, as of asOf (read from the convergence read model after the catch-up): no Gap in the customer workspace is blocking, no construct is in the proposed state, no ContextMap proposal is open, no Placement Deferred, Stale or matched-and-undecided,
+    // no Receipt quarantined or failed and open, no document version's intake open (S:713); a Receipt is not counted by a pass of its own unit of work; open work of an erased source is left out (S:713, S:1014). Decreased (zero in scope) when 0 blocking Gaps in scope
+    // while not validated (S:714); otherwise Decreased or Stalled (S:716). CycleCompleted.designState is SystemValidated only when the latest verdict is SystemValidated, every condition holds at the Cycle's position and the Cycle is not a child of a running Replay or intake (S:718).
+    // T10.M5·B1 (a Document pass, or a pass started by a child of a running Replay or intake, never records SystemValidated, T10.N2; S:715) is the CompletePass precondition NoSystemValidatedInsideReplayOrIntake: Moment derives neg-CompletePass-NoSystemValidatedInsideReplayOrIntake.
+    design: GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass"; S:674
+    design: CompletePass  // S:670; S:723 "CompletePass reads the convergence read model after the catch-up (asOf), and records PassCompleted"
+      triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+
+  moment "T10.O10 · The model is done (terminal)"
+    // PROVES: a model-wide PassCompleted with verdict SystemValidated and a Cycle's designState SystemValidated; "0 gaps" means structural stability, not semantic correctness (S:713, S:718).
+    design: PassCompleted [terminal]  // S:675; S:713 "SystemValidated only if, as of asOf ..."
+    // T10.N2 Scoped passes never validate and T10.N3 Trigger ignored: preconditions of CompletePass, StartPass and OverrideThreshold (neg scenarios). T10.N1 Open: t10-the-verdict-stays-open.

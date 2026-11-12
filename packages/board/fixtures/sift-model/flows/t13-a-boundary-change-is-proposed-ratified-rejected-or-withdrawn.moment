@@ -1,0 +1,581 @@
+// T13 — A boundary change is proposed, ratified, rejected or withdrawn
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE section 6 gives thread structure and titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T13.O13 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T13.M1 · A boundary change is stated or found: GapSourcedMergeRatified (former flow t13-a-gap-sourced-duplicate-merge-is-ratified.moment)
+//   T13.M1 · A boundary change is stated or found: GapSourcedMergeRejected (former flow t13-a-gap-sourced-proposal-is-rejected.moment)
+//   T13.M1 · A boundary change is stated or found: GapSourcedMergeWithdrawn (former flow t13-a-gap-sourced-proposal-is-withdrawn.moment)
+//   T13.M1 · A boundary change is stated or found: NewRootAnswer (former flow t13-a-new-root-answer-proposes-the-root-once.moment)
+//   T13.M1 · A boundary change is stated or found: ProvisionalRetired (former flow t13-a-provisional-boundary-construct-is-retired.moment)
+//   T13.M1 · A boundary change is stated or found: Retire (former flow t13-a-retire-is-ratified.moment)
+//   T13.M1 · A boundary change is stated or found (continued): DuplicateMerge (former flow t13-a-duplicate-merge-is-ratified.moment)
+//   T13.M1 · A boundary change is stated or found (continued): DuplicateMergeWhenTheProposalIsNotOpen (former flow t13-a-duplicate-merge-is-ratified.moment)
+//   T13.M1 · A boundary change is stated or found (continued): Rename (former flow t13-a-rename-is-ratified.moment)
+//   T13.M1 · A boundary change is stated or found (continued): RenameWhenTheProposalIsNotOpen (former flow t13-a-rename-is-ratified.moment)
+//   T13.M2 · The proposal is made: StaleVersions (former flow t13-a-stale-proposal-is-withdrawn-in-the-same-write.moment)
+//   T13.M2 · The proposal is made: StaleVersionsRatifiedBy (former flow t13-a-stale-proposal-with-ratifiedby-is-withdrawn.moment)
+//   T13.M3 · An operator is asked: RatifiedInline (former flow t13-a-boundary-change-is-ratified-inline.moment)
+//   T13.M4 · An operator ratifies: Rejected (former flow t13-a-boundary-change-is-rejected.moment)
+//   T13.M4 · An operator ratifies: RejectedWhenTheProposalIsNotOpen (former flow t13-a-boundary-change-is-rejected.moment)
+//   T13.M4 · An operator ratifies: Withdrawn (former flow t13-a-boundary-change-is-withdrawn.moment)
+//   T13.M4·B2 · when the proposal is not open: Move (former flow t13-a-move-is-ratified.moment)
+//   T13.M4·B2 · when the proposal is not open: Replace (former flow t13-a-replacement-is-ratified.moment)
+//   T13.M4·B2 · when the proposal is not open: ARatifyCascadeWithdrawsAProposalMadeStale (former flow t13-a-ratification-cascade-withdraws-a-stale-proposal.moment)
+//   T13.M4·B2 · when the proposal is not open: ARejectCascadeWithdrawsAProposalMadeStale (former flow t13-a-rejection-cascade-withdraws-a-stale-proposal.moment)
+// DIFFERENCE FROM NDD-SOURCE (spec wins): The NDD chain walked ratify, reject and withdraw in sequence on one proposal (T13.M4, M5, M6) and listed
+//   the per-change ratification steps together; they are exclusive (S:883-889), so each is its own branch.
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T13.M2·B1 (a duplicateMerge's pair is not two distinct live constructs) lives in the duplicate-merge branch
+//   as Propose's precondition RefusedPairNotDistinctLive (S:861): a derived negative scenario, no branch moment. T13.M1·B1 (a NewRoot answer) is its own
+//   flow.
+// DIFFERENCE FROM NDD-SOURCE (spec wins): M3 no longer repeats BoundaryChangeProposed to fake a triggered-by: the trigger is the previous node.
+// carried from the former main flow, its description: description "T13 — A boundary change is proposed, ratified, rejected or withdrawn (O13). The ratified path for an ImpliesBoundary{new}. Spec of record S:826-898."
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T13 — A boundary change is proposed, ratified, rejected or withdrawn"
+  description "T13 — A boundary change is proposed, ratified, rejected or withdrawn. The story of the thread from its start to its T13.O13 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T13.M1 · A boundary change is stated or found" [branch]
+    when TheMainPath
+      // the main path of the story
+      design: PlacementDecided  // S:436,487 ImpliesBoundary{new}: a New BC, Aggregate or Relationship construct (DecidePlacement is T3.M3's)
+    when GapSourcedMergeRatified
+      // former flow: t13-a-gap-sourced-duplicate-merge-is-ratified.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Separate flow of T13 (a Gap source, S:886 "A Gap-sourced merge also gets the Gap disposal"). The entry-sourced merge is t13-a-duplicate-merge-is-ratified; the Ratify and Reject refusal arms (NoneUnauthorised, RatificationRefused{NotOpen}) are drawn there and the same commands carry the same preconditions here.
+      // T13.M1 · A boundary Gap is found
+      design: GapOpened  // S:811 "ContextMap Propose(duplicateMerge, source: this Gap"
+      // A Boundary Gap proposes a duplicateMerge at most once per open period; the Propose ID derives from the Gap event (S:863).
+      // T13.M2 · The proposal is made
+      design: Propose  // S:811 "ContextMap Propose(duplicateMerge, source: this Gap, observed boundary versions from that event's finding)"
+        triggered-by GapOpened  // S:811 "Boundary → ContextMap Propose(duplicateMerge" (policy BoundaryHandlingProposesDuplicateMerge)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      // T13.M3 · The architects are asked
+      clarification: AskQuestion  // S:882 "Recipient for a Gap source: all architects, cascading to admins and owners."
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T13.M4 · An operator ratifies
+      clarification: ResolveQuestion cause Answer  // S:1124 "BoundaryChangeProposed → Ratify or Reject"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: Ratify  // S:832 "Ratify(proposal, answeredBy, answer ref)"
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: BoundaryChangeRatified  // S:855 "otherwise → BoundaryChangeRatified"
+      design: SupersedeConstruct  // S:876 "the newer duplicate (by the older, the survivor)"
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      design: MarkSameAs  // S:886 "for a duplicate merge, also MarkSameAs"
+        triggered-by BoundaryChangeRatified  // S:886 "for a duplicate merge, also MarkSameAs, carrying the proposal" (policy BoundaryChangeRatifiedMergesDuplicate)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: AddAlias  // S:886 "AddAlias on the survivor for each name of the newer duplicate"
+        triggered-by BoundaryChangeRatified  // S:636 "BoundaryChangeRatified for a duplicateMerge → AddAlias on the survivor" (policy RatifiedDuplicateMergeAddsAliases)
+      design: ConstructAliased  // S:616 "ConstructAliased {name, Pointer}"
+      design: DisposeGap  // S:821 "BoundaryChangeRatified → DisposeGap(Resolved{SameAs})"
+        triggered-by BoundaryChangeRatified  // S:820 "Gap-sourced proposals (by ContextMap outcome)" (policy GapSourcedProposalRatifiedDisposesGap)
+      // T13.O13 · The Gap is resolved (terminal)
+      design: GapResolved [outcome]  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      // PROVES: BoundaryChangeRatified then GapResolved {SameAs} (S:821, S:1333).
+    when GapSourcedMergeRejected
+      // former flow: t13-a-gap-sourced-proposal-is-rejected.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a duplicateMerge proposed by a Boundary Gap is rejected by an operator: the Gap is disposed Resolved{Distinct}, which is then Covered and not asked again. Spec of record S:822, S:833, S:858-859, S:1334."
+      // T13.M1 · A boundary Gap is found
+      design: GapOpened  // S:811 "ContextMap Propose(duplicateMerge, source: this Gap"
+      // A Boundary Gap proposes a duplicateMerge at most once per open period; the Propose ID derives from the Gap event (S:863).
+      // T13.M2 · The proposal is made
+      design: Propose  // S:811 "ContextMap Propose(duplicateMerge, source: this Gap, observed boundary versions from that event's finding)"
+        triggered-by GapOpened  // S:811 "Boundary → ContextMap Propose(duplicateMerge" (policy BoundaryHandlingProposesDuplicateMerge)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      // T13.M3 · The architects are asked
+      clarification: AskQuestion  // S:882 "Recipient for a Gap source: all architects, cascading to admins and owners."
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T13.M4 · An operator rejects
+      clarification: ResolveQuestion cause Answer  // S:1124 "BoundaryChangeProposed → Ratify or Reject"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: Reject  // S:833 "Reject(proposal, answeredBy, answer ref)"
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRejects)
+      design: BoundaryChangeRejected  // S:859 "otherwise → BoundaryChangeRejected"
+      design: DisposeGap  // S:822 "BoundaryChangeRejected → DisposeGap(Resolved{Distinct}), which is then Covered and not asked again (R2)"
+        triggered-by BoundaryChangeRejected  // S:820 "Gap-sourced proposals (by ContextMap outcome)" (policy GapSourcedProposalRejectedDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:733 "StartPass(Convergence, scope: the customer workspace, model-wide)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // T13.O13 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: see the node before it; the verdict counts an open proposal or a blocking Gap (S:1002).
+    when GapSourcedMergeWithdrawn
+      // former flow: t13-a-gap-sourced-proposal-is-withdrawn.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Separate flow of T13 (S:893 "A Gap source → the Gap disposal"). The increment that causes the withdrawal is any content write, rename or move of a construct in the read set (S:860, S:630); the cascade is the system's act, so it is not drawn as a command node. A later pass that still finds the duplicate reopens the Gap with fresh versions (S:823).
+      // T13.M1 · A boundary Gap is found
+      design: GapOpened  // S:811 "ContextMap Propose(duplicateMerge, source: this Gap"
+      // A Boundary Gap proposes a duplicateMerge at most once per open period; the Propose ID derives from the Gap event (S:863).
+      // T13.M2 · The proposal is made
+      design: Propose  // S:811 "ContextMap Propose(duplicateMerge, source: this Gap, observed boundary versions from that event's finding)"
+        triggered-by GapOpened  // S:811 "Boundary → ContextMap Propose(duplicateMerge" (policy BoundaryHandlingProposesDuplicateMerge)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      // T13.M3 · The architects are asked
+      clarification: AskQuestion  // S:882 "Recipient for a Gap source: all architects, cascading to admins and owners."
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T13.M6 · Or the world changes under it
+      design: ProposalWithdrawn  // S:845 "Every boundary version increment withdraws, **in the same write**, each open proposal whose read set contains an incremented construct"
+      clarification: ResolveQuestion cause Withdrawn  // S:891 "ResolveQuestion(Withdrawn) for its ratification question, which closes it in flmnt"
+        triggered-by ProposalWithdrawn  // S:891 "ResolveQuestion(Withdrawn) for its ratification question" (policy ProposalWithdrawnWithdrawsQuestion)
+      clarification: QuestionResolved  // S:891 "ResolveQuestion(Withdrawn) for its ratification question, which closes it in flmnt"
+      design: DisposeGap  // S:823 "ProposalWithdrawn → DisposeGap(Resolved{Fixed, rationale: SubjectChanged})"
+        triggered-by ProposalWithdrawn  // S:820 "Gap-sourced proposals (by ContextMap outcome)" (policy GapSourcedProposalWithdrawnDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      design: StartPass  // S:733 "StartPass(Convergence, scope: the customer workspace, model-wide)"
+        triggered-by GapResolved  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapResolvedStartsConvergencePass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // T13.O13 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: see the node before it; the verdict counts an open proposal or a blocking Gap (S:1002).
+    when NewRootAnswer
+      // former flow: t13-a-new-root-answer-proposes-the-root-once.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a NewRoot answer proposes the root once and accepts the first gathered Placement's provisional against it. Spec of record S:498-500, S:1116."
+      // T13.M1·B1 · when the answer is a NewRoot
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1116 the NewRoot answer to a missing-arm question
+      design: ApplyAnswer  // S:498,1076 one ApplyAnswer(ImpliesBoundary{new}) on the first gathered Placement
+        triggered-by QuestionResolved  // S:530 "An arm's context settled (Round 19" (policy ArmContextSettledAppliesAnswer)
+      design: AnswerApplied  // S:437
+      design: StoreConstruct  // S:498 policy 1: the root is stored (proposedFor: BoundaryRatification) and proposed once
+        triggered-by AnswerApplied  // S:498 "1. StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates" (policy ImpliesBoundaryStoresCreatedConstructsOnAnswer)
+      design: ConstructStored  // S:552
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: Propose  // S:499 policy 2: the Propose ID derives from this AnswerApplied
+        triggered-by AnswerApplied  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposesOnAnswer)
+      design: BoundaryChangeProposed  // S:851
+      design: AcceptConstruct  // S:500 policy 3: AcceptConstruct(Answer{question}) on the first Placement's own provisional, whose arm is the proposed root
+        triggered-by AnswerApplied  // S:500 "3. (a NewRoot answer only" (policy ImpliesBoundaryNewRootAcceptsProvisional)
+      design: ConstructAccepted [outcome]  // S:553
+      // Each other gathered Placement is applied as New with the proposed root as its arm and is committed when the root is (S:498); none is retired
+      // while the root is proposed (S:498). The root's ratification continues as T13.M3 and T13.M4. NDD exit returns-to T13.M2.
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when ProvisionalRetired
+      // former flow: t13-a-provisional-boundary-construct-is-retired.moment
+      // T13.M7 · A provisional boundary construct is retired
+      design: AnswerApplied  // S:437,495-496 an answer that does not reuse a boundary-type provisional (the Return answer of a Defer{Divergence} included, S:860)
+      design: RetireProvisional  // S:834,849 RetireProvisional(construct, cause Answered | Computed), system-only; increments that construct's boundary version, then cascades
+      design: ProvisionalRetired  // S:841 {cause}
+      design: SupersedeConstruct  // S:896 ProvisionalRetired -> SupersedeConstruct(by: none, cause: the cause it records)
+        triggered-by ProvisionalRetired  // S:896 "ProvisionalRetired → SupersedeConstruct(by: none" (policy ProvisionalRetiredSupersedes)
+      design: ConstructInvalidated [outcome]  // S:556
+      // A repeat is a no-op (S:860). Also reached for the provisional of a Defer{Divergence} under SourceAuthority Conversation, with cause Computed
+      // (S:860, T12).
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when Retire
+      // former flow: t13-a-retire-is-ratified.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a retirement answer on a boundary construct is a Propose(retire), asked and ratified: the construct is superseded by none and creates nothing. Spec of record S:877, S:1111, S:862, S:883-885."
+      // T13.M1 · A retirement is asked
+      design: PlacementDecided  // S:512 "PlacementDecided, for a Placement whose entry's lineage names a superseded entry E → AskQuestion"
+      clarification: AskQuestion  // S:512 "AskQuestion (subject: the retirement subject for E"
+        triggered-by PlacementDecided  // S:512 "Retirement (ruling 7090385c, Round 14):" (policy RetirementQuestionForSupersededEntry)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T13.M2 · The retirement is answered
+      clarification: ResolveQuestion cause Answer  // S:1111 "a PlacementDecided gathered by a retirement question"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T13.M3 · The proposal is made
+      design: Propose  // S:1111 "ContextMap Propose(retire, or replace by X, source: the superseding entry's Pointer, created constructs: none"
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      // T13.M4 · An operator is asked
+      clarification: AskQuestion  // S:881 "otherwise all architects (cascading to admins and owners when there are none)"
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T13.M5 · An operator ratifies
+      clarification: ResolveQuestion cause Answer  // S:1124 "BoundaryChangeProposed → Ratify or Reject"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: Ratify  // S:832 "Ratify(proposal, answeredBy, answer ref)"
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: BoundaryChangeRatified  // S:855 "otherwise → BoundaryChangeRatified"
+      design: SupersedeConstruct  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires"
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      design: StartPass  // S:733 "StartPass(Convergence, scope: the customer workspace, model-wide)"
+        triggered-by ConstructInvalidated  // S:591 "ConstructSuperseded or ConstructInvalidated, as three policies on the one event" (policy ConstructInvalidatedStartsInvalidationPass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // T13.O13 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: see the node before it; the verdict counts an open proposal or a blocking Gap (S:1002).
+
+  moment "T13.M1 · A boundary change is stated or found (continued)" [branch]
+    when TheMainPath
+      // the main path of the story
+      design: StoreConstruct  // S:498 first policy: StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates
+        triggered-by PlacementDecided  // S:498 "1. StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates" (policy ImpliesBoundaryStoresCreatedConstructs)
+      design: ConstructStored  // S:552
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+    when DuplicateMerge
+      // former flow: t13-a-duplicate-merge-is-ratified.moment (path 1 of 2)
+      // T13.M2 · The proposal is made
+      design: Propose  // S:499,820 ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions)
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else -> BoundaryChangeProposed" (versions current, no ratifiedBy)
+      // T13.M3 · An operator is asked
+      clarification: AskQuestion  // S:880 BoundaryChangeProposed -> AskQuestion (subject: this event), only if the proposal is still open; recipient: the author if an operator, else all architects (S:881)
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 the question shows the boundary versions (S:880)
+      // T13.M4 · An operator ratifies
+      clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+      // T13.M4·B1 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+      // the refusal here.
+      // T13.M4·B2 · when the proposal is not open
+      design: Ratify  // S:832,844
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: BoundaryChangeRatified  // S:837,844
+      design: SupersedeConstruct  // S:885,865 the newer duplicate is superseded by the older, the survivor (cause: Ratified)
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructSuperseded  // S:555
+      design: MarkSameAs  // S:886 also MarkSameAs, carrying the proposal's addition when it has one
+        triggered-by BoundaryChangeRatified  // S:886 "for a duplicate merge, also MarkSameAs, carrying the proposal" (policy BoundaryChangeRatifiedMergesDuplicate)
+      design: MarkedSameAs  // S:557
+      design: AddAlias  // S:886,625 AddAlias on the survivor for each name of the newer duplicate
+        triggered-by BoundaryChangeRatified  // S:636 "BoundaryChangeRatified for a duplicateMerge → AddAlias on the survivor" (policy RatifiedDuplicateMergeAddsAliases)
+      design: ConstructAliased [outcome]  // S:616
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when DuplicateMergeWhenTheProposalIsNotOpen
+      // former flow: t13-a-duplicate-merge-is-ratified.moment (path 2 of 2)
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a duplicate merge of two boundary constructs is ratified: the newer is superseded by the older, which keeps the newer's names as aliases. Spec of record S:861, S:876, S:886."
+      // carried from the former flow, T13.M1 · A boundary change is stated or found: design: PlacementDecided  // S:436,487 ImpliesBoundary{duplicateMerge}: a SameAs of one boundary construct against another, or a Boundary Gap (S:811); creates no construct (S:876)
+      // T13.M2 · The proposal is made
+      design: Propose  // S:499,820 ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions)
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else -> BoundaryChangeProposed" (versions current, no ratifiedBy)
+      // T13.M3 · An operator is asked
+      clarification: AskQuestion  // S:880 BoundaryChangeProposed -> AskQuestion (subject: this event), only if the proposal is still open; recipient: the author if an operator, else all architects (S:881)
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 the question shows the boundary versions (S:880)
+      // T13.M4 · An operator ratifies
+      clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+      // T13.M4·B1 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+      // the refusal here.
+      // T13.M4·B2 · when the proposal is not open
+      design: Ratify  // S:832,843 on a proposal that is not open
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: RatificationRefused [terminal]  // S:840,843 {proposal, reason: NotOpen, actor}
+      // sees: RatificationRefused{NotOpen}, then a notice to the answerer (S:895); a repeat with the same answer ref is a silent no-op (S:854). NDD
+      // terminal T13.N2.
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when Rename
+      // former flow: t13-a-rename-is-ratified.moment (path 1 of 2)
+      // T13.M2 · The proposal is made
+      design: Propose  // S:499,820 ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions)
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else -> BoundaryChangeProposed" (versions current, no ratifiedBy)
+      // T13.M3 · An operator is asked
+      clarification: AskQuestion  // S:880 BoundaryChangeProposed -> AskQuestion (subject: this event), only if the proposal is still open; recipient: the author if an operator, else all architects (S:881)
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 the question shows the boundary versions (S:880)
+      // T13.M4 · An operator ratifies
+      clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+      // T13.M4·B1 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+      // the refusal here.
+      // T13.M4·B2 · when the proposal is not open
+      design: Ratify  // S:832,844
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: BoundaryChangeRatified  // S:837,844
+      design: RenameConstruct  // S:888,851 RenameConstruct(S, N, cause Ratified): S keeps its identity
+        triggered-by BoundaryChangeRatified  // S:639 "BoundaryChangeRatified for a rename S → N → RenameConstruct" (policy RatifiedRenameRenamesConstruct)
+      design: ConstructRenamed  // S:617
+      design: AddAlias  // S:888,629 ConstructRenamed issues AddAlias for the previous name
+        triggered-by ConstructRenamed  // S:640 "ConstructRenamed → AddAlias(the construct, the previous name" (policy ConstructRenamedAddsPreviousNameAlias)
+      design: ConstructAliased [outcome]  // S:616
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when RenameWhenTheProposalIsNotOpen
+      // former flow: t13-a-rename-is-ratified.moment (path 2 of 2)
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a rename of a boundary construct is ratified in place: the construct keeps its identity and the old name becomes an alias. Spec of record S:862, S:874, S:888."
+      // T13.M2 · The proposal is made
+      design: Propose  // S:499,820 ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions)
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else -> BoundaryChangeProposed" (versions current, no ratifiedBy)
+      // T13.M3 · An operator is asked
+      clarification: AskQuestion  // S:880 BoundaryChangeProposed -> AskQuestion (subject: this event), only if the proposal is still open; recipient: the author if an operator, else all architects (S:881)
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 the question shows the boundary versions (S:880)
+      // T13.M4 · An operator ratifies
+      clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+      // T13.M4·B1 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+      // the refusal here.
+      // T13.M4·B2 · when the proposal is not open
+      design: Ratify  // S:832,843 on a proposal that is not open
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: RatificationRefused [terminal]  // S:840,843 {proposal, reason: NotOpen, actor}
+      // sees: RatificationRefused{NotOpen}, then a notice to the answerer (S:895); a repeat with the same answer ref is a silent no-op (S:854). NDD
+      // terminal T13.N2.
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+
+  moment "T13.M2 · The proposal is made" [branch]
+    when TheMainPath
+      // the main path of the story
+      design: Propose  // S:499,820 ContextMap Propose(change, source: the entry Pointer, created constructs, observed SubjectVersions)
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+    when StaleVersions
+      // former flow: t13-a-stale-proposal-is-withdrawn-in-the-same-write.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a Propose whose observed boundary versions differ from the current ones is proposed and withdrawn in one write: its created constructs are invalidated and the source is asked again. Spec of record S:849, S:880, S:892-893."
+      // carried from the former flow, T13.M1 · A boundary change is stated or found: design: PlacementDecided  // S:498 "ImpliesBoundary"
+      // carried from the former flow, T13.M1 · A boundary change is stated or found: design: StoreConstruct  // S:498 "StoreConstruct(proposedFor: BoundaryRatification) for each construct the change creates"
+      // carried from the former flow, T13.M1 · A boundary change is stated or found: design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      // T13.M2 · The proposal is made on versions that are already stale
+      design: Propose  // S:849 "if the observed boundary versions differ from the current ones → BoundaryChangeProposed and ProposalWithdrawn in one write"
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:836 "BoundaryChangeProposed {source, ratifiedBy?, ratifiedInline}"
+      design: ProposalWithdrawn  // S:849 "BoundaryChangeProposed and ProposalWithdrawn in one write"
+      // Nobody is asked: BoundaryChangeProposed asks only when it is "not withdrawn in the same write" (S:880).
+      // T13.M6 · The cascade withdraws it
+      design: SupersedeConstruct  // S:892 "SupersedeConstruct(by: none, cause: SubjectChanged) for each created construct"
+        triggered-by ProposalWithdrawn  // S:892 "SupersedeConstruct(by: none, cause: SubjectChanged) for each created construct" (policy ProposalWithdrawnSupersedesCreated)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      design: PlacementMarkedStale  // S:893 "an entry source → Placement MarkStale(proposal)"
+      clarification: AskQuestion  // S:511 "AskQuestion (subject: the entry Pointer; recipient: the source entry's author"
+        triggered-by PlacementMarkedStale  // S:511 "PlacementMarkedStale → AskQuestion" (policy PlacementMarkedStaleAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      design: StartPass  // S:733 "StartPass(Convergence, scope: the customer workspace, model-wide)"
+        triggered-by ProposalWithdrawn  // S:733 "a ContextMap proposal that ends with no construct to accept" (policy ProposalWithdrawnStartsConvergencePass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // T13.O13 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: see the node before it; the verdict counts an open proposal or a blocking Gap (S:1002).
+    when StaleVersionsRatifiedBy
+      // former flow: t13-a-stale-proposal-with-ratifiedby-is-withdrawn.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a Propose that carries an operator as ratifiedBy but observed stale boundary versions is withdrawn in the same write and not ratified; the ratifiedBy answerer gets a notice. Spec of record S:849-850, S:894."
+      // T13.M2 · The proposal is made on versions that are already stale
+      design: Propose  // S:849 "if the observed boundary versions differ from the current ones → BoundaryChangeProposed and ProposalWithdrawn in one write"
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:836 "BoundaryChangeProposed {source, ratifiedBy?, ratifiedInline}"
+      design: ProposalWithdrawn  // S:849 "BoundaryChangeProposed and ProposalWithdrawn in one write"
+      // Nobody is asked: BoundaryChangeProposed asks only when it is "not withdrawn in the same write" (S:880).
+      // The Propose carried ratifiedBy, so the withdrawal also sends a notice to that answerer (S:894 "a notice to that answerer"); a notice is not a domain event.
+      // T13.M6 · The cascade withdraws it
+      design: SupersedeConstruct  // S:892 "SupersedeConstruct(by: none, cause: SubjectChanged) for each created construct"
+        triggered-by ProposalWithdrawn  // S:892 "SupersedeConstruct(by: none, cause: SubjectChanged) for each created construct" (policy ProposalWithdrawnSupersedesCreated)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      design: PlacementMarkedStale  // S:893 "an entry source → Placement MarkStale(proposal)"
+      clarification: AskQuestion  // S:511 "AskQuestion (subject: the entry Pointer; recipient: the source entry's author"
+        triggered-by PlacementMarkedStale  // S:511 "PlacementMarkedStale → AskQuestion" (policy PlacementMarkedStaleAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      design: StartPass  // S:733 "StartPass(Convergence, scope: the customer workspace, model-wide)"
+        triggered-by ProposalWithdrawn  // S:733 "a ContextMap proposal that ends with no construct to accept" (policy ProposalWithdrawnStartsConvergencePass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      // T13.O13 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: see the node before it; the verdict counts an open proposal or a blocking Gap (S:1002).
+
+  moment "T13.M3 · An operator is asked" [branch]
+    design: BoundaryChangeProposed  // S:851 "else -> BoundaryChangeProposed" (versions current, no ratifiedBy)
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when RatifiedInline
+      // former flow: t13-a-boundary-change-is-ratified-inline.moment
+      // T13.M2 · The proposal is made
+      design: BoundaryChangeRatified  // S:850,826 in one write, with the Ratify rules and the cascade applied
+      design: AcceptConstruct  // S:883 AcceptConstruct(Ratification) for each created construct
+        triggered-by BoundaryChangeRatified  // S:884 "AcceptConstruct(Ratification) for each created construct" (policy BoundaryChangeRatifiedAcceptsCreated)
+      design: ConstructAccepted [outcome]  // S:553
+      // T13.M3 does not happen: BoundaryChangeProposed asks nothing when ratifiedInline (S:880).
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+
+  moment "T13.M3 · An operator is asked (main path)"
+    // the main path of the story
+    clarification: AskQuestion  // S:880 BoundaryChangeProposed -> AskQuestion (subject: this event), only if the proposal is still open; recipient: the author if an operator, else all architects (S:881)
+      triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+
+  moment "T13.M4 · An operator ratifies" [branch]
+    clarification: QuestionAsked  // S:1033 the question shows the boundary versions (S:880)
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when Rejected
+      // former flow: t13-a-boundary-change-is-rejected.moment (path 1 of 2)
+      // T13.M5 · Or an operator rejects
+      clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+      // A Gap-sourced proposal also gets DisposeGap(Resolved{Distinct}) (S:1334); this flow is entry-sourced.
+      // T13.M5·B1 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+      // the refusal here.
+      // T13.M5·B2 · when the proposal is not open
+      design: Reject  // S:833,848 only an operator rejects
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRejects)
+      design: BoundaryChangeRejected  // S:838,848
+      design: StartPass  // S:733 "a ContextMap proposal that ends with no construct to accept"
+        triggered-by BoundaryChangeRejected  // S:733 "a ContextMap proposal that ends with no construct to accept" (policy BoundaryChangeRejectedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: SupersedeConstruct  // S:889 SupersedeConstruct(by: none, cause: Rejected) for each created construct
+        triggered-by BoundaryChangeRejected  // S:889 "BoundaryChangeRejected → SupersedeConstruct(by: none, cause: Rejected)" (policy BoundaryChangeRejectedSupersedesCreated)
+      design: ConstructInvalidated [outcome]  // S:556
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when RejectedWhenTheProposalIsNotOpen
+      // former flow: t13-a-boundary-change-is-rejected.moment (path 2 of 2)
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: DIFFERENCE FROM NDD-SOURCE (spec wins): T13.M5 had no branches in NDD; the spec gives Reject the same two refusals as Ratify (S:856-858), so M5·B1
+      // carried from the former flow, its description: description "T13 — a proposed boundary change is rejected by an operator: the created constructs are invalidated. Spec of record S:833, S:858-859, S:889."
+      // carried from the former flow, T13.M5·B2 · when the proposal is not open: when TheProposalIsOpen [design]  // S:858
+      // T13.M5 · Or an operator rejects
+      clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+      // A Gap-sourced proposal also gets DisposeGap(Resolved{Distinct}) (S:1334); this flow is entry-sourced.
+      // T13.M5·B1 · when the answerer holds the operator role
+      clarification: QuestionResolved  // S:1034
+      // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+      // the refusal here.
+      // T13.M5·B2 · when the proposal is not open
+      design: Reject  // S:833,847 on a proposal that is not open
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRejects)
+      design: RatificationRefused [terminal]  // S:840,847 {proposal, reason: NotOpen, actor}
+      // sees: RatificationRefused{NotOpen}, then a notice to the answerer (S:895); a repeat with the same answer ref is a silent no-op (S:854). NDD
+      // terminal T13.N2.
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when Withdrawn
+      // former flow: t13-a-boundary-change-is-withdrawn.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — an open proposal is withdrawn when a boundary version in its read set increments: its question is closed, its created constructs are invalidated and the source is asked again. Spec of record S:839, S:845-846, S:860, S:890-894."
+      // T13.M6 · Or the world changes under it
+      design: RetireProvisional  // S:834,849 increments that construct's boundary version, then cascades (a content write, a rename or a move of a construct in the proposal's read set does the same)
+      design: ProvisionalRetired  // S:841
+      design: ProposalWithdrawn  // S:845,828 {SubjectChanged, by event}, in the same write, actor system
+      clarification: ResolveQuestion cause Withdrawn  // S:891 "ResolveQuestion(Withdrawn) for its ratification question, which closes it in flmnt"
+        triggered-by ProposalWithdrawn  // S:891 "ResolveQuestion(Withdrawn) for its ratification question" (policy ProposalWithdrawnWithdrawsQuestion)
+      clarification: QuestionResolved  // S:891 ResolveQuestion(Withdrawn) for its ratification question closes it in flmnt, plus a notice to its recipients
+      design: ConstructInvalidated  // S:892 SupersedeConstruct(by: none, cause: SubjectChanged) for each created construct
+      design: MarkStale  // S:893 "an entry source → Placement MarkStale(proposal)"
+        triggered-by ProposalWithdrawn  // S:893 "an entry source → Placement MarkStale(proposal)" (policy ProposalWithdrawnMarksPlacementStale)
+      design: PlacementMarkedStale  // S:893,427 an entry source: MarkStale(proposal) -> {proposal, SubjectChanged}
+      clarification: QuestionAsked [outcome]  // S:511 AskQuestion to the source's author
+      // A withdrawal increments that proposal's created constructs and the cascade repeats until nothing changes (S:846). Not drawn: a Gap source
+      // (DisposeGap(Resolved{Fixed, SubjectChanged}), S:893), the stale-versions Propose (BoundaryChangeProposed and ProposalWithdrawn in one write,
+      // S:849), a notice to a ratifiedBy answerer (S:894). SupersedeConstruct and MarkStale follow as events only: the spec gives them no cause-scoped refusal here.
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when ARatifiedBoundaryGivesTheResolverOneMoreTry
+      // T13.M4 · a ratified boundary construct that a posted question could now offer gives the resolver one more try (S:1060)
+      design: BoundaryChangeRatified  // S:837 "BoundaryChangeRatified {answer ref}"
+      clarification: ResolveQuestion cause Withdrawn  // S:1060 "If it settles the question, the question is resolved as any computed answer (the posted question withdrawn Computed)"
+        triggered-by BoundaryChangeRatified  // S:1060 "ConstructStored, ConstructAccepted or BoundaryChangeRatified of a construct that a posted question could now offer" (policy ReAskOnBoundaryChangeRatified)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+
+  moment "T13.M4 · An operator ratifies (main path)"
+    // the main path of the story
+    clarification: ResolveQuestion cause Answer  // S:1124 the answer to a BoundaryChangeProposed question routes to Ratify or Reject
+
+  moment "T13.M4·B2 · when the proposal is not open" [branch]
+    clarification: QuestionResolved  // S:1034
+    // sees: no effect (Unauthorised) and a notice (S:1041-1042). NDD exit returns-to T13.M3: the question keeps its state (S:1042); the scenario ends at
+    // the refusal here.
+
+    when TheProposalIsOpen [design]
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when TheProposalIsNotOpen [design]
+      design: Ratify  // S:832,843 on a proposal that is not open
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: RatificationRefused [terminal]  // S:840,843 {proposal, reason: NotOpen, actor}
+      // sees: RatificationRefused{NotOpen}, then a notice to the answerer (S:895); a repeat with the same answer ref is a silent no-op (S:854). NDD
+      // terminal T13.N2.
+    when Move
+      // former flow: t13-a-move-is-ratified.moment (path 1 of 2)
+      // the first 4 node(s) are those of the main path
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — a Move X: A -> B of a boundary construct is ratified: X-prime is accepted, X retired, and the constructs armed to X are moved. Spec of record S:872, S:887."
+      design: Ratify  // S:832,844 only an operator ratifies
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: BoundaryChangeRatified  // S:837,844
+      design: AcceptConstruct  // S:883 AcceptConstruct(Ratification) for each created construct
+        triggered-by BoundaryChangeRatified  // S:884 "AcceptConstruct(Ratification) for each created construct" (policy BoundaryChangeRatifiedAcceptsCreated)
+      design: ConstructAccepted  // S:553
+      // T13.M4·B2 · when the proposal is not open
+      design: SupersedeConstruct  // S:885,861 X is retired by X-prime (cause: Ratified)
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructSuperseded  // S:555
+      design: MoveConstruct cause Ratified  // S:887,626 MoveConstruct(cause Ratified) for each construct armed directly to X that sat in A
+        triggered-by BoundaryChangeRatified  // S:637 "BoundaryChangeRatified for a Move X: A → B → MoveConstruct" (policy RatifiedMoveMovesArmedConstructs)
+      design: ConstructMoved [outcome]  // S:618
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when Replace
+      // former flow: t13-a-replacement-is-ratified.moment (path 1 of 2)
+      // the first 4 node(s) are those of the main path
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Separate flow of T13 (T13.M4, change = replace). A retire (S:877) is the same without S-prime: SupersedeConstruct(by: none) and
+      // carried from the former flow, its description: description "T13 — a replacement of a boundary construct is ratified: S-prime is accepted and S is superseded by it. Spec of record S:873, S:883-885."
+      design: Ratify  // S:832,844 only an operator ratifies
+        triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+      design: BoundaryChangeRatified  // S:837,844
+      design: AcceptConstruct  // S:883 AcceptConstruct(Ratification) for each created construct
+        triggered-by BoundaryChangeRatified  // S:884 "AcceptConstruct(Ratification) for each created construct" (policy BoundaryChangeRatifiedAcceptsCreated)
+      design: ConstructAccepted  // S:553
+      // T13.M4·B2 · when the proposal is not open
+      design: SupersedeConstruct  // S:885,862 S is retired by S-prime (cause: Ratified)
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructSuperseded [outcome]  // S:555
+      // T13.O13 · The boundary is settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+      // PROVES: no open proposal in the convergence read model for the change (S:1002)
+    when ARatifyCascadeWithdrawsAProposalMadeStale
+      // former flow: t13-a-ratification-cascade-withdraws-a-stale-proposal.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T13 — The Ratify of one proposal increments boundary versions, and the cascade withdraws another open proposal whose observed versions are now stale, in the same write. Spec of record S:855, S:1333."
+      // T13.M4·B3 · the proposal is open
+      design: Ratify  // S:855 "otherwise → BoundaryChangeRatified. It increments"
+      design: BoundaryChangeRatified  // S:855 "otherwise → BoundaryChangeRatified. It increments"
+      design: ProposalWithdrawn [outcome]  // S:1335 "the write of Propose, Ratify, Reject or RetireProvisional (the cascade"
+    when ARejectCascadeWithdrawsAProposalMadeStale
+      // former flow: t13-a-rejection-cascade-withdraws-a-stale-proposal.moment
+      // T13.M4·B3 · the proposal is open
+      design: Reject  // S:859 "otherwise → BoundaryChangeRejected. It increments"
+      design: BoundaryChangeRejected  // S:859 "otherwise → BoundaryChangeRejected. It increments"
+      design: ProposalWithdrawn [outcome]  // S:1335 "the write of Propose, Ratify, Reject or RetireProvisional (the cascade"
+
+  moment "T13.M4·B2 · when the proposal is not open (main path)"
+    design: Ratify  // S:832,844 only an operator ratifies
+      triggered-by QuestionResolved  // S:1124 "BoundaryChangeProposed → Ratify or Reject" (policy RoutingProposalAnswerRatifies)
+    design: BoundaryChangeRatified  // S:837,844
+    design: AcceptConstruct  // S:883 AcceptConstruct(Ratification) for each created construct
+      triggered-by BoundaryChangeRatified  // S:884 "AcceptConstruct(Ratification) for each created construct" (policy BoundaryChangeRatifiedAcceptsCreated)
+    design: ConstructAccepted  // S:553
+
+  moment "T13.O13 · The boundary is settled (terminal)"
+    note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 the convergence read model: every ContextMap proposal that is open
+    // PROVES: no open proposal in the convergence read model for the change (S:1002); the created constructs are accepted and committed or terminal;
+    // boundary constructs are retired, replaced or renamed only through a ratified proposal (S:862)

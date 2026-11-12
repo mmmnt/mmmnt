@@ -1,0 +1,558 @@
+// T5 — The design follows the conversation, and nothing is destroyed
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE.md is a derived document: it gives the thread structure and the titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T5.O5 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementAnswerKeepsTheConstruct (former flow t5-a-version-retirement-answer-keeps-the-construct.moment)
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementAnswerNamesAnXThatIsNotLive (former flow t5-a-version-retirement-answer-names-an-x-that-is-not-live.moment)
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementAnswerOnABoundaryConstructByAnOperatorIsRatifiedInline (former flow t5-a-version-retirement-answer-on-a-boundary-construct-by-an-operator.moment)
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementAnswerOnABoundaryConstructProposesTheChange (former flow t5-a-version-retirement-answer-on-a-boundary-construct-proposes.moment)
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementAnswerReplacesTheConstructByX (former flow t5-a-version-retirement-answer-replaces-the-construct-by-x.moment)
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementQuestionIsAnswered (former flow t5-a-version-retirement-question-is-answered.moment)
+//   T5.M1 · A later decision changes an earlier one: AVersionRetirementQuestionIsWithdrawnWhenTheNewVersionRestatesItsConstructs (former flow t5-a-version-retirement-question-is-withdrawn-when-the-version-restates-its-constructs.moment)
+//   T5.M2 · The old construct is superseded, not deleted: ADroppedWordRetiresATerm (former flow t5-a-dropped-word-retires-a-term.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AStatedReplacementIsAskedAsARetirement (former flow t5-a-stated-replacement-is-asked-as-a-retirement.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AStatedReplacementListsTheMembersOfTheRetiredArm (former flow t5-a-stated-replacement-lists-the-members-of-the-retired-arm.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AStatedReplacementUnderSourceAuthorityConversationRetiresNothing (former flow t5-a-stated-replacement-under-source-authority-conversation.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AStatedReplacementUnderSourceAuthoritySiftRetiresX (former flow t5-a-stated-replacement-under-source-authority-sift.moment)
+//   T5.M2 · The old construct is superseded, not deleted: ASteerOnAStatedReplacementIsAnsweredContinue (former flow t5-a-steer-on-a-stated-replacement-is-answered-continue.moment)
+//   T5.M2 · The old construct is superseded, not deleted: ASteerOnAStatedReplacementIsAnsweredReturn (former flow t5-a-steer-on-a-stated-replacement-is-answered-return.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AnAnswerReplacesTheConstructByAnother (former flow t5-an-answer-replaces-the-construct-by-another.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AnAnswerRetiresTheConstruct (former flow t5-an-answer-retires-the-construct.moment)
+//   T5.M2 · The old construct is superseded, not deleted: TheAnswersSuccessorWasNotOfferedOrXIsNoLongerLive (former flow t5-the-answers-successor-was-not-offered.moment)
+//   T5.M2 · The old construct is superseded, not deleted: TheEntryStatesWhatItNegatesAndXIsABoundaryType (former flow t5-the-entry-states-what-it-negates-and-x-is-a-boundary-type.moment)
+//   T5.M2 · The old construct is superseded, not deleted: TheEntryStatesWhatItNegates (former flow t5-the-entry-states-what-it-negates.moment)
+//   T5.M2 · The old construct is superseded, not deleted: TheEntryStatesWhatItReplacesAndXIsABoundaryType (former flow t5-the-entry-states-what-it-replaces-and-x-is-a-boundary-type.moment)
+//   T5.M2 · The old construct is superseded, not deleted: TheEntryStatesWhatItReplaces (former flow t5-the-entry-states-what-it-replaces.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AMemberOfARetiredArmIsMovedToCByTheAnswer (former flow t5-a-member-of-a-retired-arm-is-moved-to-c.moment)
+//   T5.M2 · The old construct is superseded, not deleted: AnAggregateMemberOfARetiredBCIsMovedToCByAProposal (former flow t5-an-aggregate-member-of-a-bc-is-moved-to-c-by-a-proposal.moment)
+//   T5.M2 · The old construct is superseded, not deleted (continued): TheSuccessorIsTheConstructItselfIsNotLiveOrIsNotTheHeadOfIts (former flow t5-the-successor-is-the-construct-itself-or-is-not-live-or-not-head.moment)
+//   T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn: TheArmIsReDerivedForABCWithNoAggregate (former flow t5-the-arm-is-re-derived-for-a-bc-with-no-aggregate.moment)
+//   T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn: TheArmIsReDerivedInADifferentContext (former flow t5-the-arm-is-re-derived-in-a-different-context.moment)
+//   T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn: TheArmIsReDerivedInTheSameContext (former flow t5-the-arm-is-re-derived-in-the-same-context.moment)
+// REFUSALS REACHED BY A PRECONDITION on a command of the flows above (a derived `neg-<Command>-<Precondition>` scenario): StoreConstruct.NoOpRepeat; SupersedeConstruct.SupersessionRefused and
+// .NoOpRepeat (T5.M5·B1 "X is not live"); RefuseSupersession.Self, .NotLive and .NotHead (T5.M2·B1's three reasons); MootGap.AnyNonTerminal; ApplyAnswer.DeferredOrStale.
+// DIFFERENCES FROM NDD-SOURCE (the spec wins): the NDD draws "P3.54 StartPass(Live) evaluates TAC-013 ... a Gap asks which supersession was meant" with the refusal; the spec has the Live pass find a
+// TAC-013 Gap of kind Plain (S:681, S:722), so the refusal flow runs the pass to GapOpened and the question (audit D-9); NDD T5.M3 lists the arm re-derivation (P3.38) as part of one chain, the spec gives
+// it as four cases (S:595-599), each its own branch; the `PTR` crossing and "SUPERSEDED_BY edge" of NDD T5.M6 are flmnt's side (the spec says the Sift pointer supersedes the pointer, S:659).
+// carried from the former main flow, its header: The remaining branches of the answers and cases are other threads: Keep -> none (holds for the asking document version only, S:527); a boundary construct -> Propose(retire | replace) (T13); one X that
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T5 — The design follows the conversation, and nothing is destroyed"
+  description "T5 — The design follows the conversation, and nothing is destroyed. The story of the thread from its start to its T5.O5 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+  lane intake "Intake" [Core]
+
+  moment "T5.M1 · A later decision changes an earlier one" [branch]
+    when TheMainPath
+      // the main path of the story
+      // [person] a person records a decision that supersedes or replaces an earlier one (T2 path, then T3.M1..M3)  // S:493 "**Supersedes** (non-boundary) → StoreConstruct(supersedes X)"
+      // A user's decision.superseded of a Sift pointer: lineage reads the pointer as the construct it names, the divergence gate passes it, and the user's construct supersedes Sift's without being asked back  // S:663 "so the user's construct supersedes Sift's without being asked back"
+      // A flmnt split (one entry superseded by 2-8 components) arrives as N entries, each placed on its own  // S:505 "Each is placed on its own: the first decided Supersedes supersedes the construct"
+      design: PlacementDecided  // S:436 "PlacementDecided {outcome, rationale, alternatives[]};"
+    when AVersionRetirementAnswerKeepsTheConstruct
+      // former flow: t5-a-version-retirement-answer-keeps-the-construct.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): a row of the version-retirement answer (S:1112) that t5-a-version-retirement-question-is-answered (Retire) did not draw. Rows are exclusive alternatives, so each is its own flow.
+      // carried from the former flow, its header: DocumentVersionProcessed (the close) is a process event of DocumentIntake (S:397); the AskQuestion is the reaction of policy RetirementByOmissionAsksQuestion (S:521).
+      // T5.M5 · A document version closes and asks what it no longer states
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      design: RetirementByOmissionAsksQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by RetirementByOmissionAsksQuestion
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+      // [person] a recipient answers the version-retirement question (received and recorded as T4.M3..M4)  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question (Round 27 A-1)"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // Keep → none: no command, no event follows the resolved question  // S:1112 "Keep → none (the recorded answer holds for the asking document version only"
+      // A later document version's close lists the construct again  // S:1112 "a later document version's close lists the construct again"
+    when AVersionRetirementAnswerNamesAnXThatIsNotLive
+      // former flow: t5-a-version-retirement-answer-names-an-x-that-is-not-live.moment
+      // T5.M5 · A document version closes and asks what it no longer states
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      design: RetirementByOmissionAsksQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by RetirementByOmissionAsksQuestion
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+      // [person] a recipient answers the version-retirement question (received and recorded as T4.M3..M4)  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question (Round 27 A-1)"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T5.M5 · The construct is asked again
+      // an X that is not live leaves the construct unchanged: no SupersedeConstruct  // S:1112 "an X that is not live leaves the construct unchanged and not kept"
+      clarification: AskQuestion  // S:1112 "so it is asked again as the next generation (Answers, above), and the answerer gets a notice"
+        triggered-by DocumentVersionProcessed  // S:521 "Retirement by omission (Round 27 A-1" (policy RetirementByOmissionAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+    when AVersionRetirementAnswerOnABoundaryConstructByAnOperatorIsRatifiedInline
+      // former flow: t5-a-version-retirement-answer-on-a-boundary-construct-by-an-operator.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T5 — the answerer is an operator: the Propose carries ratifiedBy and is proposed and ratified in one write; the ratification supersedes the construct and starts a model-wide Convergence pass. Spec of record S:1112, S:850, S:885, S:733."
+      // T5.M5 · A document version closes and asks what it no longer states
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      design: RetirementByOmissionAsksQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by RetirementByOmissionAsksQuestion
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+      // [person] a recipient answers the version-retirement question (received and recorded as T4.M3..M4)  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question (Round 27 A-1)"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: Propose  // S:1112 "ContextMap Propose(retire, or replace by X, source: that Pointer, created constructs: none, ratifiedBy if the answerer is an operator)"
+        triggered-by QuestionResolved  // S:1111 "a PlacementDecided gathered by a retirement question" (policy RoutingRetirementAnswerProposes)
+      design: BoundaryChangeProposed  // S:850 "BoundaryChangeProposed{ratifiedInline}"
+      design: BoundaryChangeRatified  // S:850 "BoundaryChangeRatified in one write"
+      design: SupersedeConstruct  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires"
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      design: StartPass  // S:733 "a BoundaryChangeRatified of a Propose(rename), a Propose(retire) or a replace that creates none) → StartPass(Convergence, scope: the customer workspace, model-wide)"
+        triggered-by DocumentVersionProcessed  // S:397 "run the policies of DocumentVersionProcessed in their listed order (§11.1): StartPass(Document, scope: the constructs the document version's sections placed) first" (policy DocumentVersionProcessedStartsDocumentPass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+    when AVersionRetirementAnswerOnABoundaryConstructProposesTheChange
+      // former flow: t5-a-version-retirement-answer-on-a-boundary-construct-proposes.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T5 — the answer retires or replaces a boundary construct: the change is a ContextMap Propose with no created constructs, and an operator is asked to ratify it. Spec of record S:1112, S:880."
+      // T5.M5 · A document version closes and asks what it no longer states
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      design: RetirementByOmissionAsksQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by RetirementByOmissionAsksQuestion
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+      // [person] a recipient answers the version-retirement question (received and recorded as T4.M3..M4)  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question (Round 27 A-1)"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: Propose  // S:1112 "on a boundary construct, either → ContextMap Propose(retire, or replace by X, source: that Pointer, created constructs: none"
+        triggered-by QuestionResolved  // S:1111 "a PlacementDecided gathered by a retirement question" (policy RoutingRetirementAnswerProposes)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      // T5.M5 · An operator is asked
+      clarification: AskQuestion  // S:881 "otherwise all architects (cascading to admins and owners when there are none)"
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+    when AVersionRetirementAnswerReplacesTheConstructByX
+      // former flow: t5-a-version-retirement-answer-replaces-the-construct-by-x.moment
+      // T5.M5 · A document version closes and asks what it no longer states
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      design: RetirementByOmissionAsksQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by RetirementByOmissionAsksQuestion
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+      // [person] a recipient answers the version-retirement question (received and recorded as T4.M3..M4)  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question (Round 27 A-1)"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: SupersedeConstruct  // S:1112 "replaced by X → SupersedeConstruct(by: X, cause: Answered, Pointer: that Pointer), where X is a live construct"
+        triggered-by QuestionResolved  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question" (policy RoutingVersionRetirementAnswerSupersedes)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when AVersionRetirementQuestionIsAnswered
+      // former flow: t5-a-version-retirement-question-is-answered.moment
+      // T5.M5 · A document version closes and asks what it no longer states
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      design: RetirementByOmissionAsksQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by DocumentVersionProcessed
+      clarification: AskQuestion  // S:521 "AskQuestion (subject: the **version-retirement subject** for V, §4: V's Pointer qualified as retirement"
+        triggered-by RetirementByOmissionAsksQuestion
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // [person] a recipient answers the version-retirement question (received and recorded as T4.M3..M4)  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question (Round 27 A-1)"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: SupersedeConstruct  // S:1112 "Retire → SupersedeConstruct(by: none, cause: Answered, Pointer: the Pointer of the asking document version)"
+        triggered-by QuestionResolved  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question" (policy RoutingVersionRetirementAnswerSupersedes)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when AVersionRetirementQuestionIsWithdrawnWhenTheNewVersionRestatesItsConstructs
+      // former flow: t5-a-version-retirement-question-is-withdrawn-when-the-version-restates-its-constructs.moment
+      // T5.M5 · A document version closes
+      intake: DocumentVersionProcessed  // S:521 "DocumentVersionProcessed for a document version V of documentId D (the close, §2 Document intake step 4)"
+      // T5.M5 · The question of an earlier version is withdrawn
+      design: RetirementByOmissionWithdrawsQuestion  // S:527 "(2) ResolveQuestion(Withdrawn) for each generation of an open version-retirement question of an earlier document version of D"
+        triggered-by DocumentVersionProcessed
+      clarification: ResolveQuestion cause Withdrawn  // S:527 "(2) ResolveQuestion(Withdrawn) for each generation of an open version-retirement question of an earlier document version of D that is left with no listed construct"
+        triggered-by RetirementByOmissionWithdrawsQuestion
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+
+  moment "T5.M2 · The old construct is superseded, not deleted" [branch]
+    when TheMainPath
+      // the main path of the story
+      // Supersedes -> StoreConstruct(supersedes X), unless X is terminal when the store runs (then without supersession)  // S:493 "unless X is terminal when the store runs (then without supersession)"
+      design: StoreConstruct  // S:546 "StoreConstruct(Pointer, proposedFor?, supersedes?);"
+        triggered-by PlacementDecided  // S:493 "Supersedes (non-boundary) → StoreConstruct(supersedes X)" (policy SupersedesOutcomeStoresConstruct)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      // ConstructLinked{Placed} is recorded with the store; the Stored(supersedes) policy then issues SupersedeConstruct(X, by: this, cause: Successor), which records ConstructLinked{Supersedes} on X  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this, cause: Successor"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always, with the Placement's Pointer)"
+    when ADroppedWordRetiresATerm
+      // former flow: t5-a-dropped-word-retires-a-term.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T5.M1 · A later decision changes an earlier one: [person] a document version's glossary section or owner sentence drops a word  // S:520 "a glossary section or an owner sentence of the newest document version of its document whose candidate drops a word"
+      // T5.M4 · The entry says what it replaces or negates
+      // for each live Term of that word, ApplyAnswer(computed{dropped-word}) on that Term's Placement, recorded as AnswerApplied{outcome: Retire, computedBy: dropped-word}; the computed answer re-opens the decided Placement (the ApplyAnswer invariant)  // S:520 "for each live Term of that word, ApplyAnswer(computed{dropped-word}) on that Term's Placement"
+      design: ApplyAnswer  // S:520 "ApplyAnswer(computed{dropped-word}) on that Term's Placement"
+        triggered-by PlacementDecided  // S:520 "Dropped word (Round 28; c9256057):" (policy DroppedWordAppliesComputedAnswer)
+      design: AnswerApplied  // S:437 "AnswerApplied {outcome, question | computedBy: rule, trigger}"
+      design: SupersedeConstruct  // S:494 "for the dropped-word computed answer, SupersedeConstruct(by: none, cause: Stated, Pointer: the trigger entry's Pointer) on the Term whose Placement the answer is applied to"
+        triggered-by AnswerApplied  // S:494 "Retire (an architect's answer to a Defer question" (policy RetireOutcomeSupersedesProvisional)
+      design: ConstructInvalidated [outcome]  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+    when AStatedReplacementIsAskedAsARetirement
+      // former flow: t5-a-stated-replacement-is-asked-as-a-retirement.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T5.M1 · A later decision changes an earlier one: [person] a person records a deciding entry whose candidate states what it replaces or negates  // S:513 "**Stated replacement (ruling b187882c, Round 21):** each case below is its own policy with its own predicate and one command"
+      // T5.M4 · The entry says what it replaces or negates
+      // exactly one X and this entry is not a deciding entry, or several -> listed in the retirement question for this entry (subject: this entry's Pointer qualified as retirement; recipients: all architects, cascading to admins and owners)  // S:516 "exactly one, and this entry is not a deciding entry, or several → listed in the **retirement question for this entry**"
+      clarification: AskQuestion  // S:516 "(AskQuestion, subject: this entry's Pointer qualified as retirement, §4; causedBy: this event"
+        triggered-by PlacementDecided  // S:516 "exactly one, and this entry is not a deciding entry, or several" (policy StatedReplacementAsksRetirementQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when AStatedReplacementListsTheMembersOfTheRetiredArm
+      // former flow: t5-a-stated-replacement-lists-the-members-of-the-retired-arm.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): S:518, the members of a BC or an Aggregate X that the stated replacement retires; nothing is retired without the answer.
+      // carried from the former flow, T5.M1 · A later decision changes an earlier one: design: PlacementDecided  // S:436 "PlacementDecided {outcome, rationale, alternatives[]}"
+      // T5.M4 · The members of the retired arm are asked
+      design: SupersedeConstruct  // S:515 "SupersedeConstruct(X, by: C, cause: Stated, Pointer: this entry's Pointer)"
+        triggered-by PlacementDecided  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry" (policy StatedReplacementSupersedesReplaced)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      clarification: AskQuestion  // S:518 "its live members (the constructs whose arm or context is X) that the entry does not itself name are listed in the same retirement question"
+        triggered-by PlacementDecided  // S:516 "exactly one, and this entry is not a deciding entry, or several" (policy StatedReplacementAsksRetirementQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+    when AStatedReplacementUnderSourceAuthorityConversationRetiresNothing
+      // former flow: t5-a-stated-replacement-under-source-authority-conversation.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): S:514, SourceAuthority Conversation for a stated replacement.
+      // T5.M2 · The divergence is observed on X
+      design: StartPass  // S:514 "StartPass(Live, scope: X, its pass ID derived from this event)"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:514 "ObserveGap on X in that pass with finding Divergence{target: X, direction, entries: [X's placing entry, this entry]}"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceObservesGap)
+      design: GapOpened [outcome]  // S:514 "Conversation → no retirement, and the observation records handling Covered{sourceAuthority}"
+    when AStatedReplacementUnderSourceAuthoritySiftRetiresX
+      // former flow: t5-a-stated-replacement-under-source-authority-sift.moment
+      // T5.M2 · The divergence is observed on X
+      design: StartPass  // S:514 "StartPass(Live, scope: X, its pass ID derived from this event)"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:514 "ObserveGap on X in that pass with finding Divergence{target: X, direction, entries: [X's placing entry, this entry]}"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceObservesGap)
+      design: GapOpened  // S:514 "the observation records handling Covered{sourceAuthority}"
+      // T5.M4 · X is retired as the cases say
+      design: SupersedeConstruct  // S:514 "Sift → X is retired as the cases below say"
+        triggered-by GapOpened  // S:797 "Computed answer (Round 28, ruling a84f79a6 (6)" (policy ComputedAnswerSupersedes)
+      design: ConstructSuperseded [outcome]  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+    when ASteerOnAStatedReplacementIsAnsweredContinue
+      // former flow: t5-a-steer-on-a-stated-replacement-is-answered-continue.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: The routing row for a Steer on a stated replacement (S:1108): Continue -> "as the deciding case of the stated-replacement policy (§3 Placement)", Return -> none (t5-a-steer-on-a-stated-replacement-is-answered-return). The deciding case is S:515 (X not a boundary type; a boundary X goes through ContextMap Propose).
+      // carried from the former flow, T5.M1 · A deciding entry states what it replaces: [person] a document entry states it replaces a decided X, and its candidate C is stored or accepted  // S:514 "exactly one, X, that the divergence gate (above) covers"
+      // T5.M2 · The divergence is observed on X and the people are asked
+      design: StartPass  // S:514 "StartPass(Live, scope: X, its pass ID derived from this event)"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:514 "ObserveGap on X in that pass with finding Divergence{target: X, direction, entries: [X's placing entry, this entry]}"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceObservesGap)
+      design: GapOpened  // S:514 "no retirement, handling Steer"
+      // this entry's Placement is decided, so no Placement outcome waits on the answer  // S:514 "this entry's Placement is decided, so no Placement outcome waits on the answer"
+      clarification: AskQuestion  // S:812 "Steer"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T4.M4 · The answer is received and recorded
+      // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion (S:1130).
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T5.M5 · The answer is routed
+      design: SupersedeConstruct  // S:1108 "Continue → as the deciding case of the stated-replacement policy"; S:515 "SupersedeConstruct(X, by: C, cause: Stated, Pointer: this entry's Pointer)"
+        triggered-by PlacementDecided  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry" (policy StatedReplacementSupersedesReplaced)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+      design: DisposeGap  // S:1108 "the Gap disposed Resolved{Fixed} either way"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T5.O5 · The stated replacement stands (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: ConstructSuperseded of X by C (cause Stated), then GapResolved {Fixed} (S:1108).
+    when ASteerOnAStatedReplacementIsAnsweredReturn
+      // former flow: t5-a-steer-on-a-stated-replacement-is-answered-return.moment
+      // T5.M2 · The divergence is observed on X and the people are asked
+      design: StartPass  // S:514 "StartPass(Live, scope: X, its pass ID derived from this event)"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: ObserveGap  // S:514 "ObserveGap on X in that pass with finding Divergence{target: X, direction, entries: [X's placing entry, this entry]}"
+        triggered-by PlacementDecided  // S:502 "Defer{Divergence{target, direction}} (Round 15)" (policy DeferDivergenceObservesGap)
+      design: GapOpened  // S:514 "no retirement, handling Steer"
+      // this entry's Placement is decided, so no Placement outcome waits on the answer  // S:514 "this entry's Placement is decided, so no Placement outcome waits on the answer"
+      clarification: AskQuestion  // S:812 "Steer"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T4.M4 · The answer is received and recorded
+      // The request stream carries answers only; gate -> RecordReceipt -> ResolveQuestion (S:1130).
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      // T5.M5 · The answer is routed
+      // Return -> none: no supersession  // S:1108 "Return → none"
+      design: DisposeGap  // S:1108 "the Gap disposed Resolved{Fixed} either way"
+        triggered-by QuestionResolved  // S:1102 "a Gap event (GapOpened, a reopening GapObserved, GapReopened) → on that Gap:" (policy RoutingGapAnswerDisposesGap)
+      design: GapResolved  // S:752 "GapResolved {resolution, rationale?, computedBy?, carriedFrom?}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+      // T5.O5 · X stands (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: GapResolved {Fixed} and no ConstructSuperseded (S:1108).
+    when AnAnswerReplacesTheConstructByAnother
+      // former flow: t5-an-answer-replaces-the-construct-by-another.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T5.M1 · A later decision changes an earlier one: [person] a later entry whose lineage names a superseded entry E  // S:446 "when this entry's lineage (PlacementResolution step 2) names a superseded entry E, the constructs placed from E are the live constructs that carry ConstructLinked{Placed} with E's Pointer"
+      // T5.M5 · Nothing is retired without an answer
+      // P3.19 retirement: PlacementDecided for a Placement whose entry's lineage names a superseded entry E -> AskQuestion on the retirement subject for E, listing every construct placed from E that is live; a supersession of a whole entry leaves them behind, they are never retired by Sift alone  // S:512 "**Retirement (ruling 7090385c, Round 14):** PlacementDecided, for a Placement whose entry's lineage names a superseded entry E → AskQuestion"
+      clarification: AskQuestion  // S:512 "AskQuestion (subject: the retirement subject for E, §4: E's Pointer qualified as retirement"
+        triggered-by PlacementDecided  // S:512 "Retirement (ruling 7090385c, Round 14):" (policy RetirementQuestionForSupersededEntry)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      // [person] a recipient answers the retirement question (received and recorded as T4.M3..M4)  // S:1111 "a PlacementDecided gathered by a retirement question (Round 14) → for each construct the answer names, skipping any already terminal"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      design: SupersedeConstruct  // S:1111 "superseded by X, a construct that entry placed → SupersedeConstruct(by: X, cause: Answered, Pointer: that Pointer)"
+        triggered-by QuestionResolved  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question" (policy RoutingVersionRetirementAnswerSupersedes)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when AnAnswerRetiresTheConstruct
+      // former flow: t5-an-answer-retires-the-construct.moment
+      // T5.M5 · Nothing is retired without an answer
+      // P3.19 retirement: PlacementDecided for a Placement whose entry's lineage names a superseded entry E -> AskQuestion on the retirement subject for E, listing every construct placed from E that is live; a supersession of a whole entry leaves them behind, they are never retired by Sift alone  // S:512 "**Retirement (ruling 7090385c, Round 14):** PlacementDecided, for a Placement whose entry's lineage names a superseded entry E → AskQuestion"
+      clarification: AskQuestion  // S:512 "AskQuestion (subject: the retirement subject for E, §4: E's Pointer qualified as retirement"
+        triggered-by PlacementDecided  // S:512 "Retirement (ruling 7090385c, Round 14):" (policy RetirementQuestionForSupersededEntry)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      // [person] a recipient answers the retirement question (received and recorded as T4.M3..M4)  // S:1111 "a PlacementDecided gathered by a retirement question (Round 14) → for each construct the answer names, skipping any already terminal"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      design: SupersedeConstruct  // S:1111 "Retire → SupersedeConstruct(by: none, cause: Answered, Pointer: the superseding entry's Pointer)"
+        triggered-by QuestionResolved  // S:1111 "a PlacementDecided gathered by a retirement question" (policy RoutingRetirementAnswerSupersedes)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when TheAnswersSuccessorWasNotOfferedOrXIsNoLongerLive
+      // former flow: t5-the-answers-successor-was-not-offered.moment
+      // Outcome: an answer replaces a construct by an X that was not offered or is no longer live, so it is not applied to that construct; the construct is unchanged and listed again in the next generation of the question, and the other rows apply (NDD: returns-to T5.M5).
+      // T5.M5 · Nothing is retired without an answer
+      // P3.19 retirement: PlacementDecided for a Placement whose entry's lineage names a superseded entry E -> AskQuestion on the retirement subject for E, listing every construct placed from E that is live; a supersession of a whole entry leaves them behind, they are never retired by Sift alone  // S:512 "**Retirement (ruling 7090385c, Round 14):** PlacementDecided, for a Placement whose entry's lineage names a superseded entry E → AskQuestion"
+      clarification: AskQuestion  // S:512 "AskQuestion (subject: the retirement subject for E, §4: E's Pointer qualified as retirement"
+        triggered-by PlacementDecided  // S:512 "Retirement (ruling 7090385c, Round 14):" (policy RetirementQuestionForSupersededEntry)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      // [person] a recipient answers the retirement question (received and recorded as T4.M3..M4)  // S:1111 "a PlacementDecided gathered by a retirement question (Round 14) → for each construct the answer names, skipping any already terminal"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy);"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+      // T5.M5·B1 · when X is not live, or the answer's successor was not offered
+      // an answer that replaces a construct by an X that was not offered or is no longer live is not applied to it: the construct is listed again in the next generation of the question, and the other rows apply; a notice for the not-live X  // S:527 "An answer that replaces a construct by an X that was not offered or is no longer live is not applied to it: the construct is listed again in the next generation of the question, and the other rows apply"
+      clarification: AskQuestion  // S:1074 "the policy QuestionResolved → AskQuestion carries **the causedBy values those constructs were gathered under**"
+        triggered-by PlacementDecided  // S:1061 "The answer re-check policy: PlacementDecided on that entry or section" (policy AnswerReCheck)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when TheEntryStatesWhatItNegatesAndXIsABoundaryType
+      // former flow: t5-the-entry-states-what-it-negates-and-x-is-a-boundary-type.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): S:519, the stated negation of a boundary-type X ("ContextMap Propose(retire X ...) when it is"); t5-the-entry-states-what-it-negates draws the non-boundary case.
+      // T5.M4 · The entry says what it negates
+      design: Propose  // S:519 "ContextMap Propose(retire X, source: this entry's Pointer, ratifiedBy: this entry's author when that author is an operator) when it is"
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      clarification: AskQuestion  // S:881 "otherwise all architects (cascading to admins and owners when there are none)"
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+    when TheEntryStatesWhatItNegates
+      // former flow: t5-the-entry-states-what-it-negates.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T5.M1 · A later decision changes an earlier one: [person] a person records a deciding entry whose candidate states a negation ("X issues no domain command")  // S:440 "its **stated negations** (Round 28; 3d95589b S1): the names the entry says are not constructs of the domain"
+      // T5.M4 · The entry says what it replaces or negates
+      // PlacementDecided for a deciding entry whose candidate states negations -> for each negated name resolved to the live constructs of that name: exactly one, X -> SupersedeConstruct(X, by: none, cause: Stated, Pointer: this entry's Pointer) when X is not a boundary type  // S:519 "exactly one, X → SupersedeConstruct(X, by: none, cause: Stated, Pointer: this entry's Pointer) when X is not a boundary type"
+      design: SupersedeConstruct  // S:519 "SupersedeConstruct(X, by: none, cause: Stated, Pointer: this entry's Pointer)"
+        triggered-by PlacementDecided  // S:519 "Stated negation (Round 28; 3d95589b S1):" (policy StatedNegationSupersedesNegated)
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when TheEntryStatesWhatItReplacesAndXIsABoundaryType
+      // former flow: t5-the-entry-states-what-it-replaces-and-x-is-a-boundary-type.moment
+      // T5.M4 · The entry says what it replaces
+      design: Propose  // S:515 "when it is, ContextMap Propose(replace X by C, source: this entry's Pointer, created constructs: none"
+        triggered-by PlacementDecided  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposes)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      clarification: AskQuestion  // S:881 "otherwise all architects (cascading to admins and owners when there are none)"
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+    when TheEntryStatesWhatItReplaces
+      // former flow: t5-the-entry-states-what-it-replaces.moment
+      // T5.M4 · The entry says what it replaces or negates
+      // PlacementDecided whose outcome stores or accepts C -> for each stated replacement resolved through the typed index: exactly one X, otherwise (no placement gate covers it), and this entry is a deciding entry -> SupersedeConstruct(X, by: C, cause: Stated, Pointer: this entry's Pointer) when X is not a boundary type  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry → SupersedeConstruct(X, by: C, cause: Stated, Pointer: this entry's Pointer) when X is not a boundary type"
+      design: SupersedeConstruct  // S:515 "SupersedeConstruct(X, by: C, cause: Stated, Pointer: this entry's Pointer)"
+        triggered-by PlacementDecided  // S:515 "exactly one, X, otherwise, and this entry is a deciding entry" (policy StatedReplacementSupersedesReplaced)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when AMemberOfARetiredArmIsMovedToCByTheAnswer
+      // former flow: t5-a-member-of-a-retired-arm-is-moved-to-c.moment
+      // the first 2 node(s) are those of the branch AStatedReplacementIsAskedAsARetirement (former flow t5-a-stated-replacement-is-asked-as-a-retirement.moment)
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): S:1111, the answer Move to C for a member of a retired arm (t5-a-stated-replacement-lists-the-members-of-the-retired-arm asks it).
+      clarification: AskQuestion  // S:516 "(AskQuestion, subject: this entry's Pointer qualified as retirement, §4; causedBy: this event"
+        triggered-by PlacementDecided  // S:516 "exactly one, and this entry is not a deciding entry, or several" (policy StatedReplacementAsksRetirementQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      // T5.M5 · The stated-replacement retirement question is answered
+      // [person] a recipient answers the retirement question for this entry (received and recorded as T4.M3..M4)  // S:1111 "on the stated-replacement retirement question (Round 21) the same"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: StoreConstruct  // S:1111 "Move to C, for a member of a retired arm → StoreConstruct(the member's content with C as its arm and C's context, supersedes the member"
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: SupersedeConstruct  // S:1111 "supersedes the member, Pointer: the answer's request Pointer"
+        triggered-by QuestionResolved  // S:1112 "a DocumentVersionProcessed gathered by a version-retirement question" (policy RoutingVersionRetirementAnswerSupersedes)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when AnAggregateMemberOfARetiredBCIsMovedToCByAProposal
+      // former flow: t5-an-aggregate-member-of-a-bc-is-moved-to-c-by-a-proposal.moment
+      // the first 2 node(s) are those of the branch AStatedReplacementIsAskedAsARetirement (former flow t5-a-stated-replacement-is-asked-as-a-retirement.moment)
+      clarification: AskQuestion  // S:516 "(AskQuestion, subject: this entry's Pointer qualified as retirement, §4; causedBy: this event"
+        triggered-by PlacementDecided  // S:516 "exactly one, and this entry is not a deciding entry, or several" (policy StatedReplacementAsksRetirementQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+      // T5.M5 · The stated-replacement retirement question is answered
+      // [person] a recipient answers the retirement question for this entry (received and recorded as T4.M3..M4)  // S:1111 "on the stated-replacement retirement question (Round 21) the same"
+      clarification: ResolveQuestion cause Answer  // S:1028 "ResolveQuestion(answer + request Pointer | Withdrawn{WithdrawalCause}, answeredBy)"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: Propose  // S:1111 "for an Aggregate member of a BC, ContextMap Propose(move to C, source: the stating entry's Pointer)"
+        triggered-by QuestionResolved  // S:1111 "a PlacementDecided gathered by a retirement question" (policy RoutingRetirementAnswerProposes)
+      design: BoundaryChangeProposed  // S:851 "else → BoundaryChangeProposed"
+      clarification: AskQuestion  // S:881 "otherwise all architects (cascading to admins and owners when there are none)"
+        triggered-by BoundaryChangeProposed  // S:880 "BoundaryChangeProposed (not ratifiedInline, not withdrawn in the same write)" (policy BoundaryChangeProposedAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?}"
+
+  moment "T5.M2 · The old construct is superseded, not deleted (continued)" [branch]
+    when TheMainPath
+      // the main path of the story
+      design: SupersedeConstruct  // S:549 "SupersedeConstruct(by?, cause: Successor | Ratified | Rejected | SubjectChanged | Answered | Stated"
+        triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}, when there is a successor"
+    when TheSuccessorIsTheConstructItselfIsNotLiveOrIsNotTheHeadOfIts
+      // former flow: t5-the-successor-is-the-construct-itself-or-is-not-live-or-not-head.moment
+      // Outcome: SupersedeConstruct(by) names the construct itself, or a construct that is terminal or not the head of its lineage, so the supersession is refused and recorded (SupersessionRefused); nothing is superseded and the Live pass finds it as a TAC-013 Gap that asks which supersession was meant.
+      // T5.M2·B1 · when the successor is the construct itself, is terminal, or is not the head of its lineage
+      // when the successor is the construct itself, is terminal, or is not the head of its lineage: the policy that would issue SupersedeConstruct issues RefuseSupersession(construct, by, reason Self | NotLive | NotHead) instead; nothing is superseded  // S:648 "the policies that issue SupersedeConstruct (the Stored(supersedes) policy, the stated-replacement and stated-negation policies, retirement routing), when the successor fails the guard → RefuseSupersession instead of SupersedeConstruct;"
+      design: RefuseSupersession  // S:614 "RefuseSupersession(construct, by, reason: Self | NotLive | NotHead), system-only."
+      design: SupersessionRefused  // S:620 "SupersessionRefused {by, reason}."
+      // SupersessionRefused -> the Live pass that evaluates TAC-013 on the construct whose supersession was refused  // S:722 "**SupersessionRefused** (§3 Lineage; Round 28, 73d00215 (pass-1 B-2); this is the one definition of the policy, and §3 Lineage cites it) → StartPass(Live, scope: the construct whose supersession was refused"
+      design: StartPass  // S:722 "→ StartPass(Live, scope: the construct whose supersession was refused"
+        triggered-by SupersessionRefused  // S:722 "SupersessionRefused (§3 Lineage; Round 28" (policy SupersessionRefusedStartsLivePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: RecordGateResults  // S:669 "RecordGateResults(sequence number, evaluated constructs[], findings[])"
+        triggered-by PassStarted  // S:720 "Gate run: PassStarted → GateRun" (policy PassStartedRunsGates)
+      // TAC-013 is a catalogue rule (family Tactical, handling Ask, cadence Live): the finding is of kind Plain  // S:681 "the finding is of kind Plain"
+      design: GapIdentified  // S:673 "GapIdentified {GapKey {rule, construct, origin}"
+      design: ObserveGap  // S:744 "ObserveGap(pass, startPosition, finding, origins, CauseKey), system-only, and only from a pass"
+        triggered-by GapIdentified  // S:721 "GapIdentified → ObserveGap" (policy GapIdentifiedObservesGap)
+      design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?};"
+      clarification: AskQuestion  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event; recipients: all architects, cascading to admins and owners"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked [terminal]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+
+  moment "T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn" [branch]
+    design: ConstructLinked  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when TheArmIsReDerivedForABCWithNoAggregate
+      // former flow: t5-the-arm-is-re-derived-for-a-bc-with-no-aggregate.moment
+      // T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn
+      // a ConstructInvalidated of an Aggregate construct (terminal with no successor), for each live Invariant or Event whose arm it was -> the arm is re-derived: resolve the Invariant's current enforcedBy (or the Event's current producer) to its arm  // S:595 "**The arm re-derived** (Round 27 A-11, ruling \"Re-derive the arm\")"
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+      design: StoreConstruct  // S:598 "a BC with no Aggregate resolved → the successor is stored with that context and no arm, which is a provisional and a missing-arm question"
+        triggered-by ConstructInvalidated  // S:595 "The arm re-derived (Round 27 A-11" (policy ArmReDerivedSameContextOnInvalidatedAggregate)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:501 "**for a Defer recorded for a missing context or arm, the missing-arm subject**"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when TheArmIsReDerivedInADifferentContext
+      // former flow: t5-the-arm-is-re-derived-in-a-different-context.moment
+      // T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn
+      // a ConstructInvalidated of an Aggregate construct (terminal with no successor), for each live Invariant or Event whose arm it was -> the arm is re-derived: resolve the Invariant's current enforcedBy (or the Event's current producer) to its arm  // S:595 "**The arm re-derived** (Round 27 A-11, ruling \"Re-derive the arm\")"
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+      design: StoreConstruct  // S:597 "the resolved Aggregate, or the resolved BC, is in a **different bounded context** → StoreConstruct(the Invariant′, proposedFor: BoundaryRatification)"
+        triggered-by ConstructInvalidated  // S:595 "The arm re-derived (Round 27 A-11" (policy ArmReDerivedSameContextOnInvalidatedAggregate)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: Propose  // S:597 "ContextMap Propose(move X: A → B, source: that Pointer, created constructs: the Invariant′), ratified as any proposal"
+      design: BoundaryChangeProposed [outcome]  // S:1332 "BoundaryChangeProposed | AskQuestion (ratification)"
+    when TheArmIsReDerivedInTheSameContext
+      // former flow: t5-the-arm-is-re-derived-in-the-same-context.moment
+      // T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn
+      // a ConstructInvalidated of an Aggregate construct (terminal with no successor), for each live Invariant or Event whose arm it was -> the arm is re-derived: resolve the Invariant's current enforcedBy (or the Event's current producer) to its arm  // S:595 "**The arm re-derived** (Round 27 A-11, ruling \"Re-derive the arm\")"
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+      design: StoreConstruct  // S:596 "the resolved Aggregate is in the Invariant's current context → StoreConstruct(the Invariant's content with that arm, supersedes the Invariant"
+        triggered-by ConstructInvalidated  // S:595 "The arm re-derived (Round 27 A-11" (policy ArmReDerivedSameContextOnInvalidatedAggregate)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: SupersedeConstruct  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this, cause: Successor"
+        triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+      design: ConstructSuperseded  // S:596 "**The move is recorded by the successor's ConstructStored and the Invariant's ConstructSuperseded (cause Successor) with ConstructLinked{Supersedes}: no new event**"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when TheArmIsReDerivedInTheSameContextAfterAMarkedSameAs
+      // T5.M3 · a MarkedSameAs whose addition replaces an Invariant's enforcedBy or an Event's producer re-derives the arm
+      // a MarkedSameAs whose addition replaces an Invariant's enforcedBy or an Event's producer, its first owner -> the arm is re-derived: resolve the Invariant's current enforcedBy (or the Event's current producer) to its arm  // S:595 "a MarkedSameAs whose addition replaces an Invariant"
+      design: MarkSameAs  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs (with the addition the answer names, if any; Round 13), then DisposeGap(Resolved{SameAs})"
+        triggered-by QuestionResolved  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs" (policy RoutingSameAsAnswerMarksSameAs)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: StoreConstruct  // S:596 "the resolved Aggregate is in the Invariant's current context → StoreConstruct(the Invariant's content with that arm, supersedes the Invariant"
+        triggered-by MarkedSameAs  // S:595 "a MarkedSameAs whose addition replaces an Invariant" (policy ArmReDerivedSameContextOnMarkedSameAs)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: SupersedeConstruct  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this, cause: Successor"
+        triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+      design: ConstructSuperseded  // S:596 "**The move is recorded by the successor's ConstructStored and the Invariant's ConstructSuperseded (cause Successor) with ConstructLinked{Supersedes}: no new event**"
+      design: ConstructLinked [outcome]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    when TheArmIsReDerivedInADifferentContextAfterAMarkedSameAs
+      // T5.M3 · the same re-derivation, the resolved arm in a different bounded context: never a silent move
+      // a MarkedSameAs whose addition replaces an Invariant's enforcedBy or an Event's producer, its first owner -> the arm is re-derived: the resolved Aggregate, or BC, is in a different bounded context  // S:595 "a MarkedSameAs whose addition replaces an Invariant"
+      design: MarkSameAs  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs (with the addition the answer names, if any; Round 13), then DisposeGap(Resolved{SameAs})"
+        triggered-by QuestionResolved  // S:1104 "a SameAs answer on non-boundary constructs → MarkSameAs" (policy RoutingSameAsAnswerMarksSameAs)
+      design: MarkedSameAs  // S:557 "MarkedSameAs {LineageLink, addition?}"
+      design: StoreConstruct  // S:597 "the resolved Aggregate, or the resolved BC, is in a **different bounded context** → StoreConstruct(the Invariant′, proposedFor: BoundaryRatification)"
+        triggered-by MarkedSameAs  // S:595 "a MarkedSameAs whose addition replaces an Invariant" (policy ArmReDerivedSameContextOnMarkedSameAs)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: Propose  // S:597 "ContextMap Propose(move X: A → B, source: that Pointer, created constructs: the Invariant′), ratified as any proposal"
+        triggered-by MarkedSameAs  // S:595 "a MarkedSameAs whose addition replaces an Invariant" (policy ArmReDerivedOtherContextProposesMove)
+      design: BoundaryChangeProposed [outcome]  // S:1332 "BoundaryChangeProposed | AskQuestion (ratification)"
+    when AnInvalidatedConstructMootsItsGapsAndWithdrawsItsQuestions
+      // T5.M3 · a ConstructInvalidated moots every non-terminal Gap on the construct and withdraws the questions whose constructs are all terminal
+      design: ConstructInvalidated  // S:556 "ConstructInvalidated {cause, Pointer?, pass?}, for by: none"
+      design: MootGap cause ConstructEvent  // S:747 "MootGap(cause: construct event | Evaluated | Erased), system-only"
+        triggered-by ConstructInvalidated  // S:593 "MootGap for every Gap on that construct that isn" (policy ConstructInvalidatedMootsGaps)
+      design: GapMooted  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried"
+      clarification: ResolveQuestion cause Withdrawn  // S:594 "ResolveQuestion(Withdrawn) for every open question generation that gathers or lists constructs"
+        triggered-by ConstructInvalidated  // S:594 "ResolveQuestion(Withdrawn) for every open question generation that gathers or lists constructs" (policy ConstructInvalidatedWithdrawsAllTerminalQuestions)
+      clarification: QuestionResolved [outcome]  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+
+  moment "T5.M3 · What depended on it is re-assessed and what asked about it is withdrawn (main path)"
+    // the main path of the story
+    // ConstructSuperseded or ConstructInvalidated, as three policies on the one event, each issuing one command  // S:591 "ConstructSuperseded or ConstructInvalidated, as three policies on the one event, each issuing one command"
+    design: StartPass  // S:592 "StartPass(Invalidation, dependents);"
+      triggered-by ConstructSuperseded  // S:591 "ConstructSuperseded or ConstructInvalidated, as three policies on the one event" (policy ConstructSupersededStartsInvalidationPass)
+    design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+    design: MootGap cause ConstructEvent  // S:593 "MootGap for every Gap on that construct that isn't terminal"
+      triggered-by ConstructSuperseded  // S:593 "MootGap for every Gap on that construct that isn" (policy ConstructSupersededMootsGaps)
+    design: GapMooted  // S:755 "GapMooted {cause}"
+    clarification: ResolveQuestion cause Withdrawn  // S:594 "ResolveQuestion(Withdrawn) for every open question generation that gathers or lists constructs and whose gathered or listed constructs are now all terminal"
+      triggered-by ConstructSuperseded  // S:594 "ResolveQuestion(Withdrawn) for every open question generation that gathers or lists constructs" (policy ConstructSupersededWithdrawsAllTerminalQuestions)
+    clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy, request Pointer?};"
+    // A link field or an arm that names the superseded construct is read as the successor through the lineage; nothing is rewritten  // S:580 "the read-through is the rule"
+
+  moment "T5.M6 · The conversation sees the change"
+    // [flmnt] the Sift pointer: a construct that has a Sift pointer, superseded or invalidated by any cause, writes a Sift pointer that supersedes the current head of each named entry's chain (`recordSiftPointer`, not declarable)  // S:659 "a ConstructSuperseded or ConstructInvalidated of a construct that has a Sift pointer, whatever its cause, narrative included (P2-G2) → kind supersedes"
+    // The agent workspace takes the construct's entry superseded; each construct entry supersedes that construct's previous entry  // S:1423 "each construct entry stamped with its construct ID and superseding that construct's previous entry (Round 24)"
+    design: AgentWorkspace [terminal]  // S:1423 "each construct entry stamped with its construct ID and superseding that construct's previous entry (Round 24)"
+
+  moment "T5.O5 · The design followed the conversation (terminal)"
+    // PROVES: ConstructSuperseded {cause, Pointer} with ConstructLinked{Supersedes} recorded; moots and withdrawals done; the Sift pointer superseded; no Kurrent event removed or rewritten (never destructive); the history is still readable in the graph  // S:583 "Never destructive."
+    note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1417 "graph | ConstructStored · ConstructAccepted · ConstructCommitted · ConstructSuperseded · ConstructInvalidated"

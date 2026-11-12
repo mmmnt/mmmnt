@@ -1,0 +1,153 @@
+// T8 — Disabled means disabled, and Sift comes back where it left off
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T8.O8 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T8.M1 · The license lapses or is suspended: AdmittedWorkFinishesWhenADisableArrivesMeanwhile (former flow t8-admitted-work-finishes-when-a-disable-arrives-meanwhile.moment)
+//   T8.M1 · The license lapses or is suspended (continued): BillingLeavesTheWorkspaceAsItIsWhenStateIsPastDue (former flow t8-billing-leaves-the-workspace-as-it-is.moment)
+//   T8.M1 · The license lapses or is suspended (continued): BillingLeavesTheWorkspaceAsItIsWhenObservationChangesNothing (former flow t8-billing-leaves-the-workspace-as-it-is.moment)
+//   T8.M4 · Sift comes back before the destruction: SiftComesBackAfterTheDestruction (former flow t8-sift-comes-back-after-the-destruction.moment)
+//   T8.M4 · Sift comes back before the destruction: TheCopiesAreDestroyedAfterRetention (former flow t8-the-copies-are-destroyed-after-retention.moment)
+//   T8.M4 · Sift comes back before the destruction: TheGateRefusesIngressWhileDisabledWhenLiveEntryArrivesAfterASiftDisabledIsRecorded (former flow t8-the-gate-refuses-ingress-while-disabled.moment)
+//   T8.M4 · Sift comes back before the destruction: TheGateRefusesIngressWhileDisabledWhenManagementAPIRequestArrivesWhileDisabled (former flow t8-the-gate-refuses-ingress-while-disabled.moment)
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T8 — Disabled means disabled, and Sift comes back where it left off"
+  description "T8 — Disabled means disabled, and Sift comes back where it left off. The story of the thread from its start to its T8.O8 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane enablement "Enablement" [Supporting]
+  lane intake "Intake" [Core]
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T8.M1 · The license lapses or is suspended" [branch]
+    when TheMainPath
+      // the main path of the story
+      // [person] billing changes the entitlement (external: narrative). [billing] a billing message (SNS) or a scheduled reconciliation, applied to each customer workspace that has Sift, in its order of work, on a state change only (S:265).
+      enablement: SiftWorkspaces  // S:265 "applied to each customer workspace that has Sift"; S:1005
+    when AdmittedWorkFinishesWhenADisableArrivesMeanwhile
+      // former flow: t8-admitted-work-finishes-when-a-disable-arrives-meanwhile.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): B-6 of B-corpus-to-model.md, S:308. t8-the-gate-refuses-ingress-while-disabled draws the entry that arrives after the disable; this flow draws the entry the gate admitted before it.
+      // T8.M2 · The gate admits an entry
+      intake: RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      intake: ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival}"
+      // T8.M1 · A disable arrives meanwhile
+      enablement: DisableSift  // S:204 "DisableSift(cause: LicenseLapsed | Suspended, entitlement as resolved, billingEventId)"
+      enablement: SiftDisabled  // S:211 "SiftDisabled {cause, billingEventId}"
+      // T8.M2 · The admitted work finishes
+      intake: MarkProcessed  // S:308 "Admitted work finishes, even if a disable arrives meanwhile"
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+
+  moment "T8.M1 · The license lapses or is suspended (continued)" [branch]
+    when TheMainPath
+      // the main path of the story
+      // canceled, enterprise lapsed, cancelled or `extended: false` -> DisableSift(LicenseLapsed) and the operational retention clock starts as a reaction keyed by that SiftDisabled; `locked` -> DisableSift(Suspended), no clock (S:273-274).
+      enablement: DisableSift  // S:204 "DisableSift(cause: LicenseLapsed | Suspended, entitlement as resolved, billingEventId)"; S:273
+    when BillingLeavesTheWorkspaceAsItIsWhenStateIsPastDue
+      // former flow: t8-billing-leaves-the-workspace-as-it-is.moment (path 1 of 2)
+      // T8.M1·B1, T8.M1·B2 and T8.M4·B2 · the observation leaves the workspace as it is
+      // T8.M1·B1 · when the state is `past_due`. T8.N2 · Stays as it is (terminal): the workspace stays enabled; no event.
+      design: RecordGateDecision  // S:1410 "RecordGateDecision | the hard-stop gate, when work is taken"
+      design: GateDecisionRecorded [outcome]  // S:1352 "GateDecisionRecorded | StartCycle (an Admitted decision starts the Cycle); the refusal notice (§1 Hard-stop gate, Refusal notices)"
+    when BillingLeavesTheWorkspaceAsItIsWhenObservationChangesNothing
+      // former flow: t8-billing-leaves-the-workspace-as-it-is.moment (path 2 of 2)
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Covers T8.M1·B1, T8.M1·B2, T8.M4·B2 and T8.N2. Why separate: no state change and a state change are mutually exclusive outcomes of an entitlement observation (S:265-274). Since the 2026-11-04 amendment the spec names a code for each: NoOp{past-due}, NoOp{no-change}, NoOp{not-person-enabled} (events NoOpPastDue, NoOpNoChange, NoOpNotPersonEnabled).
+      // T8.M1·B1, T8.M1·B2 and T8.M4·B2 · the observation leaves the workspace as it is
+      // T8.M1·B2 · when the observation changes nothing (already disabled with the same cause, or a repeat of the same billingEventId): a no-op gate decision; starts no Cycle, emits nothing (S:265, S:267, S:223).
+      design: RecordGateDecision  // S:1410 "RecordGateDecision | the hard-stop gate, when work is taken"
+      design: GateDecisionRecorded [outcome]  // S:1352 "GateDecisionRecorded | StartCycle (an Admitted decision starts the Cycle); the refusal notice (§1 Hard-stop gate, Refusal notices)"
+
+  moment "T8.M3 · The retention clock runs"
+    note enablement: "The operational retention clock starts as a reaction keyed by the SiftDisabled{LicenseLapsed}, from its recorded time. If starting the clock fails, the destruction is due from the SiftDisabled's recorded time and a tick runs it. With cause Suspended there is no clock: the workspace stays disabled with its Sift-hosted copies intact until billing's next change"  // S:273 "The operational retention clock starts as a **reaction** to that SiftDisabled, keyed by it, and runs from its recorded time"
+
+  moment "T8.M4 · Sift comes back before the destruction" [branch]
+    enablement: SiftDisabled  // S:211 "SiftDisabled {cause, billingEventId}"
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when SiftComesBackAfterTheDestruction
+      // former flow: t8-sift-comes-back-after-the-destruction.moment
+      // T8.M5 · The retention period passes and the copies are destroyed
+      // Entered from T8.M3·B2: the destruction is due when the retention period has elapsed since d's recorded time and no SiftEnabled was recorded after d (S:356).
+      // SG.ReadModelDestruction.1, customer-workspace scope: first RetireKeyGeneration(SiftDisabled: EventRef) (S:913); a result that names n (retired now, or already) tombstones n and destroys its data keys; steps 2-4 act on n (S:914-922).
+      design: ReadModelDestruction  // S:912 "ReadModelDestruction(scope) (a command; 4 numbered steps; each records its start)"; S:356
+      enablement: RetireKeyGeneration  // S:913 "RetireKeyGeneration(SiftDisabled: EventRef)"; S:913; S:231 "otherwise → KeyGenerationRetired{n, d}"
+      enablement: KeyGenerationRetired  // S:214 "KeyGenerationRetired {n, SiftDisabled: EventRef}"
+      // T8.M6 · Sift comes back after the destruction
+      // [person] an operator or billing re-enables (external: narrative). EnableSift(Reactivation | Reconciliation) only for a workspace a person had enabled (S:221, S:266).
+      enablement: EnableSift cause Reactivation  // S:203; S:266
+      enablement: SiftEnabled  // S:210
+      // SG.Setup.2 (S:245-249): StartKeyGeneration(current + 1) since the current one is retired; the current key generation follows a retired one and no SetupCompleted records it, so every read model is rebuilt under n+1
+      // skipping erased entries (S:247; the rebuild is a step of the setup, not a command), then ReaddressQuestion for every open question whose sources are not erased (S:248), the questions re-posted under n+1.
+      enablement: StartKeyGeneration  // S:206 "StartKeyGeneration(n)"; S:245 "StartKeyGeneration(current + 1)"
+      enablement: KeyGenerationStarted  // S:213 "KeyGenerationStarted {n}"
+      clarification: ReaddressQuestion  // S:248 "issue ReaddressQuestion for every open question whose sources are not erased"; S:1031
+      clarification: QuestionReaddressed  // S:1038 "QuestionReaddressed {recipientRule, keyGeneration}"
+      // SG.Setup.3-4 (S:250-256): the Replay (Bootstrap or Resume per bootstrapped state), then CompleteSetup and the pass in the same Cycle; the Replay's one flush follows (S:386). The tick re-checks recipient cascades (S:275).
+      design: CompleteReplay  // S:962 "CompleteReplay(kind, SiftEnabled: EventRef, replay point and end point per stream);"
+      design: ReplayCompleted  // S:386 "CompleteReplay(kind, SiftEnabled: EventRef, replay point and end point per stream) (NEW) records ReplayCompleted {Bootstrap | Resume, replay point and end point per stream}"
+      design: RecordNodeChange  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged"
+      design: NodeChanged  // S:979 "ReplayCompleted, ReadModelsDestroyed, DocumentVersionProcessed, PassTriggerRecorded and GatewayResultRecorded are writes for which RecordNodeChange records NodeChanged"
+      enablement: CompleteSetup  // S:254 "CompleteSetup(kind, e, n)"; S:208
+        triggered-by ReplayCompleted  // S:254 "If no SetupCompleted for e exists and the customer workspace is not ready → CompleteSetup(kind, e, n)." (policy SetupStep4Complete)
+      enablement: SetupCompleted  // S:215; S:256
+      design: StartPass  // S:255; S:668
+        triggered-by SetupCompleted  // S:255 "If a SetupCompleted for e exists, or the customer workspace is ready through another SiftEnabled's SetupCompleted f → StartPass in the same Cycle" (policy SetupStep4StartsPass)
+      design: PassStarted  // S:672
+      // T8.O8 · Sift came back where it left off (terminal)
+      // PROVES: SiftEnabled after the SiftDisabled and SetupCompleted {Resume} (M4, or a rebuild under the next key generation in t8-sift-comes-back-after-the-destruction); the Resume pass's PassCompleted; ready is true again; the Receipts refused while disabled were replayed.
+      design: PassCompleted [outcome]  // S:675; S:255
+      // T8.N1 is the end of M5 in t8-the-copies-are-destroyed-after-retention; this flow carries on past it when the workspace is re-enabled.
+    when TheCopiesAreDestroyedAfterRetention
+      // former flow: t8-the-copies-are-destroyed-after-retention.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Covers T8.M3·B2, T8.M5 and T8.N1. Why separate: this path and the return of M4 are alternatives in time (thread header; S:356 "no SiftEnabled was recorded after d").
+      // T8.M5 · The retention period passes and the copies are destroyed
+      // Entered from T8.M3·B2: the destruction is due when the retention period has elapsed since d's recorded time and no SiftEnabled was recorded after d (S:356).
+      // SG.ReadModelDestruction.1, customer-workspace scope: first RetireKeyGeneration(SiftDisabled: EventRef) (S:913); a result that names n (retired now, or already) tombstones n and destroys its data keys; steps 2-4 act on n (S:914-922).
+      design: ReadModelDestruction  // S:912 "ReadModelDestruction(scope) (a command; 4 numbered steps; each records its start)"; S:356
+      enablement: RetireKeyGeneration  // S:913 "RetireKeyGeneration(SiftDisabled: EventRef)"; S:913; S:231 "otherwise → KeyGenerationRetired{n, d}"
+      enablement: KeyGenerationRetired  // S:214 "KeyGenerationRetired {n, SiftDisabled: EventRef}"
+      design: ReadModelsDestroyed  // S:922 "ReadModelDestruction records ReadModelsDestroyed {scope, key generation, entry or document, notReachable"
+      design: RecordNodeChange  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged"
+      design: NodeChanged [outcome]  // S:979 "ReplayCompleted, ReadModelsDestroyed, DocumentVersionProcessed, PassTriggerRecorded and GatewayResultRecorded are writes for which RecordNodeChange records NodeChanged"
+      // T8.N1 · Destroyed after retention (terminal): KeyGenerationRetired {n}; ReadModelsDestroyed {customer workspace scope, n, notReachable} (step 4, a process event of ReadModelDestruction, S:922); Kurrent keeps every event; the flmnt-hosted copies stay readable (S:922, S:996).
+    when TheGateRefusesIngressWhileDisabledWhenLiveEntryArrivesAfterASiftDisabledIsRecorded
+      // former flow: t8-the-gate-refuses-ingress-while-disabled.moment (path 1 of 2)
+      // T8.M2·B1 and T8.M2·B2 · the gate refuses
+      // T8.M2·B1 · when a Live entry arrives (before a SiftEnabled or SiftDisabled is recorded: no notice; after: yes). The notice says the entry is waiting for Sift to be re-enabled (S:297-298). The entry gets no Receipt.
+      design: RecordGateDecision  // S:1410 "RecordGateDecision | the hard-stop gate, when work is taken"
+      design: GateDecisionRecorded [terminal]  // S:1352 "GateDecisionRecorded | StartCycle (an Admitted decision starts the Cycle); the refusal notice (§1 Hard-stop gate, Refusal notices)"
+    when TheGateRefusesIngressWhileDisabledWhenManagementAPIRequestArrivesWhileDisabled
+      // former flow: t8-the-gate-refuses-ingress-while-disabled.moment (path 2 of 2)
+      // T8.M2·B1 and T8.M2·B2 · the gate refuses
+      // T8.M2·B2 · when a management API request is refused: in the response, with the disable cause (the disabled workspace is read directly; S:279, S:295).
+      design: RecordGateDecision  // S:1410 "RecordGateDecision | the hard-stop gate, when work is taken"
+      design: GateDecisionRecorded [terminal]  // S:1352 "GateDecisionRecorded | StartCycle (an Admitted decision starts the Cycle); the refusal notice (§1 Hard-stop gate, Refusal notices)"
+
+  moment "T8.M4 · Sift comes back before the destruction (main path)"
+    // the main path of the story
+    // [person] an operator re-enables, or billing reactivates (external: narrative). EnableSift(Reactivation | Reconciliation) only if the latest event is a SiftDisabled and only for a workspace a person had enabled (S:266, S:221), or EnableSift(Person) (S:281).
+    enablement: EnableSift cause Reactivation  // S:203 "EnableSift(origin: Person | Reactivation | Reconciliation, entitlement, billingEventId?)"; S:266
+    enablement: SiftEnabled  // S:210 "SiftEnabled {origin, personallyEnabled, billingEventId?}"
+    // The setup runs inside this unit of work (S:241-256): provisioned and the current key generation are kept; the Replay (kind Resume, from the Receipt replay point to the stream head; refused entries got no Receipt, so they are replayed; S:250-252, S:379, S:385)
+    // follows; a retention that was already running completes on its own key generation (S:924).
+    design: CompleteReplay  // S:962 "CompleteReplay(kind, SiftEnabled: EventRef, replay point and end point per stream);"
+    design: ReplayCompleted  // S:386 "CompleteReplay(kind, SiftEnabled: EventRef, replay point and end point per stream) (NEW) records ReplayCompleted {Bootstrap | Resume, replay point and end point per stream}"
+    design: RecordNodeChange  // S:903 "RecordNodeChange(write Pointer or RecordRef, CycleId) (NEW) records NodeChanged"
+    design: NodeChanged  // S:979 "ReplayCompleted, ReadModelsDestroyed, DocumentVersionProcessed, PassTriggerRecorded and GatewayResultRecorded are writes for which RecordNodeChange records NodeChanged"
+    enablement: CompleteSetup  // S:254 "CompleteSetup(kind, e, n)"; S:208
+      triggered-by ReplayCompleted  // S:254 "If no SetupCompleted for e exists and the customer workspace is not ready → CompleteSetup(kind, e, n)." (policy SetupStep4Complete)
+    enablement: SetupCompleted  // S:215 "SetupCompleted {kind, SiftEnabled: EventRef, keyGeneration}"; S:256 "SetupCompleted is recorded before the pass"
+    // The Resume pass in the same Cycle (S:255); a Resume StartPass carries no CauseKey, the gate run resolves it (S:668); the Replay's one flush follows the pass (S:386).
+    design: StartPass  // S:255 "StartPass in the same Cycle"; S:668
+      triggered-by SetupCompleted  // S:255 "If a SetupCompleted for e exists, or the customer workspace is ready through another SiftEnabled's SetupCompleted f → StartPass in the same Cycle" (policy SetupStep4StartsPass)
+    design: PassStarted  // S:672
+
+  moment "T8.O8 · Sift came back where it left off (terminal)"
+    // PROVES: SiftEnabled after the SiftDisabled and SetupCompleted {Resume} (M4, or a rebuild under the next key generation in t8-sift-comes-back-after-the-destruction); the Resume pass's PassCompleted; ready is true again; the Receipts refused while disabled were replayed.
+    design: PassCompleted [terminal]  // S:675; S:255
+    // Refusals of EnableSift (EntitlementActive, FlmntWorkspaceExists, NotOperator, NoOpAlreadyEnabled, NoOpNotPersonEnabled) and of DisableSift are preconditions: Moment derives a negative scenario for each (neg-EnableSift-*, neg-DisableSift-*).

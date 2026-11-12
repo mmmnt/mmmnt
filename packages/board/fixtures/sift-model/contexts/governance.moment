@@ -1,0 +1,77 @@
+// Sift — C5 Governance (Supporting). One file per context.
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n; section 5 C5 Governance, section 6 Authority, section 0.1) and the accepted ADRs
+// docs/adrs/SIFT-ADR-0*.md (SIFT-ADR-074 for the corpus and CorpusVersionReleased). Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE is NOT a source.
+//
+// CONVENTIONS OF THIS CONTEXT
+//  - Every declaration ends with a trailing comment: S:<line> and a short quote of the spec's own words, on that exact line of the spec of record.
+//  - `precondition` is used only for a refusal or no-op code the spec names (naming rule: model/README.md). A rule or an outcome the spec states without a code
+//    is an `invariant`, cited at the line that states it (an orchestration cannot hold an invariant, so a context-level `rule` carries it there).
+//  - A refusal records no event; its derived negative scenario `neg-<Command>-<Precondition>` is its representation (founder ruling 2026-11-05).
+//  - A policy is named from the spec's words, cited at the line that states its RULE (and the row of the consumers table, 11.1), and carries the board id as a
+//    trailing `// board:` comment so that the board sync can match it.
+//  - A Moment command emits one event (Moment 0.7.2). A spec command that records two events together cannot be expressed; the second event is declared, drawn
+//    in the flows where the spec draws it, and has no emitter: model/README.md, "HALT items".
+//  - SourceAuthority {Ask | Sift | Conversation} and PrimaryDocument {documentId | none} are values of the same aggregate, overridden by the same command
+//    OverrideThreshold (same invariants and scopes); there is no separate command.
+//  - The external event CorpusVersionReleased (corpus release pipeline) cannot be declared (an external's event is not a declarable event): note below.
+//  - ThresholdOverridden -> the pass-trigger fan-out has a target that is a fan-out, not a command: note below.
+
+external CorpusReleasePipeline "corpus release pipeline: releases the catalogue; emits CorpusVersionReleased (external event)"  // S:192 "the corpus release -> C3 and C5: Conformist (CorpusVersionReleased)"
+
+context "Governance" [Supporting]  // S:171 "| C5 Governance | Supporting | ThresholdRules |"
+  description "The thresholds and rules a pass evaluates against: L1 is never configurable, no rule can be disabled, every override records its author and rationale"
+
+  value-object SourceAuthority  // S:28 "SourceAuthority {Ask | Sift | Conversation}"
+    value: string
+
+  value-object PrimaryDocument  // S:1149 "PrimaryDocument (Round 27 A-6)"
+    documentId: string
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: ThresholdRules — keyed by scope License {company domain | accountSub} | CustomerWorkspace
+  // --------------------------------------------------------------------------
+  aggregate "ThresholdRules"  // S:1137 "### ThresholdRules (aggregate; keyed by scope License"
+    identity thresholdScope: string
+
+    command OverrideThreshold  // S:1138 "OverrideThreshold(…, observedOverrideId?) (management API)."
+      input ruleId: string, value: string, rationale: string, observedOverrideId: string, requestKey: string
+      precondition NotOperator: "Refused{NotOperator}: an operator on the scope; otherwise Refused{NotOperator}"  // S:1147 "an operator on the scope; otherwise Refused{NotOperator}"
+      precondition NoOpRepeat: "own repeat, checked first: a request whose requestKey is already recorded on a ThresholdOverridden is a silent NoOp{repeat}, never Refused{Superseded}"  // S:1145 "A request whose requestKey is already recorded on a ThresholdOverridden is a silent NoOp{repeat}, never Refused{Superseded}"
+      precondition Superseded: "Refused{Superseded}: observedOverrideId is the latest ThresholdOverridden on its scope, read by the management API when it receives the request, and carried with it; it is absent if its scope had none then. If a later one exists (or, when absent, any exists), the result is Refused{Superseded}"  // S:1144 "If a later one exists (or, when absent, any exists), the result is Refused{Superseded}"
+      precondition RefusedL1NotConfigurable: "L1 is never configurable; Refused{L1NotConfigurable}"  // S:1141 "L1 is never configurable (Refused{L1NotConfigurable})"
+      precondition RefusedRuleNotDisableable: "no rule can be disabled; Refused{RuleNotDisableable}"  // S:1142 "no rule can be disabled (Refused{RuleNotDisableable})"
+      precondition RefusedDisabled: "While disabled, management API commands are refused with the disable cause; OverrideThreshold at License scope is admitted if any customer workspace under the license is enabled"  // S:307 "OverrideThreshold at License scope is admitted if any customer workspace under the license is enabled"
+      emits ThresholdOverridden
+
+    invariant C5-01 "L1 never configurable; no rule disabled; author and rationale recorded" scope ThresholdRules  // S:1165 "C5-01 (L1 never configurable; no rule disabled; author and rationale recorded)"
+    invariant C5-02 "Stale observedOverrideId Refused{Superseded}; own repeat (requestKey recorded) NoOp{repeat}, Round 6 A-2" scope ThresholdRules  // S:1165 "C5-02 (stale input Refused{Superseded}; own repeat NoOp{repeat}, Round 6 A-2)"
+    invariant C5-03 "One writer per scope (the order of work of its scope); an operator on the scope" scope ThresholdRules  // S:1165 "C5-03 (one writer per scope; operator on the scope)"
+    invariant C5-04 "The effective PrimaryDocument is the workspace's override, else the first document taken in; a document version of it lists the unstated narrative constructs in its retirement question" scope ThresholdRules  // S:1165 "C5-04 (Round 27 A-6: the effective PrimaryDocument is the workspace's override, else the first document taken in"
+    invariant C5-05 "Cadence is Live, ModelWide or Document and Document rules run only in the Document pass; LAN-003 counts a noun of a construct's name as defined by a Term of that name; LAN-007 finds one canonical name under one kind in two contexts" scope ThresholdRules  // S:1165 "C5-05 (Round 28 AF6: cadence is Live,"
+    invariant C5-06 "STR-009, TAC-007 and TAC-008 evaluate only when declared; TAC-004 and STR-012 are Advisory; a reasoned TAC-010 answer is honoured; every threshold a gate compares against is a ThresholdRules value" scope ThresholdRules  // S:1165 "Round 28: STR-009, TAC-007 and TAC-008 evaluate only when declared"
+
+    // ThresholdOverridden {…, requestKey}: the spec leaves the other fields open ("author and rationale are recorded"); ruleId and value are the fields OverrideThreshold carries.
+    event ThresholdOverridden  // S:1139 "ThresholdOverridden {…, requestKey}"
+      ruleId: string
+      value: string
+      rationale: string
+      author: string
+      requestKey: string
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // NOT A DECLARED CONSTRUCT (notes; the spec's rules that Moment has no construct for)
+  // --------------------------------------------------------------------------
+  // ThresholdOverridden -> the pass-trigger fan-out (StartPass ThresholdOverride for that workspace, or for License scope every inheriting workspace, after the
+  //   Sift-workspaces read model catches up): a fan-out, not a command.  // S:1139 "ThresholdOverridden"
+  // CorpusVersionReleased (external, from the corpus release pipeline): read as the global current CorpusVersion at a pass's startPosition; a pass trigger for every
+  //   customer workspace that has Sift.  // S:737 "CorpusVersionReleased (external, from the corpus release pipeline)"
+  // Effective threshold = the customer-workspace value, else the license value, else the seed; RulesVersion = the composite of the thresholds and SourceAuthority.  // S:1150 "Effective threshold = the customer-workspace value, else the license value, else the seed"
+
+  relationship Governance -> DesignModel  // S:182 "C5 -> C3: Customer-Supplier. Assessment reads the effective thresholds and the RulesVersion."
+    type CustomerSupplier
+    contract "Assessment reads the effective thresholds and the RulesVersion"
+
+  relationship CorpusReleasePipeline -> Governance  // S:192 "the corpus release -> C3 and C5: Conformist (CorpusVersionReleased)."
+    type Conformist
+    contract "CorpusVersionReleased"

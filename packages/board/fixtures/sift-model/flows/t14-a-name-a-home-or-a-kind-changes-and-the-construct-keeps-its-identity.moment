@@ -1,0 +1,257 @@
+// T14 — A name, a home or a kind changes, and the construct keeps its identity
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE section 6 gives thread structure and titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T14.O14 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T14.M1 · The same rule is restated under new wording: MoveCarried (former flow t14-a-move-carries-the-constructs-armed-to-it.moment)
+//   T14.M1 · The same rule is restated under new wording: RetypeAcrossABoundaryType (former flow t14-a-retype-across-a-boundary-type.moment)
+//   T14.M1 · The same rule is restated under new wording: RetypeOntoABoundaryTypeLiveTwin (former flow t14-a-retype-onto-a-boundary-type-live-twin.moment)
+//   T14.M1 · The same rule is restated under new wording: RetypeOntoALiveTwin (former flow t14-a-retype-onto-a-live-twin.moment)
+//   T14.M2 · A defining section or a stated rename renames it: RenameNotApplied (former flow t14-a-rename-is-not-applied-and-the-name-is-an-alias.moment)
+//   T14.M3 · It moves home (continued): DeclinedAndObserved (former flow t14-a-lineage-command-is-declined-and-observed.moment)
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T14.M5 moves to the declined branch: nothing is declined on this path, so no pass observes a Declined finding
+//   (S:629).
+// DIFFERENCE FROM NDD-SOURCE (spec wins): All four branch moments (M1·B1, M2·B1, M3·B1, M3·B2) are preconditions on the Lineage commands, not arms:
+//   the spec says a declined Lineage command writes no event (S:629), so there is no refusal event to end an arm in.
+// DIFFERENCE FROM NDD-SOURCE (spec wins): T14.M1 no longer lists AnswerApplied or StartPass (the Placement outcome is the entry; a pass starts only
+//   for an AnswerApplied whose only effect is the MarkSameAs, S:492), and M4 no longer lists Propose (a boundary-sided retype is ContextMap's,
+//   S:646-647).
+// carried from the former main flow, its description: description "T14 — A name, a home or a kind changes, and the construct keeps its identity (O14). Context lane: C3 Design Model (Lineage). Spec of record S:602-651."
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T14 — A name, a home or a kind changes, and the construct keeps its identity"
+  description "T14 — A name, a home or a kind changes, and the construct keeps its identity. The story of the thread from its start to its T14.O14 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T14.M1 · The same rule is restated under new wording" [branch]
+    when TheMainPath
+      // the main path of the story
+      design: PlacementDecided  // S:436,623 the SameAs outcome (entry from T3.M3)
+      design: MarkSameAs  // S:492,623 the SameAs policy: MarkSameAs(target, Pointer)
+        triggered-by PlacementDecided  // S:492 "SameAs {target, addition?} (non-boundary) → MarkSameAs" (policy SameAsOutcomeMarksSameAs)
+      design: MarkedSameAs  // S:557
+      design: ConstructLinked  // S:558 "MarkSameAs given a Pointer records it with MarkedSameAs (SameAs)"
+      design: AddAlias  // S:634 AddAlias(target, the candidate's name) when the name differs and the candidate does not rename the target
+        triggered-by PlacementDecided  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeAddsAlias)
+      // T14.M1·B1 (the target is a boundary construct, so the alias is not applied) is not a branch moment: AddAlias's precondition AliasNoOp (S:624)
+      // derives its own negative scenario; the decline is observed by the next pass (flow t14-a-lineage-command-is-declined-and-observed, T14.M5). A
+      // SameAs whose target is a lump does none of these (S:634).
+    when MoveCarried
+      // former flow: t14-a-move-carries-the-constructs-armed-to-it.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T14 — a moved construct carries the constructs armed directly to it that sat in its old context, each by its own MoveConstruct(Carried), transitively. Spec of record S:635, S:638, S:650."
+      // T14.M3 · It moves home, and what is armed to it follows
+      design: PlacementDecided  // S:635 "PlacementDecided or AnswerApplied (never a Defer) for a deciding narrative ruling"
+      design: MoveConstruct cause DecidingRuling  // S:635 "MoveConstruct(cause DecidingRuling)"
+        triggered-by PlacementDecided  // S:635 "PlacementDecided or AnswerApplied (never a Defer) for a deciding narrative ruling" (policy DecidingRulingMovesOwnedConstructs)
+      design: ConstructMoved  // S:618 "ConstructMoved {from, to, cause, Pointer}"
+      design: StartPass  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)"
+        triggered-by ConstructMoved  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)" (policy ConstructMovedStartsLivePass)
+      // T14.M3b · What is armed to it follows (the carry)
+      design: MoveConstruct cause Carried  // S:638 "ConstructMoved → MoveConstruct(cause Carried) for each live construct armed directly to the moved construct that sat in its old context"
+        triggered-by ConstructMoved  // S:638 "ConstructMoved → MoveConstruct(cause Carried)" (policy ConstructMovedCarriesArmedConstructs)
+      design: ConstructMoved [outcome]  // S:618 "ConstructMoved {from, to, cause, Pointer}"
+      // The carry is transitive and ends with the arm graph (S:638): each carried construct's ConstructMoved carries the constructs armed to it, and starts its own pass (S:650). Drawn once; the repeat for the next level is the same two nodes.
+      // T14.O14 · The constructs kept their identity (terminal)
+      // note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1001 "the typed index"
+      // PROVES: a ConstructMoved with cause Carried for each construct armed directly to the moved one (S:638); the Construct IDs are unchanged (S:606-608).
+    when RetypeAcrossABoundaryType
+      // former flow: t14-a-retype-across-a-boundary-type.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Separate flow of T14 (ConstructRetyped policies 3 and 4 of 4, S:646-647). The answerer is an operator, so the Propose carries ratifiedBy and is ratified in one write (S:647 "ratifiedBy only when the answerer ... is an operator"); the asked route is t13-a-replacement-is-ratified. A boundary-type live twin (no store, S:647 "(or T)") is the same without the first two nodes of M4b.
+      // carried from the former flow, its description: description "T14 — a Retype answer across a boundary type stores the successor for ratification and proposes the replacement; the ratification supersedes the old construct. Spec of record S:627, S:646-647, S:883-885."
+      // T14.M4 · A Defer is asked and answered Retype
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:501 "otherwise AskQuestion (subject: the event that recorded the Defer"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      clarification: ResolveQuestion cause Answer  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:496 "Retype {kind}"
+      design: RetypeConstruct cause Answer  // S:496 "RetypeConstruct(this Placement's provisional construct, kind, cause: Answer)"
+      design: ConstructRetyped  // S:619 "ConstructRetyped {from kind, to kind, successor, cause, Pointer}"
+      // T14.M4b · The successor is proposed and ratified
+      design: StoreConstruct  // S:646 "S or S′ is a boundary type, and S′ is a new construct → StoreConstruct(S′, proposedFor: BoundaryRatification when S′ is a boundary type, no supersedes)"
+        triggered-by ConstructRetyped  // S:643 "ConstructRetyped, as four policies on that event" (policy ConstructRetypedStoresBoundarySuccessor)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      design: Propose  // S:647 "ContextMap Propose(replace S → S′, source: the retype's Pointer, created constructs: S′ when this retype stored it"
+        triggered-by AnswerApplied  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposesOnAnswer)
+      design: BoundaryChangeProposed  // S:850 "BoundaryChangeProposed{ratifiedInline}"
+      design: BoundaryChangeRatified  // S:837 "BoundaryChangeRatified {answer ref}"
+      design: AcceptConstruct  // S:884 "AcceptConstruct(Ratification) for each created construct"
+        triggered-by BoundaryChangeRatified  // S:884 "AcceptConstruct(Ratification) for each created construct" (policy BoundaryChangeRatifiedAcceptsCreated)
+      design: ConstructAccepted  // S:553 "ConstructAccepted"
+      design: SupersedeConstruct  // S:647 "the ratification supersedes S (cause Ratified)"
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructSuperseded [outcome]  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      // T14.O14 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: see the node before it; the verdict counts an open proposal or a blocking Gap (S:1002).
+    when RetypeOntoABoundaryTypeLiveTwin
+      // former flow: t14-a-retype-onto-a-boundary-type-live-twin.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: ConstructRetyped policy 4 with a twin T and no store (S:647 "S or S′ (or T) is a boundary type" -> Propose "created constructs: S′ when this retype stored it"; a twin stores nothing). Policy 2 applies only when S is not a boundary type (S:645), so it does not run.
+      // T14.M4 · A Defer is asked and answered Retype
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:501 "otherwise AskQuestion (subject: the event that recorded the Defer, PlacementDecided or AnswerApplied"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      clarification: ResolveQuestion cause Answer  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:496 "Retype {kind}"
+      design: RetypeConstruct cause Answer  // S:496 "RetypeConstruct(this Placement's provisional construct, kind, cause: Answer)"
+      design: ConstructRetyped  // S:619 "ConstructRetyped {from kind, to kind, successor, cause, Pointer}"
+      // T14.M4b · The twin is proposed as the replacement and ratified
+      design: Propose  // S:647 "ContextMap Propose(replace S → S′, source: the retype's Pointer, created constructs: S′ when this retype stored it"
+        triggered-by AnswerApplied  // S:499 "2. ContextMap Propose(change, source: the entry Pointer" (policy ImpliesBoundaryProposesOnAnswer)
+      design: BoundaryChangeProposed  // S:850 "BoundaryChangeProposed{ratifiedInline}"
+      design: BoundaryChangeRatified  // S:837 "BoundaryChangeRatified {answer ref}"
+      design: SupersedeConstruct  // S:647 "the ratification supersedes S (cause Ratified)"
+        triggered-by BoundaryChangeRatified  // S:885 "SupersedeConstruct(by: successor | none, cause: Ratified) for each construct the change retires" (policy BoundaryChangeRatifiedSupersedesRetired)
+      design: ConstructSuperseded [outcome]  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      // T14.O14 · Settled (terminal)
+      // note design: "The convergence read model folds the recorded events into the baseline and the inputs of the verdict"  // S:1002 "the convergence read model: the baseline per customer workspace"
+      // PROVES: ConstructRetyped, then the replacement proposed and ratified and S superseded; no ConstructStored for the twin (S:647).
+    when RetypeOntoALiveTwin
+      // former flow: t14-a-retype-onto-a-live-twin.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Separate flow of T14 (ConstructRetyped policy 2 of 4, S:643-645; policy 1 is the main flow, policies 3 and 4 are t14-a-retype-across-a-boundary-type). The four policies are alternatives by predicate.
+      // carried from the former flow, its description: description "T14 — a Retype answer to a construct whose new kind already has a live construct of the same name supersedes it by that twin and keeps its old name as an alias; nothing new is stored. Spec of record S:627, S:642, S:645."
+      // T14.M4 · A Defer is asked and answered Retype
+      design: PlacementDecided  // S:501 "Defer{Unsure}"
+      design: StoreConstruct  // S:501 "StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      clarification: AskQuestion  // S:501 "otherwise AskQuestion (subject: the event that recorded the Defer"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      clarification: ResolveQuestion cause Answer  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded"
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: ApplyAnswer  // S:432 "ApplyAnswer(outcome, source: question {subject, generation} | computed {rule, trigger}, observed SubjectVersions)"
+        triggered-by QuestionResolved  // S:1109 "the event that recorded a Defer → ApplyAnswer on the Placement it recorded" (policy RoutingDeferAnswerAppliesAnswer)
+      design: AnswerApplied  // S:496 "Retype {kind}"
+      design: RetypeConstruct cause Answer  // S:496 "RetypeConstruct(this Placement's provisional construct, kind, cause: Answer)"
+      design: ConstructRetyped  // S:619 "ConstructRetyped {from kind, to kind, successor, cause, Pointer}"
+      // T14.M4b · The twin stands as the successor
+      design: SupersedeConstruct  // S:645 "a live construct T of the new kind and the same name is the successor, and S is not a boundary type → SupersedeConstruct(S, by: T"
+        triggered-by ConstructRetyped  // S:643 "ConstructRetyped, as four policies on that event" (policy ConstructRetypedSupersedesForLiveTwin)
+      design: ConstructSuperseded  // S:555 "ConstructSuperseded {cause, Pointer?, pass?}"
+      design: AddAlias  // S:642 "a SameAs answer under another name → AddAlias"
+        triggered-by QuestionResolved  // S:642 "QuestionResolved routing: a Retype answer → RetypeConstruct" (policy RoutingSameAsUnderAnotherNameAddsAlias)
+      design: ConstructAliased [outcome]  // S:616 "ConstructAliased {name, Pointer}"
+      // T14.O14 · The old name is an alias of the twin (terminal)
+      // note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1001 "the typed index"
+      // PROVES: ConstructRetyped, then ConstructSuperseded by the twin and ConstructAliased for the old name; no ConstructStored (S:627, S:645).
+    when ASameAsOutcomeRetypesTheConstructOfANeighbouringKind
+      // T14.M4 · a SameAs whose candidate is of a neighbouring kind on a deciding entry retypes the target
+      design: PlacementDecided  // S:436,623 the SameAs outcome (entry from T3.M3)
+      design: RetypeConstruct cause DecidingEntry  // S:613 "RetypeConstruct(construct, kind, successor, cause: Answer | DecidingEntry, Pointer)"
+        triggered-by PlacementDecided  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeRetypes)
+      design: ConstructRetyped [outcome]  // S:619 "ConstructRetyped {from kind, to kind, successor, cause, Pointer}"
+    when ARetypeAnswerAcrossABoundaryTypeProposesTheReplacement
+      // T14.M4 · a Retype answer is routed to RetypeConstruct, and a retype that touches a boundary type proposes the replacement
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: RetypeConstruct cause Answer  // S:613 "RetypeConstruct(construct, kind, successor, cause: Answer | DecidingEntry, Pointer)"
+        triggered-by QuestionResolved  // S:642 "QuestionResolved routing: a Retype answer → RetypeConstruct" (policy RoutingRetypeAnswerRetypesConstruct)
+      design: ConstructRetyped  // S:619 "ConstructRetyped {from kind, to kind, successor, cause, Pointer}"
+      design: Propose  // S:647 "ContextMap Propose(replace S → S′, source: the retype's Pointer, created constructs: S′ when this retype stored it"
+        triggered-by ConstructRetyped  // S:643 "ConstructRetyped, as four policies on that event" (policy ConstructRetypedProposesReplace)
+      design: BoundaryChangeProposed [outcome]  // S:850 "BoundaryChangeProposed{ratifiedInline}"
+
+  moment "T14.M2 · A defining section or a stated rename renames it" [branch]
+    design: ConstructAliased  // S:616 {name, Pointer}
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when RenameNotApplied
+      // former flow: t14-a-rename-is-not-applied-and-the-name-is-an-alias.moment
+      // T14.M2 · A defining section or a stated rename renames it
+      design: PlacementDecided  // S:436,623 a SameAs whose candidate states a rename of the target, from a source older than the one that gave the current name (S:625)
+      design: RenameConstruct  // S:611,614 declined: a source older than the one that gave the current name renames nothing; no ConstructRenamed
+        triggered-by PlacementDecided  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeRenames)
+      design: AddAlias  // S:625,623 where the rename is not applied because a newer name stands, the candidate's name is recorded as an alias
+        triggered-by PlacementDecided  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeAddsAlias)
+      design: ConstructAliased [outcome]  // S:616 T14.N1 · Declined (terminal): no rename; the name is recorded as an alias
+      // Also true of a second source in the same document version: at most one rename per construct per document version (S:625). RenameConstruct's
+      // precondition RenameOnlyFromDefinition derives the negative scenario. The decline is observed by the next pass (flow
+      // t14-a-lineage-command-is-declined-and-observed).
+
+  moment "T14.M2 · A defining section or a stated rename renames it (main path)"
+    // the main path of the story
+    design: RenameConstruct  // S:611,623 RenameConstruct(construct, name, cause DefiningSection | StatedRename, Pointer); the divergence gate, the contradiction gate and SourceAuthority first (S:625)
+      triggered-by PlacementDecided  // S:634 "the SameAs outcome (PlacementDecided or AnswerApplied, §3 Placement), as four policies" (policy SameAsOutcomeRenames)
+    design: ConstructRenamed  // S:617 {from, to, cause, Pointer}
+    design: AddAlias  // S:640 ConstructRenamed -> AddAlias(the previous name)
+      triggered-by ConstructRenamed  // S:640 "ConstructRenamed → AddAlias(the construct, the previous name" (policy ConstructRenamedAddsPreviousNameAlias)
+    design: ConstructAliased  // S:616
+    design: StartPass  // S:650 ConstructRenamed -> StartPass(Live, that construct), not inside a child of a running Replay or intake
+      triggered-by ConstructRenamed  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)" (policy ConstructRenamedStartsLivePass)
+    // T14.M2·B1 (the source is older than the one that gave the current name, or a second source in the same document version) is not a branch
+    // moment: RenameConstruct's precondition RenameOnlyFromDefinition derives its negative scenario; the name is recorded as an alias (S:625, S:634):
+    // flow t14-a-rename-is-not-applied-and-the-name-is-an-alias. A boundary construct is renamed only through a ratified Propose(rename): flow
+    // t13-a-rename-is-ratified.
+
+  moment "T14.M3 · It moves home (continued)" [branch]
+    design: MoveConstruct cause DefiningSection  // S:612,624 MoveConstruct(construct, context, cause DefiningSection | DecidingRuling); a move changes the arm with the context (S:626)
+      triggered-by PlacementDecided  // S:635 "PlacementDecided or AnswerApplied (never a Defer) for a deciding narrative ruling" (policy DecidingRulingMovesOwnedConstructs)
+
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when DeclinedAndObserved
+      // former flow: t14-a-lineage-command-is-declined-and-observed.moment
+      // T14.M5 · What was seen and not applied is not lost
+      design: StartPass  // S:629 the next pass that evaluates the construct
+      design: PassStarted  // S:672
+      design: ObserveGap  // S:684,709 GateRun step 2 derives a Declined{command, reason} finding, with no event of its own, by comparing the Placement outcomes and answers whose Lineage predicate held with the Lineage stream; ObserveGap is system-only (S:744)
+      design: GapOpened [outcome]  // S:770,673 handling Covered{declined}: never blocking, never asked; GapKey {DECLINED, the construct and the command, the origin}; T14.N1 · Declined (terminal)
+      // Mooted when the construct is terminal; a command declined on a terminal construct records nothing; a repeat that is a no-op by derived ID is
+      // not a decline (S:629).  The finding has no RuleRef and takes the rule id DECLINED, a gate id and not a catalogue rule (S:684, S:421).
+
+  moment "T14.M3 · It moves home (continued, main path)"
+    // the main path of the story
+    design: ConstructMoved  // S:618 {from, to, cause, Pointer}
+    design: StartPass  // S:650 ConstructMoved -> StartPass(Live, that construct)
+      triggered-by ConstructMoved  // S:650 "ConstructRenamed or ConstructMoved → StartPass(Live, that construct)" (policy ConstructMovedStartsLivePass)
+    // T14.M3·B1 (the statement is not newer, or the construct is armed to an Aggregate) and T14.M3·B2 (an answered move or retype a gate would defer)
+    // are not branch moments: MoveConstruct's preconditions MoveOnlyOnNewerText, ArmedToAggregate and DeclinedByGate derive their negative scenarios.
+    // The carry (MoveConstruct, cause Carried, for each construct armed directly to the moved one, S:638) is conditional on such constructs existing
+    // and is not drawn.
+
+  moment "T14.M4 · Its kind changes"
+    design: RetypeConstruct cause Answer  // S:613,631 RetypeConstruct(construct, kind, successor, cause Answer | DecidingEntry, Pointer)
+    design: ConstructRetyped  // S:619 {from kind, to kind, successor, cause, Pointer}
+    design: StoreConstruct  // S:644 first policy (neither kind a boundary type, no live twin): StoreConstruct(S-prime, supersedes: S)
+      triggered-by ConstructRetyped  // S:643 "ConstructRetyped, as four policies on that event" (policy ConstructRetypedStoresSuccessor)
+    design: ConstructStored  // S:552
+    design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+    design: SupersedeConstruct  // S:644,1266 the Stored(supersedes) policy supersedes S
+      triggered-by ConstructStored  // S:590 "Stored(supersedes X) → SupersedeConstruct(X, by: this" (policy StoredSupersedesSupersedesPredecessor)
+    design: ConstructSuperseded  // S:555
+    design: ConstructLinked [terminal]  // S:558 "given a Pointer records it with ConstructSuperseded or ConstructInvalidated"
+    // The four ConstructRetyped policies are alternatives by predicate (S:643-647); the other three (a live twin as successor, a boundary-sided
+    // successor stored, ContextMap Propose(replace)) are not drawn here; the boundary-sided one is flow t13-a-replacement-is-ratified. A retype to
+    // the construct's own kind is declined: precondition RetypeToOwnKind (S:629).
+
+  moment "T14.O14 · The construct kept its identity (terminal)"
+    note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1001 the typed index shows each construct's name, context and kind of record (the folds of ConstructAliased, ConstructRenamed, ConstructMoved and ConstructRetyped)
+    // PROVES: the Lineage events recorded, each with its Pointer; the Construct ID unchanged for alias, rename and move (S:606-608, S:632); every
+    // Lineage event emitted as NodeChanged (S:632, T11).

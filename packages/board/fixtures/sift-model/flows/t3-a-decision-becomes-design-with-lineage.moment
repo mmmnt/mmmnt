@@ -1,0 +1,200 @@
+// T3 — A decision becomes design, with lineage
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md.
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE.md is a derived document: it gives the thread structure and the titles only; where it differs from the spec, the spec wins.
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T3.O3 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T3.M4 · A construct is stored, linked to its source: ANewOrSupersedesConstructNamesNoContextOrNoArm (former flow t3-a-new-construct-names-no-context-or-no-arm.moment)
+//   T3.M4 · A construct is stored, linked to its source: NoValidDecisionSoThePlacementIsDeferredAsUnsure (former flow t3-no-valid-decision-so-the-placement-is-deferred-unsure.moment)
+//   T3.M5 · The design is assessed (continued): ABlockingGapRemainsSoTheConstructWaits (former flow t3-a-blocking-gap-remains-so-the-construct-waits.moment)
+//   T3.M5 · The design is assessed (continued): ALaterPassReopensAMootedEvaluatedGap (former flow t3-a-later-pass-reopens-a-mooted-evaluated-gap.moment)
+//   T3.M5 · The design is assessed (continued): APassMootsAGapWhoseConstructTheRecordFixed (former flow t3-a-pass-moots-a-gap-the-record-fixed.moment)
+// REFUSALS BY A PRECONDITION on a command of the main path (derived as negative scenarios for every path of the flow, Moment 0.9.0 ADR-042) (a derived `neg-<Command>-<Precondition>` scenario): T3.M1·B1 MatchCandidate.NameWithoutKey (also the flow
+// above, which ends in the NameWithoutKey event); T3.M3·B1 DecidePlacement.RefusedTargetNotOffered ("refused with no event", NDD: returns-to T3.M3); T3.M6·B1 CommitConstruct.CommitInvariant and
+// CompletePass.ClearedOnlyWhenUnblocked; StoreConstruct.NoOpRepeat; MarkProcessed.SucceededFirst. T3.M1·B2 / T3.N2 "an entry longer than the agent's input
+// DIFFERENCES FROM NDD-SOURCE (the spec wins): T3.M2 draws the graph read model, not a ConstructLinked event (the spec joins the fold of ConstructLinked; the event is recorded by the store, T3.M4, S:558);
+// the Gap events (GapIdentified, ObserveGap, GapOpened) are not on the spine, because no finding is the spine (S:723 "ConstructCleared for each evaluated construct with no blocking Gap");
+// the Sift pointer of T3.M7 is written only for a store whose Placed link points at a document section or an answer, and none for a narrative-sourced write (S:656-657), so the spine, a narrative decision, shows the agent workspace head entry only.
+// carried from the former main flow, its header: The other outcomes of T3.M3 are other threads: SameAs (T14), Supersedes (T5), ImpliesBoundary (T13), Defer (below, T4, T12)  // S:443 "New | SameAs {target, addition?} | Supersedes {target}"
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T3 — A decision becomes design, with lineage"
+  description "T3 — A decision becomes design, with lineage. The story of the thread from its start to its T3.O3 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane intake "Intake" [Core]
+  lane design "DesignModel" [Core]
+  lane clarification "Clarification" [Core]
+
+  moment "T3.M1 · The entry yields candidates"
+    // [flmnt] Extraction step 1: dereference the entry (read on Sift's credentials, never metered) and fingerprint it  // S:475 "1. dereference the entry (for a section of a document version, read the section text Sift holds, Round 22) and fingerprint it"
+    // Extraction step 2: the agent extracts the candidates the entry decides (domain service, not declarable); Extraction issues MatchCandidate once per candidate  // S:475 "2. the agent extracts the candidates the entry **decides**"
+    design: MatchCandidate  // S:430 "MatchCandidate(Pointer, Fingerprint, Arrival);"
+    design: CandidateMatched  // S:435 "CandidateMatched {Fingerprint}"
+    design: Convergence  // S:1304 "convergence read model (a Placement matched and not yet decided blocks SystemValidated, §3 Assessment)"
+
+  moment "T3.M2 · It is matched against what exists"
+    // CandidateMatched -> PlacementResolution (domain service, 4 numbered steps, after the catch-up): 1 exact canonical form, 2 lineage (flmnt causal, supersession, MARKED_MISTAKE and CORRECTS links joined with the fold of ConstructLinked), 3 search, 4 the agent decides  // S:477 "PlacementResolution** (domain service; 4 numbered steps"
+    // The offer is the limit: every leg only offers; none decides  // S:478 "Every leg only offers; none decides."
+    design: Graph  // S:1001 "graph: its entry→construct edges are the fold of ConstructLinked (Round 9); it carries **the typed index**"
+
+  moment "T3.M3 · The agent decides among the offers"
+    // The agent chooses one outcome and a target from the offer set only; the placement gates run: the divergence gate first, then the contradiction gate (T12); this entry passes both  // S:473 "checked before the contradiction gate"
+    design: DecidePlacement  // S:431 "DecidePlacement(PlacementOutcome, construct type, rationale, alternatives[], observed SubjectVersions);"
+      triggered-by CandidateMatched  // S:476 "CandidateMatched → PlacementResolution" (policy CandidateMatchedPlacementResolution)
+
+  moment "T3.M4 · A construct is stored, linked to its source" [branch]
+    design: PlacementDecided  // S:436 "PlacementDecided {outcome, rationale, alternatives[]};"
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when ANewOrSupersedesConstructNamesNoContextOrNoArm
+      // former flow: t3-a-new-construct-names-no-context-or-no-arm.moment
+      // Outcome: a New or Supersedes construct names no context or no arm after steps 2 and 3 searched for it, so the outcome is Defer{Unsure}; the construct is stored provisional and the question names what is missing; it is never refused at store.
+      // T3.M3·B3 · when a New or Supersedes construct names no context or no arm
+      // a New or Supersedes whose construct names no context or no arm, after PlacementResolution steps 2 and 3, is recorded as Defer{Unsure}: stored provisional, never refused at store; the question is asked on the missing-arm subject so that one question gathers every construct waiting on the same arm  // S:471 "it is never refused at store"
+      design: StoreConstruct  // S:501 "**Defer{Unsure}** → StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      // AskQuestion on the missing-arm subject (when the computed resolvers do not settle it first)  // S:501 "**for a Defer recorded for a missing context or arm, the missing-arm subject**"
+      clarification: AskQuestion  // S:1027 "AskQuestion(causedBy, recipientRule)"
+        triggered-by ConstructStored  // S:528 "Missing arm arrived (ruling f9025299" (policy MissingArmArrivedAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule, CorpusVersion, SubjectVersions shown?};"
+    when NoValidDecisionSoThePlacementIsDeferredAsUnsure
+      // former flow: t3-no-valid-decision-so-the-placement-is-deferred-unsure.moment
+      // Outcome: there is no valid decision, an unknown outcome, or a SameAs or Supersedes with no valid target, so the outcome is recorded as Defer{Unsure} and a provisional construct is stored.
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, T3.M3 · The agent decides among the offers: a candidate left with no decision, an unknown outcome, or a SameAs or Supersedes with no valid target is recorded as Defer{Unsure}  // S:460 "a candidate left with no decision, an unknown outcome, or a SameAs or Supersedes with no valid target is recorded as Defer{Unsure}"
+      // T3.M3·B2 · when there is no valid decision, an unknown outcome, or a SameAs or Supersedes with no valid target
+      // Defer{Unsure}: the provisional construct is stored proposedFor UnsurePlacement; a store proposedFor UnsurePlacement starts no pass here; the Placement is Deferred (blocks SystemValidated)  // S:586 "A store proposedFor UnsurePlacement starts no pass here"
+      // before anything is asked, the computed resolvers of the Placement (restated-arm, section-context, term-use) run: when a predicate holds, ApplyAnswer(computed{rule}) and nothing is asked, otherwise AskQuestion (T4.M1)  // S:501 "plus, **before anything is asked**, the computed resolvers of this Placement"
+      design: StoreConstruct  // S:501 "**Defer{Unsure}** → StoreConstruct(proposedFor: UnsurePlacement)"
+        triggered-by PlacementDecided  // S:501 "Defer{Unsure} → StoreConstruct(proposedFor: UnsurePlacement)" (policy DeferUnsureStoresProvisional)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+      design: ConstructLinked [outcome]  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+
+  moment "T3.M4 · A construct is stored, linked to its source (main path)"
+    // the main path of the story
+    // New -> StoreConstruct; every StoreConstruct an outcome policy issues carries this Placement's Pointer, so the construct records ConstructLinked  // S:490 "Every StoreConstruct and MarkSameAs an outcome policy issues carries this Placement's Pointer, so the construct records ConstructLinked"
+    design: StoreConstruct  // S:491 "**New** → StoreConstruct."
+      triggered-by PlacementDecided  // S:491 "New → StoreConstruct" (policy NewOutcomeStoresConstruct)
+    design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt};"
+    design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always, with the Placement's Pointer)"
+    design: Graph  // S:1314 "graph read model (the entry→construct edge, which PlacementResolution step 2 reads after the catch-up)"
+
+  moment "T3.M5 · The design is assessed"
+    // ConstructStored without proposedFor -> StartPass(Live, that construct), unless the store is by a child of a running Replay or intake, which is left to the pass that ends it  // S:586 "ConstructStored without proposedFor → StartPass(Live, that construct)."
+    design: StartPass  // S:586 "ConstructStored without proposedFor → StartPass(Live, that construct)."
+      triggered-by ConstructStored  // S:586 "ConstructStored without proposedFor → StartPass(Live, that construct)" (policy ConstructStoredStartsLivePass)
+    design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+
+  moment "T3.M5 · The design is assessed (continued)" [branch]
+    // GateRun: catch-up, then the rules of cadence Live of the effective catalogue (C5), the duplicate gate and the Declined findings; a finding is GapIdentified -> ObserveGap (the blocking-Gap flow)  // S:720 "**Gate run:** PassStarted → **GateRun**"
+    design: RecordGateResults  // S:669 "RecordGateResults(sequence number, evaluated constructs[], findings[])"
+      triggered-by PassStarted  // S:720 "Gate run: PassStarted → GateRun" (policy PassStartedRunsGates)
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when ABlockingGapRemainsSoTheConstructWaits
+      // former flow: t3-a-blocking-gap-remains-so-the-construct-waits.moment
+      // Outcome: the Live pass finds a blocking Gap on the construct, so the construct is not cleared and not committed and the Gap asks; continues in T4.M1.
+      // T3.M5 · The design is assessed
+      design: GapIdentified  // S:673 "GapIdentified {GapKey {rule, construct, origin}"
+      design: ObserveGap  // S:721 "**GapIdentified** → ObserveGap(pass, finding, origins, CauseKey) on that GapKey's Gap."
+        triggered-by GapIdentified  // S:721 "GapIdentified → ObserveGap" (policy GapIdentifiedObservesGap)
+      design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?};"
+      design: GatesEvaluated  // S:674 "GatesEvaluated {judgements}"
+      design: CompletePass  // S:723 "**Completion:** GatesEvaluated → CompletePass."
+        triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+      design: PassCompleted  // S:675 "PassCompleted {ConvergenceSnapshot, verdict, actor, CorpusVersion, RulesVersion, startPosition, asOf, CauseKey}"
+      // T3.M6·B1 · when a blocking Gap remains, the arm is not yet accepted, or the construct lacks a context or an arm
+      // when a blocking Gap remains, the arm is not yet accepted, or the construct lacks a context or an arm: no ConstructCleared, so no CommitConstruct; the construct waits; the Gap asks  // S:723 "records PassCompleted plus ConstructCleared for each evaluated construct with no blocking Gap"
+      // GapOpened with handling Ask -> AskQuestion (the Gap Ask policy)  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event"
+      clarification: AskQuestion [outcome]  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      // T3.H2 · continues in T4.M1 (handoff)
+    when ALaterPassReopensAMootedEvaluatedGap
+      // former flow: t3-a-later-pass-reopens-a-mooted-evaluated-gap.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its description: description "T3 — A Gap mooted as Evaluated (the record fixed its construct) is observed again by a later pass with a Plain finding: it is handled as a first observation, GapOpened with the finding's handling, and asked anew. Spec of record S:757, S:778."
+      // T3.M5 · A Gap is mooted as Evaluated
+      design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+      design: MootGap cause Evaluated  // S:720 "In step 2 it also issues MootGap(cause: Evaluated) for every Open Gap in scope"
+        triggered-by GapOpened  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap" (policy GapOpenedMootsGapOnTerminalConstruct)
+      design: GapMooted  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried"
+      // T3.M5 · A later pass records a reopenable finding on it
+      design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+        triggered-by GapMooted  // S:729 "every Gap disposal (GapResolved, GapWaived or GapMooted)" (policy GapMootedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: RecordGateResults  // S:669 "RecordGateResults(sequence number, evaluated constructs[], findings[])"
+        triggered-by PassStarted  // S:720 "Gate run: PassStarted → GateRun" (policy PassStartedRunsGates)
+      design: GapIdentified  // S:673 "GapIdentified {GapKey {rule, construct, origin}"
+      design: ObserveGap  // S:721 "**GapIdentified** → ObserveGap(pass, finding, origins, CauseKey) on that GapKey's Gap."
+        triggered-by GapIdentified  // S:721 "GapIdentified → ObserveGap" (policy GapIdentifiedObservesGap)
+      design: GapOpened  // S:778 "handled as a first observation (row \"none\"): GapOpened with the finding's handling, so it is asked anew"
+      // T3.M5 · It is asked anew
+      clarification: AskQuestion  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event; recipients: all architects"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked [outcome]  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+    when APassMootsAGapWhoseConstructTheRecordFixed
+      // former flow: t3-a-pass-moots-a-gap-the-record-fixed.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: The moot applies only to an Open Gap (S:787), whose construct was fixed by the record, and whose rule now evaluates without a finding (S:720). A rule that stops firing for any other reason leaves the Gap Open (S:720 "stays Open until it is answered, waived or its construct is terminal"): no event, so it is the derived negative scenario of MootGap's MootOnlyWhenTheRecordFixedIt precondition, not a flow.
+      // carried from the former flow, its description: description "T3 — A later pass evaluates the Gap's rule on its construct, the record fixed the construct and the rule records no finding: the pass issues MootGap(Evaluated), the Gap is Mooted{Evaluated}, its open question is withdrawn and a Convergence pass of the construct starts. Spec of record S:720, S:787, S:1330."
+      // T3.M5 · A Gap needs a person
+      design: GapOpened  // S:750 "GapOpened {handling, pass, finding, carriedFrom?}"
+      clarification: AskQuestion  // S:809 "**Ask** → AskQuestion (subject: GapKey; causedBy: this event; recipients: all architects"
+        triggered-by GapOpened  // S:809 "Ask → AskQuestion (subject: GapKey" (policy GapHandlingAsksQuestion)
+      clarification: QuestionAsked  // S:1033 "QuestionAsked {generation, causedBy, recipientRule"
+      // T3.M5 · A later pass finds the record fixed the construct
+      design: StartPass  // S:668 "StartPass(CauseTag, scope, CauseKey?)"
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: RecordGateResults  // S:720 "In step 2 it also issues MootGap(cause: Evaluated) for every Open Gap in scope"
+        triggered-by PassStarted  // S:720 "Gate run: PassStarted → GateRun" (policy PassStartedRunsGates)
+      design: MootGap cause Evaluated  // S:720 "whose construct **was fixed by the record** and whose rule now evaluates without a finding"
+        triggered-by GapOpened  // S:795 "first, the Construct stream is read directly. If the construct is superseded or invalidated → MootGap" (policy GapOpenedMootsGapOnTerminalConstruct)
+      design: GapMooted  // S:755 "GapMooted {cause} (Round 27 A-7: the cause MootGap carried"
+      design: GatesEvaluated  // S:720 "3. the last RecordGateResults records GatesEvaluated {judgements}"
+      design: CompletePass  // S:723 "**Completion:** GatesEvaluated → CompletePass."
+        triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+      design: PassCompleted  // S:675 "PassCompleted {ConvergenceSnapshot, verdict, actor, CorpusVersion, RulesVersion, startPosition, asOf, CauseKey}"
+      // T3.M5 · The moot releases the block and withdraws the question
+      clarification: ResolveQuestion cause Withdrawn  // S:1330 "GapMooted | ResolveQuestion(Withdrawn, cause Mooted)"
+        triggered-by GapMooted  // S:815 "GapMooted → ResolveQuestion(Withdrawn, cause Mooted" (policy GapMootedWithdrawsQuestion)
+      clarification: QuestionResolved  // S:1034 "QuestionResolved {generation, resolution: an answer | Withdrawn{WithdrawalCause}, answeredBy"
+      design: StartPass  // S:1330 "StartPass(Convergence, scope)"
+        triggered-by PassCompleted  // S:727 "Decreased (model-wide, with blocking Gaps in scope) → StartPass(Convergence)" (policy DecreasedVerdictStartsConvergencePass)
+      design: PassStarted [outcome]  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+
+  moment "T3.M5 · The design is assessed (continued, main path)"
+    // the main path of the story
+    design: GatesEvaluated  // S:674 "GatesEvaluated {judgements}"
+    design: CompletePass  // S:723 "**Completion:** GatesEvaluated → CompletePass."
+      triggered-by GatesEvaluated  // S:723 "Completion: GatesEvaluated → CompletePass" (policy GatesEvaluatedCompletesPass)
+    design: PassCompleted  // S:675 "PassCompleted {ConvergenceSnapshot, verdict, actor, CorpusVersion, RulesVersion, startPosition, asOf, CauseKey}"
+    design: ConstructCleared  // S:723 "records PassCompleted plus ConstructCleared for each evaluated construct with no blocking Gap"
+
+  moment "T3.M6 · It is committed"
+    design: CommitConstruct  // S:724 "ConstructCleared → CommitConstruct."
+      triggered-by ConstructCleared  // S:724 "ConstructCleared → CommitConstruct" (policy ConstructClearedCommits)
+    design: ConstructCommitted  // S:554 "ConstructCommitted;"
+    design: Graph  // S:1310 "ConstructCommitted | graph read model; the overlay (Term constructs); convergence read model"
+    design: Convergence  // S:1310 "convergence read model; CycleCompleted constructStates"
+
+  moment "T3.M7 · The conversation sees it"
+    // [person] a person in flmnt converses about the compound truth  // S:654 "so the conversation can see and converse about a **Sift decision** beside flmnt's own decisions"
+    // NOT DECLARABLE: the Sift pointer (`recordSiftPointer`), written by the agent-workspace writer, only for a store whose Placed link points at a document section or an answer; none for a narrative decision  // S:657 "a Placed link at a narrative entry writes none"
+    // The agent workspace (RM7) takes the construct's head entry after each Sift write  // S:1007 "every construct stored, merged or superseded, and every question asked, written by the agent-workspace writer"
+    design: AgentWorkspace  // S:1423 "agent workspace | every Cycle's writes, through the agent-workspace writer, each construct entry stamped with its construct ID"
+
+  moment "T3.M8 · The unit of work ends"
+    design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+    design: CycleCompleted  // S:344 "issued after CycleCompleted{Succeeded} is recorded"
+    intake: MarkProcessed  // S:317 "MarkProcessed(effect?);"
+      triggered-by CycleCompleted  // S:344 "is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded" (policy CycleCompletedMarksProcessed)
+    intake: ReceiptProcessed [terminal]  // S:373 "effect Applied when any command ran in the Cycle"
+
+  moment "T3.O3 · A decision became design (terminal)"
+    // PROVES: ConstructStored + ConstructLinked{Placed} + ConstructCommitted for the Placement key; the typed index returns the construct; its head entry exists in the agent workspace; ReceiptProcessed  // S:1001 "it carries **the typed index** (Round 15, ruling 2): every live construct by type, context, arm and normalised key"
+    note design: "The graph read model folds ConstructStored, ConstructAccepted, ConstructCommitted, ConstructSuperseded, ConstructInvalidated, MarkedSameAs and ConstructLinked"  // S:1417 "graph | ConstructStored · ConstructAccepted · ConstructCommitted · ConstructSuperseded"

@@ -1,0 +1,138 @@
+// T9 — Work fails briefly, then moves on, and nothing is replayed late
+//
+// STORY FLOW (founder ruling bd996f3e, 2026-11-07, "15 story flows, branches inside"): the main path runs from the start of the thread to its T9.O9 terminal, in the order the spec tells it.
+// Every alternative of the thread, once a flow of its own, is a branch at the moment where it diverges: a [branch] moment that holds its deciding event as a plain node (moved from the main path, not copied), an empty first arm `TheMainPath` (the walk takes the first arm when none is chosen, so the main path is the one that goes on after the moment) and one `when` arm for each alternative,
+// each ending at its own exit ([outcome] when it is a normal outcome of the thread, [terminal] for a failure or a refusal) or falling through into the moments that follow. Moment derives one scenario for each path. A refusal is a precondition of a command; Moment 0.9.0 derives its negative scenario for every path of the flow (ADR-042). A branch moment that nothing precedes (the first node of the flow, or one whose deciding event is the only node of the previous branch moment's main arm) keeps its first arm `TheMainPath` with the main path's next nodes: no event to anchor on (docs/sidd/round30/story-flows-log.md, 0.9.0 rework).
+// A branch arm cites the former flow it carries in its first comment line (the old-to-new mapping is in docs/sidd/round30/story-flows-log.md).
+// BRANCHES:
+//   T9.M1 · A unit of work fails: ARedoTakesTheDecisionTheFailedAttemptRecordedAsItsInput (former flow t9-a-redo-takes-the-recorded-decision-as-its-input.moment)
+//   T9.M1 · A unit of work fails (continued): AnOperatorRedrivesIt (former flow t9-an-operator-redrives-it.moment)
+//   T9.M1 · A unit of work fails (continued): ItKeepsFailingAndIsQuarantined (former flow t9-it-keeps-failing-and-is-quarantined.moment)
+// Part of the model directory; validate with `moment parse model/` (project mode) and `moment test` on this file.
+
+flow "T9 — Work fails briefly, then moves on, and nothing is replayed late"
+  description "T9 — Work fails briefly, then moves on, and nothing is replayed late. The story of the thread from its start to its T9.O9 outcome, with its alternatives as branches at the moment where each diverges. Source of record: docs/sidd/round30/pass7-domain-spec.md."
+
+  lane intake "Intake" [Core]
+  lane design "DesignModel" [Core]
+
+  moment "T9.M1 · A unit of work fails" [branch]
+    when TheMainPath
+      // the main path of the story
+      // A step fails; brief retries (S:353); then SagaStepFailed {step?, reason codes and Pointers only}, CycleCompleted {Failed, designState open, constructStates [], position = last write} (S:905-908, S:926) and an alarm (operational);
+      // the customer workspace's work moves on to the next unit (S:353). MarkProcessed is not issued; a failed MarkProcessed is itself a failed attempt (S:344).
+      design: RecordStepFailure  // S:960 "RecordStepFailure(step?, reason codes, Pointers);"
+    when ARedoTakesTheDecisionTheFailedAttemptRecordedAsItsInput
+      // former flow: t9-a-redo-takes-the-recorded-decision-as-its-input.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Alternative drawn in the close-out (S4 sweep, "Separate flows"): B-12 of B-corpus-to-model.md, obligation 1 of S:357 ("A redo never re-asks for a judgment the failed attempt already recorded"). The absence of a second DecidePlacement is the point: the redo returns the recorded PlacementDecided and runs its reactions.
+      // T9.M1 · An attempt fails after a decision was recorded
+      design: PlacementDecided  // S:358 "a decision the failed attempt recorded (a Placement's outcome, an answer applied, a construct stored)"
+      intake: RecordFailedAttempt  // S:345 "is issued when an entry's processing fails (a failed MarkProcessed included)"
+      intake: AttemptFailed  // S:323 "AttemptFailed {cycleId, attempt, quarantined}"
+      // T9.M2 · The redo runs the reactions the failed attempt did not reach
+      // the recorded PlacementDecided is the redo's input; no DecidePlacement is issued again  // S:358 "is the redo's input, so the redo returns it and runs its reactions, and a model that might answer differently on a second ask is not asked again for that decision"
+      design: StoreConstruct  // S:358 "A redo of failed work reaches every reaction the failed attempt did not reach"
+        triggered-by PlacementDecided  // S:491 "New → StoreConstruct" (policy NewOutcomeStoresConstruct)
+      design: ConstructStored  // S:552 "ConstructStored {Arrival, attempt}"
+      design: ConstructLinked  // S:558 "StoreConstruct records it with ConstructStored (Placed; always"
+      // The settle step runs before CompleteCycle, and the pass is the Cycle's own (S:341); MarkProcessed follows CycleCompleted{Succeeded}, so ReceiptProcessed comes last (S:344).
+      design: RecordPassTrigger  // S:341 "RecordPassTrigger is issued by the Cycle's settle step"
+      // the Cycle's settle step issues it, once for each attempt, with one cause by precedence (a step, not a policy; cause RedoSucceeded)  // S:341 "RedoSucceeded applies when the Cycle redoes a Receipt that has an AttemptFailed recorded before it"
+      design: PassTriggerRecorded  // S:341 "each model-wide pass of a Receipt's redo, of an erasure and of a closure at dispatch is started on a PassTriggerRecorded"
+      design: StartPass  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)"
+        triggered-by PassTriggerRecorded  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)" (policy PassTriggerRecordedStartsConvergencePass)
+      design: PassStarted  // S:672 "PassStarted {startPosition, CorpusVersion, RulesVersion}"
+      design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      design: CycleCompleted  // S:344 "MarkProcessed(effect) is the unit of work's last command, issued after CycleCompleted{Succeeded}"
+      intake: MarkProcessed  // S:317 "MarkProcessed(effect?)"
+        triggered-by CycleCompleted  // S:344 "is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded" (policy CycleCompletedMarksProcessed)
+      intake: ReceiptProcessed [outcome]  // S:322 "ReceiptProcessed {effect: Applied | None(reason)}"
+
+  moment "T9.M1 · A unit of work fails (continued)" [branch]
+    design: SagaStepFailed  // S:926 "A failed attempt: RecordStepFailure (NEW), issued by the executor when a step fails after its brief retries, records SagaStepFailed before CompleteCycle records CycleCompleted{Failed}"
+    when TheMainPath
+      // the main path of the story: no node here, the deciding event is the plain node above; the main path goes on in the moment that follows (founder ruling "Yes, anchor the branches": the deciding event is moved into the branch moment, the arm carries none of the main path's nodes)
+    when AnOperatorRedrivesIt
+      // former flow: t9-an-operator-redrives-it.moment
+      // T9.M1 · A unit of work fails
+      design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      design: CycleCompleted  // S:905 "**CycleCompleted** {outcome: Succeeded | Failed"
+      intake: RecordFailedAttempt  // S:345 "RecordFailedAttempt(cycleId, Pointer, Arrival) is issued when an entry's processing fails"; S:332 create-if-absent
+      intake: AttemptFailed  // S:323 "AttemptFailed {cycleId, attempt, quarantined}"; S:335 "a Receipt is failed and open while it has an AttemptFailed, is not quarantined and is not processed"
+      // Consumers may see Failed then Succeeded for one trigger (S:909). T9.M1·B1 (a failure that is only a section still failed and open at the end of an intake's dispatch records NO attempt on the version's Receipt, S:333) is t6-a-section-fails-and-stays-open.
+      // T9.M2·B2 · when the redo fails again
+      // Brief retries, then SagaStepFailed, CycleCompleted{Failed}, RecordFailedAttempt; the bound counts it (S:333, S:353).
+      design: RecordStepFailure  // S:960 "RecordStepFailure(step?, reason codes, Pointers);"
+      design: SagaStepFailed  // S:926 "A failed attempt: RecordStepFailure (NEW), issued by the executor when a step fails after its brief retries, records SagaStepFailed before CompleteCycle records CycleCompleted{Failed}"
+      design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      design: CycleCompleted  // S:905 "**CycleCompleted** {outcome: Succeeded | Failed"
+      intake: RecordFailedAttempt  // S:345; S:333
+      intake: AttemptFailed  // S:323
+      // T9.M3 · It keeps failing and is quarantined
+      // The AttemptFailed that reaches the bound (or that ends a failed RedriveCycle redo) is recorded with quarantined: true, with an alarm (S:333); the bound itself is the execution ADR's (SIFT-ADR-082, S:342).
+      // Excluded from the replay point (S:379); dispatch of a quarantined entry does nothing (S:371); a quarantined Receipt blocks SystemValidated (S:713); a quarantined document version's Cycle is redone only by RedriveCycle (S:391).
+      intake: RecordFailedAttempt  // S:345; S:333
+      intake: AttemptFailed  // S:323 "AttemptFailed {cycleId, attempt, quarantined}"; S:333 "quarantined is set on the AttemptFailed that reaches the bound"
+      // T9.M4 · An operator redrives it
+      // [person] an operator on the Cycle's customer workspace (or on the license) issues RedriveCycle(cycleId) (external: narrative); management API (S:284, S:290).
+      intake: RedriveCycle  // S:284 "RedriveCycle(cycleId) (operator on the Cycle's customer workspace ...)"; S:290
+      // A new Cycle from the current state, as T9.M2. The settle step runs before CompleteCycle, and the pass is the Cycle's own (S:341); success lifts the quarantine: MarkProcessed on a quarantined Receipt, issued after CycleCompleted{Succeeded}, appends QuarantineLifted and ReceiptProcessed together (S:334, S:352).
+      design: RecordPassTrigger  // S:341 "RecordPassTrigger is issued by the Cycle's settle step"
+      // the Cycle's settle step issues it, once for each attempt, with one cause by precedence (a step, not a policy; cause RedoSucceeded)  // S:341 "RedoSucceeded applies when the Cycle redoes a Receipt that has an AttemptFailed recorded before it"
+      design: PassTriggerRecorded  // S:341 "each model-wide pass of a Receipt's redo, of an erasure and of a closure at dispatch is started on a PassTriggerRecorded"
+      // The settle pass of the redrive records the verdict without the Receipt (S:730, S:338). A section redone after its document version closed is followed by a scoped Document pass, the question sweep, then its settle pass and one flush (S:397).
+      design: StartPass  // S:730; S:338
+        triggered-by PassTriggerRecorded  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)" (policy PassTriggerRecordedStartsConvergencePass)
+      design: PassStarted  // S:672
+      design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      design: CycleCompleted  // S:344 "MarkProcessed(effect) is the unit of work's last command, issued after CycleCompleted{Succeeded}"
+      intake: MarkProcessed  // S:344; S:334
+        triggered-by CycleCompleted  // S:344 "is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded" (policy CycleCompletedMarksProcessed)
+      intake: QuarantineLifted  // S:325 "QuarantineLifted"; S:334
+      intake: ReceiptProcessed [outcome]  // S:322; S:334
+    when ItKeepsFailingAndIsQuarantined
+      // former flow: t9-it-keeps-failing-and-is-quarantined.moment
+      // S: citations of the former flow that its nodes do not repeat (kept, none dropped):
+      // carried from the former flow, its header: Covers T9.M2·B2, T9.M3 and T9.N1. Why separate: a successful redo and a redo that fails again are mutually exclusive outcomes (S:354). The thread's returns-to T9.M3 is a forward jump, which the grammar forbids (V6); here the order is natural.
+      // T9.M1 · A unit of work fails
+      design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      design: CycleCompleted  // S:905 "**CycleCompleted** {outcome: Succeeded | Failed"
+      intake: RecordFailedAttempt  // S:345 "RecordFailedAttempt(cycleId, Pointer, Arrival) is issued when an entry's processing fails"; S:332 create-if-absent
+      intake: AttemptFailed  // S:323 "AttemptFailed {cycleId, attempt, quarantined}"; S:335 "a Receipt is failed and open while it has an AttemptFailed, is not quarantined and is not processed"
+      // Consumers may see Failed then Succeeded for one trigger (S:909). T9.M1·B1 (a failure that is only a section still failed and open at the end of an intake's dispatch records NO attempt on the version's Receipt, S:333) is t6-a-section-fails-and-stays-open.
+      // T9.M2·B2 · when the redo fails again
+      // Brief retries, then SagaStepFailed, CycleCompleted{Failed}, RecordFailedAttempt; the bound counts it (S:333, S:353).
+      design: RecordStepFailure  // S:960 "RecordStepFailure(step?, reason codes, Pointers);"
+      design: SagaStepFailed  // S:926 "A failed attempt: RecordStepFailure (NEW), issued by the executor when a step fails after its brief retries, records SagaStepFailed before CompleteCycle records CycleCompleted{Failed}"
+      design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+      design: CycleCompleted  // S:905 "**CycleCompleted** {outcome: Succeeded | Failed"
+      intake: RecordFailedAttempt  // S:345; S:333
+      intake: AttemptFailed  // S:323
+      // T9.M3 · It keeps failing and is quarantined
+      // The AttemptFailed that reaches the bound (or that ends a failed RedriveCycle redo) is recorded with quarantined: true, with an alarm (S:333); the bound itself is the execution ADR's (SIFT-ADR-082, S:342).
+      // Excluded from the replay point (S:379); dispatch of a quarantined entry does nothing (S:371); a quarantined Receipt blocks SystemValidated (S:713); a quarantined document version's Cycle is redone only by RedriveCycle (S:391).
+      intake: RecordFailedAttempt  // S:345; S:333
+      intake: AttemptFailed [terminal]  // S:323 "AttemptFailed {cycleId, attempt, quarantined}"; S:333 "quarantined is set on the AttemptFailed that reaches the bound"
+      // T9.N1 · Quarantined (terminal): AttemptFailed {quarantined: true}; it places nothing and asks nothing until an operator's RedriveCycle; the design state stays open (S:333, S:352).
+
+  moment "T9.M1 · A unit of work fails (continued, main path)"
+    // the main path of the story
+    // The settle step runs before CompleteCycle, and the pass is the Cycle's own (S:341); MarkProcessed, the unit of work's last command, follows CycleCompleted{Succeeded}, so ReceiptProcessed comes last (S:344).
+    design: RecordPassTrigger  // S:341 "RecordPassTrigger is issued by the Cycle's settle step"
+    // the Cycle's settle step issues it, once for each attempt, with one cause by precedence (a step, not a policy; cause RedoSucceeded)  // S:341 "RedoSucceeded applies when the Cycle redoes a Receipt that has an AttemptFailed recorded before it"
+    design: PassTriggerRecorded  // S:341 "each model-wide pass of a Receipt's redo, of an erasure and of a closure at dispatch is started on a PassTriggerRecorded"
+    // The settle pass of the redo (S:730, S:338): StartPass(Convergence, model-wide) once the redo has succeeded; it does not count that Receipt; a child of a running Replay or intake starts none (S:339: the NotInsideReplayOrIntake precondition of StartPass).
+    design: StartPass  // S:730 "the redo of a quarantined Receipt, or of a Receipt that was failed and open → StartPass(Convergence, scope: the customer workspace, model-wide)"; S:338
+      triggered-by PassTriggerRecorded  // S:341 "A policy on PassTriggerRecorded issues StartPass(Convergence, model-wide)" (policy PassTriggerRecordedStartsConvergencePass)
+    design: PassStarted  // S:672
+    design: CompleteCycle  // S:959 "CompleteCycle(outcome, failedCommands?, ingressEffect?, constructStates, designState, position);"
+    design: CycleCompleted  // S:344 "MarkProcessed(effect) is the unit of work's last command, issued after CycleCompleted{Succeeded}"
+    intake: MarkProcessed  // S:344 "MarkProcessed(effect) is the unit of work's last command, issued after CycleCompleted{Succeeded}"; S:317
+      triggered-by CycleCompleted  // S:344 "is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded" (policy CycleCompletedMarksProcessed)
+    intake: ReceiptProcessed  // S:322
+    // T9.M2·B3 (the failed work is a setup, a retention destruction or a document intake) is redone by the next tick, a new enable request or the next IntakeDocument (S:355-356, S:275, S:391): no node, those redos are not aggregate commands; the intake redo is T6.
+
+  moment "T9.O9 · Failed briefly, then done (terminal)"
+    // PROVES: AttemptFailed then ReceiptProcessed for the Pointer (M1, M2); CycleCompleted {Failed} then {Succeeded} (process events of the Cycle); the verdict recorded without the Receipt (this PassCompleted); no event ever applied out of order.
+    design: PassCompleted [terminal]  // S:675; S:338 "the pass that a Receipt's redo starts does not count that Receipt"

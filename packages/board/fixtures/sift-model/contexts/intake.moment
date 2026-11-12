@@ -1,0 +1,218 @@
+// Sift — C2 Intake (Core). One file per context.
+// Source of record: docs/sidd/round30/pass7-domain-spec.md ("S:n" = its line n; section 2 C2 Intake incl. Receipt, Order of work and failure, Entry dispatch,
+// Replay point, Replay, Document intake) and the accepted ADRs docs/adrs/SIFT-ADR-0*.md (SIFT-ADR-082 for the mechanics the spec leaves to it).
+// Founder ruling 2026-11-04: Source = "Spec of record". NDD-SOURCE is NOT a source of this model.
+//
+// CONVENTIONS OF THIS CONTEXT
+//  - Every declaration ends with a trailing comment: S:<line> and a short quote of the spec's own words, on that exact line of the spec of record.
+//  - `precondition` is used only for a refusal or no-op code the spec names (naming rule: model/README.md). A rule or an outcome the spec states without a code
+//    is an `invariant`, cited at the line that states it (an orchestration cannot hold an invariant, so a context-level `rule` carries it there).
+//  - A refusal records no event; its derived negative scenario `neg-<Command>-<Precondition>` is its representation (founder ruling 2026-11-05).
+//  - A policy is named from the spec's words, cited at the line that states its RULE (and the row of the consumers table, 11.1), and carries the board id as a
+//    trailing `// board:` comment so that the board sync can match it.
+//  - A Moment command emits one event (Moment 0.7.2). A spec command that records two events together cannot be expressed; the second event is declared, drawn
+//    in the flows where the spec draws it, and has no emitter: model/README.md, "HALT items".
+//  - IntakeDocument and RedriveCycle are Cycles, not aggregate commands: declared as orchestration commands. DocumentVersionProcessed is the process event of
+//    IntakeDocument (S:397). The Replay has no command of its own: its step 2 is CompleteReplay, on the SequenceRecords stream (DesignModel context, S:955).
+
+// ============================================================================
+// EXTERNAL SYSTEMS used by C2
+// ============================================================================
+
+external Flmnt "flmnt: the conversation. The feed, the request stream, the erasure stream, tenancy, graph / slice / search reads, Sift pointers, the agent workspace, the question stream, notices"  // S:185 "flmnt -> C2 and C4 (the feed, request and erasure streams; tenancy): Anticorruption Layer"
+
+external DocumentLocation "document location: where Sift reads a document version's bytes (the UI layer's upload is outside the model)"  // S:188 "the document location (the upload itself is the UI layer's) -> C2: Anticorruption Layer, through IntakeDocument"
+
+// ============================================================================
+// THE BOUNDED CONTEXT
+// ============================================================================
+
+context "Intake" [Core]  // S:168 "| C2 Intake | Core | Receipt |"
+  description "Entries, boundaries, answers, erasures and document versions arrive here once: one Receipt per ingress Pointer, processed, failed and quarantined, or closed by an erasure"
+
+  value-object Arrival  // S:1181 "Arrival (a Document Arrival also carries the location, a reference and never content"
+    kind: string
+    actor: Actor
+    location: string
+    contentHash: string
+
+  value-object DocumentVersion  // S:1181 "DocumentVersion {documentId, version, intakeOrdinal, contentHash"
+    documentId: string
+    version: string
+    intakeOrdinal: number
+    contentHash: string
+
+  value-object IntakeOrdinal  // S:1181 "IntakeOrdinal"
+    value: number
+
+  value-object ContentHash  // S:324 "ContentHash"
+    value: string
+
+  // --------------------------------------------------------------------------
+  // AGGREGATE: Receipt — one per ingress Pointer · 4 commands, 6 events
+  // --------------------------------------------------------------------------
+  aggregate "Receipt"  // S:314 "### Receipt (aggregate; one per ingress Pointer on any consumed stream)"
+    identity pointer: string
+
+    // State machine, S "Receipt": quarantine is set on the AttemptFailed that reaches the bound (or that ends a failed RedriveCycle redo); until then a Receipt
+    // that has an AttemptFailed is "failed and open" (not quarantined, not processed). The bound itself is the execution ADR's (SIFT-ADR-082).
+    state initial Recorded  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+    state Recorded -> Processed on MarkProcessed  // S:329 "processed is final;"
+    state Recorded -> FailedOpen on RecordFailedAttempt  // S:335 "a Receipt is failed and open while it has an AttemptFailed"
+    state FailedOpen -> FailedOpen on RecordFailedAttempt  // S:332 "RecordFailedAttempt is idempotent per cycleId"
+    state FailedOpen -> Quarantined on RecordFailedAttempt  // S:333 "quarantined is set on the AttemptFailed that reaches the bound"
+    state FailedOpen -> Processed on MarkProcessed  // S:335 "a Receipt that is processed or closed is neither"
+    state Quarantined -> Quarantined on RecordFailedAttempt  // S:333 "quarantined is set on the AttemptFailed that reaches the bound"
+    state Quarantined -> Processed on MarkProcessed  // S:334 "MarkProcessed on a quarantined Receipt appends QuarantineLifted and ReceiptProcessed together"
+    state Recorded -> Closed on CloseReceipt  // S:330 "CloseReceipt(erased) closes a Receipt of an erased source that is not processed"
+    state FailedOpen -> Closed on CloseReceipt  // S:330 "CloseReceipt(erased) closes a Receipt of an erased source that is not processed"
+    state Quarantined -> Closed on CloseReceipt  // S:330 "a quarantined Receipt that is closed ends its quarantine by the closure"
+
+    command RecordReceipt  // S:316 "RecordReceipt(Pointer, Arrival), which records the Arrival of a new Receipt"
+      input pointer: Pointer, arrival: Arrival
+      emits ReceiptRecorded | ContentHashRecorded  // S:316 "which records the Arrival of a new Receipt"; S:316 "on an existing Receipt whose Arrival carries no content hash, records the hash of a first successful read"; S:331 "and by ContentHashRecorded when the Receipt exists without one"
+
+    invariant RecordReceiptOneReceiptPerPointer "one Receipt per Pointer. The first recorder's Arrival wins, and every re-dispatch reuses it, for the identity, actor and question rules only: whether a Cycle is inside a Replay or an intake is decided by its parent and never by its Arrival" scope Receipt  // S:328 "one Receipt per Pointer. The first recorder's Arrival wins"
+    invariant RecordReceiptHashSetOnce "the one change an Arrival takes after it is recorded is the content hash of a document version: set once, on the first successful read; a failed read records none; once a hash is recorded it never changes, and nothing is compared against a hash that is not recorded" scope Receipt  // S:331 "the one change an Arrival takes after it is recorded is the content hash of a document version"
+    command MarkProcessed  // S:317 "MarkProcessed(effect?);"
+      input effect: string
+      emits ReceiptProcessed | QuarantineLifted, ReceiptProcessed  // S:334 "MarkProcessed on a quarantined Receipt appends QuarantineLifted and ReceiptProcessed together"; S:335 "a Receipt is failed and open while it has an AttemptFailed, is not quarantined and is not processed"
+
+    invariant MarkProcessedSucceededFirst "MarkProcessed is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded, so a processed entry always has an emitted success; if MarkProcessed fails, the failure is a failed attempt of the unit of work" scope Receipt  // S:344 "MarkProcessed(effect) is the unit of work's last command, issued after CycleCompleted{Succeeded} is recorded"
+    invariant MarkProcessedProcessedIsFinal "processed is final" scope Receipt  // S:329 "processed is final;"
+    command RecordFailedAttempt  // S:318 "RecordFailedAttempt(cycleId, Pointer, Arrival);"
+      input cycleId: string, pointer: Pointer, arrival: Arrival
+      emits AttemptFailed | ReceiptRecorded, AttemptFailed  // S:332 "When the Receipt is absent, it records ReceiptRecorded{Arrival} first"
+
+    invariant RecordFailedAttemptIdempotentPerCycle "RecordFailedAttempt is idempotent per cycleId. When the Receipt is absent, it records ReceiptRecorded{Arrival} first" scope Receipt  // S:332 "RecordFailedAttempt is idempotent per cycleId. When the Receipt is absent, it records ReceiptRecorded{Arrival} first"
+    invariant RecordFailedAttemptSectionStillFailed "a unit of work that ends Failed only because a section is still failed and open at the end of an intake's dispatch records no attempt on the document version's Receipt, because the section has its own bound" scope Receipt  // S:333 "A unit of work that ends Failed only because a section is still failed and open at the end of an intake's dispatch records no attempt on the document version's Receipt"
+    command CloseReceipt  // S:319 "CloseReceipt(erased)."
+      input erased: string
+      emits ReceiptClosed
+
+    invariant CloseReceiptClosedIsFinal "a closed Receipt is final, is not processed, no longer counts in the verdict and stays as history; CloseReceipt closes a Receipt of an erased source that is not processed" scope Receipt  // S:330 "a closed Receipt is final, is not processed, no longer counts in the verdict and stays as history"
+    invariant CloseReceiptClosedIsNeverTheAnswerCode "A Receipt is closed only by CloseReceipt; the reason code Closed of an answer that reaches a resolved generation is a code of ReceiptProcessed{None} and is never this state" scope Receipt  // S:330 "A Receipt is closed only by CloseReceipt; the reason code Closed of an answer"
+    invariant C2-01 "One Receipt per Pointer; the first Arrival wins; every re-dispatch reuses it" scope Receipt  // S:347 "SIFT-FEAT-C2-01 (one Receipt per Pointer; first Arrival wins)"
+    invariant C2-02 "Processed is final; MarkProcessed only after CycleCompleted{Succeeded}, D-4; a failed MarkProcessed leaves the entry unprocessed and the next live arrival re-drives it" scope Receipt  // S:347 "C2-02 (processed is final; MarkProcessed only after CycleCompleted{Succeeded}, D-4)"
+    invariant C2-03 "RecordFailedAttempt create-if-absent, idempotent per cycleId; quarantine at the bound; the failed-and-open state; an erasure closes every unprocessed Receipt of an erased source with CloseReceipt(erased) and starts one model-wide pass; closure at dispatch; the content hash is set once; a redo never re-asks a recorded judgment" scope Receipt  // S:347 "asserted specs SIFT-FEAT-C2-01 (one Receipt per Pointer; first Arrival wins), C2-02"
+    invariant C2-04 "Replay point = min(earliest Receipt on that stream neither processed, quarantined nor closed, latest Receipt's Pointer position + 1), per stream; Bootstrap = the start of each stream" scope Receipt  // S:347 "C2-04 (the replay point formula)"
+    invariant C2-05 "Replay children run in order; a failing child doesn't stop the Replay; re-reads of processed entries are no-ops (docs/feat-backlog.md SIFT-FEAT-C2-05)" scope Receipt  // S:385 "A child Cycle whose entry fails doesn't stop the Replay"
+    invariant C2-06 "One close per document version, when every section's Receipt is processed, quarantined or closed; a step after the close that fails leaves the version's Receipt failed and open until the redo completes; the intake's one flush" scope Receipt  // S:398 "SIFT-FEAT-C2-06 (Round 22: one close per document version"
+    invariant C2-07 "A filtered entry is noted, gets no Receipt, and does not move the replay point (docs/feat-backlog.md SIFT-FEAT-C2-07)" scope Receipt  // S:367 "A filtered entry is noted"
+    invariant C2-08 "A session-boundary entry runs no Extraction, runs the question sweep and flushes the gathered postings once; a replayed one posts nothing; one flush after the setup pass" scope Receipt  // S:373 "SIFT-FEAT-C2-08"
+    invariant C2-10 "IntakeDocument idempotent on the content hash; a changed hash Refused{DocumentVersionChanged}; a repeat on an unprocessed version redoes; an erased document taken in again is a new intake; a documentId containing a newline is refused and records nothing" scope Receipt  // S:398 "SIFT-FEAT-C2-10 (IntakeDocument idempotent on the content hash"
+    invariant C2-11 "Parse and split in reading order, one section per heading plus the preamble, a leading byte-order mark ignored, a heading in fenced code not a split; text beyond the input budget split or refused, never cut; the version order" scope Receipt  // S:398 "SIFT-FEAT-C2-11 (parse and split in reading order"
+
+    // Every event carries an Actor (S:102); Moment has no shared event envelope, so each event declares `actor: Actor`.
+    event ReceiptRecorded  // S:321 "ReceiptRecorded {Arrival};"
+      arrival: Arrival
+      actor: Actor
+
+    // effect: Applied | None(reason). Reasons: None(no candidate), None(boundary), the request-stream answer codes Unauthorised, Closed, Stale, Invalid, Undecided.
+    event ReceiptProcessed  // S:322 "ReceiptProcessed {effect: Applied | None(reason)};"
+      effect: string
+      actor: Actor
+
+    event AttemptFailed  // S:323 "AttemptFailed {cycleId, attempt, quarantined};"
+      cycleId: string
+      attempt: number
+      quarantined: boolean
+      actor: Actor
+
+    event ContentHashRecorded  // S:324 "ContentHashRecorded {contentHash};"
+      contentHash: string
+      actor: Actor
+
+    event QuarantineLifted  // S:325 "QuarantineLifted;" (the spec lists no fields)
+      actor: Actor
+
+    event ReceiptClosed  // S:326 "ReceiptClosed {erased}."
+      erased: string
+      actor: Actor
+
+  // --------------------------------------------------------------------------
+  // NON-AGGREGATE COMMANDS (Cycles issued through the management API), declared as orchestration commands
+  // --------------------------------------------------------------------------
+  orchestration DocumentIntake  // S:389 "Document intake (4 steps; Round 22, rulings 032c1094 and b8e834c6; runs inside IntakeDocument's unit of work)"
+    command IntakeDocument  // S:390 "IntakeDocument(location, documentId, version), issued by whoever placed the document, through the management API"
+      input location: string, documentId: string, version: string, requestKey: string
+      precondition RefusedDocumentIdWithNewline: "IntakeDocument refuses a documentId that contains a newline (Refused{DocumentIdWithNewline}); the refusal is made on arrival, records no Receipt and counts no attempt"  // S:390 "IntakeDocument refuses a documentId that contains a newline (Refused{DocumentIdWithNewline})"
+      precondition RefusedDocumentVersionChanged: "a content hash that differs from a recorded one is refused Refused{DocumentVersionChanged} and is a new document version, which an operator takes in with its own version key; the refusal is not a failed attempt and counts toward no bound"  // S:394 "a content hash that differs from a recorded one is Refused{DocumentVersionChanged}"
+      precondition NotOperator: "IntakeDocument is a management API request on one customer workspace, for an operator on it (Refused{NotOperator})"  // S:285 "IntakeDocument(location, documentId, version) on one customer workspace (operator on it; gated"
+      precondition RefusedDisabled: "While disabled, IntakeDocument is refused like any management API command, with the disable cause; the operator or the UI layer issues it again after the re-enable"  // S:295 "IntakeDocument is refused like any management API command"
+      precondition Postponed: "IntakeDocument is gated and Postponed until the customer workspace is ready, like any unit of work"  // S:390 "and Postponed until the customer workspace is ready, like any unit of work"
+      precondition NoOpQuarantined: "IntakeDocument on a quarantined document version is NoOp{quarantined}, as the dispatch of a quarantined entry is; the tick never redoes one"  // S:391 "IntakeDocument on a quarantined document version is NoOp{quarantined}"
+      precondition NoOpProcessed: "A repeat with the same content hash whose Receipt is processed is NoOp{processed}, unless the document version was erased after that Receipt, when the intake is a new one with the next intake ordinal"  // S:394 "A repeat with the same content hash whose Receipt is processed is NoOp{processed}"
+      emits DocumentVersionProcessed  // S:397 "IntakeDocument records DocumentVersionProcessed {documentVersion, sections, upTo}"
+
+    // A process event (ADR-040): the recorded outcome of the document intake, step 4 (Close); it is owned by this orchestration, not by an aggregate.
+    event DocumentVersionProcessed  // S:397 "IntakeDocument records DocumentVersionProcessed {documentVersion, sections, upTo} (the close of the document version"
+      documentVersion: DocumentVersion
+      sections: number
+      upTo: string
+      actor: Actor
+
+    invoked-by IntakeDocument
+    issues RecordReceipt, RecordFailedAttempt, MarkProcessed
+    states Requested
+    compensation none
+    timeout "none"
+
+  orchestration CycleRedrive  // S:284 "RedriveCycle(cycleId) (operator on the Cycle's customer workspace"
+    command RedriveCycle  // S:284 "RedriveCycle(cycleId) (operator on the Cycle's customer workspace"
+      input cycleId: string, requestKey: string
+      precondition NotOperator: "RedriveCycle needs an operator on the Cycle's customer workspace, or on the license at license scope (Refused{NotOperator})"  // S:284 "RedriveCycle(cycleId) (operator on the Cycle's customer workspace"
+      precondition NoOpClosed: "a closed Receipt is final, and a RedriveCycle of it is NoOp{closed}"  // S:330 "a RedriveCycle of it is NoOp{closed}"
+      precondition RefusedDisabled: "While disabled, management API commands other than the exempt requests are refused with the disable cause; RedriveCycle is not on the exempt list"  // S:295 "management API commands (other than the requests exempt below)"
+    invoked-by RedriveCycle
+    issues RecordFailedAttempt, MarkProcessed
+    states Requested
+    compensation none
+    timeout "none"
+
+  // Replay (2 steps; started by Setup step 3; runs inside its enablement Cycle): step 2 is CompleteReplay, which records ReplayCompleted. CompleteReplay and its event are
+  // declared in the SequenceRecords stream (DesignModel context, S:955), where the spec places them; the Replay has no command of its own in the spec.
+
+  // --------------------------------------------------------------------------
+  // NOT A DECLARED CONSTRUCT (notes; the spec's rules that Moment has no construct for)
+  // --------------------------------------------------------------------------
+  // Events recorded together with another by one spec command, which a Moment command (one emitted event) cannot express: ContentHashRecorded (RecordReceipt on an existing Receipt
+  //   whose Arrival carries no hash, S:331, S:1302) and QuarantineLifted (MarkProcessed on a quarantined Receipt appends QuarantineLifted and ReceiptProcessed together, S:334, S:1301).
+  //   Both are declared above and drawn where the spec draws them; neither has an emitter (HALT, model/README.md).  // S:334 "MarkProcessed on a quarantined Receipt appends QuarantineLifted and ReceiptProcessed together"
+  // Replay point: a direct query over Receipts, not a read model.  // S:381 "It is a direct query over Receipts, not a read model."
+  // Arrival = Live | Replay(Bootstrap | Resume) | Document(documentVersion).  // S:382 "Arrival = Live | Replay(Bootstrap | Resume) | Document(documentVersion)"
+  // Entry dispatch (gate -> cheap checks -> prerequisite -> RecordReceipt -> dispatch): a filtered entry is noted and gets no Receipt; Postponed if the customer
+  //   workspace isn't ready; processed / closed / quarantined (when not a RedriveCycle redo) -> nothing; a source with a scope tombstone -> RecordReceipt then
+  //   CloseReceipt(erased) in a Cycle of its own; otherwise run the Cycle.  // S:328 "Entry dispatch"
+  // The obligations of the intake, erasure and Receipt lifecycle (the model states these five and no mechanism, S:357):
+  //   1 a redo reaches every reaction the failed attempt did not and never re-asks a recorded judgment; 2 nothing model-wide starts inside a Replay or an intake;
+  //   3 an erasure never strands a Receipt; 4 every id derived for a re-intake is new; 5 the content hash is set on the first successful read and what Sift read is held.  // S:357 "The obligations of the intake, erasure and Receipt lifecycle"
+  // Reactions of this context (the spec's policies; trigger or target not declarable, V29/V30):
+  //   a decision.superseded feed entry: first the waiver check, RevokeWaiver(waiver, requestKey: this entry's Pointer) for each active waiver whose ruling the entry supersedes  // S:373 "for a decision.superseded entry first the waiver check, then Extraction"
+  //   Extraction then MatchCandidate once per candidate, none for an entry that yields none (MarkProcessed None(no candidate))  // S:373 "issues MatchCandidate(Pointer, Fingerprint, Arrival) once per candidate the entry yields and none for an entry that yields none"
+  //   when a unit of work fails: RecordFailedAttempt(cycleId, Pointer, Arrival); at the bound it sets quarantined  // S:345 "is issued when an entry's processing fails (a failed MarkProcessed included)"
+  //   a source with a scope tombstone: RecordReceipt, then CloseReceipt(erased), then the settle step of that Cycle starts a model-wide pass of the closure (ClosedAtDispatch) outside a Replay and an intake; if no model-wide pass completes after the closure, a tick redoes the pass in a Cycle of its own, in a ready customer workspace  // S:372 "the settle step of that Cycle then starts a model-wide pass of the closure (ClosedAtDispatch)"
+  //   the erasure's Cycle: CloseReceipt(erased) for every unprocessed Receipt of the erased sources, after ReadModelsDestroyed  // S:330 "CloseReceipt is a system command: the erasure's Cycle issues it for every unprocessed Receipt of the erased sources"
+  //   a Receipt's redo that succeeds, or an erasure: the Cycle's settle step starts a model-wide pass that records the verdict without it; none starts inside a Replay or an intake  // S:337 "The pass of a redo is the one the Cycle's settle step starts; the pass of an erasure is the one every erasure starts"
+  //   a session-boundary entry: runs no Extraction; the question sweep, then the flush, then MarkProcessed None(boundary); replayed, the sweep and no post  // S:373 "A session-boundary entry"
+  //   DocumentVersionProcessed (the close): StartPass(Document) first, then owner-keeping and version-retirement policies and the question sweep; then the release
+  //     pass (StartPass(Convergence, model-wide)) and the intake's one flush  // S:397 "Close. When every section's Receipt is processed, quarantined or closed, IntakeDocument records DocumentVersionProcessed"
+  // Document intake, 4 steps: 1 Take in (read, content hash, RecordReceipt with the intake ordinal, hold raw bytes); 2 Parse and split (sections in reading order,
+  //   heading paths, SectionFingerprints; hold each under its own data key; discard raw bytes); 3 Dispatch the sections (each a child Cycle); 4 Close.
+  // Replay, 2 steps: 1 Dispatch (each entry from the replay point to the end point, in order, one at a time, a child Cycle with Arrival Replay(Bootstrap | Resume); a
+  //   failing child does not stop the Replay); 2 Complete (ReplayCompleted).  // S:384 "Replay (2 steps; started by Setup step 3, §1, and runs inside its enablement Cycle)"
+
+  // --------------------------------------------------------------------------
+  // RELATIONSHIPS (section 0.1)
+  // --------------------------------------------------------------------------
+  relationship Intake -> DesignModel  // S:180 "C2 -> C3: Customer-Supplier. Entries become Placements."
+    type CustomerSupplier
+    contract "entries become Placements (Extraction -> MatchCandidate)"
+
+  relationship Flmnt -> Intake  // S:185 "flmnt -> C2 and C4 (the feed, request and erasure streams; tenancy): Anticorruption Layer"
+    type AnticorruptionLayer
+    contract "ingress translators over the feed, request and erasure streams; tenancy"
+
+  relationship DocumentLocation -> Intake  // S:188 "the document location (the upload itself is the UI layer's) -> C2: Anticorruption Layer"
+    type AnticorruptionLayer
+    contract "IntakeDocument(location, documentId, version)"
