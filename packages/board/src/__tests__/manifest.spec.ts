@@ -75,3 +75,44 @@ describe('the manifest lists branch arms and outcome exits', () => {
     expect(manifest.nodes.some((n) => n.exit === 'outcome')).toBe(true);
   });
 });
+
+describe('refusals, orchestration commands and edges', () => {
+  it('lists a cause-scoped precondition as a refusal of its command (ADR-040)', () => {
+    const { manifest } = projectBoard(ir);
+    expect(manifest.nodes).toContainEqual(
+      expect.objectContaining({
+        kind: 'refusal',
+        name: 'WithinRefundWindow',
+        of: 'CancelBooking',
+        cause: 'CustomerRequest',
+      }),
+    );
+  });
+
+  it('lists a policy as the reaction of its trigger and the chain to its command', () => {
+    const { manifest } = projectBoard(ir);
+    expect(manifest.edges).toContainEqual(
+      expect.objectContaining({
+        kind: 'triggers',
+        to: 'ReserveSeatsOnOrderPlaced',
+        from: 'OrderPlaced',
+      }),
+    );
+    expect(manifest.edges).toContainEqual(
+      expect.objectContaining({
+        kind: 'chains-to',
+        from: 'ReserveSeatsOnOrderPlaced',
+        to: 'ReserveSeats',
+      }),
+    );
+  });
+
+  it('lists no definition twice', async () => {
+    for (const model of [ir, await loadIr('examples/ticketwave/spec/ticketwave.moment')]) {
+      const keys = projectBoard(model)
+        .manifest.nodes.filter((n) => n.role === 'definition')
+        .map((n) => [n.frame, n.kind, n.name, n.context, n.flow, n.moment, n.of].join('|'));
+      expect(new Set(keys).size).toBe(keys.length);
+    }
+  });
+});

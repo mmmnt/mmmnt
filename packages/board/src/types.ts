@@ -21,12 +21,17 @@ export interface ManifestNode {
   arm?: string;
   /** The condition a policy reacts under (ADR-045), as written. */
   condition?: string;
+  /** For a refusal: the command it rejects. */
+  of?: string;
+  /** For a moment: the `[terminal]` or `[branch]` marker the moment declares. */
+  marker?: 'terminal' | 'branch';
   /** Where in the IR the node comes from, as a path. */
   path: string;
 }
 
 export interface ManifestEdge {
-  kind: 'relationship' | 'triggered-by' | 'crosses-to' | 'chains-to';
+  kind:
+    'relationship' | 'triggered-by' | 'crosses-to' | 'triggers' | 'chains-to' | 'feeds' | 'reads';
   from: string;
   to: string;
   context?: string;

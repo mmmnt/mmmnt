@@ -8,6 +8,7 @@ import type {
   LaneDefinition,
   MomentDefinition,
   MomentEntry,
+  OrchestrationCommandDefinition,
   PolicyConditionDefinition,
 } from '@mmmnt/core';
 import { FrameBuilder, GAP, HEADER_H, PAD, STICKY_H, STICKY_W } from './layout.js';
@@ -61,7 +62,25 @@ function commandRow(
     }
     ox += GAP;
   }
-  return y + STICKY_H + CHIP_H + GAP + (stated ? CHIP_H : 0);
+  const base = y + STICKY_H + CHIP_H + GAP + (stated ? CHIP_H : 0);
+  return refusalRow(f, cmdItem, cmd, x, base);
+}
+
+/** A precondition is a refusal of the command; one scoped to causes carries them as a chip (ADR-040 D2). */
+function refusalRow(
+  f: FrameBuilder,
+  cmdItem: BoardItem,
+  cmd: CommandDefinition,
+  x: number,
+  y: number,
+): number {
+  cmd.preconditions.forEach((pre, i) => {
+    const rx = x + i * (STICKY_W + GAP);
+    f.connect(cmdItem, f.node('refusal', pre.name, rx, y), undefined, true);
+    if (pre.causes && pre.causes.length > 0)
+      f.chip(`cause ${pre.causes.join(', ')}`, rx, y + STICKY_H + 4);
+  });
+  return cmd.preconditions.length === 0 ? y : y + STICKY_H + CHIP_H + GAP;
 }
 
 function aggregateBlock(
@@ -102,6 +121,11 @@ function aggregateBlock(
   return cy + GAP;
 }
 
+/** An orchestration's command reads as a command of the context for drawing. */
+function asCommand(cmd: OrchestrationCommandDefinition): CommandDefinition {
+  return { ...cmd, emitsEvent: cmd.emitsEvent ?? '' };
+}
+
 export function contextFrame(ctx: ContextDefinition): BoardFrame {
   const f = new FrameBuilder(`context-${ctx.name}`, ctx.name, 'context');
   f.header(ctx.classification ? `${ctx.name} · ${ctx.classification}` : ctx.name, 900);
@@ -138,13 +162,16 @@ export function contextFrame(ctx: ContextDefinition): BoardFrame {
     y,
   );
   for (const saga of ctx.sagas) {
-    const s = f.node('saga', saga.name, PAD, y);
-    const events = (saga.events ?? []).map((e) => e.name);
-    events.forEach((name, i) => {
-      const ev = f.node('event', name, PAD + (i + 1) * (STICKY_W + GAP * 2), y);
-      f.connect(s, ev);
-    });
+    f.node('saga', saga.name, PAD, y);
     y += STICKY_H + GAP * 2;
+    for (const cmd of saga.commands ?? []) y = commandRow(f, asCommand(cmd), PAD, y, drawn);
+    const rest = (saga.events ?? []).filter((e) => !drawn.has(e.name));
+    y = f.grid(
+      'event',
+      rest.map((e) => ({ text: e.name })),
+      PAD,
+      y,
+    );
   }
   y = f.grid(
     'projection',
@@ -197,6 +224,16 @@ function entryChips(ir: IntermediateRepresentation, e: MomentEntry): string[] {
 
 const entryHeight = (ir: IntermediateRepresentation, e: MomentEntry): number =>
   STICKY_H + GAP + entryChips(ir, e).length * (CHIP_H + 2);
+
+export function momentMarker(m: MomentDefinition): 'terminal' | 'branch' | undefined {
+  if (m.terminal) return 'terminal';
+  return m.isBranch ? 'branch' : undefined;
+}
+
+const momentTitle = (m: MomentDefinition): string => {
+  const marker = momentMarker(m);
+  return marker === undefined ? m.name : `${m.name} [${marker}]`;
+};
 
 const LABEL_W = 160;
 const COL_W = STICKY_W + GAP * 2;

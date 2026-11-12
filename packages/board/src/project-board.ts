@@ -6,7 +6,9 @@ import type {
   MomentEntry,
 } from '@mmmnt/core';
 import type { NodeKind } from './palette.js';
+import { sweepIr } from './coverage.js';
 import {
+  momentMarker,
   conditionText,
   contextFrame,
   contextMapFrame,
@@ -38,6 +40,24 @@ function definitionsOf(ctx: ContextDefinition): ManifestNode[] {
   ctx.events
     .filter((e) => !ownEvents.has(e.name))
     .forEach((e) => add('event', e.name, 'contexts[].events[]'));
+  const refusals = [...ctx.commands, ...ctx.sagas.flatMap((s) => s.commands ?? [])];
+  refusals.forEach((c) =>
+    c.preconditions.forEach((pre) =>
+      out.push({
+        kind: 'refusal',
+        name: pre.name,
+        context: ctx.name,
+        role: 'definition',
+        frame,
+        path: 'contexts[].commands[].preconditions[]',
+        of: c.name,
+        ...(pre.causes && pre.causes.length > 0 && { cause: pre.causes.join(', ') }),
+      }),
+    ),
+  );
+  ctx.sagas
+    .flatMap((s) => s.commands ?? [])
+    .forEach((c) => add('command', c.name, 'contexts[].sagas[].commands[]'));
   ctx.policies.forEach((p) => add('policy', p.name, 'contexts[].policies[]'));
   ctx.sagas.forEach((s) => add('saga', s.name, 'contexts[].sagas[]'));
   (ctx.projections ?? []).forEach((p) => add('projection', p.name, 'contexts[].projections[]'));
@@ -52,6 +72,23 @@ function contextNameOf(ir: IntermediateRepresentation, id: string): string {
   if (ctx) return ctx.name;
   const ext = ir.externals?.find((e) => e.id === id);
   return ext ? ext.name : id.replace(/^(ctx|ext)-/, '');
+}
+
+function contextEdges(ctx: ContextDefinition): ManifestEdge[] {
+  const edge = (kind: ManifestEdge['kind'], from: string, to: string): ManifestEdge => ({
+    kind,
+    from,
+    to,
+    context: ctx.name,
+  });
+  return [
+    ...ctx.policies.flatMap((p) => [
+      edge('triggers', p.trigger, p.name),
+      ...(p.chainsTo ? [edge('chains-to', p.name, p.chainsTo)] : []),
+    ]),
+    ...(ctx.projections ?? []).flatMap((p) => p.sources.map((src) => edge('feeds', src, p.name))),
+    ...(ctx.queries ?? []).flatMap((q) => q.reads.map((r) => edge('reads', q.name, r))),
+  ];
 }
 
 function placementNode(
@@ -104,7 +141,14 @@ function momentNodes(
     return lane ? contextNameOf(ir, lane.contextId) : '';
   };
   return [
-    { ...base, kind: 'moment', name: m.name, context: '', path: 'flows[].moments[]' },
+    {
+      ...base,
+      kind: 'moment',
+      name: m.name,
+      context: '',
+      path: 'flows[].moments[]',
+      ...(momentMarker(m) && { marker: momentMarker(m) }),
+    },
     ...m.contextEntries.map((e) => placementNode(ir, flow, e, m.name)),
     ...(m.notes ?? []).map((n): ManifestNode => ({
       ...base,
@@ -151,7 +195,19 @@ function placementsOf(
       to: c.targetNodeName ?? '',
       flow: flow.name,
     }));
-  return { nodes: [flowNode, ...flow.moments.flatMap((m) => momentNodes(ir, flow, m))], edges };
+  const crossings: ManifestEdge[] = flow.connections
+    .filter((c) => c.connectionType === 'crosses-to')
+    .map((c) => ({
+      kind: 'crosses-to' as const,
+      from: c.sourceNodeName ?? '',
+      to: contextNameOf(ir, c.targetContextId),
+      flow: flow.name,
+      ...(c.connectionType === 'crosses-to' && { label: c.schemaContract.eventType }),
+    }));
+  return {
+    nodes: [flowNode, ...flow.moments.flatMap((m) => momentNodes(ir, flow, m))],
+    edges: [...edges, ...crossings],
+  };
 }
 
 export function projectBoard(ir: IntermediateRepresentation): BoardProjection {
@@ -192,6 +248,7 @@ export function projectBoard(ir: IntermediateRepresentation): BoardProjection {
       to: contextNameOf(ir, r.targetContextId),
       label: r.relationshipType,
     })),
+    ...ir.contexts.flatMap(contextEdges),
     ...flows.flatMap((f) => f.edges),
   ];
   return {
@@ -202,7 +259,7 @@ export function projectBoard(ir: IntermediateRepresentation): BoardProjection {
       frames: frames.map((f) => ({ id: f.id, title: f.title, kind: f.kind })),
       nodes,
       edges,
-      unrendered: [],
+      unrendered: sweepIr(ir).unrendered,
     },
   };
 }

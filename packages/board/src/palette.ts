@@ -28,6 +28,7 @@ export type NodeKind =
   | 'projection'
   | 'query'
   | 'rule'
+  | 'refusal'
   | 'invariant'
   | 'service'
   | 'valueObject'
@@ -48,6 +49,7 @@ export const KIND_SWATCH: Record<NodeKind, SwatchName | null> = {
   projection: 'projection',
   query: 'query',
   rule: 'refusal',
+  refusal: 'refusal',
   invariant: 'refusal',
   service: 'action',
   valueObject: 'interface',
