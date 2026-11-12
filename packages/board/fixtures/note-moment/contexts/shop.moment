@@ -1,0 +1,11 @@
+// A flow that opens on a moment that is only a note (a step outside the model), then a lane note.
+external Bank "The bank that authorises a card"
+
+context "Shop" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      input orderId: UUID
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID

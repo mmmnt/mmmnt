@@ -1,7 +1,9 @@
 import type { IntermediateRepresentation } from '@mmmnt/core';
 import { numberContexts, numberFlows } from './numbering.js';
 import type { ContextNumber, NumberedFlow } from './numbering.js';
-import type { BoardOptions } from './types.js';
+import type { NodeKeys } from './keys.js';
+import type { NodeKind } from './palette.js';
+import type { BoardItem, BoardOptions } from './types.js';
 
 /** What every frame builder shares: the IR, the numbers, and the id of each frame. */
 export interface BoardContext {
@@ -9,6 +11,8 @@ export interface BoardContext {
   flows: NumberedFlow[];
   contexts: ContextNumber[];
   notices: string[];
+  /** Set once the manifest nodes are built; frames claim their keys from it. */
+  keys?: NodeKeys;
 }
 
 export function makeContext(ir: IntermediateRepresentation, options: BoardOptions): BoardContext {
@@ -43,3 +47,17 @@ export const frameIds = {
   services: (num: string): string => `services-${num}`,
   thread: (flowId: string): string => `thread-${flowId}`,
 };
+
+/** Marks an item as the drawing of a manifest node, when the board has keys (it always has, in a projection). */
+export function claim<T extends BoardItem>(
+  bc: BoardContext,
+  item: T,
+  frame: string,
+  kind: NodeKind,
+  name: string,
+  context: string,
+  momentId?: string,
+  arm?: string,
+): T {
+  return bc.keys ? bc.keys.claim(item, frame, kind, name, context, momentId, arm) : item;
+}

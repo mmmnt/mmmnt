@@ -1,0 +1,13 @@
+flow "N1 - A note opens the story"
+  lane shop "Shop" [Core]
+  lane bank "Bank" [External]
+
+  moment "N1.M1 · The person signs in"
+    note "The token lives in the keychain"
+
+  moment "N1.M2 · The order is placed"
+    shop: PlaceOrder
+    shop: OrderPlaced
+
+  moment "N1.M3 · The bank answers"
+    note bank: "The bank authorises the card"

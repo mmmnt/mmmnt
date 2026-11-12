@@ -1,7 +1,7 @@
 import type { AggregateDefinition, ContextDefinition } from '@mmmnt/core';
 import { emitOutcomes } from '@mmmnt/core';
 import type { BoardContext } from './context.js';
-import { contextNumber, frameIds } from './context.js';
+import { claim, contextNumber, frameIds } from './context.js';
 import { FrameBuilder } from './layout.js';
 import type { PointerIndex } from './pointers.js';
 import { commandText, eventText, refusalText } from './uses.js';
@@ -39,16 +39,25 @@ export function aggregateFrame(
     })),
   ];
   const rows = Math.max(agg.commands.length, agg.events.length, inner.length, 1);
-  const container = f.shape('container', agg.name, 340, 100, 320, rows * PITCH + 90, {
-    outlined: true,
-    bold: true,
-    fontSize: 22,
-  });
+  const frameId = frameIds.aggregate(agg.name);
+  const container = claim(
+    bc,
+    f.shape('container', agg.name, 340, 100, 320, rows * PITCH + 90, {
+      outlined: true,
+      bold: true,
+      fontSize: 22,
+    }),
+    frameId,
+    'aggregate',
+    agg.name,
+    ctx.name,
+  );
   const place = (
     item: BoardItem,
     kind: Parameters<PointerIndex['find']>[0],
     name: string,
   ): void => {
+    claim(bc, item, frameId, kind, name, ctx.name);
     const p = ptr.find(kind, name, ctx.name);
     if (p !== undefined) f.pointer(p, item.x, item.y + item.h + 2, item.w);
   };

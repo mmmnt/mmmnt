@@ -13,6 +13,7 @@ import {
   servicesFrame,
 } from './frames-surface.js';
 import { threadFrame } from './frames-thread.js';
+import { NodeKeys } from './keys.js';
 import { buildEdges, buildNodes } from './nodes.js';
 import { PointerIndex } from './pointers.js';
 import { extent, placeFrames } from './placement.js';
@@ -61,7 +62,9 @@ export function projectBoard(
 ): BoardProjection {
   const bc = makeContext(ir, options);
   const ptr = new PointerIndex(options.pointers);
-  const nodes = buildNodes(bc).map((n) => {
+  const built = buildNodes(bc);
+  bc.keys = new NodeKeys(built);
+  const nodes = built.map((n) => {
     const pointer = ptr.find(n.kind, n.name, n.context, n.momentId);
     return pointer === undefined ? n : { ...n, pointer };
   });

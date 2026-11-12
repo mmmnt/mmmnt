@@ -4,10 +4,13 @@ import type {
   FlowDefinition,
   MomentDefinition,
   MomentEntry,
+  PreconditionDefinition,
 } from '@mmmnt/core';
 import { emitOutcomes } from '@mmmnt/core';
 import type { BoardContext } from './context.js';
-import { contextNumber, frameIds } from './context.js';
+import { claim, contextNumber, frameIds } from './context.js';
+import { contextNameOf } from './nodes.js';
+import type { NodeKind } from './palette.js';
 import { FrameBuilder } from './layout.js';
 import { armIds } from './numbering.js';
 import type { NumberedFlow } from './numbering.js';
@@ -29,8 +32,9 @@ const COL = 320;
 const W = 259;
 const H = 169;
 const STACK = 189;
-const LABEL_Y = 190;
-const ROWS_Y = 250;
+const BANNER_Y = 100;
+const LABEL_Y = 170;
+const ROWS_Y = 290;
 
 type Entity = { kind: MomentEntry['nodeKind']; text: string };
 
@@ -91,6 +95,7 @@ function isPersonNote(bc: BoardContext, flow: FlowDefinition, laneId?: string): 
 
 class Thread {
   readonly f: FrameBuilder;
+  readonly frameId: string;
   private readonly stickies = new Map<string, BoardItem>();
 
   constructor(
@@ -99,17 +104,24 @@ class Thread {
     readonly nf: NumberedFlow,
     readonly ptr: PointerIndex,
   ) {
-    this.f = new FrameBuilder(
-      frameIds.thread(nf.id),
-      `${nf.id} - ${nf.title}`,
-      'thread',
-      nf.id,
-      'name',
-    );
+    this.frameId = frameIds.thread(nf.id);
+    this.f = new FrameBuilder(this.frameId, `${nf.id} - ${nf.title}`, 'thread', nf.id, 'name');
   }
 
   ctxOf(e: MomentEntry): ContextDefinition | undefined {
     return this.bc.ir.contexts.find((c) => c.id === e.contextId);
+  }
+
+  /** Marks an item as the drawing of a manifest node of this frame. */
+  own<T extends BoardItem>(
+    item: T,
+    kind: NodeKind,
+    name: string,
+    context: string,
+    momentId?: string,
+    arm?: string,
+  ): T {
+    return claim(this.bc, item, this.frameId, kind, name, context, momentId, arm);
   }
 
   point(
@@ -129,10 +141,19 @@ class Thread {
     y: number,
     momentId: string,
     terminal: boolean,
+    arm?: string,
   ): BoardItem {
     const ctx = this.ctxOf(e);
     const text = definitionText(ctx, e);
-    const item = this.f.sticky(e.nodeKind, terminal ? terminalText(text) : text, x, y, W, H);
+    const context = contextNameOf(this.bc.ir, e.contextId);
+    const item = this.own(
+      this.f.sticky(e.nodeKind, terminal ? terminalText(text) : text, x, y, W, H),
+      e.nodeKind,
+      e.nodeName,
+      context,
+      momentId,
+      arm,
+    );
     this.point(item, e.nodeKind, e.nodeName, ctx?.name ?? '', momentId);
     this.stickies.set(`${momentId}|${e.nodeName}`, item);
     return item;
@@ -143,16 +164,36 @@ class Thread {
   }
 }
 
+interface NoteRef {
+  text: string;
+  /** The lane label the note speaks for, and the context that lane belongs to. */
+  lane?: string;
+  context: string;
+  raw: string;
+}
+
+interface RefusalRef {
+  e: MomentEntry;
+  pre: PreconditionDefinition;
+  arm?: string;
+}
+
 interface Column {
   m: MomentDefinition;
   id: string;
   title: string;
   x: number;
   home: string | undefined;
-  system: { e?: MomentEntry; note?: string; lane?: string }[];
-  person: string[];
-  arms: { arm: BranchDefinition; id: string | undefined }[];
-  refusals: { e: MomentEntry; text: string; command: string }[];
+  system: { e?: MomentEntry; note?: NoteRef }[];
+  person: NoteRef[];
+  arms: { arm: BranchDefinition; id: string }[];
+  refusals: RefusalRef[];
+}
+
+function refusalRefs(bc: BoardContext, entries: MomentEntry[], arm?: string): RefusalRef[] {
+  return entries.flatMap((e) =>
+    refusalsOf(bc.ir, e).map((pre) => ({ e, pre, ...(arm !== undefined && { arm }) })),
+  );
 }
 
 function columns(t: Thread): Column[] {
@@ -160,21 +201,30 @@ function columns(t: Thread): Column[] {
   return flow.moments.map((m, i) => {
     const id = nf.moments[i]!.id;
     const ids = armIds(id, m.branches ?? []);
-    const laneName = (laneId?: string): string | undefined => {
-      const lane = flow.lanes.find((l) => l.id === laneId);
-      return lane?.label;
+    const noteRef = (n: { text: string; laneId?: string }): NoteRef => {
+      const lane = flow.lanes.find((l) => l.id === n.laneId);
+      return {
+        text: noteText(n.text, lane?.label),
+        raw: n.text,
+        ...(lane && { lane: lane.label }),
+        context: lane ? contextNameOf(bc.ir, lane.contextId) : '',
+      };
     };
     const notes = m.notes ?? [];
-    const entries = [...m.contextEntries, ...(m.branches ?? []).flatMap((b) => b.entries)];
-    const seen = new Set<string>();
-    const refusals = entries.flatMap((e) =>
-      refusalsOf(bc.ir, e).flatMap((p) => {
-        const key = `${e.nodeName}|${p.name}`;
-        if (seen.has(key)) return [];
-        seen.add(key);
-        return [{ e, text: refusalText(p, e.nodeName), command: p.name }];
-      }),
+    const arms = (m.branches ?? []).flatMap((arm, k) =>
+      ids[k] === undefined ? [] : [{ arm, id: ids[k]! }],
     );
+    const refs = [
+      ...refusalRefs(bc, m.contextEntries),
+      ...arms.flatMap((a) => refusalRefs(bc, a.arm.entries, a.id)),
+    ];
+    const seen = new Set<string>();
+    const refusals = refs.filter((r) => {
+      const key = `${r.e.nodeName}|${r.pre.name}|${r.arm ?? ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     return {
       m,
       id,
@@ -185,14 +235,10 @@ function columns(t: Thread): Column[] {
         ...m.contextEntries.map((e) => ({ e })),
         ...notes
           .filter((n) => !isPersonNote(bc, flow, n.laneId))
-          .map((n) => ({ note: n.text, lane: laneName(n.laneId) })),
+          .map((n) => ({ note: noteRef(n) })),
       ],
-      person: notes
-        .filter((n) => isPersonNote(bc, flow, n.laneId))
-        .map((n) => noteText(n.text, laneName(n.laneId))),
-      arms: (m.branches ?? [])
-        .map((arm, k) => ({ arm, id: ids[k] }))
-        .filter((a) => a.id !== undefined && a.arm.entries.length > 0),
+      person: notes.filter((n) => isPersonNote(bc, flow, n.laneId)).map(noteRef),
+      arms,
       refusals,
     };
   });
@@ -206,7 +252,14 @@ function drawStack(t: Thread, c: Column, y: number): number {
     const terminal = c.m.terminal === true && last && s.e !== undefined;
     let item: BoardItem;
     if (s.e) item = t.entrySticky(s.e, c.x, cy, c.id, terminal);
-    else item = t.f.sticky('note', noteText(s.note ?? '', s.lane), c.x, cy, W, H);
+    else
+      item = t.own(
+        t.f.sticky('note', s.note!.text, c.x, cy, W, H),
+        'note',
+        s.note!.raw,
+        s.note!.context,
+        c.id,
+      );
     if (prev) t.f.connect(prev, item, { shape: 'straight' });
     prev = item;
     cy += STACK;
@@ -217,17 +270,32 @@ function drawStack(t: Thread, c: Column, y: number): number {
 function drawBranch(t: Thread, c: Column, momentSticky: BoardItem, y: number): number {
   let cy = y;
   for (const { arm, id } of c.arms) {
-    t.f.text(`${id} when ${arm.condition}`, c.x, cy, W, 14, true);
-    cy += 40;
+    const label = t.own(
+      t.f.text(`${id} when ${arm.condition}`, c.x, cy, W, 14, true),
+      'branch',
+      arm.condition,
+      '',
+      c.id,
+      id,
+    );
+    cy += label.h + 10;
     for (const e of arm.entries) {
-      const item = t.entrySticky(e, c.x, cy, c.id, false);
+      const item = t.entrySticky(e, c.x, cy, c.id, false, id);
       t.f.connect(momentSticky, item, { dashed: true, shape: 'elbowed' });
       cy += STACK;
     }
   }
   for (const r of c.refusals) {
-    const item = t.f.sticky('refusal', r.text, c.x, cy, W, H);
-    t.point(item, 'refusal', r.command, t.ctxOf(r.e)?.name ?? '', c.id);
+    const context = contextNameOf(t.bc.ir, r.e.contextId);
+    const item = t.own(
+      t.f.sticky('refusal', refusalText(r.pre, r.e.nodeName), c.x, cy, W, H),
+      'refusal',
+      r.pre.name,
+      context,
+      c.id,
+      r.arm,
+    );
+    t.point(item, 'refusal', r.pre.name, t.ctxOf(r.e)?.name ?? '', c.id);
     t.f.connect(momentSticky, item, { dashed: true, shape: 'elbowed' });
     cy += STACK;
   }
@@ -273,6 +341,62 @@ function drawTable(
   return cy;
 }
 
+/** The rows of the thread above SYSTEM: INTERACTION (when a person acts), MOMENTS (moments with no home context), one per context. */
+function drawMomentRows(
+  t: Thread,
+  cols: Column[],
+  y0: number,
+): { y: number; stickies: BoardItem[]; hasPerson: boolean } {
+  const { bc, flow, nf } = t;
+  const label = (text: string, ry: number): void => void t.f.text(text, 40, ry, 170, 18, true);
+  const hasPerson =
+    cols.some((c) => c.person.length > 0) ||
+    flow.moments.some((m) => m.contextEntries.some((e) => isExternal(bc, e.contextId)));
+  const stickies: BoardItem[] = [];
+  let y = y0;
+  if (hasPerson) {
+    label('INTERACTION', y);
+    const rows = Math.max(1, ...cols.map((c) => c.person.length));
+    cols.forEach((c) =>
+      c.person.forEach((n, i) =>
+        t.own(
+          t.f.sticky('note', n.text, c.x, y + i * STACK, W, H, 'action'),
+          'note',
+          n.raw,
+          n.context,
+          c.id,
+        ),
+      ),
+    );
+    y += rows * STACK + 40;
+  }
+  const momentSticky = (c: Column, ry: number): BoardItem =>
+    t.own(
+      t.f.sticky('moment', `${c.id} - ${c.title}`, c.x, ry, W, H),
+      'moment',
+      c.m.name,
+      '',
+      c.id,
+    );
+  const homeless = cols.filter((c) => c.home === undefined);
+  if (homeless.length > 0) {
+    label('MOMENTS', y);
+    homeless.forEach((c) => (stickies[cols.indexOf(c)] = momentSticky(c, y)));
+    y += STACK + 40;
+  }
+  for (const name of [
+    ...new Set(cols.map((c) => c.home).filter((h): h is string => h !== undefined)),
+  ]) {
+    label(`${contextNumber(bc, name).number} ${name}`, y);
+    cols
+      .filter((c) => c.home === name)
+      .forEach((c) => (stickies[cols.indexOf(c)] = momentSticky(c, y)));
+    y += STACK + 40;
+  }
+  void nf;
+  return { y, stickies, hasPerson };
+}
+
 export function threadFrame(
   bc: BoardContext,
   flow: FlowDefinition,
@@ -281,16 +405,10 @@ export function threadFrame(
 ): BoardFrame {
   const t = new Thread(bc, flow, nf, ptr);
   const cols = columns(t);
-  const contexts = [
-    ...new Set(cols.map((c) => c.home).filter((h): h is string => h !== undefined)),
-  ];
-  const hasPerson =
-    cols.some((c) => c.person.length > 0) ||
-    flow.moments.some((m) => m.contextEntries.some((e) => isExternal(bc, e.contextId)));
   const arms = cols.reduce((n, c) => n + c.arms.length, 0);
   const branchMoments = cols.filter((c) => c.arms.length > 0).length;
   const refusals = cols.reduce((n, c) => n + c.refusals.length, 0);
-  t.f.text(`${nf.id} - ${nf.title}`, 40, 36, 1800, 22, true);
+  t.own(t.f.text(`${nf.id} - ${nf.title}`, 40, 36, 1800, 22, true), 'flow', flow.name, '');
   t.f.text(
     `${cols.length} moments, ${arms} arms in ${branchMoments} branch moments, ${refusals} refusals.`,
     40,
@@ -298,54 +416,27 @@ export function threadFrame(
     900,
     12,
   );
+  cols.forEach((c) => t.f.text(`${c.id} - ${c.title}`, c.x, LABEL_Y, W, 17));
 
-  let y = ROWS_Y;
+  const rows = drawMomentRows(t, cols, ROWS_Y);
   const label = (text: string, ry: number): void => void t.f.text(text, 40, ry, 170, 18, true);
-  const stickies: BoardItem[] = [];
-  if (hasPerson) {
-    label('INTERACTION', y);
-    const h = Math.max(1, ...cols.map((c) => c.person.length)) * STACK;
-    cols.forEach((c) =>
-      c.person.forEach((p, i) => t.f.sticky('note', p, c.x, y + i * STACK, W, H, 'action')),
-    );
-    y += h + 40;
-  }
-  contexts.forEach((name) => {
-    label(`${contextNumber(bc, name).number} ${name}`, y);
-    cols.forEach((c) => {
-      if (c.home === name)
-        stickies[cols.indexOf(c)] = t.f.sticky('moment', `${c.id} - ${c.title}`, c.x, y, W, H);
-    });
-    y += STACK + 40;
-  });
-  if (contexts.length === 0) {
-    label('MOMENTS', y);
-    cols.forEach(
-      (c, i) => (stickies[i] = t.f.sticky('moment', `${c.id} - ${c.title}`, c.x, y, W, H)),
-    );
-    y += STACK + 40;
-  }
-  cols.forEach((c, i) => {
-    if (!stickies[i]) stickies[i] = t.f.sticky('moment', `${c.id} - ${c.title}`, c.x, ROWS_Y, W, H);
-    t.f.text(`${c.id} - ${c.title}`, c.x, LABEL_Y, W, 17);
-  });
+  let y = rows.y;
   label('SYSTEM', y);
-  const systemEnd = Math.max(y + STACK, ...cols.map((c) => drawStack(t, c, y)));
-  y = systemEnd + 40;
+  y = Math.max(y + STACK, ...cols.map((c) => drawStack(t, c, y))) + 40;
   label('BRANCH', y);
-  const branchEnd = Math.max(y + STACK, ...cols.map((c, i) => drawBranch(t, c, stickies[i]!, y)));
-  y = branchEnd + 40;
+  y = Math.max(y + STACK, ...cols.map((c, i) => drawBranch(t, c, rows.stickies[i]!, y))) + 40;
   cols.forEach((c, i) => {
     const prev = cols[i - 1];
-    if (i > 0 && (c.m.isBranch === true || prev?.m.isBranch === true))
-      t.f.connect(stickies[i - 1]!, stickies[i]!, { shape: 'straight' });
+    if (i > 0 && (c.m.isBranch === true || prev?.m.isBranch === true)) {
+      t.f.connect(rows.stickies[i - 1]!, rows.stickies[i]!, { shape: 'straight' });
+    }
     if (c.m.terminal === true) {
       const last = c.system.filter((s) => s.e).pop()?.e;
       t.f.shape(
         'banner',
         `${c.id} - ${c.title} (terminal)${last ? ` - ${last.nodeName} (terminal)` : ''}`,
         c.x,
-        110,
+        BANNER_Y,
         W,
         60,
         { textColor: '#ffffff', fontSize: 14 },

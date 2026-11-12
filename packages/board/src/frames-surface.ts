@@ -1,7 +1,7 @@
 import type { ContextDefinition } from '@mmmnt/core';
 import { emitOutcomes } from '@mmmnt/core';
 import type { BoardContext } from './context.js';
-import { contextNumber, frameIds } from './context.js';
+import { claim, contextNumber, frameIds } from './context.js';
 import { FrameBuilder, GAP } from './layout.js';
 import { KIND_SWATCH, OPTIONAL_SWATCH, STICKY_COLOR, SWATCH } from './palette.js';
 import type { SwatchName } from './palette.js';
@@ -139,6 +139,10 @@ export function contextMapFrame(bc: BoardContext): BoardFrame {
       }),
     );
   });
+  (ir.externals ?? []).forEach((e) =>
+    claim(bc, boxes.get(e.id)!, frameIds.map, 'external', e.name, e.name),
+  );
+  ir.contexts.forEach((c) => claim(bc, boxes.get(c.id)!, frameIds.map, 'context', c.name, c.name));
   for (const r of ir.relationships) {
     const a = boxes.get(r.sourceContextId);
     const b = boxes.get(r.targetContextId);
@@ -193,6 +197,7 @@ export function servicesFrame(
     kind: Parameters<PointerIndex['find']>[0],
     name: string,
   ): undefined => {
+    if (item) claim(bc, item, frameIds.services(cn.number), kind, name, ctx.name);
     const p = ptr.find(kind, name, ctx.name);
     if (item && p !== undefined) f.pointer(p, item.x, item.y + item.h + 2, item.w);
     return undefined;
@@ -289,7 +294,14 @@ export function projectionFrame(bc: BoardContext, ptr: PointerIndex): BoardFrame
     ];
     y =
       grid(f, entries, 40, y, (e, x, py) => {
-        const item = f.sticky(e.kind, e.text, x, py, W, H);
+        const item = claim(
+          bc,
+          f.sticky(e.kind, e.text, x, py, W, H),
+          frameIds.projections,
+          e.kind,
+          e.name,
+          ctx.name,
+        );
         const p = ptr.find(e.kind, e.name, ctx.name);
         if (p !== undefined) f.pointer(p, x, py + H + 2, W);
         return item;
@@ -316,7 +328,14 @@ export function policiesFrame(bc: BoardContext, ptr: PointerIndex): BoardFrame |
     y += 50;
     y =
       grid(f, ctx.policies, 40, y, (p, x, py) => {
-        const item = f.sticky('policy', policyText(p), x, py, W, H);
+        const item = claim(
+          bc,
+          f.sticky('policy', policyText(p), x, py, W, H),
+          frameIds.policies,
+          'policy',
+          p.name,
+          ctx.name,
+        );
         const pt = ptr.find('policy', p.name, ctx.name);
         if (pt !== undefined) f.pointer(pt, x, py + H + 2, W);
         return item;
@@ -333,7 +352,7 @@ export function coverageFrame(bc: BoardContext): BoardFrame {
     'Invariant Coverage & Enforcement',
     'invariant-coverage',
   );
-  const rows: string[] = [];
+  const rows: { text: string; kind?: 'invariant' | 'rule'; name?: string; context?: string }[] = [];
   let preconditions = 0;
   let invariants = 0;
   let rules = 0;
@@ -342,12 +361,12 @@ export function coverageFrame(bc: BoardContext): BoardFrame {
     for (const a of ctx.aggregates) {
       a.invariants.forEach((i) => {
         invariants += 1;
-        rows.push(`${ctx.name}.${a.name} . invariant . ${i.id}: ${i.description}`);
+        rows.push({ text: `${ctx.name}.${a.name} . invariant . ${i.id}: ${i.description}` });
       });
       a.commands.forEach((c) =>
         c.preconditions.forEach((p) => {
           preconditions += 1;
-          rows.push(`${ctx.name}.${a.name} . precondition . ${p.name}: ${p.description}`);
+          rows.push({ text: `${ctx.name}.${a.name} . precondition . ${p.name}: ${p.description}` });
         }),
       );
     }
@@ -355,11 +374,21 @@ export function coverageFrame(bc: BoardContext): BoardFrame {
       .filter((i) => !inAgg.has(i.id))
       .forEach((i) => {
         invariants += 1;
-        rows.push(`${ctx.name} . invariant . ${i.id}: ${i.description}`);
+        rows.push({
+          text: `${ctx.name} . invariant . ${i.id}: ${i.description}`,
+          kind: 'invariant',
+          name: i.id,
+          context: ctx.name,
+        });
       });
     (ctx.rules ?? []).forEach((r) => {
       rules += 1;
-      rows.push(`${ctx.name} . rule . ${r.id}: ${r.description} (enforced by ${r.enforcedBy})`);
+      rows.push({
+        text: `${ctx.name} . rule . ${r.id}: ${r.description} (enforced by ${r.enforcedBy})`,
+        kind: 'rule',
+        name: r.id,
+        context: ctx.name,
+      });
     });
   }
   f.text(
@@ -370,7 +399,11 @@ export function coverageFrame(bc: BoardContext): BoardFrame {
     22,
     true,
   );
-  rows.forEach((r, i) => f.text(clip(r), 40, 100 + i * 30, 3800, 15));
+  rows.forEach((r, i) => {
+    const item = f.text(clip(r.text), 40, 100 + i * 30, 3800, 15);
+    if (r.kind !== undefined)
+      claim(bc, item, frameIds.coverage, r.kind, r.name ?? '', r.context ?? '');
+  });
   return f.build(4200);
 }
 

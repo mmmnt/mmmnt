@@ -110,6 +110,8 @@ export interface BoardItem {
   fontSize?: number;
   bold?: boolean;
   outlined?: boolean;
+  /** The manifest key of the node this item draws; absent on labels, banners and other furniture. */
+  key?: string;
 }
 
 export interface BoardConnector {
