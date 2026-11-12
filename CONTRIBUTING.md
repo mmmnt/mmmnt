@@ -34,7 +34,7 @@ To work on one package, filter by name: `pnpm turbo build --filter=@mmmnt/core`,
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and are checked by commitlint in the `commit-msg` hook (`commitlint.config.mjs`):
 
 - **Types:** `feat`, `fix`, `test`, `refactor`, `chore`, `docs`, `ci`
-- **Scopes (optional):** `core`, `derive`, `generate`, `harness`, `viz`, `emit-ts`, `sync`, `schema`, `cli`, `mcp`
+- **Scopes (optional):** `core`, `derive`, `generate`, `harness`, `viz`, `board`, `emit-ts`, `sync`, `schema`, `cli`, `mcp`
 
 For example: `fix(sync): refuse a rejection without a reason`.
 

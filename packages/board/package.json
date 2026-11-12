@@ -1,0 +1,57 @@
+{
+  "name": "@mmmnt/board",
+  "description": "Projects a parsed Moment project (its IR) onto an NDD board in the platform palette: Canvas Composer SVG per frame plus a manifest",
+  "version": "0.10.1",
+  "license": "FSL-1.1-Apache-2.0",
+  "author": "listenrightmeow <@listenrightmeow> (https://sdd.mmmnt.dev/)",
+  "homepage": "https://github.com/mmmnt/mmmnt/tree/main/packages/board#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmmnt/mmmnt.git",
+    "directory": "packages/board"
+  },
+  "bugs": {
+    "url": "https://github.com/mmmnt/mmmnt/issues"
+  },
+  "keywords": [
+    "moment",
+    "board",
+    "ndd",
+    "miro",
+    "ddd",
+    "event-storming"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mmmnt/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.9"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
