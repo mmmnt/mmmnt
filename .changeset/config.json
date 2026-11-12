@@ -4,6 +4,7 @@
   "commit": false,
   "fixed": [
     [
+      "@mmmnt/board",
       "@mmmnt/core",
       "@mmmnt/derive",
       "@mmmnt/emit-ts",
