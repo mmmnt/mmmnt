@@ -78,11 +78,11 @@ Sift's `render_board.py` and `render_design.py` give the lane geometry, frame si
 
 ## Enforcement and tests (test-first, after the flip)
 
-| Spec | Proves |
-|---|---|
-| swatch table | each kind draws its ruled hex |
-| closure sweep over IR types | no construct silently skipped |
+| Spec                                             | Proves                                                 |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| swatch table                                     | each kind draws its ruled hex                          |
+| closure sweep over IR types                      | no construct silently skipped                          |
 | fixture with every ADR-040/041/043/045 construct | each is drawn as D3 states and appears in the manifest |
-| determinism | same IR twice gives byte-identical files |
-| invalid model | no files, exit 1 |
-| reintroduction | removing any construct's rendering fails a spec |
+| determinism                                      | same IR twice gives byte-identical files               |
+| invalid model                                    | no files, exit 1                                       |
+| reintroduction                                   | removing any construct's rendering fails a spec        |
