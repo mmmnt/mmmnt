@@ -49,7 +49,7 @@ No chip widget is drawn. What ADR-047 carried as a chip is text in the sticky, a
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | command                | `Name [Cause]`, then `emits A, B` (siblings comma-separated); alternatives `emits A when S \| A, B when T`                                                |
 | process-owned event    | `Name [Process: Owner]`                                                                                                                                   |
-| policy                 | `Name`, then `trigger E [when f = v] -> Command`; `[after E]` for an `after` condition                                                                    |
+| policy                 | `Name`, then `trigger E [f = v] -> Command`, as the Sift Grammar writes it (`[outcome = Succeeded]`); `[after E]` for an `after` condition                |
 | refusal                | `Precondition - Command`, then `[Cause]` when scoped, then the rule text                                                                                  |
 | note                   | `[Lane label] text`; a note with no lane, or for an External lane, is a person note                                                                       |
 | terminal               | the last sticky of the terminal moment ends `/ TERMINAL` (an `[outcome]` and a `[terminal]` look alike on the sticky; the table of arms tells them apart) |
