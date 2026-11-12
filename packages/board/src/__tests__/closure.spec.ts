@@ -5,7 +5,7 @@ import { loadSpecification } from '@mmmnt/core';
 import type { IntermediateRepresentation } from '@mmmnt/core';
 import { sweepIr } from '../coverage.js';
 import { projectBoard } from '../project-board.js';
-import { ROOT, loadIr } from './helpers.js';
+import { ROOT, SIFT_MODEL, loadIr, numbered } from './helpers.js';
 
 /** Every model of the valid corpus that loads on its own: a project directory, or one file. */
 async function corpus(): Promise<{ name: string; ir: IntermediateRepresentation }[]> {
@@ -37,11 +37,12 @@ describe('closure: every IR property is carried or unrendered with a reason (ADR
       const models = [
         ...(await corpus()),
         { name: 'ticketwave', ir: await loadIr('examples/ticketwave/spec/ticketwave.moment') },
+        { name: 'sift', ir: await loadIr(SIFT_MODEL) },
       ];
       expect(models.length).toBeGreaterThanOrEqual(8);
       for (const { name, ir } of models) {
         expect({ name, uncovered: sweepIr(ir).uncovered }).toEqual({ name, uncovered: [] });
-        expect(projectBoard(ir).frames.length).toBeGreaterThan(0);
+        expect(projectBoard(numbered(ir)).frames.length).toBeGreaterThan(0);
       }
     },
   );
@@ -57,7 +58,7 @@ describe('closure: every IR property is carried or unrendered with a reason (ADR
 
   it('lists the unrendered subtrees in the manifest with their reasons', async () => {
     const ir = await loadIr('examples/ticketwave/spec/ticketwave.moment');
-    const { unrendered } = projectBoard(ir).manifest;
+    const { unrendered } = projectBoard(numbered(ir)).manifest;
     expect(unrendered).toContainEqual(expect.objectContaining({ path: '*.fields*' }));
     expect(unrendered.every((u) => u.reason.length > 0)).toBe(true);
   });

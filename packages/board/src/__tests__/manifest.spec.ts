@@ -1,104 +1,107 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { IntermediateRepresentation } from '@mmmnt/core';
 import { projectBoard } from '../project-board.js';
-import { loadIr } from './helpers.js';
+import type { BoardManifest } from '../types.js';
+import { loadIr, numbered } from './helpers.js';
 
-let ir: IntermediateRepresentation;
+let pc: BoardManifest;
+let tw: BoardManifest;
 beforeAll(async () => {
-  ir = await loadIr('fixtures/valid/process-constructs');
+  pc = projectBoard(numbered(await loadIr('fixtures/valid/process-constructs'))).manifest;
+  tw = projectBoard(numbered(await loadIr('examples/ticketwave/spec/ticketwave.moment'))).manifest;
 });
 
-describe('the manifest lists the model nodes of a context', () => {
-  it('names a command with its kind and context', () => {
-    const { manifest } = projectBoard(ir);
-    expect(manifest.nodes).toContainEqual(
-      expect.objectContaining({ kind: 'command', name: 'CancelBooking', context: 'Ticketing' }),
-    );
-  });
-});
-
-describe('the manifest lists what each flow places', () => {
-  it('places a node with its flow and moment, and a cause on the command', () => {
-    const { manifest } = projectBoard(ir);
-    expect(manifest.nodes).toContainEqual(
+describe('definitions', () => {
+  it('names a command with its kind, context and frame', () => {
+    expect(pc.nodes).toContainEqual(
       expect.objectContaining({
         kind: 'command',
         name: 'CancelBooking',
         context: 'Ticketing',
-        role: 'placement',
-        flow: 'Customer cancels',
-        moment: 'Customer asks to cancel',
-        cause: 'CustomerRequest',
+        role: 'definition',
+        frame: 'aggregate-Booking',
       }),
     );
   });
 
-  it('lists a flow and each of its moments, and a note as a node of no context', () => {
-    const { manifest } = projectBoard(ir);
-    expect(manifest.nodes).toContainEqual(
-      expect.objectContaining({ kind: 'flow', name: 'Checkout' }),
-    );
-    expect(manifest.nodes).toContainEqual(
-      expect.objectContaining({ kind: 'moment', name: 'Card is authorised', flow: 'Checkout' }),
-    );
-    expect(manifest.nodes).toContainEqual(
-      expect.objectContaining({
-        kind: 'note',
-        name: 'The card network authorises the card and answers within seconds',
-        flow: 'Checkout',
-        moment: 'Card is authorised',
-        context: 'CardNetwork',
-      }),
-    );
+  it('gives every node a stable key, unique on the board', () => {
+    for (const m of [pc, tw]) {
+      const keys = m.nodes.map((n) => n.key);
+      expect(new Set(keys).size).toBe(keys.length);
+    }
   });
 
-  it('lists a triggered-by hop as an edge between the two placed nodes', () => {
-    const { manifest } = projectBoard(ir);
-    expect(manifest.edges).toContainEqual(
-      expect.objectContaining({
-        kind: 'triggered-by',
-        from: 'OrderPlaced',
-        to: 'ReserveSeatsOnOrderPlaced',
-        flow: 'Checkout',
-      }),
-    );
-  });
-});
-
-describe('the manifest lists branch arms and outcome exits', () => {
-  it('lists an arm as a branch node and marks an outcome exit', async () => {
-    const tw = await loadIr('examples/ticketwave/spec/ticketwave.moment');
-    const { manifest } = projectBoard(tw);
-    expect(manifest.nodes).toContainEqual(
-      expect.objectContaining({ kind: 'branch', name: 'approved', moment: 'Payment processing' }),
-    );
-    expect(manifest.nodes.some((n) => n.exit === 'outcome')).toBe(true);
-  });
-});
-
-describe('refusals, orchestration commands and edges', () => {
   it('lists a cause-scoped precondition as a refusal of its command (ADR-040)', () => {
-    const { manifest } = projectBoard(ir);
-    expect(manifest.nodes).toContainEqual(
+    expect(pc.nodes).toContainEqual(
       expect.objectContaining({
         kind: 'refusal',
         name: 'WithinRefundWindow',
         of: 'CancelBooking',
         cause: 'CustomerRequest',
+        role: 'definition',
+      }),
+    );
+  });
+});
+
+describe('placements', () => {
+  it('places a node with its flow, moment and moment id, and a cause on the command', () => {
+    expect(pc.nodes).toContainEqual(
+      expect.objectContaining({
+        kind: 'command',
+        name: 'CancelBooking',
+        role: 'placement',
+        momentId: 'N1.M1',
+        cause: 'CustomerRequest',
+        frame: 'thread-N1',
       }),
     );
   });
 
-  it('lists a policy as the reaction of its trigger and the chain to its command', () => {
-    const { manifest } = projectBoard(ir);
-    expect(manifest.edges).toContainEqual(
+  it('draws the refusals of a placed command in its moment, scoped to the cause', () => {
+    const refusals = pc.nodes.filter(
+      (n) => n.kind === 'refusal' && n.role === 'placement' && n.momentId === 'N1.M1',
+    );
+    expect(refusals.map((r) => r.name).sort()).toEqual(['BookingIsOpen', 'WithinRefundWindow']);
+    const other = pc.nodes.filter(
+      (n) => n.kind === 'refusal' && n.role === 'placement' && n.momentId === 'N2.M1',
+    );
+    expect(other.map((r) => r.name)).toEqual(['BookingIsOpen']);
+  });
+
+  it('lists a note as a node of the lane it speaks for', () => {
+    expect(pc.nodes).toContainEqual(
+      expect.objectContaining({ kind: 'note', context: 'CardNetwork', momentId: 'N3.M2' }),
+    );
+  });
+
+  it('lists a policy with its condition as written (ADR-045)', () => {
+    expect(tw.nodes).toContainEqual(
       expect.objectContaining({
-        kind: 'triggers',
-        to: 'ReserveSeatsOnOrderPlaced',
-        from: 'OrderPlaced',
+        kind: 'policy',
+        condition: 'reason = expired',
+        role: 'definition',
       }),
     );
-    expect(manifest.edges).toContainEqual(
+  });
+
+  it('numbers the arms and records the outcome exit (ADR-043)', () => {
+    const arms = new Set(tw.nodes.filter((n) => n.kind === 'branch').map((n) => n.arm));
+    expect([...arms].every((a) => /^N\d+\.M\d+-B\d+$/.test(a ?? ''))).toBe(true);
+    const exit = tw.nodes.find((n) => n.exit === 'outcome');
+    expect(arms.has(exit?.arm)).toBe(true);
+    expect(exit?.armCondition).toBeDefined();
+  });
+
+  it('lists a triggered-by hop and a policy chain as edges', () => {
+    expect(pc.edges).toContainEqual(
+      expect.objectContaining({
+        kind: 'triggered-by',
+        from: 'OrderPlaced',
+        to: 'ReserveSeatsOnOrderPlaced',
+      }),
+    );
+    expect(pc.edges).toContainEqual(
       expect.objectContaining({
         kind: 'chains-to',
         from: 'ReserveSeatsOnOrderPlaced',
@@ -106,13 +109,26 @@ describe('refusals, orchestration commands and edges', () => {
       }),
     );
   });
+});
 
-  it('lists no definition twice', async () => {
-    for (const model of [ir, await loadIr('examples/ticketwave/spec/ticketwave.moment')]) {
-      const keys = projectBoard(model)
-        .manifest.nodes.filter((n) => n.role === 'definition')
-        .map((n) => [n.frame, n.kind, n.name, n.context, n.flow, n.moment, n.of].join('|'));
-      expect(new Set(keys).size).toBe(keys.length);
-    }
+describe('numbers in the manifest', () => {
+  it('numbers the thread and context frames and says where the number came from', () => {
+    expect(pc.frames).toContainEqual(
+      expect.objectContaining({ id: 'thread-N3', number: 'N3', numberSource: 'name' }),
+    );
+    expect(pc.frames).toContainEqual(
+      expect.objectContaining({ id: 'context-C1', number: 'C1', numberSource: 'load-order' }),
+    );
+  });
+
+  it('records a moment id that came from the position', () => {
+    expect(pc.momentIdSource).toContainEqual(expect.objectContaining({ id: 'N1.M1' }));
+  });
+});
+
+describe('what a model must carry', () => {
+  it('refuses an unnumbered flow', async () => {
+    const ir: IntermediateRepresentation = await loadIr('fixtures/valid/process-constructs');
+    expect(() => projectBoard(ir)).toThrow(/no id/);
   });
 });
