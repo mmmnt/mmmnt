@@ -1,0 +1,12 @@
+# @mmmnt/board
+
+## 0.11.0
+
+### Minor Changes
+
+- [`988be77`](https://github.com/mmmnt/mmmnt/commit/988be77d9f1d68acec0a0f3b0a023a5f423798f0) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Add `@mmmnt/board` and `moment board` (ADR-047, ADR-048). The package projects a parsed model (its IR, not the `.moment` text) onto a numbered board that follows the Sift reference execution: a generated Legend and Grammar, a Context Map, a caption frame per context, a frame per aggregate, a Services frame, Projection & Query, Policies, Invariant Coverage and a thread frame per flow, placed on a deterministic grid (`board.svg` plus one SVG per frame) with native stickies in the nearest named colour and the exact hexes printed in the Legend. A thread has moments as numbered columns, a SYSTEM stack, a BRANCH row of refusals with a table of arms, a terminal banner and continued columns; cause, condition, process owner and alternative emits are written into the sticky. `manifest.json` lists every node with its kind, name, context, flow, moment id, arm and a stable key, and every frame with its number and placement, so a board can be compared with a board of record. Flows are numbered by an id token in the flow name (`N1 - Title`); an unnumbered flow fails `moment board` with exit 1. Context numbers come from a name token, the order of `manifest.yaml`, or the load order. `--pointers <file>` adds spec pointers from a sidecar. A closure sweep over the IR fails when a property is neither carried nor listed as unrendered with a reason. No grammar, IR or existing output changes.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.11.0
