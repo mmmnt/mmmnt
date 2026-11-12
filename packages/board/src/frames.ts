@@ -8,9 +8,10 @@ import type {
   LaneDefinition,
   MomentDefinition,
   MomentEntry,
-  OrchestrationCommandDefinition,
+  EmitsFields,
   PolicyConditionDefinition,
 } from '@mmmnt/core';
+import { emitOutcomes } from '@mmmnt/core';
 import { FrameBuilder, GAP, HEADER_H, PAD, STICKY_H, STICKY_W } from './layout.js';
 import { SWATCH, fillOf } from './palette.js';
 import type { BoardFrame, BoardItem } from './types.js';
@@ -25,20 +26,17 @@ export function conditionText(cond: PolicyConditionDefinition | undefined): stri
   return parts.length > 0 ? parts.join(' ') : undefined;
 }
 
-/** The outcomes a command records: the plain `emits A` is one outcome with no state (ADR-041). */
-function outcomesOf(cmd: CommandDefinition): { events: string[]; whenState?: string }[] {
-  if (cmd.outcomes && cmd.outcomes.length > 0) return cmd.outcomes;
-  return cmd.emitsEvent ? [{ events: [cmd.emitsEvent] }] : [];
-}
+/** What the context frame needs of a command, an aggregate's or an orchestration's. */
+type DrawnCommand = EmitsFields & Pick<CommandDefinition, 'name' | 'causes' | 'preconditions'>;
 
-function causeChip(cmd: CommandDefinition): string | undefined {
+function causeChip(cmd: DrawnCommand): string | undefined {
   return cmd.causes && cmd.causes.length > 0 ? `causes ${cmd.causes.join(', ')}` : undefined;
 }
 
 /** A command, and to its right each outcome's events as a group carrying the state that chooses it. */
 function commandRow(
   f: FrameBuilder,
-  cmd: CommandDefinition,
+  cmd: DrawnCommand,
   x: number,
   y: number,
   drawn: Set<string>,
@@ -48,7 +46,7 @@ function commandRow(
   if (cause !== undefined) f.chip(cause, x, y + STICKY_H + 4);
   let ox = x + STICKY_W + GAP * 2;
   let stated = false;
-  for (const outcome of outcomesOf(cmd)) {
+  for (const outcome of emitOutcomes(cmd)) {
     const events = outcome.events.filter((e) => !drawn.has(e));
     if (events.length === 0) continue;
     if (outcome.whenState !== undefined) {
@@ -70,7 +68,7 @@ function commandRow(
 function refusalRow(
   f: FrameBuilder,
   cmdItem: BoardItem,
-  cmd: CommandDefinition,
+  cmd: DrawnCommand,
   x: number,
   y: number,
 ): number {
@@ -121,11 +119,6 @@ function aggregateBlock(
   return cy + GAP;
 }
 
-/** An orchestration's command reads as a command of the context for drawing. */
-function asCommand(cmd: OrchestrationCommandDefinition): CommandDefinition {
-  return { ...cmd, emitsEvent: cmd.emitsEvent ?? '' };
-}
-
 export function contextFrame(ctx: ContextDefinition): BoardFrame {
   const f = new FrameBuilder(`context-${ctx.name}`, ctx.name, 'context');
   f.header(ctx.classification ? `${ctx.name} · ${ctx.classification}` : ctx.name, 900);
@@ -164,7 +157,7 @@ export function contextFrame(ctx: ContextDefinition): BoardFrame {
   for (const saga of ctx.sagas) {
     f.node('saga', saga.name, PAD, y);
     y += STICKY_H + GAP * 2;
-    for (const cmd of saga.commands ?? []) y = commandRow(f, asCommand(cmd), PAD, y, drawn);
+    for (const cmd of saga.commands ?? []) y = commandRow(f, cmd, PAD, y, drawn);
     const rest = (saga.events ?? []).filter((e) => !drawn.has(e.name));
     y = f.grid(
       'event',

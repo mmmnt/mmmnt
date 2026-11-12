@@ -9,17 +9,19 @@ import type { UnrenderedEntry } from './types.js';
 
 const commandFields = [
   '',
-  '.id',
-  '.name',
-  '.causes',
-  '.emitsEvent',
-  '.outcomes',
-  '.outcomes[].events',
-  '.outcomes[].whenState',
-  '.preconditions',
-  '.preconditions[].name',
-  '.preconditions[].description',
-  '.preconditions[].causes',
+  ...[
+    'id',
+    'name',
+    'causes',
+    'emitsEvent',
+    'outcomes',
+    'outcomes[].events',
+    'outcomes[].whenState',
+    'preconditions',
+    'preconditions[].name',
+    'preconditions[].description',
+    'preconditions[].causes',
+  ].map((field) => `.${field}`),
 ];
 
 const eventFields = ['', '.id', '.name', '.owner', '.owner.kind', '.owner.name'];

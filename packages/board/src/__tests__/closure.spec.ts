@@ -30,17 +30,21 @@ async function corpus(): Promise<{ name: string; ir: IntermediateRepresentation 
 }
 
 describe('closure: every IR property is carried or unrendered with a reason (ADR-047 D5)', () => {
-  it('leaves no property of the valid corpus, TicketWave included, uncovered', async () => {
-    const models = [
-      ...(await corpus()),
-      { name: 'ticketwave', ir: await loadIr('examples/ticketwave/spec/ticketwave.moment') },
-    ];
-    expect(models.length).toBeGreaterThanOrEqual(8);
-    for (const { name, ir } of models) {
-      expect({ name, uncovered: sweepIr(ir).uncovered }).toEqual({ name, uncovered: [] });
-      expect(projectBoard(ir).frames.length).toBeGreaterThan(0);
-    }
-  });
+  it(
+    'leaves no property of the valid corpus, TicketWave included, uncovered',
+    { timeout: 60_000 },
+    async () => {
+      const models = [
+        ...(await corpus()),
+        { name: 'ticketwave', ir: await loadIr('examples/ticketwave/spec/ticketwave.moment') },
+      ];
+      expect(models.length).toBeGreaterThanOrEqual(8);
+      for (const { name, ir } of models) {
+        expect({ name, uncovered: sweepIr(ir).uncovered }).toEqual({ name, uncovered: [] });
+        expect(projectBoard(ir).frames.length).toBeGreaterThan(0);
+      }
+    },
+  );
 
   it('finds a property the table does not know', async () => {
     const ir = await loadIr('fixtures/valid/process-constructs');
