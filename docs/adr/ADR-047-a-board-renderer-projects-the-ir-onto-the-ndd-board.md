@@ -1,6 +1,6 @@
 # ADR-047: A board renderer projects the IR onto the NDD board
 
-- **Status:** Draft (awaiting the founder's flip to Accepted)
+- **Status:** Accepted (2026-11-11, founder, "Accept as recommended (Recommended)", flmnt decision in bc674142). Rulings: (1) the package is `@mmmnt/board`; (2) the 1:1 diff is deferred to a follow-up ADR; (3) the package ships in the fixed group at 0.11.0; (4) the diff compares manifest nodes only, with no position tolerance. The frame inventory of open question 5 is kept; the coordinator checks it against the live board before anything is placed there.
 - **Date:** 2026-11-12
 - **Supersedes:** nothing. Adds a package and a CLI command; changes no grammar, no IR field, no validation rule and no existing output.
 - **Founder rulings (flmnt, quorum workspace bc674142, verbatim labels):** 2e061a07 (2026-11-11) "Render + diff (Recommended)"; 129799c3 (2026-11-11) "Moment repo package (Recommended)": "The .moment -> Miro renderer is a new package in the Moment repo, beside viz/serve, under Moment's own process (ADR, closure law, changesets). The palette rules stay in the platform workspace." Platform workspace d6dd5b65: da9b33ea "Render + diff", under 378cdad7 (the board projection is platform tooling, outside SiDD and Sift).
@@ -41,7 +41,10 @@ Beside `viz`, same loader (`loadSpecification`, project mode per ADR-038), same 
 
 ### D5. Closure obligation
 
-Every IR construct is either drawn or listed in the manifest under `unrendered` with its reason; a construct that is silently skipped fails a spec. A sweep test enumerates the IR types (not a hand list) and fails when a type has neither a kind nor an `unrendered` entry. Palette colour of each kind is asserted against the swatch table. A new IR construct in a later ADR must extend the sweep or the build fails.
+Moment's closure law is grammar + corpus + implementation + full corpus re-validation in one change (flmnt decision 41f95b15; ADR-037's implementation c77944c5). This ADR changes no grammar, so its closure statement is:
+
+1. A sweep walks the property paths of real IR instances and fails when a path is neither drawn nor listed in the manifest under `unrendered` with its reason, so a construct added to the IR later cannot be skipped silently. It is a walk of the IR, not a hand list.
+2. Every model in `fixtures/valid` (TicketWave included) is rendered through the package in the same change and must produce a manifest with no uncovered path.
 
 ### D6. Prior art is reused for layout and colour, not copied wholesale
 
@@ -67,7 +70,7 @@ Sift's `render_board.py` and `render_design.py` give the lane geometry, frame si
 ## Open questions (each with a recommendation)
 
 1. **Package name: `@mmmnt/board` or `@mmmnt/ndd`?** Recommend `@mmmnt/board`: it names what is made; NDD is the palette inside it, and the palette rules belong to the platform.
-2. **Is the 1:1 diff in this ADR's scope?** Recommend no: this ADR ships the renderer and the manifest; a follow-up `moment board diff <manifest> <board-export>` gets its own ADR once the board-of-record export shape is read from Miro and pinned.
+2. **Is the 1:1 diff in this ADR's scope?** Recommend no: this ADR ships the renderer and the manifest; a follow-up `moment board diff <manifest> <board-export>` gets its own ADR (ruled) once the board-of-record export shape is read from Miro and pinned.
 3. **Where is the binding text of the closure law?** I could not find it in the repo (Confluence index not read). Recommend the founder point to it, or accept D5 as the closure statement for this package.
 4. **Release coupling.** The group is fixed, so the package ships at 0.11.0 with the rest. Recommend accepting that; an unpublished (`private`) package until the manifest is proven against the flmnt board is the alternative if the founder wants no public surface yet.
 5. **Frame inventory to match uXjVEXfeXOk=.** Recommend: context frames, thread frames per flow (N1 to N12 are the flmnt flows in order), Context Map, Invariant Coverage; the legend frame is omitted (it is the board's own). The founder confirms against the live board.
