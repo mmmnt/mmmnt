@@ -30,7 +30,7 @@ Text is folded into the sticky (ADR-048 D3): `Name [Cause]` and `emits A, B | A 
 
 ## Manifest
 
-`manifest.json` (`manifestVersion: 1`) lists `frames` (id, title, kind, number, numberSource, placement), `nodes` (`kind`, `name`, `context`, `role` of `definition` or `placement`, `flow`, `moment`, `momentId`, `frame`, `key`, and `cause`, `exit`, `terminal`, `optional`, `arm`, `armCondition`, `condition`, `of`, `marker`, `pointer` where they apply), `edges`, `momentIdSource` and `unrendered`. The diff against a board of record compares nodes by `(kind, name, context)`; positions are never compared.
+`manifest.json` (`manifestVersion: 1`) lists `frames` (id, title, kind, number, numberSource, placement), `nodes` (`kind`, `name`, `context`, `role` of `definition` or `placement`, `flow`, `moment`, `momentId`, `frame`, `key`, and `cause`, `exit`, `terminal`, `optional`, `arm`, `armCondition`, `condition`, `of`, `marker`, `pointer`, `derived` where they apply; `derived: true` marks a placement the renderer makes and the flow does not write, such as a refusal placed from a precondition), `edges`, `momentIdSource` and `unrendered`. The diff against a board of record compares nodes by `(kind, name, context)`; positions are never compared.
 
 ## Closure
 

@@ -36,6 +36,8 @@ export interface ManifestNode {
   path: string;
   /** The spec pointer from the sidecar, when one names this node (ADR-048 D8). */
   pointer?: string;
+  /** True for a placement the renderer derives and the flow source does not write, such as a refusal placed from a precondition (platform ruling dd83fde4). The 1:1 check lists it without diffing it. */
+  derived?: boolean;
 }
 
 export interface ManifestEdge {

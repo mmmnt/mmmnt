@@ -194,6 +194,7 @@ function momentDrafts(
           context: contextNameOf(ir, e.contextId),
           role: 'placement',
           path: 'flows[].moments[].contextEntries[]',
+          derived: true,
           of: e.nodeName,
           ...(pre.causes && pre.causes.length > 0 && { cause: pre.causes.join(', ') }),
           ...(arm && { arm: arm.id, armCondition: arm.condition }),

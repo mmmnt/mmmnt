@@ -132,3 +132,41 @@ describe('what a model must carry', () => {
     expect(() => projectBoard(ir)).toThrow(/no id/);
   });
 });
+
+describe('derived placements (platform ruling dd83fde4)', () => {
+  const placements = (m: BoardManifest) => m.nodes.filter((n) => n.role === 'placement');
+
+  it('marks every refusal placement derived: no flow source writes one', () => {
+    for (const m of [pc, tw]) {
+      const refusals = placements(m).filter((n) => n.kind === 'refusal');
+      expect(refusals.length).toBeGreaterThan(0);
+      expect(refusals.every((n) => n.derived === true)).toBe(true);
+    }
+  });
+
+  it('marks no authored placement derived: every entry and note of the flow source stays plain', async () => {
+    for (const [ir, m] of [
+      [numbered(await loadIr('fixtures/valid/process-constructs')), pc],
+      [numbered(await loadIr('examples/ticketwave/spec/ticketwave.moment')), tw],
+    ] as const) {
+      const written = ir.flows.flatMap((f) =>
+        f.moments.flatMap((mo) => [
+          ...mo.contextEntries.map((e) => e.nodeName),
+          ...(mo.branches ?? []).flatMap((b) => b.entries.map((e) => e.nodeName)),
+          ...(mo.notes ?? []).map((n) => n.text),
+        ]),
+      );
+      const authored = placements(m).filter((n) => n.derived !== true);
+      expect(authored.map((n) => n.name).sort()).toEqual([...written].sort());
+    }
+  });
+
+  it('derives nothing but refusals: every other placement kind is written in the flow', () => {
+    const kinds = new Set(
+      placements(tw)
+        .filter((n) => n.derived === true)
+        .map((n) => n.kind),
+    );
+    expect([...kinds]).toEqual(['refusal']);
+  });
+});
