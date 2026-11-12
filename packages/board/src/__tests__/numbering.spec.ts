@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { BoardNumberingError, numberContexts, numberFlow, numberFlows } from '../numbering.js';
+import {
+  BoardNumberingError,
+  armIds,
+  numberContexts,
+  numberFlow,
+  numberFlows,
+} from '../numbering.js';
 
 const flow = (name: string, moments: string[] = []) => ({
   name,
@@ -77,5 +83,16 @@ describe('context numbers', () => {
       number: 'C7',
       source: 'name',
     });
+  });
+});
+
+describe('arm ids', () => {
+  it('does not count an empty first arm: it is the main path', () => {
+    expect(armIds('N1.M2', [{ entries: [] }, { entries: [1] }, { entries: [1] }])).toEqual([
+      undefined,
+      'N1.M2-B1',
+      'N1.M2-B2',
+    ]);
+    expect(armIds('N1.M2', [{ entries: [1] }, { entries: [1] }])).toEqual(['N1.M2-B1', 'N1.M2-B2']);
   });
 });

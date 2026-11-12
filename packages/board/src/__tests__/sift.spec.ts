@@ -72,6 +72,17 @@ describe('the Sift model on the board (ADR-048 D5)', () => {
     );
   });
 
+  it('joins a continued moment to the column it continues, left to right', () => {
+    const t10 = board.frames.find((f) => f.id === 'thread-T10')!;
+    const byId = new Map(t10.items.map((i) => [i.id, i]));
+    const joins = t10.connectors.filter((c) => {
+      const a = byId.get(c.from);
+      const b = byId.get(c.to);
+      return a?.kind === 'moment' && b?.kind === 'moment' && a.x < b.x;
+    });
+    expect(joins.length).toBeGreaterThanOrEqual(2);
+  });
+
   it('carries every (kind, name, context) of the model in the manifest', () => {
     const have = new Set(board.manifest.nodes.map((n) => `${n.kind}|${n.name}|${n.context}`));
     const want: string[] = [];
