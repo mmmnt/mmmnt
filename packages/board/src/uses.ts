@@ -40,14 +40,17 @@ export function emitsClause(outcomes: readonly EmitOutcomeDefinition[]): string 
   return parts.length === 0 ? '' : `emits ${parts.join(' | ')}`;
 }
 
-export function commandText(cmd: {
+export function commandText({
+  name,
+  causes,
+  outcomes = [],
+}: {
   name: string;
   causes?: readonly string[];
   outcomes?: readonly EmitOutcomeDefinition[];
 }): string {
-  const head =
-    cmd.causes && cmd.causes.length > 0 ? `${cmd.name} [${cmd.causes.join(', ')}]` : cmd.name;
-  const emits = emitsClause(cmd.outcomes ?? []);
+  const head = causes && causes.length > 0 ? `${name} [${causes.join(', ')}]` : name;
+  const emits = emitsClause(outcomes);
   return emits === '' ? head : `${head}\n${emits}`;
 }
 
