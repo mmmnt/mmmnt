@@ -40,6 +40,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@mmmnt/board": "workspace:*",
     "@mmmnt/core": "workspace:*",
     "@mmmnt/derive": "workspace:*",
     "@mmmnt/emit-ts": "workspace:*",

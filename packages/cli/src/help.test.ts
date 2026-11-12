@@ -62,6 +62,7 @@ describe('commandHelp', () => {
       'test',
       'simulate',
       'viz',
+      'board',
       'serve',
       'cucumber-json',
       'lint',

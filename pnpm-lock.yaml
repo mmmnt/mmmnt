@@ -85,6 +85,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@mmmnt/board':
+        specifier: workspace:*
+        version: link:../board
       '@mmmnt/core':
         specifier: workspace:*
         version: link:../core

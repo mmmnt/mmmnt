@@ -16,6 +16,7 @@ Commands:
   test <file>              Run structural validation test suites
   simulate <file>          Generate simulation scenarios (--all, --json)
   viz <file>               Emit the visualization data envelope
+  board <path> --out <dir> Project the model onto the NDD board (SVG per frame + manifest)
   serve <file|facet-dir>   Serve topology/scenarios over WebSocket (Facet bridge)
                            --project <dir> serves a model directory as one project
   cucumber-json <file>     Emit Cucumber JSON

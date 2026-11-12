@@ -8,6 +8,7 @@ import { runCucumberJson } from './commands/cucumber-json.js';
 import { runEmitTs } from './commands/emit-ts.js';
 import { runTest } from './commands/test.js';
 import { runViz } from './commands/viz.js';
+import { runBoard } from './commands/board.js';
 import { runSyncStatus } from './commands/sync-status.js';
 import { runSyncPropose } from './commands/sync-propose.js';
 import { runSyncAccept } from './commands/sync-accept.js';
@@ -162,6 +163,25 @@ switch (command) {
   }
   case 'test': {
     runTest(args)
+      .then((result) => {
+        if (result.success) {
+          console.log(result.message);
+        } else {
+          console.error(result.message);
+          for (const d of result.diagnostics) {
+            console.error(formatDiagnostic(d, result.filePath));
+          }
+          process.exitCode = 1;
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Error:', error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+      });
+    break;
+  }
+  case 'board': {
+    runBoard(args)
       .then((result) => {
         if (result.success) {
           console.log(result.message);
