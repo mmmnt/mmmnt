@@ -11,6 +11,16 @@ export interface ManifestNode {
   flow?: string;
   moment?: string;
   frame: string;
+  /** The cause a command is placed for (ADR-040). */
+  cause?: string;
+  /** `outcome` when a terminal placement ends the flow at an outcome (ADR-043). */
+  exit?: 'outcome';
+  terminal?: boolean;
+  optional?: boolean;
+  /** The branch arm a placement sits in. */
+  arm?: string;
+  /** The condition a policy reacts under (ADR-045), as written. */
+  condition?: string;
   /** Where in the IR the node comes from, as a path. */
   path: string;
 }
