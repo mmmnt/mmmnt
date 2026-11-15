@@ -1,0 +1,44 @@
+// ADR-050: a policy reacts to one variant of a tagged union field (ADR-049 D3), `when decision.kind = Admitted`.
+// The flow decides twice before the reaction: the first decision is not admitted, the second is.
+
+context "Admission" [Core]
+  description "A request is decided once per attempt; an admitted decision starts the visit"
+
+  value-object Decision
+    | Admitted
+    | Refused
+        reason: "Disabled" | "Superseded"
+    | Postponed
+
+  aggregate "Request"
+    identity requestId: UUID
+
+    command RecordDecision
+      input requestId: UUID, decision: Decision
+      emits DecisionRecorded
+
+    command StartVisit
+      input requestId: UUID
+      emits VisitStarted
+
+    event DecisionRecorded
+      requestId: UUID
+      decision: Decision
+
+    event VisitStarted
+      requestId: UUID
+
+  policy AdmittedDecisionStartsVisit
+    trigger DecisionRecorded when decision.kind = Admitted
+    action "An admitted decision starts the visit"
+    chains-to StartVisit
+
+flow "A request is postponed, then admitted"
+  lane admission "Admission" [Core]
+  moment "The request is decided"
+    admission: RecordDecision
+    admission: DecisionRecorded
+    admission: DecisionRecorded
+    admission: StartVisit
+      triggered-by DecisionRecorded
+    admission: VisitStarted

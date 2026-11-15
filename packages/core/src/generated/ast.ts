@@ -268,6 +268,12 @@ export function isCompensation(item: unknown): item is Compensation {
     return reflection.isInstance(item, Compensation.$type);
 }
 
+export type ConditionPath = string;
+
+export function isConditionPath(item: unknown): item is ConditionPath {
+    return typeof item === 'string';
+}
+
 export type Connection = ReturnsTo | TriggeredBy | Triggers;
 
 export const Connection = {
@@ -842,7 +848,7 @@ export interface PolicyDeclaration extends langium.AstNode {
     action: string;
     chainsTo: string;
     conditionAfter?: string;
-    conditionField?: FieldName;
+    conditionField?: ConditionPath;
     conditionValue?: AnnotationValue;
     gateways: Array<GatewayDeclaration>;
     name: string;

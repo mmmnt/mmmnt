@@ -204,6 +204,7 @@ export interface PolicyDefinition {
 /**
  * `trigger E when <field> = <value> after <Event>` (ADR-045 D1). `field` and `equals` come as a pair: the
  * trigger event's own field has that value. `after`: the occurrence has that event among its causes.
+ * `field` may be the path `<field>.kind` (ADR-050), written as declared: the variant of a union field is `equals`.
  */
 export interface PolicyConditionDefinition {
   field?: string;

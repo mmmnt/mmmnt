@@ -1,5 +1,5 @@
 /**
- * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43, ADR-045's V49–V51) over an IR.
+ * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43, ADR-045's V49–V51, ADR-050's V56–V57) over an IR.
  *
  * Like V22–V28 they compare names across declarations: advisories per file, errors over a merged
  * project. Hand-built IR that predates ADR-038 carries no orchestration fields and is not checked

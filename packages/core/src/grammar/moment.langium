@@ -136,10 +136,12 @@ DomainServiceDeclaration:
 // --- Policy (ADR-038 §1): When one domain event, Then one command ---
 // The trigger may carry the condition under which the policy reacts (ADR-045): one equality on a field of
 // the trigger event, and/or a cause. `after` is a keyword, escaped in FieldName and LaneName as ADR-043's `outcome` was.
+// The field may be a path, `<field>.kind`, the variant of a union field (ADR-050); validation (V56) refuses any
+// other path, so the grammar reads every dotted path and the rule names what is wrong.
 PolicyDeclaration:
     'policy' name=ID
         'trigger' trigger=ID
-        ('when' conditionField=FieldName '=' conditionValue=AnnotationValue)?
+        ('when' conditionField=ConditionPath '=' conditionValue=AnnotationValue)?
         ('after' conditionAfter=ID)?
         'action' action=STRING
         'chains-to' chainsTo=ID
@@ -285,6 +287,10 @@ InputName returns string:
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
     'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome' | 'after' | 'pattern';
+
+// A field of the trigger event, or a path into it (ADR-050): `decision.kind`. Written back without spaces.
+ConditionPath returns string:
+    FieldName ('.' FieldName)*;
 
 // A built-in or value object type, or a code set of string literals (ADR-049 D2), then `[]` (array) or
 // `{}` / `{key}` (a map from a string key, D6).
