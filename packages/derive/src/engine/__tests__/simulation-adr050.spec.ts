@@ -70,3 +70,116 @@ describe('ADR-050 D4 the occurrence the reaction names carries the variant', () 
     });
   });
 });
+
+// ADR-050 D4, the edges: where the union is declared, which fields a guard cannot set, and how the other
+// occurrence's variant is chosen when several guards read the same field.
+describe('ADR-050 D4 edges of the union guard', () => {
+  const MODEL = (opts: {
+    unionAt?: 'context' | 'aggregate' | 'other-context' | 'nowhere';
+    field?: string;
+    policies: string;
+    variants?: string[];
+  }): string => {
+    const variants = (opts.variants ?? ['Admitted', 'Refused', 'Postponed'])
+      .map((v) => `    | ${v}`)
+      .join('\n');
+    const union = `  value-object Decision\n${variants}\n`;
+    const at = opts.unionAt ?? 'context';
+    return `
+context "Admission" [Core]
+${at === 'context' ? union : ''}
+  aggregate "Request"
+    identity requestId: UUID
+${at === 'aggregate' ? union.replace(/^ {2}/gm, '    ') : ''}
+    command RecordDecision
+      input requestId: UUID
+      emits DecisionRecorded
+    command StartVisit
+      input requestId: UUID
+      emits VisitStarted
+    command NotifyPostponed
+      input requestId: UUID
+      emits PostponedNotified
+    event DecisionRecorded
+      requestId: UUID
+      ${opts.field ?? 'decision: Decision'}
+    event VisitStarted
+      requestId: UUID
+    event PostponedNotified
+      requestId: UUID
+${opts.policies}
+
+${at === 'other-context' ? `context "Shared" [Generic]\n${union}` : ''}
+
+flow "N1 - Decided twice"
+  lane admission "Admission" [Core]
+  moment "The request is decided"
+    admission: RecordDecision
+    admission: DecisionRecorded
+    admission: DecisionRecorded
+    admission: StartVisit
+      triggered-by DecisionRecorded
+    admission: VisitStarted
+`;
+  };
+  const policy = (name: string, guard: string, chainsTo: string): string => `
+  policy ${name}
+    trigger DecisionRecorded when ${guard}
+    action "React"
+    chains-to ${chainsTo}`;
+  const ADMITTED = policy('AdmittedStartsVisit', 'decision.kind = Admitted', 'StartVisit');
+  const decisions = async (source: string): Promise<unknown[]> =>
+    decided(await load(source)).map((e) => e.payload.decision);
+
+  it('finds a union declared inside the aggregate', async () => {
+    expect(await decisions(MODEL({ unionAt: 'aggregate', policies: ADMITTED }))).toEqual([
+      { kind: 'Refused' },
+      { kind: 'Admitted' },
+    ]);
+  });
+
+  it('finds a union declared in another context of the model', async () => {
+    expect(await decisions(MODEL({ unionAt: 'other-context', policies: ADMITTED }))).toEqual([
+      { kind: 'Refused' },
+      { kind: 'Admitted' },
+    ]);
+  });
+
+  it('writes nothing when the union is declared nowhere (V56/V57 cannot decide; nor can derive)', async () => {
+    expect(await decisions(MODEL({ unionAt: 'nowhere', policies: ADMITTED }))).toEqual([{}, {}]);
+  });
+
+  it('writes nothing for a path other than `.kind` (V56 refuses it)', async () => {
+    const other = policy('ReasonStartsVisit', 'decision.reason = Disabled', 'StartVisit');
+    expect(await decisions(MODEL({ policies: other }))).toEqual([{}, {}]);
+  });
+
+  it('writes nothing on a union array field (V56 refuses it)', async () => {
+    const source = MODEL({ field: 'decision: Decision[]', policies: ADMITTED });
+    const values = await decisions(source);
+    expect(values.every((v) => !(typeof v === 'object' && v !== null && 'kind' in v))).toBe(true);
+  });
+
+  it('writes nothing on a guarded field the payload does not carry (an exclusive second member)', async () => {
+    const source = MODEL({
+      field: 'note: string | decision: Decision',
+      policies: ADMITTED,
+    });
+    const events = decided(await load(source));
+    expect(events.map((e) => 'decision' in e.payload)).toEqual([false, false]);
+  });
+
+  it('moves the other occurrence to a variant no guard on the field declares', async () => {
+    const postponed = policy('PostponedNotifies', 'decision.kind = Refused', 'NotifyPostponed');
+    expect(await decisions(MODEL({ policies: ADMITTED + postponed }))).toEqual([
+      { kind: 'Postponed' },
+      { kind: 'Admitted' },
+    ]);
+  });
+
+  it('falls back to the first other variant when every variant is guarded', async () => {
+    const refused = policy('RefusedNotifies', 'decision.kind = Refused', 'NotifyPostponed');
+    const source = MODEL({ policies: ADMITTED + refused, variants: ['Admitted', 'Refused'] });
+    expect(await decisions(source)).toEqual([{ kind: 'Refused' }, { kind: 'Admitted' }]);
+  });
+});

@@ -814,7 +814,9 @@ function moveOffDeclared(
     if (field === undefined || fixed.has(field)) continue;
     const variants = variantsOf(policy);
     if (variants !== undefined) {
+      // One move per field: when every variant is guarded, a second guard must not move it back.
       moveOffVariant(payload, field, policy, guarded, variants, variantsOf);
+      fixed.add(field);
       continue;
     }
     const declared = declaredValue(evt, policy);
