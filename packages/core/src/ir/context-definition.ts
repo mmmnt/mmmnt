@@ -126,19 +126,49 @@ export interface EventDefinition {
   fields: FieldDefinition[];
 }
 
+/**
+ * A record (`fields`), a scalar (`scalar`, ADR-049 D4) or a tagged union (`variants`, D3: `fields` are then
+ * the fields every variant shares, and the discriminator is the property `kind`). `scalar` and `variants`
+ * are present only when declared.
+ */
 export interface ValueObjectDefinition {
   id: string;
   name: string;
   annotations?: AnnotationDefinition[];
   fields: FieldDefinition[];
+  /** `value-object Name: Type`: the value is that scalar, not an object. Named after the value object. */
+  scalar?: FieldDefinition;
+  /** `| Variant` lines, in declared order. */
+  variants?: VariantDefinition[];
 }
 
+/** One alternative of a tagged union (ADR-049 D3): its name is the value of `kind`. */
+export interface VariantDefinition {
+  name: string;
+  fields: FieldDefinition[];
+}
+
+/**
+ * A field, input or scalar. `type` is a built-in or value object name; for a code set it is `string` and
+ * `enum` holds the values (ADR-049 D2). Every key after `required` is present only when declared.
+ */
 export interface FieldDefinition {
   name: string;
   type: string;
   isArray: boolean;
+  /** False for `name?: T` (ADR-049 D1) and for every member of an exclusive group (D5). */
   required: boolean;
   deprecated?: { reason: string; replacement: string };
+  /** A code set: the string values, as written (ADR-049 D2). */
+  enum?: string[];
+  /** `T{}` / `T{key}`: a map from a string key to `type` (ADR-049 D6). */
+  map?: { key?: string };
+  /** `[pattern "<regex>"]`, ECMAScript (ADR-049 D7). */
+  pattern?: string;
+  /** `[encrypted]`: recorded as `{dataKeyId, ciphertext}` (ADR-049 D7). */
+  encrypted?: true;
+  /** `a: T | b: U`: the names of the group, the same on every member; exactly one is present (ADR-049 D5). */
+  exclusive?: string[];
 }
 
 export interface InvariantDefinition {

@@ -1,0 +1,87 @@
+// ADR-049: every field construct in one model. Optional fields, code sets, tagged unions, scalar value
+// objects, mutually exclusive fields, maps, patterns and encrypted fields.
+
+context "Intake" [Core]
+  description "Entries arrive once and are recorded"
+
+  value-object ActorKind: "user" | "api" | "system"
+
+  value-object ContentHash: string [pattern "^[0-9a-f]{64}$"]
+
+  value-object CorpusVersion: string
+
+  value-object Actor
+    sub: string
+    clientId?: string
+    roles?: string[]
+    kind: ActorKind
+
+  value-object DocumentVersion
+    documentId: string [pattern "^[^\\n]*$"]
+    version: string
+
+  value-object Arrival
+    actor: Actor
+    | Live
+    | Replay
+        replay: "Bootstrap" | "Resume"
+    | Document
+        documentVersion: DocumentVersion
+        location: string
+        contentHash?: ContentHash
+
+  value-object ReceiptEffect
+    | Applied
+    | None
+        reason: "no candidate" | "boundary" | "none"
+
+  value-object RecordRef
+    stream: string
+    position: number
+
+  aggregate "Receipt"
+    identity pointer: string
+
+    command RecordReceipt
+      input pointer: string, arrival: Arrival, note?: string
+      emits ReceiptRecorded
+
+    command MarkProcessed
+      input effect?: ReceiptEffect
+      emits ReceiptProcessed
+
+    command CompleteReplay
+      input kind: "Bootstrap" | "Resume", replayPoint?: number{stream}
+      emits ReplayCompleted
+
+    event ReceiptRecorded
+      arrival: Arrival
+      contentHash?: ContentHash
+      corpusVersion: CorpusVersion
+      actor: Actor
+
+    event ReceiptProcessed
+      effect: ReceiptEffect
+      pointer: string | recordRef: RecordRef
+      rationale?: string [encrypted]
+      actor: Actor
+
+    event ReplayCompleted
+      kind: "Bootstrap" | "Resume"
+      replayPoint: number{stream}
+      endPoint?: number{}
+      hashes: ContentHash[]
+      pattern: string [pattern "^p-[0-9]+$"] [deprecated "renamed" -> "kind"]
+      actor: Actor
+
+flow "An entry is recorded and processed"
+  lane intake "Intake" [Core]
+  moment "The entry arrives"
+    intake: RecordReceipt
+    intake: ReceiptRecorded
+  moment "The entry is processed"
+    intake: MarkProcessed
+    intake: ReceiptProcessed
+  moment "The replay completes"
+    intake: CompleteReplay
+    intake: ReplayCompleted

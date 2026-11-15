@@ -100,8 +100,9 @@ EmitsClause:
 EmitOutcome:
     events+=ID (',' events+=ID)* ('when' state=ID)?;
 
+// `?` marks an optional input (ADR-049 D1); the type and its attributes are a field's.
 InputField:
-    name=InputName ':' type=TypeReference deprecation=FieldDeprecation?;
+    name=InputName optional?='?'? ':' type=TypeReference attributes=FieldAttributes?;
 
 Precondition:
     'precondition' name=ID ('cause' causes+=ID (',' causes+=ID)*)? ':' description=STRING;
@@ -110,8 +111,15 @@ DomainEventDeclaration:
     'event' name=ID
         fields+=FieldDeclaration*;
 
+// ADR-049: a value object is a record (fields), a scalar (`: Type`, D4; a literal set is a code set, D2),
+// or a tagged union (fields common to every variant, then `| Variant` and the variant's fields, D3).
 ValueObjectDeclaration:
     'value-object' name=ID
+        (':' scalar=TypeReference scalarAttributes=FieldAttributes? |
+         fields+=FieldDeclaration* variants+=VariantDeclaration*);
+
+VariantDeclaration:
+    '|' name=ID
         fields+=FieldDeclaration*;
 
 InvariantDeclaration:
@@ -213,7 +221,7 @@ NodePlacement:
 
 // A lane may be named with a word ADR-040 or ADR-043 made a keyword, so a model that already used it keeps parsing.
 LaneName returns string:
-    ID | 'cause' | 'causes' | 'note' | 'outcome' | 'after';
+    ID | 'cause' | 'causes' | 'note' | 'outcome' | 'after' | 'pattern';
 
 Multiplicity:
     '(' '×' (count=INT | countVar=ID) ')';
@@ -249,11 +257,23 @@ ReturnsTo:
 // Part III: Shared Rules — Types, Classifications, Relationships
 // ============================================================================
 
+// `name?: T` is optional (ADR-049 D1). `a: T | b: U` on one line is a group of which exactly one is present (D5).
 FieldDeclaration:
-    name=FieldName ':' type=TypeReference deprecation=FieldDeprecation?;
+    name=FieldName optional?='?'? ':' type=TypeReference attributes=FieldAttributes?
+        ('|' alternatives+=FieldAlternative)*;
+
+FieldAlternative:
+    name=FieldName optional?='?'? ':' type=TypeReference attributes=FieldAttributes?;
+
+// Written after the type, in any order (ADR-049 D7): `[deprecated "..." -> "..."]`, `[pattern "<regex>"]`, `[encrypted]`.
+FieldAttributes:
+    (deprecation+=FieldDeprecation | patterns+=FieldPattern | encrypted+='[encrypted]')+;
 
 FieldDeprecation:
     '[' 'deprecated' reason=STRING '->' replacement=STRING ']';
+
+FieldPattern:
+    '[' 'pattern' pattern=STRING ']';
 
 // ADR-037 made new words keywords. A comma-separated input list may use any of them as a name; a field
 // list, which a new declaration can follow, may use only those that cannot begin a declaration.
@@ -264,10 +284,18 @@ InputName returns string:
 // or a field list would read the next declaration as a field.
 FieldName returns string:
     ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
-    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome' | 'after';
+    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome' | 'after' | 'pattern';
 
+// A built-in or value object type, or a code set of string literals (ADR-049 D2), then `[]` (array) or
+// `{}` / `{key}` (a map from a string key, D6).
 TypeReference:
-    typeName=TypeName isArray?='[]'?;
+    (typeName=TypeName | literals+=CodeLiteral ('|' literals+=CodeLiteral)*)
+        (isArray?='[]' | isMap?='{' mapKey=ID? '}')?;
+
+// `"none"` is a token of its own (an orchestration's `timeout "none"`), so a code set may list it too;
+// the IR writes it unquoted like every other code.
+CodeLiteral returns string:
+    STRING | '"none"';
 
 TypeName returns string:
     'string' | 'number' | 'boolean' | 'UUID' | 'DateTime' | 'Date' | 'Money' | ID;

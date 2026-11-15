@@ -14,6 +14,7 @@ export type {
   EventDefinition,
   EventOwner,
   ValueObjectDefinition,
+  VariantDefinition,
   FieldDefinition,
   InvariantDefinition,
   DomainServiceDefinition,

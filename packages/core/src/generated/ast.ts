@@ -26,6 +26,7 @@ export type MomentKeywordNames =
     | "."
     | ":"
     | "="
+    | "?"
     | "@"
     | "AnticorruptionLayer"
     | "Conformist"
@@ -46,6 +47,7 @@ export type MomentKeywordNames =
     | "["
     | "[]"
     | "[branch]"
+    | "[encrypted]"
     | "[required]"
     | "]"
     | "action"
@@ -86,6 +88,7 @@ export type MomentKeywordNames =
     | "optional"
     | "orchestration"
     | "outcome"
+    | "pattern"
     | "policy"
     | "precondition"
     | "produces"
@@ -112,7 +115,9 @@ export type MomentKeywordNames =
     | "value-object"
     | "via"
     | "when"
+    | "{"
     | "|"
+    | "}"
     | "×";
 
 export type MomentTokenNames = MomentTerminalNames | MomentKeywordNames;
@@ -213,6 +218,12 @@ export type ClassificationValue = 'Core' | 'External' | 'Generic' | 'Supporting'
 
 export function isClassificationValue(item: unknown): item is ClassificationValue {
     return item === 'Core' || item === 'Supporting' || item === 'Generic' || item === 'Terminal' || item === 'External';
+}
+
+export type CodeLiteral = '"none"' | string;
+
+export function isCodeLiteral(item: unknown): item is CodeLiteral {
+    return item === '"none"' || (typeof item === 'string' && (/"(\\.|[^"\\])*"/.test(item)));
 }
 
 export interface CommandDeclaration extends langium.AstNode {
@@ -446,18 +457,62 @@ export function isExternalDeclaration(item: unknown): item is ExternalDeclaratio
     return reflection.isInstance(item, ExternalDeclaration.$type);
 }
 
-export interface FieldDeclaration extends langium.AstNode {
-    readonly $container: AggregateDeclaration | DomainEventDeclaration | ProjectionDeclaration | ValueObjectDeclaration;
-    readonly $type: 'FieldDeclaration';
-    deprecation?: FieldDeprecation;
+export interface FieldAlternative extends langium.AstNode {
+    readonly $container: FieldDeclaration;
+    readonly $type: 'FieldAlternative';
+    attributes?: FieldAttributes;
     name: FieldName;
+    optional: boolean;
+    type: TypeReference;
+}
+
+export const FieldAlternative = {
+    $type: 'FieldAlternative',
+    attributes: 'attributes',
+    name: 'name',
+    optional: 'optional',
+    type: 'type'
+} as const;
+
+export function isFieldAlternative(item: unknown): item is FieldAlternative {
+    return reflection.isInstance(item, FieldAlternative.$type);
+}
+
+export interface FieldAttributes extends langium.AstNode {
+    readonly $container: FieldAlternative | FieldDeclaration | InputField | ValueObjectDeclaration;
+    readonly $type: 'FieldAttributes';
+    deprecation: Array<FieldDeprecation>;
+    encrypted: Array<'[encrypted]'>;
+    patterns: Array<FieldPattern>;
+}
+
+export const FieldAttributes = {
+    $type: 'FieldAttributes',
+    deprecation: 'deprecation',
+    encrypted: 'encrypted',
+    patterns: 'patterns'
+} as const;
+
+export function isFieldAttributes(item: unknown): item is FieldAttributes {
+    return reflection.isInstance(item, FieldAttributes.$type);
+}
+
+export interface FieldDeclaration extends langium.AstNode {
+    readonly $container: AggregateDeclaration | DomainEventDeclaration | ProjectionDeclaration | ValueObjectDeclaration | VariantDeclaration;
+    readonly $type: 'FieldDeclaration';
+    alternatives: Array<FieldAlternative>;
+    attributes?: FieldAttributes;
+    name: FieldName;
+    optional: boolean;
     type: TypeReference;
 }
 
 export const FieldDeclaration = {
     $type: 'FieldDeclaration',
-    deprecation: 'deprecation',
+    alternatives: 'alternatives',
+    attributes: 'attributes',
     name: 'name',
+    optional: 'optional',
     type: 'type'
 } as const;
 
@@ -466,7 +521,7 @@ export function isFieldDeclaration(item: unknown): item is FieldDeclaration {
 }
 
 export interface FieldDeprecation extends langium.AstNode {
-    readonly $container: FieldDeclaration | InputField;
+    readonly $container: FieldAttributes;
     readonly $type: 'FieldDeprecation';
     reason: string;
     replacement: string;
@@ -482,10 +537,25 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'after' | 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'outcome' | 'reads' | 'sources' | 'state' | string;
+export type FieldName = 'after' | 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'outcome' | 'pattern' | 'reads' | 'sources' | 'state' | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || item === 'pattern' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+}
+
+export interface FieldPattern extends langium.AstNode {
+    readonly $container: FieldAttributes;
+    readonly $type: 'FieldPattern';
+    pattern: string;
+}
+
+export const FieldPattern = {
+    $type: 'FieldPattern',
+    pattern: 'pattern'
+} as const;
+
+export function isFieldPattern(item: unknown): item is FieldPattern {
+    return reflection.isInstance(item, FieldPattern.$type);
 }
 
 export interface FlowDeclaration extends langium.AstNode {
@@ -533,15 +603,17 @@ export function isGatewayDeclaration(item: unknown): item is GatewayDeclaration 
 export interface InputField extends langium.AstNode {
     readonly $container: CommandDeclaration | OrchestrationCommand | QueryDeclaration;
     readonly $type: 'InputField';
-    deprecation?: FieldDeprecation;
+    attributes?: FieldAttributes;
     name: InputName;
+    optional: boolean;
     type: TypeReference;
 }
 
 export const InputField = {
     $type: 'InputField',
-    deprecation: 'deprecation',
+    attributes: 'attributes',
     name: 'name',
+    optional: 'optional',
     type: 'type'
 } as const;
 
@@ -612,10 +684,10 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
     return reflection.isInstance(item, LaneDeclaration.$type);
 }
 
-export type LaneName = 'after' | 'cause' | 'causes' | 'note' | 'outcome' | string;
+export type LaneName = 'after' | 'cause' | 'causes' | 'note' | 'outcome' | 'pattern' | string;
 
 export function isLaneName(item: unknown): item is LaneName {
-    return item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || item === 'pattern' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export type ModifierType = 'optional' | 'outcome' | 'terminal';
@@ -1021,15 +1093,21 @@ export function isTypeName(item: unknown): item is TypeName {
 }
 
 export interface TypeReference extends langium.AstNode {
-    readonly $container: ContractField | FieldDeclaration | InputField;
+    readonly $container: ContractField | FieldAlternative | FieldDeclaration | InputField | ValueObjectDeclaration;
     readonly $type: 'TypeReference';
     isArray: boolean;
-    typeName: TypeName;
+    isMap: boolean;
+    literals: Array<CodeLiteral>;
+    mapKey?: string;
+    typeName?: TypeName;
 }
 
 export const TypeReference = {
     $type: 'TypeReference',
     isArray: 'isArray',
+    isMap: 'isMap',
+    literals: 'literals',
+    mapKey: 'mapKey',
     typeName: 'typeName'
 } as const;
 
@@ -1042,16 +1120,39 @@ export interface ValueObjectDeclaration extends langium.AstNode {
     readonly $type: 'ValueObjectDeclaration';
     fields: Array<FieldDeclaration>;
     name: string;
+    scalar?: TypeReference;
+    scalarAttributes?: FieldAttributes;
+    variants: Array<VariantDeclaration>;
 }
 
 export const ValueObjectDeclaration = {
     $type: 'ValueObjectDeclaration',
     fields: 'fields',
-    name: 'name'
+    name: 'name',
+    scalar: 'scalar',
+    scalarAttributes: 'scalarAttributes',
+    variants: 'variants'
 } as const;
 
 export function isValueObjectDeclaration(item: unknown): item is ValueObjectDeclaration {
     return reflection.isInstance(item, ValueObjectDeclaration.$type);
+}
+
+export interface VariantDeclaration extends langium.AstNode {
+    readonly $container: ValueObjectDeclaration;
+    readonly $type: 'VariantDeclaration';
+    fields: Array<FieldDeclaration>;
+    name: string;
+}
+
+export const VariantDeclaration = {
+    $type: 'VariantDeclaration',
+    fields: 'fields',
+    name: 'name'
+} as const;
+
+export function isVariantDeclaration(item: unknown): item is VariantDeclaration {
+    return reflection.isInstance(item, VariantDeclaration.$type);
 }
 
 export interface WhenBlock extends langium.AstNode {
@@ -1092,8 +1193,11 @@ export type MomentAstType = {
     EmitOutcome: EmitOutcome
     EmitsClause: EmitsClause
     ExternalDeclaration: ExternalDeclaration
+    FieldAlternative: FieldAlternative
+    FieldAttributes: FieldAttributes
     FieldDeclaration: FieldDeclaration
     FieldDeprecation: FieldDeprecation
+    FieldPattern: FieldPattern
     FlowDeclaration: FlowDeclaration
     GatewayDeclaration: GatewayDeclaration
     InputField: InputField
@@ -1121,6 +1225,7 @@ export type MomentAstType = {
     Triggers: Triggers
     TypeReference: TypeReference
     ValueObjectDeclaration: ValueObjectDeclaration
+    VariantDeclaration: VariantDeclaration
     WhenBlock: WhenBlock
 }
 
@@ -1408,15 +1513,67 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
             },
             superTypes: []
         },
+        FieldAlternative: {
+            name: FieldAlternative.$type,
+            properties: {
+                attributes: {
+                    name: FieldAlternative.attributes,
+                    optional: true
+                },
+                name: {
+                    name: FieldAlternative.name
+                },
+                optional: {
+                    name: FieldAlternative.optional,
+                    defaultValue: false,
+                    optional: true
+                },
+                type: {
+                    name: FieldAlternative.type
+                }
+            },
+            superTypes: []
+        },
+        FieldAttributes: {
+            name: FieldAttributes.$type,
+            properties: {
+                deprecation: {
+                    name: FieldAttributes.deprecation,
+                    defaultValue: [],
+                    optional: true
+                },
+                encrypted: {
+                    name: FieldAttributes.encrypted,
+                    defaultValue: [],
+                    optional: true
+                },
+                patterns: {
+                    name: FieldAttributes.patterns,
+                    defaultValue: [],
+                    optional: true
+                }
+            },
+            superTypes: []
+        },
         FieldDeclaration: {
             name: FieldDeclaration.$type,
             properties: {
-                deprecation: {
-                    name: FieldDeclaration.deprecation,
+                alternatives: {
+                    name: FieldDeclaration.alternatives,
+                    defaultValue: [],
+                    optional: true
+                },
+                attributes: {
+                    name: FieldDeclaration.attributes,
                     optional: true
                 },
                 name: {
                     name: FieldDeclaration.name
+                },
+                optional: {
+                    name: FieldDeclaration.optional,
+                    defaultValue: false,
+                    optional: true
                 },
                 type: {
                     name: FieldDeclaration.type
@@ -1432,6 +1589,15 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 replacement: {
                     name: FieldDeprecation.replacement
+                }
+            },
+            superTypes: []
+        },
+        FieldPattern: {
+            name: FieldPattern.$type,
+            properties: {
+                pattern: {
+                    name: FieldPattern.pattern
                 }
             },
             superTypes: []
@@ -1481,12 +1647,17 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
         InputField: {
             name: InputField.$type,
             properties: {
-                deprecation: {
-                    name: InputField.deprecation,
+                attributes: {
+                    name: InputField.attributes,
                     optional: true
                 },
                 name: {
                     name: InputField.name
+                },
+                optional: {
+                    name: InputField.optional,
+                    defaultValue: false,
+                    optional: true
                 },
                 type: {
                     name: InputField.type
@@ -1934,8 +2105,23 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                     defaultValue: false,
                     optional: true
                 },
+                isMap: {
+                    name: TypeReference.isMap,
+                    defaultValue: false,
+                    optional: true
+                },
+                literals: {
+                    name: TypeReference.literals,
+                    defaultValue: [],
+                    optional: true
+                },
+                mapKey: {
+                    name: TypeReference.mapKey,
+                    optional: true
+                },
                 typeName: {
-                    name: TypeReference.typeName
+                    name: TypeReference.typeName,
+                    optional: true
                 }
             },
             superTypes: []
@@ -1950,9 +2136,36 @@ export class MomentAstReflection extends langium.AbstractAstReflection {
                 },
                 name: {
                     name: ValueObjectDeclaration.name
+                },
+                scalar: {
+                    name: ValueObjectDeclaration.scalar,
+                    optional: true
+                },
+                scalarAttributes: {
+                    name: ValueObjectDeclaration.scalarAttributes,
+                    optional: true
+                },
+                variants: {
+                    name: ValueObjectDeclaration.variants,
+                    defaultValue: [],
+                    optional: true
                 }
             },
             superTypes: [AggregateMember.$type, ContextMember.$type]
+        },
+        VariantDeclaration: {
+            name: VariantDeclaration.$type,
+            properties: {
+                fields: {
+                    name: VariantDeclaration.fields,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: VariantDeclaration.name
+                }
+            },
+            superTypes: []
         },
         WhenBlock: {
             name: WhenBlock.$type,

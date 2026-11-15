@@ -7,6 +7,7 @@ import type {
   ContextRelationshipDeclaration,
   DomainEventDeclaration,
   DomainServiceDeclaration,
+  FieldAttributes,
   FieldDeclaration,
   FlowDeclaration,
   MomentDeclaration,
@@ -16,6 +17,7 @@ import type {
   NodePlacement,
   PolicyDeclaration,
   SagaDeclaration,
+  TypeReference,
   ValueObjectDeclaration,
   WhenBlock,
   AnnotationDeclaration,
@@ -238,7 +240,7 @@ function transformProjection(proj: ProjectionDeclaration): ProjectionDefinition 
     name: proj.name,
     sources: [...proj.sources],
     ...(proj.description ? { description: proj.description } : {}),
-    fields: proj.fields.map(transformFieldDeclaration),
+    fields: proj.fields.flatMap(fieldsOf),
     ...gatewaysOf(proj.gateways),
   };
 }
@@ -411,7 +413,7 @@ function transformEvent(
     name: evt.name,
     owner,
     ...(annotations ? { annotations } : {}),
-    fields: evt.fields.map(transformFieldDeclaration),
+    fields: evt.fields.flatMap(fieldsOf),
   };
 }
 
@@ -423,24 +425,69 @@ function transformValueObject(
     id: `vo-${vo.name}`,
     name: vo.name,
     ...(annotations ? { annotations } : {}),
-    fields: vo.fields.map(transformFieldDeclaration),
+    fields: vo.fields.flatMap(fieldsOf),
+    ...(vo.scalar
+      ? { scalar: fieldDefinition(vo.name, false, vo.scalar, vo.scalarAttributes) }
+      : {}),
+    ...(vo.variants.length > 0
+      ? {
+          variants: vo.variants.map((v) => ({ name: v.name, fields: v.fields.flatMap(fieldsOf) })),
+        }
+      : {}),
   };
 }
 
 function transformFieldDeclaration(field: FieldDeclaration | InputField): FieldDefinition {
+  return fieldDefinition(field.name, field.optional, field.type, field.attributes);
+}
+
+/**
+ * A field line is one field, or (ADR-049 D5) a group `a: T | b: U` of which exactly one is present: each
+ * member is then optional and names the group.
+ */
+function fieldsOf(field: FieldDeclaration): FieldDefinition[] {
+  const first = transformFieldDeclaration(field);
+  if (field.alternatives.length === 0) return [first];
+  const members = [
+    first,
+    ...field.alternatives.map((a) => fieldDefinition(a.name, a.optional, a.type, a.attributes)),
+  ];
+  const names = members.map((m) => m.name);
+  return members.map((m) => ({ ...m, required: false, exclusive: names }));
+}
+
+/** A code as written: the `"none"` token arrives with its quotes, every other code through STRING without. */
+function codeOf(literal: string): string {
+  return literal === '"none"' ? 'none' : literal;
+}
+
+/** The IR of one field. Keys beyond the four of 0.11 are written only when the syntax declares them (ADR-049 D9). */
+function fieldDefinition(
+  name: string,
+  optional: boolean,
+  type: TypeReference,
+  attributes: FieldAttributes | undefined,
+): FieldDefinition {
   const result: FieldDefinition = {
-    name: field.name,
-    type: field.type.typeName,
-    isArray: field.type.isArray,
-    required: true,
+    name,
+    type: type.typeName ?? 'string',
+    isArray: type.isArray,
+    required: !optional,
   };
-  if ('deprecation' in field && field.deprecation) {
-    result.deprecated = {
-      reason: field.deprecation.reason,
-      replacement: field.deprecation.replacement,
-    };
-  }
+  if (type.literals.length > 0) result.enum = type.literals.map(codeOf);
+  if (type.isMap) result.map = type.mapKey !== undefined ? { key: type.mapKey } : {};
+  if (attributes) applyAttributes(result, attributes);
   return result;
+}
+
+function applyAttributes(result: FieldDefinition, attributes: FieldAttributes): void {
+  const [deprecation] = attributes.deprecation;
+  if (deprecation) {
+    result.deprecated = { reason: deprecation.reason, replacement: deprecation.replacement };
+  }
+  const [pattern] = attributes.patterns;
+  if (pattern) result.pattern = pattern.pattern;
+  if (attributes.encrypted.length > 0) result.encrypted = true;
 }
 
 function transformInvariant(
@@ -847,7 +894,7 @@ function transformCrossingToContract(node: NodePlacement): SchemaContract {
   const crossing = node.crossing as ContextCrossing;
   const fields: SchemaFieldDefinition[] = crossing.fields.map((f) => ({
     name: f.name,
-    type: f.type.typeName + (f.type.isArray ? '[]' : ''),
+    type: (f.type.typeName ?? 'string') + (f.type.isArray ? '[]' : ''),
     required: f.required,
   }));
 

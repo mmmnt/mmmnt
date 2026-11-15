@@ -5,7 +5,8 @@
  * Intra-file validators can run on a single parsed document.
  * Cross-file validators require a CrossFileContext parameter.
  */
-import type { CstNode, ValidationAcceptor, ValidationChecks } from 'langium';
+import type { AstNode, CstNode, ValidationAcceptor, ValidationChecks } from 'langium';
+import { AstUtils } from 'langium';
 import type { LangiumCoreServices } from 'langium';
 import type {
   MomentAstType,
@@ -13,6 +14,8 @@ import type {
   AnnotationDeclaration,
   ContextCrossing,
   ContextDeclaration,
+  FieldAlternative,
+  FieldAttributes,
   FieldDeclaration,
   FlowDeclaration,
   InputField,
@@ -24,12 +27,15 @@ import type {
   SagaDeclaration,
   TriggeredBy,
   Triggers,
+  TypeReference,
+  ValueObjectDeclaration,
 } from '../generated/ast.js';
 import {
   isAggregateDeclaration,
   isAnnotationDeclaration,
   isCommandDeclaration,
   isDomainEventDeclaration,
+  isFieldDeclaration,
   isPolicyDeclaration,
   isProjectionDeclaration,
   isQueryDeclaration,
@@ -159,8 +165,10 @@ export function registerMomentValidationChecks(
   const validator = services.validation.MomentValidator;
   const checks: ValidationChecks<MomentAstType> = {
     MomentDeclaration: validator.checkMoment,
-    FieldDeclaration: validator.checkDeprecatedReplacement,
-    InputField: validator.checkDeprecatedReplacement,
+    FieldDeclaration: [validator.checkDeprecatedReplacement, validator.checkFieldTypes],
+    InputField: [validator.checkDeprecatedReplacement, validator.checkFieldTypes],
+    FieldAlternative: validator.checkFieldTypes,
+    ValueObjectDeclaration: validator.checkValueObjectShape,
     AnnotationDeclaration: validator.checkAnnotationName,
     ContextDeclaration: validator.checkTrailingAnnotation,
     AggregateDeclaration: validator.checkTrailingAnnotation,
@@ -235,6 +243,83 @@ function getMomentFromNode(node: { $container?: unknown }): MomentDeclaration | 
 }
 
 // ---------------------------------------------------------------------------
+// ADR-049 helpers: code sets and patterns
+// ---------------------------------------------------------------------------
+
+function checkLiterals(type: TypeReference, accept: ValidationAcceptor): void {
+  const seen = new Set<string>();
+  for (const literal of type.literals) {
+    if (seen.has(literal)) {
+      accept('error', `V53: The code set lists '${literal}' twice.`, {
+        node: type,
+        property: 'literals',
+      });
+    }
+    seen.add(literal);
+  }
+}
+
+const STRING_VALUED = new Set(['string', 'UUID', 'DateTime', 'Date']);
+
+/** The value objects the file declares, by name; a name declared in another file is not decidable here. */
+function valueObjectsOfFile(node: AstNode): Map<string, ValueObjectDeclaration> {
+  const root = AstUtils.findRootNode(node);
+  const map = new Map<string, ValueObjectDeclaration>();
+  for (const n of AstUtils.streamAllContents(root)) {
+    if (isValueObjectDeclaration(n)) map.set(n.name, n);
+  }
+  return map;
+}
+
+/** True or false when the file decides it; undefined for a value object the file does not declare. */
+function isStringValued(
+  type: TypeReference,
+  vos: Map<string, ValueObjectDeclaration>,
+  seen = new Set<string>(),
+): boolean | undefined {
+  if (type.literals.length > 0) return true;
+  const name = type.typeName ?? 'string';
+  if (STRING_VALUED.has(name)) return true;
+  if (['number', 'boolean', 'Money'].includes(name)) return false;
+  const vo = vos.get(name);
+  if (vo === undefined || seen.has(name)) return undefined;
+  if (!vo.scalar) return false;
+  seen.add(name);
+  return isStringValued(vo.scalar, vos, seen);
+}
+
+function checkPatterns(
+  name: string,
+  type: TypeReference,
+  attributes: FieldAttributes | undefined,
+  node: AstNode,
+  accept: ValidationAcceptor,
+): void {
+  for (const p of attributes?.patterns ?? []) {
+    try {
+      new RegExp(p.pattern, 'u');
+    } catch (e) {
+      accept(
+        'error',
+        `V55: The pattern of '${name}' is not a regular expression: ${(e as Error).message}`,
+        {
+          node: p,
+          property: 'pattern',
+        },
+      );
+      continue;
+    }
+    if (isStringValued(type, valueObjectsOfFile(node)) === false) {
+      accept(
+        'error',
+        `V55: '${name}' has a pattern, but its type '${type.typeName ?? 'string'}' is not string-valued.`,
+        { node: p, property: 'pattern' },
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Validator class
 // ---------------------------------------------------------------------------
 
@@ -257,8 +342,9 @@ export class MomentValidator {
     accept: ValidationAcceptor,
   ): void {
     // Parser recovery can leave a deprecation without its replacement string.
-    if (field.deprecation?.replacement === undefined) return;
-    const replacement = field.deprecation.replacement;
+    const deprecation = field.attributes?.deprecation[0];
+    if (deprecation?.replacement === undefined) return;
+    const replacement = deprecation.replacement;
     const siblings = collectSiblingNames(field);
     if (siblings === undefined) return;
     if (!siblings.has(replacement)) {
@@ -266,7 +352,7 @@ export class MomentValidator {
         'warning',
         `V12: Deprecated field '${field.name}' references replacement '${replacement}' which does not exist on this type.`,
         {
-          node: field.deprecation,
+          node: deprecation,
           property: 'replacement',
         },
       );
@@ -410,6 +496,67 @@ export class MomentValidator {
         node: moment,
         property: 'label',
       });
+    }
+  }
+
+  // =========================================================================
+  // ADR-049 D11. V53: a code twice in one code set. V54: an optional member of an exclusive group.
+  // V55: an invalid pattern, or a pattern on a field whose type is not string-valued.
+  // =========================================================================
+  checkFieldTypes(
+    field: FieldDeclaration | FieldAlternative | InputField,
+    accept: ValidationAcceptor,
+  ): void {
+    checkLiterals(field.type, accept);
+    if (isFieldDeclaration(field) && field.alternatives.length > 0) {
+      for (const member of [field, ...field.alternatives]) {
+        if (member.optional) {
+          accept(
+            'error',
+            `V54: '${member.name}' is one of an exclusive group ('${[field, ...field.alternatives].map((m) => m.name).join(' | ')}'), of which exactly one is present; it cannot also be optional.`,
+            { node: member, property: 'name' },
+          );
+        }
+      }
+    }
+    checkPatterns(field.name, field.type, field.attributes, field, accept);
+  }
+
+  // =========================================================================
+  // ADR-049 D11. V52: the discriminator `kind` of a tagged union is not a field name.
+  // V53: a variant named twice. A scalar value object's code set and pattern are checked as a field's.
+  // =========================================================================
+  checkValueObjectShape(vo: ValueObjectDeclaration, accept: ValidationAcceptor): void {
+    if (vo.scalar) {
+      checkLiterals(vo.scalar, accept);
+      checkPatterns(vo.name, vo.scalar, vo.scalarAttributes, vo, accept);
+    }
+    if (vo.variants.length === 0) return;
+    const fieldLines = [...vo.fields, ...vo.variants.flatMap((v) => v.fields)];
+    for (const line of fieldLines) {
+      for (const member of [line, ...line.alternatives]) {
+        if (member.name === 'kind') {
+          accept(
+            'error',
+            `V52: Value object '${vo.name}' is a tagged union, whose discriminator is 'kind'; no field of it may be named 'kind'.`,
+            { node: member, property: 'name' },
+          );
+        }
+      }
+    }
+    const seen = new Set<string>();
+    for (const variant of vo.variants) {
+      if (seen.has(variant.name)) {
+        accept(
+          'error',
+          `V53: Value object '${vo.name}' declares the variant '${variant.name}' twice.`,
+          {
+            node: variant,
+            property: 'name',
+          },
+        );
+      }
+      seen.add(variant.name);
     }
   }
 

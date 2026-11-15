@@ -2082,8 +2082,10 @@ describe('MomentValidator guard branches', () => {
       `);
       expect(result.document.parseResult.parserErrors).toHaveLength(0);
       const context = result.document.parseResult.value.contexts[0];
-      const aggregate = context.members[0] as { identityField: { deprecation?: unknown } };
-      expect(aggregate.identityField.deprecation).toBeDefined();
+      const aggregate = context.members[0] as {
+        identityField: { attributes?: { deprecation: unknown[] } };
+      };
+      expect(aggregate.identityField.attributes?.deprecation[0]).toBeDefined();
       expect(warningMessages(result).some((m) => m.includes('V12'))).toBe(false);
     });
   });
