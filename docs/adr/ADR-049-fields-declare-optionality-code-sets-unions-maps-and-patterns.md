@@ -162,6 +162,8 @@ Decidable in one file, so errors per file and over a project:
 
 `pattern` becomes a keyword and is escaped in `FieldName`, `InputName` and `LaneName`, as ADR-043 did for `outcome`, so a field or a lane named `pattern` still parses. `[encrypted]` is one token, as `[required]` and `[branch]` are. `?`, `{` and `}` are new tokens; no identifier can contain them. TicketWave, every fixture and the Sift model (the copy in `packages/board/fixtures/sift-model`) use none of them outside strings and comments.
 
+Build note (2026-11-14): the string literal `"none"` lexed as a keyword and is now read as a code-set value; one internal test read the old AST field `identityField.deprecation` and follows the new shape. Compatibility was measured: the IR of all 83 existing `.moment` files (examples, fixtures and the Sift model copy) is identical before and after, and `parse`, `test`, `simulate --all`, `generate`, `emit-ts` and `derive` write byte-identical files for TicketWave, every valid fixture and the Sift model copy; `moment schema emit` over the Sift model copy writes 63 schemas with no diagnostics.
+
 ## Consequences
 
 - A Moment model can state a closed payload contract, and `moment schema emit` gives it to a consumer with no overlay. Sift's D6 generator reads `model/` alone.
@@ -193,5 +195,5 @@ Decidable in one file, so errors per file and over a project:
 | `core` validation: V52–V55                                                                                                                                | no rule              | an error per rule, nothing on the valid fixture                                                 |
 | `schema` emitter: the fixture `fixtures/valid/field-types`                                                                                                | no emitter           | each row of D8, `additionalProperties: false` on every object, a diagnostic for an unknown type |
 | `cli` `schema emit`                                                                                                                                       | no subcommand        | one file per event, exit 1 on a diagnostic                                                      |
-| `emit-ts` and `derive` on the fixture                                                                                                                     | no such types        | literal unions, records, discriminated unions; samples are valid against the emitted schema     |
+| `emit-ts` and `derive` on the fixture                                                                                                                     | no such types        | literal unions, records, discriminated unions; a code set samples its first value, one member of an exclusive group |
 | Golden compat: TicketWave, every valid fixture, the Sift model copy                                                                                       | n/a                  | IR and every CLI artifact byte-identical to 0.11.0                                              |
