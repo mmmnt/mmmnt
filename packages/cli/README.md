@@ -71,7 +71,7 @@ moment watch
 - **Watch mode** -- monitors `.moment` files and automatically re-parses and regenerates artifacts on save.
 - **Structured output** -- many commands support `--json` for machine-readable output in CI/CD pipelines.
 - **Standard exit codes** -- non-zero exit on parse or validation errors, failing structural tests, and (for `moment status`) detected drift, for pipeline gating.
-- **Subcommand structure** -- `sync` and `schema` use subcommands (`sync status`, `sync propose`, `sync accept`, `sync reject`, `schema status`) for organized workflows.
+- **Subcommand structure** -- `sync` and `schema` use subcommands (`sync status`, `sync propose`, `sync accept`, `sync reject`, `schema status`, `schema emit`) for organized workflows.
 - **Authentication support** -- `moment auth` subcommands manage GitHub and quorum credentials.
 - **Verbose mode** -- `moment status --verbose` enables detailed output for the unified status command.
 
@@ -146,6 +146,7 @@ Sync keeps three append-only logs in `.domain/`, beside the spec file or inside 
 | Command | Description |
 |---------|-------------|
 | `moment schema status <file\|dir>` | Display the lifecycle phase and consumer count of every event field in the specification. |
+| `moment schema emit <file\|dir> [--out-dir <dir>]` | Write one closed JSON Schema (draft 2020-12) per event payload, `<Event>.schema.json`, or print them as one JSON object without `--out-dir`. Exits 1, writing nothing, on a type the model does not declare (ADR-049). |
 | `moment lint <file\|dir>` | Collect parse diagnostics, implementation drift warnings, and deprecated-field warnings into one report. Only parse errors produce a non-zero exit. Supports `--json` for CI integration. |
 
 ### Import

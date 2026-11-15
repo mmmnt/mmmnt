@@ -65,6 +65,7 @@ console.log(registry.getFieldPhase('BookingScheduled', 'vetName')); // 'deprecat
 - **Event-sourced state** -- the registry and consumption manifest emit and replay `SchemaRegistryEvent` and `ConsumptionManifestEvent`, with record shapes (`SchemaRegistryRecord`, `ConsumptionManifestRecord`) for `.domain/` JSONL logs.
 - **Codex rule evaluation** -- evaluates naming-convention and field-sensitivity-classification rules from a fetched rule pack; the pack is fetched lazily once per session and cached.
 - **Schema evolution validation** -- the `validateOnSchemaEvolution` policy replays registry events and evaluates every registered schema against the rule pack.
+- **Payload JSON Schemas** -- `emitPayloadSchemas(ir)` writes one closed JSON Schema (draft 2020-12) per event payload from a model's IR (ADR-049); `moment schema emit` writes them to files.
 
 ## Schema Lifecycle
 
@@ -89,6 +90,13 @@ console.log(registry.getFieldPhase('BookingScheduled', 'vetName')); // 'deprecat
 |--------|-------------|
 | `ConsumptionManifest` | Tracks which projections consume which event fields. `declareConsumption(DeclareConsumptionInput, registry)` rejects unregistered event types (CM-01). Queries: `hasZeroConsumers`, `getConsumers`, `getDeclaration`. |
 | `CodexRuleEvaluator` | Evaluates a schema (`SchemaEvaluationInput`: event type, version, field names) against a Codex rule pack fetched through an optional `RulePackFetcher`. Configured with `CodexRuleEvaluatorConfig` (`strategy`, `fetcher`). `evaluate()` returns a `RuleEvaluationResult`. |
+
+### Payload schemas
+
+| Export | Description |
+|--------|-------------|
+| `emitPayloadSchemas(ir)` | One JSON Schema per declared event, by name, and `diagnostics` (an undeclared type is a diagnostic, never an open schema). Every object is closed (`additionalProperties: false`); value objects are in `$defs`. An optional field is left out of `required`; a code set is `enum`; a tagged union is `oneOf`, one closed branch per variant with `kind` as `const`; an exclusive group is `oneOf` of `required`; a map types `additionalProperties` (`x-key` names the key); `[pattern]` is `pattern`; `[encrypted]` is `x-encrypted: true` with the `{dataKeyId, ciphertext}` envelope; `UUID`, `DateTime` and `Date` carry `format`. |
+| `UNION_TAG` | `'kind'`, the discriminator property of every tagged union. |
 
 ### Policies
 

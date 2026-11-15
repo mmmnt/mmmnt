@@ -73,7 +73,8 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 | Projection | context | `projection <Name>` `sources <Event>, ...`, then optional `description "<text>"`, `field <name>: <Type>` lines, and gateways. |
 | Query | context | `query <Name>` `reads <Projection or ValueObject>, ...`, then optional `input <name>: <Type>, ...` and `description "<text>"`. |
 | Rule | context | `rule <Id> "<description>" enforced-by <ServiceOrQuery>`, or `enforced-by "<external enforcer>"`. |
-| Value object | context or aggregate | `value-object <Name>` followed by fields. |
+| Value object | context or aggregate | `value-object <Name>` followed by fields; `value-object <Name>: <Type>` for a scalar; fields then `\| <Variant>` lines for a tagged union (ADR-049). |
+| Field | event, value object, projection, input | `<name>: <Type>`; `<name>?: <Type>` is optional; `<Type>` may be a code set `"a" \| "b"`, an array `T[]` or a map `T{}` / `T{key}`; attributes `[pattern "<regex>"]`, `[encrypted]`, `[deprecated "…" -> "…"]` follow the type; `a: T \| b: U` on one line is an exclusive group (ADR-049). |
 | Glossary term | context | `term "<term>" "<definition>"` |
 | Policy | context | `policy <Name> trigger <Event> [when <field> = <value>] [after <Event>] action "<text>" chains-to <Command>` -- one domain event, one command. `when` and `after` (ADR-045) say which occurrences of the trigger the policy reacts to; a number value is written as a string. |
 | Orchestration | context | `orchestration <Name>` (`saga` is an alias) with its own `command`s, the `event`s those commands emit, `invoked-by`, `issues`, `states`, `compensation` and `timeout`. |
@@ -235,6 +236,47 @@ In the IR a plain `emits A` is `emitsEvent: 'A'` and nothing else. Any other cla
 
 In a flow, place the events the command records after it. All the events of one outcome (V47), or the events of the outcome one `when` block shows. Derived artifacts follow: a scenario shows exactly one outcome, the events of one outcome carry the command step as their cause and share its timestamp, `moment generate` writes the later ones as `And ... emits`, `moment emit-ts` returns a tuple (`readonly [A, B]`) or a union (`A | B`), and the event catalog marks them with `recordedWith` and `alternativeTo`.
 
+### Field types: optional, code sets, unions, maps, patterns (ADR-049)
+
+Every field is required unless it is marked. These forms are opt-in; a model that uses none of them parses to the same IR as before.
+
+```
+context "Intake" [Core]
+  value-object ActorKind: "user" | "api" | "system"        // a named code set (a scalar value object)
+  value-object ContentHash: string [pattern "^[0-9a-f]{64}$"]
+
+  value-object Actor
+    sub: string
+    clientId?: string                                      // optional
+    kind: ActorKind
+
+  value-object Arrival                                     // a tagged union, discriminated by `kind`
+    actor: Actor                                           // common to every variant
+    | Live
+    | Replay
+        replay: "Bootstrap" | "Resume"                     // an inline code set
+    | Document
+        location: string
+        contentHash?: ContentHash
+
+  aggregate "Receipt"
+    identity pointer: string
+    event ReplayCompleted
+      replayPoint: number{stream}                          // a map from a string key (named `stream`)
+      pointer: string | recordRef: RecordRef               // exactly one of the two
+      rationale?: string [encrypted]                       // recorded as {dataKeyId, ciphertext}
+```
+
+- **Optional:** `name?: T`. The IR's `required` is `false`.
+- **Code set:** string literals joined by `|`, inline or as `value-object Name: "a" | "b"`. A code that is a keyword or has a space needs no escaping. IR: `type: 'string'`, `enum: [...]`.
+- **Scalar value object:** `value-object Name: T` is the bare value, not an object; a one-field value object (`value: string`) stays an object. It is also how a model names an id (`value-object ConstructId: string`). IR: `scalar`.
+- **Tagged union:** fields first (common to every variant), then `| Variant` and its fields. The discriminator is always `kind`, which no field of the union may be named (V52). IR: `variants: { name, fields }[]`.
+- **Exclusive fields:** `a: T | b: U` on one field line; exactly one is present, and no member may be `?` (V54). IR: each member has `required: false` and `exclusive: [names]`.
+- **Map:** `T{}` or `T{key}`, keyed by string. IR: `map: { key? }`.
+- **Attributes:** `[pattern "<regex>"]` (ECMAScript; on a string-valued type, V55) and `[encrypted]`, in any order with `[deprecated …]`.
+
+`moment schema emit` writes one closed JSON Schema per event from these declarations (`@mmmnt/schema`'s `emitPayloadSchemas`).
+
 The grammar source is [`src/grammar/moment.langium`](src/grammar/moment.langium).
 
 ## Validation Rules
@@ -275,6 +317,10 @@ V22–V43 compare names across declarations, so their severity depends on how mu
 | V49 | A policy's `when <field> = <value>` names a field its trigger event declares (ADR-045). A guard on a field named `outcome` is allowed. |
 | V50 | A policy's `after <Event>` names a declared event. |
 | V51 | A policy's `after <Event>` is placed before its trigger by some flow. An advisory, and only when a flow places the trigger. |
+| V52 | No field of a tagged union (common or of a variant) is named `kind`, its discriminator (ADR-049). An error in a single file. |
+| V53 | A union names each variant once, and a code set lists each code once. An error in a single file. |
+| V54 | A member of an exclusive group `a: T \| b: U` is not marked `?`. An error in a single file. |
+| V55 | A `[pattern]` is a valid regular expression on a string-valued type (`string`, `UUID`, `DateTime`, `Date`, a code set, or a scalar value object of one). An error in a single file. |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
