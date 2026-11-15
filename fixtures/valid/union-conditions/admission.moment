@@ -33,7 +33,7 @@ context "Admission" [Core]
     action "An admitted decision starts the visit"
     chains-to StartVisit
 
-flow "A request is postponed, then admitted"
+flow "N1 - A request is postponed, then admitted"
   lane admission "Admission" [Core]
   moment "The request is decided"
     admission: RecordDecision
