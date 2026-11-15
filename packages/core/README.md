@@ -76,7 +76,7 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 | Value object | context or aggregate | `value-object <Name>` followed by fields; `value-object <Name>: <Type>` for a scalar; fields then `\| <Variant>` lines for a tagged union (ADR-049). |
 | Field | event, value object, projection, input | `<name>: <Type>`; `<name>?: <Type>` is optional; `<Type>` may be a code set `"a" \| "b"`, an array `T[]` or a map `T{}` / `T{key}`; attributes `[pattern "<regex>"]`, `[encrypted]`, `[deprecated "…" -> "…"]` follow the type; `a: T \| b: U` on one line is an exclusive group (ADR-049). |
 | Glossary term | context | `term "<term>" "<definition>"` |
-| Policy | context | `policy <Name> trigger <Event> [when <field> = <value>] [after <Event>] action "<text>" chains-to <Command>` -- one domain event, one command. `when` and `after` (ADR-045) say which occurrences of the trigger the policy reacts to; a number value is written as a string. |
+| Policy | context | `policy <Name> trigger <Event> [when <field> = <value>] [after <Event>] action "<text>" chains-to <Command>` -- one domain event, one command. `when` and `after` (ADR-045) say which occurrences of the trigger the policy reacts to; a number value is written as a string. On a tagged union field, `when <field>.kind = <Variant>` reacts to one variant (ADR-050). |
 | Orchestration | context | `orchestration <Name>` (`saga` is an alias) with its own `command`s, the `event`s those commands emit, `invoked-by`, `issues`, `states`, `compensation` and `timeout`. |
 | Process event | orchestration | `event <Name>` with fields, declared inside an orchestration. An orchestration command emits it with `emits`. It is a domain event owned by the process. |
 | Emits clause | command | `emits A` records one event. `emits A, B` records both in one transaction. `emits A \| B` records one of them, chosen by the aggregate's state. `emits A when Open \| A, B when OneUseLeft` names the declared state that chooses each outcome (ADR-041). |
@@ -314,13 +314,15 @@ V22–V43 compare names across declarations, so their severity depends on how mu
 | V46 | A `when` guard names a declared state of the aggregate (or orchestration), no two outcomes carry the same state, and a command guards every outcome or none. Alternatives with no guard are an advisory. |
 | V47 | The events a flow places after one placement of a multi-event command come from one outcome. Part of an outcome is an advisory. |
 | V48 | Every outcome of a command with alternatives is placed by some flow. An advisory, over a merged project only. |
-| V49 | A policy's `when <field> = <value>` names a field its trigger event declares (ADR-045). A guard on a field named `outcome` is allowed. |
+| V49 | A policy's `when <field> = <value>` names a field its trigger event declares (ADR-045); for a path (`<field>.kind`, ADR-050) its first segment. A guard on a field named `outcome` is allowed. |
 | V50 | A policy's `after <Event>` names a declared event. |
 | V51 | A policy's `after <Event>` is placed before its trigger by some flow. An advisory, and only when a flow places the trigger. |
 | V52 | No field of a tagged union (common or of a variant) is named `kind`, its discriminator (ADR-049). An error in a single file. |
 | V53 | A union names each variant once, and a code set lists each code once. An error in a single file. |
 | V54 | A member of an exclusive group `a: T \| b: U` is not marked `?`. An error in a single file. |
 | V55 | A `[pattern]` is a valid regular expression on a string-valued type (`string`, `UUID`, `DateTime`, `Date`, a code set, or a scalar value object of one). An error in a single file. |
+| V56 | A policy's `when` path is `<field>.kind` on a field of its trigger typed by a tagged union (not an array or a map), and a union field is guarded only through `.kind` (ADR-050). Severity as V49. |
+| V57 | The variant a `when <field>.kind = <Variant>` guard names is declared by the field's union. Severity as V49. |
 
 Because these rules can report errors on a model that parsed under 0.5.0, check a model directory with `moment parse <dir>` (from `@mmmnt/cli`) after upgrading.
 
