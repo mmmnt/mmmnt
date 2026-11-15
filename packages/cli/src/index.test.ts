@@ -27,6 +27,7 @@ const m = vi.hoisted(() => ({
   runSyncAccept: vi.fn(),
   runSyncReject: vi.fn(),
   runSchemaStatus: vi.fn(),
+  runSchemaEmit: vi.fn(),
   runLint: vi.fn(),
   runImportFromSift: vi.fn(),
   runStatus: vi.fn(),
@@ -57,6 +58,7 @@ vi.mock('./commands/sync-propose.js', () => ({ runSyncPropose: m.runSyncPropose 
 vi.mock('./commands/sync-accept.js', () => ({ runSyncAccept: m.runSyncAccept }));
 vi.mock('./commands/sync-reject.js', () => ({ runSyncReject: m.runSyncReject }));
 vi.mock('./commands/schema-status.js', () => ({ runSchemaStatus: m.runSchemaStatus }));
+vi.mock('./commands/schema-emit.js', () => ({ runSchemaEmit: m.runSchemaEmit }));
 vi.mock('./commands/lint.js', () => ({ runLint: m.runLint }));
 vi.mock('./commands/import-from-sift.js', () => ({ runImportFromSift: m.runImportFromSift }));
 vi.mock('./commands/status.js', () => ({ runStatus: m.runStatus }));
@@ -260,6 +262,11 @@ const diagnosticCommands: { argv: string[]; fn: Mock; forwarded: string[] }[] = 
     forwarded: ['a.moment', 'p1'],
   },
   { argv: ['schema', 'status', 'a.moment'], fn: m.runSchemaStatus, forwarded: ['a.moment'] },
+  {
+    argv: ['schema', 'emit', 'a.moment', '--out-dir', 'o'],
+    fn: m.runSchemaEmit,
+    forwarded: ['a.moment', '--out-dir', 'o'],
+  },
 ];
 
 describe.each(diagnosticCommands)('moment $argv', ({ argv, fn, forwarded }) => {
@@ -345,7 +352,7 @@ describe('moment schema', () => {
       const { code, err } = await runCli(argv);
       expect(code).toBe(1);
       expect(err[0]).toBe(`Error: Unknown schema subcommand '${argv[1] ?? ''}'`);
-      expect(err[1]).toBe('Subcommands: status');
+      expect(err[1]).toBe('Subcommands: status, emit');
     },
   );
 });

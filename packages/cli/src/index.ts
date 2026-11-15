@@ -14,6 +14,7 @@ import { runSyncPropose } from './commands/sync-propose.js';
 import { runSyncAccept } from './commands/sync-accept.js';
 import { runSyncReject } from './commands/sync-reject.js';
 import { runSchemaStatus } from './commands/schema-status.js';
+import { runSchemaEmit } from './commands/schema-emit.js';
 import { runLint } from './commands/lint.js';
 import { runImportFromSift } from './commands/import-from-sift.js';
 import { runStatus } from './commands/status.js';
@@ -302,8 +303,8 @@ switch (command) {
   case 'schema': {
     const subcommand = args[0];
     const subArgs = args.slice(1);
-    if (subcommand === 'status') {
-      runSchemaStatus(subArgs)
+    if (subcommand === 'status' || subcommand === 'emit') {
+      (subcommand === 'status' ? runSchemaStatus(subArgs) : runSchemaEmit(subArgs))
         .then((result) => {
           if (result.success) {
             console.log(result.message);
@@ -321,7 +322,7 @@ switch (command) {
         });
     } else {
       console.error(`Error: Unknown schema subcommand '${subcommand ?? ''}'`);
-      console.error('Subcommands: status');
+      console.error('Subcommands: status, emit');
       process.exitCode = 1;
     }
     break;

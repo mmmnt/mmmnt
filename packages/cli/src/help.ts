@@ -27,6 +27,7 @@ Commands:
   sync reject <file|dir> <proposal-id>... --reason "<why>"
                            Decide pending proposals; commits .domain/ logs locally
   schema <status> <file>   Schema governance report
+  schema emit <file|dir>   One closed JSON Schema per event payload (--out-dir <dir>)
   import --from-sift <dir> Import a Sift JSONL export
   reconcile <file|dir>     Reconcile upstream drift (--local | --event <path>)
   status <file>            Unified project status
