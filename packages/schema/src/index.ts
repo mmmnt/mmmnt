@@ -60,3 +60,10 @@ export type {
   SchemaEvolutionDiagnostic,
   SchemaEvolutionPolicyResult,
 } from './policies/validate-on-schema-evolution.js';
+
+export { emitPayloadSchemas, UNION_TAG } from './services/payload-json-schema.js';
+export type {
+  JsonSchema,
+  PayloadSchemas,
+  PayloadSchemaDiagnostic,
+} from './services/payload-json-schema.js';
