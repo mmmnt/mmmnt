@@ -34,6 +34,7 @@ import type {
   SagaTransitionDefinition,
   PreconditionDefinition,
   PolicyDefinition,
+  FieldDefinition,
 } from '@mmmnt/core';
 import { nodeId } from './node-ids.js';
 import { multiEventPlacements, type Placement } from './multi-event-placement.js';
@@ -898,16 +899,8 @@ function buildPayload(
   const cmd = ctx && effectiveKind === 'command' ? findCommand(ctx, node.nodeName) : undefined;
   const evt = ctx && effectiveKind === 'event' ? findEvent(ctx, node.nodeName) : undefined;
 
-  if (cmd) {
-    payload.processName = node.nodeName;
-    for (const input of cmd.inputs) {
-      payload[input.name] = generatePlaceholder(input.type, input.name);
-    }
-  } else if (evt) {
-    for (const field of evt.fields) {
-      payload[field.name] = generatePlaceholder(field.type, field.name);
-    }
-  }
+  if (cmd) payload.processName = node.nodeName;
+  samplePayloadFields(payload, cmd?.inputs ?? evt?.fields);
 
   // Crossing contracts are boundary projections: every crosses-to contract the
   // flow attaches to this node name contributes its required shape, so the
@@ -1454,6 +1447,34 @@ function findEvent(ctx: ContextDefinition, name: string): EventDefinition | unde
     if (evt) return evt;
   }
   return undefined;
+}
+
+/** The sample value of every declared input or field, in declared order. */
+function samplePayloadFields(
+  payload: Record<string, unknown>,
+  fields: readonly FieldDefinition[] | undefined,
+): void {
+  for (const field of fields ?? []) {
+    if (sampled(field)) payload[field.name] = fieldPlaceholder(field);
+  }
+}
+
+/** Of an exclusive group (ADR-049 D5) only the first member is written, so the sample holds exactly one. */
+function sampled(field: FieldDefinition): boolean {
+  return field.exclusive === undefined || field.exclusive[0] === field.name;
+}
+
+/** ADR-049 D9: a code set samples its first value and a map samples `{}`; every other field is as before. */
+function fieldPlaceholder(field: FieldDefinition): unknown {
+  if (
+    field.enum !== undefined &&
+    field.enum.length > 0 &&
+    !field.isArray &&
+    field.map === undefined
+  )
+    return field.enum[0];
+  if (field.map !== undefined) return {};
+  return generatePlaceholder(field.type, field.name);
 }
 
 function generatePlaceholder(type: string, name: string): unknown {
