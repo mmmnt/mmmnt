@@ -1,6 +1,6 @@
 # ADR-050: A policy condition reads the variant of a union field
 
-- **Status:** Proposed (2026-11-14). The founder accepts.
+- **Status:** Accepted (2026-11-14, founder, flmnt decision 85aab064, "Accept + release 0.13.0 (Recommended)"). Released in the `@mmmnt/*` 0.13.0 group.
 - **Date:** 2026-11-14
 - **Supersedes:** nothing. Extends ADR-045 D1 to D4 (the `when` condition of a policy) for the tagged unions of ADR-049 D3, additively.
 - **Founder ruling (Sift workspace 729c1a1d, flmnt decision 5c6f0ecd, 2026-11-14, Q2, verbatim label):** "Union + Moment extension": a field becomes a tagged union "with a Moment extension so a policy condition can read `decision.kind`". The same founder's standing rule for Moment work (flmnt decision 0b837d08, Q1): "do not extend Moment with specificity to Sift's use case".
