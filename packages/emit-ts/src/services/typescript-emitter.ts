@@ -62,9 +62,28 @@ function mapFieldType(field: FieldDefinition): string {
     float: 'number',
     decimal: 'number',
   };
+  // ADR-049: a code set is a union of string literals; a map is a record keyed by string.
+  if (field.enum !== undefined) {
+    const literals = field.enum.map((v) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`);
+    const union = literals.join(' | ');
+    if (field.isArray) return `readonly (${union})[]`;
+    if (field.map !== undefined) return `Readonly<Record<string, ${union}>>`;
+    return union;
+  }
   const mapped = typeMap[field.type.toLowerCase()] ?? toPascalCase(field.type);
+  if (field.map !== undefined) return `Readonly<Record<string, ${mapped}>>`;
   const base = field.isArray ? `readonly ${mapped}[]` : mapped;
   return base;
+}
+
+function fieldLines(fields: readonly FieldDefinition[], indent: string): string {
+  let output = '';
+  for (const field of fields) {
+    const optional = field.required ? '' : '?';
+    output += generateDeprecatedJsDoc(field, indent);
+    output += `${indent}readonly ${safePropertyKey(field.name)}${optional}: ${mapFieldType(field)};\n`;
+  }
+  return output;
 }
 
 function generateJsDoc(description: string, indent: string): string {
@@ -94,6 +113,18 @@ function generateDeprecatedJsDoc(field: FieldDefinition, indent: string): string
 
 function generateValueObjectInterface(vo: ValueObjectDefinition): string {
   const name = toPascalCase(vo.name);
+  // ADR-049 D4: a scalar value object is a type alias of its scalar.
+  if (vo.scalar !== undefined) return `export type ${name} = ${mapFieldType(vo.scalar)};\n`;
+  // ADR-049 D3: a tagged union is a discriminated union on `kind`.
+  if (vo.variants !== undefined && vo.variants.length > 0) {
+    let union = `export type ${name} =\n`;
+    for (const variant of vo.variants) {
+      union += `  | {\n      readonly kind: '${variant.name}';\n`;
+      union += fieldLines([...vo.fields, ...variant.fields], '      ');
+      union += '    }\n';
+    }
+    return `${union.trimEnd()};\n`;
+  }
   let output = `export interface ${name} {\n`;
   for (const field of vo.fields) {
     const fieldType = mapFieldType(field);
