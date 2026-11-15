@@ -35,7 +35,9 @@ import type {
   PreconditionDefinition,
   PolicyDefinition,
   FieldDefinition,
+  ValueObjectDefinition,
 } from '@mmmnt/core';
+import { conditionPath, UNION_DISCRIMINATOR } from '@mmmnt/core';
 import { nodeId } from './node-ids.js';
 import { multiEventPlacements, type Placement } from './multi-event-placement.js';
 import { orderedMomentChildren } from './moment-children.js';
@@ -732,13 +734,64 @@ function otherThan(value: unknown): unknown {
   return `${String(value)}-other`;
 }
 
-/** The guarded field of a policy, when the event's payload has it. */
+/** The guarded field of a policy (a path's first segment, ADR-050), when the event's payload has it. */
 function guardedField(
   policy: PolicyDefinition,
   payload: Record<string, unknown>,
 ): string | undefined {
-  const field = policy.condition?.field;
-  return field !== undefined && field in payload ? field : undefined;
+  const written = policy.condition?.field;
+  if (written === undefined) return undefined;
+  const { field } = conditionPath(written);
+  return field in payload ? field : undefined;
+}
+
+/** A value object by name: the event's own context first, then any context of the model. */
+function findValueObject(
+  name: string,
+  own: ContextDefinition | undefined,
+  contextMap: Map<string, ContextDefinition>,
+): ValueObjectDefinition | undefined {
+  const inContext = (ctx: ContextDefinition): ValueObjectDefinition | undefined =>
+    ctx.valueObjects.find((v) => v.name === name) ??
+    ctx.aggregates.flatMap((a) => a.valueObjects ?? []).find((v) => v.name === name);
+  return (own && inContext(own)) ?? [...contextMap.values()].map(inContext).find((v) => v);
+}
+
+/**
+ * ADR-050: the variant names of the union a `<field>.kind = V` guard reads, or undefined when the guard is
+ * not such a path on a single union field (V56 reports it; the generator leaves the payload alone).
+ */
+function unionVariants(
+  policy: PolicyDefinition,
+  evt: EventDefinition,
+  own: ContextDefinition | undefined,
+  contextMap: Map<string, ContextDefinition>,
+): string[] | undefined {
+  const { field, path } = conditionPath(policy.condition?.field ?? '');
+  if (path.length !== 1 || path[0] !== UNION_DISCRIMINATOR) return undefined;
+  const f = evt.fields.find((x) => x.name === field);
+  if (f === undefined || !singleValue(f)) return undefined;
+  const variants = findValueObject(f.type, own, contextMap)?.variants ?? [];
+  return variants.length > 0 ? variants.map((v) => v.name) : undefined;
+}
+
+/** A field that holds one value of its type: not an array, a map or a code set. */
+function singleValue(f: FieldDefinition): boolean {
+  return !f.isArray && f.map === undefined && f.enum === undefined;
+}
+
+/** The union value with its discriminator set, over the sample (`{}` for a value object). */
+function withVariant(sample: unknown, variant: string): Record<string, unknown> {
+  const base =
+    typeof sample === 'object' && sample !== null && !Array.isArray(sample) ? sample : {};
+  return { ...base, [UNION_DISCRIMINATOR]: variant };
+}
+
+/** The variant on a union field's value, when it has one. */
+function variantOf(value: unknown): unknown {
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)[UNION_DISCRIMINATOR]
+    : undefined;
 }
 
 /** The policy's declared value, typed as the event's field. */
@@ -754,13 +807,44 @@ function moveOffDeclared(
   guarded: PolicyDefinition[],
   evt: EventDefinition,
   fixed: Set<string>,
+  variantsOf: (policy: PolicyDefinition) => string[] | undefined,
 ): void {
   for (const policy of guarded) {
     const field = guardedField(policy, payload);
     if (field === undefined || fixed.has(field)) continue;
+    const variants = variantsOf(policy);
+    if (variants !== undefined) {
+      moveOffVariant(payload, field, policy, guarded, variants, variantsOf);
+      continue;
+    }
     const declared = declaredValue(evt, policy);
     if (payload[field] === declared) payload[field] = otherThan(declared);
   }
+}
+
+/**
+ * ADR-050 D4: an occurrence the reaction does not name carries a variant that decidably does not meet the
+ * guard: the union's first variant no guard on the field declares, else the first other than this one.
+ * A value with no `kind` would be undecidable to a consumer that reads the path, so it is set too.
+ */
+function moveOffVariant(
+  payload: Record<string, unknown>,
+  field: string,
+  policy: PolicyDefinition,
+  guarded: PolicyDefinition[],
+  variants: string[],
+  variantsOf: (policy: PolicyDefinition) => string[] | undefined,
+): void {
+  const declared = policy.condition?.equals ?? '';
+  const current = variantOf(payload[field]);
+  if (current !== undefined && current !== declared) return;
+  const taken = new Set(
+    guarded
+      .filter((p) => variantsOf(p) !== undefined && guardedField(p, payload) === field)
+      .map((p) => p.condition?.equals ?? ''),
+  );
+  const other = variants.find((v) => !taken.has(v)) ?? variants.find((v) => v !== declared);
+  if (other !== undefined) payload[field] = withVariant(payload[field], other);
 }
 
 /**
@@ -781,15 +865,37 @@ function applyPolicyConditions(
     c.policies.filter((p) => p.trigger === node.nodeName && p.condition?.field !== undefined),
   );
   const naming = conditioned.get(index) ?? [];
+  const variantsOf = (policy: PolicyDefinition): string[] | undefined =>
+    unionVariants(policy, evt, ctx, contextMap);
   // A reaction names the occurrence; the first policy to name a field fixes it.
   const fixed = new Set<string>();
   for (const policy of guarded.filter((p) => naming.includes(p))) {
     const field = guardedField(policy, payload);
     if (field === undefined || fixed.has(field)) continue;
-    payload[field] = declaredValue(evt, policy);
+    const value = declaredGuardValue(payload[field], evt, policy, variantsOf);
+    if (value === NOT_WRITTEN) continue;
+    payload[field] = value;
     fixed.add(field);
   }
-  moveOffDeclared(payload, guarded, evt, fixed);
+  moveOffDeclared(payload, guarded, evt, fixed, variantsOf);
+}
+
+const NOT_WRITTEN = Symbol('not written');
+
+/**
+ * The value the named occurrence carries: the declared value (ADR-045), or for a `<field>.kind = V` guard
+ * the union value with `kind: V` (ADR-050 D4). Any other path is V56's, and nothing is written.
+ */
+function declaredGuardValue(
+  sample: unknown,
+  evt: EventDefinition,
+  policy: PolicyDefinition,
+  variantsOf: (policy: PolicyDefinition) => string[] | undefined,
+): unknown {
+  if (conditionPath(policy.condition?.field ?? '').path.length === 0)
+    return declaredValue(evt, policy);
+  if (variantsOf(policy) === undefined) return NOT_WRITTEN;
+  return withVariant(sample, policy.condition?.equals ?? '');
 }
 
 /**
