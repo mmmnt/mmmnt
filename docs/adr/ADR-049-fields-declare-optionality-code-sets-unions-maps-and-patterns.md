@@ -1,6 +1,6 @@
 # ADR-049: Fields declare optionality, code sets, unions, maps and patterns
 
-- **Status:** Proposed (2026-11-14). Built on branch `feat/field-types` for review; the syntax below is put to the founder before it is accepted and released.
+- **Status:** Accepted (2026-11-14, founder, flmnt decision 8529e0fe, "Accept + release 0.12.0 (Recommended)"). The syntax below is released in the `@mmmnt/*` 0.12.0 group.
 - **Date:** 2026-11-14
 - **Supersedes:** nothing. Extends the field rule of the grammar (`FieldDeclaration`, `InputField`, `TypeReference`, `ValueObjectDeclaration`) additively.
 - **Founder ruling (Sift workspace 729c1a1d, flmnt decision f93ebffc, 2026-11-14, verbatim label):** "Extend Moment grammar": "Moment's grammar gains syntax for optional fields, enums (code sets) and unions/oneOf (and patterns/formats as needed), released on the founder's go; then model/ is edited to state them, so model/ alone stays the spec of record and the D6 generator reads it with no overlay." Same decision, label "x-encrypted + envelope (Recommended)": an encrypted free-text field carries the schema marker `x-encrypted: true` and the value `{dataKeyId, ciphertext}`.
