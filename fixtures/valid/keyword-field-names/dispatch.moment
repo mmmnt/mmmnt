@@ -1,0 +1,67 @@
+// ADR-051: any word Moment reserves may name a field, an input or a lane. Every name below that is also a
+// keyword (`scope`, `policy`, `context`, `trigger`, `type`, `on`, `state`, `timeout`, `string`, `when`)
+// parses as a name, is checked as one, and is written as one by every emitter.
+
+context "Dispatch" [Core]
+  description "A job is started by a schedule or by hand, and a scheduled job finishes by itself"
+
+  value-object Trigger
+    | Scheduled
+        timeout: string
+    | Manual
+        string: string
+
+  value-object Target
+    context: string
+    scope: "local" | "global"
+
+  aggregate "Job"
+    identity jobId: UUID
+
+    command StartJob
+      input jobId: UUID, policy: string, scope?: "local" | "global", trigger: Trigger, context: Target
+      emits JobStarted
+
+    command FinishJob
+      input jobId: UUID, state: string
+      emits JobFinished
+
+    event JobStarted
+      jobId: UUID
+      policy: string
+      scope?: "local" | "global"
+      trigger: Trigger
+      context: Target
+      type: string [pattern "^[a-z][a-z-]*$"]
+      on: DateTime
+
+    event JobFinished
+      jobId: UUID
+      state: string
+      when: DateTime
+
+  policy ScheduledJobFinishes
+    trigger JobStarted when trigger.kind = Scheduled
+    action "A scheduled job finishes by itself"
+    chains-to FinishJob
+
+  projection JobBoard
+    sources JobStarted, JobFinished
+    field policy: string
+    field state: string
+
+  query GetJobBoard
+    reads JobBoard
+    input scope: string, context?: string
+
+flow "N1 - A scheduled job starts and finishes"
+  lane policy "Dispatch" [Core]
+  moment "The schedule starts the job"
+    policy: StartJob
+    policy: JobStarted
+  moment "The job finishes by itself"
+    policy: FinishJob
+      triggered-by JobStarted
+    policy: JobFinished
+  moment "Someone reads the board"
+    policy: GetJobBoard

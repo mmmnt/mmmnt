@@ -43,6 +43,33 @@ describe('moment schema emit', () => {
     expect(Object.keys(JSON.parse(result.message))).toHaveLength(63);
   });
 
+  // ADR-051: a field named with a Moment keyword is a property of that name, in an event and a value object.
+  it('writes the properties of fields named with keywords', async () => {
+    const result = await runSchemaEmit([
+      resolve(FIXTURES, 'valid/keyword-field-names/dispatch.moment'),
+    ]);
+    expect(result.diagnostics).toEqual([]);
+    const schemas = JSON.parse(result.message);
+    const started = schemas.JobStarted;
+    expect(Object.keys(started.properties)).toEqual([
+      'jobId',
+      'policy',
+      'scope',
+      'trigger',
+      'context',
+      'type',
+      'on',
+    ]);
+    expect(started.required).toEqual(['jobId', 'policy', 'trigger', 'context', 'type', 'on']);
+    expect(started.properties.context).toEqual({ $ref: '#/$defs/Target' });
+    expect(Object.keys(started.$defs.Target.properties)).toEqual(['context', 'scope']);
+    expect(started.$defs.Trigger.oneOf.map((v: { required: string[] }) => v.required)).toEqual([
+      ['kind', 'timeout'],
+      ['kind', 'string'],
+    ]);
+    expect(Object.keys(schemas.JobFinished.properties)).toEqual(['jobId', 'state', 'when']);
+  });
+
   it('fails, writing nothing, on a type that is not declared', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'schema-emit-bad-'));
     const file = join(dir, 'bad.moment');
