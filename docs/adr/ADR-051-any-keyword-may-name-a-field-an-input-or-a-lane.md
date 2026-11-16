@@ -1,6 +1,6 @@
 # ADR-051: Any keyword may name a field, an input or a lane
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-11-16, founder, flmnt decision abcde67b, "Accept + release 0.14.0 (Recommended)"). Released in the `@mmmnt/*` 0.14.0 group.
 - **Date:** 2026-11-16
 - **Supersedes:** nothing. Generalises the keyword escapes of ADR-037 (§2), ADR-040, ADR-043 D1, ADR-045 and ADR-049 D12 into one rule, and lifts the refusal of a field named `when` that ADR-041 pinned in a test.
 - **Founder ruling (Sift workspace 729c1a1d, flmnt decision 8b471058, verbatim label):** "Moment allows any keyword (Recommended)": a generic change so that any Moment keyword is accepted wherever a field name (and input name; lane names if consistent) is expected. The standing rule for Moment work (flmnt decision 0b837d08) applies: no extension specific to Sift's use case.
