@@ -238,7 +238,7 @@ function buildMessageYaml(crossings: readonly CrossingInfo[]): string {
     lines.push(`        properties:`);
 
     for (const field of crossing.eventFields) {
-      lines.push(`          ${field.name}:`);
+      lines.push(`          ${yamlKey(field.name)}:`);
       lines.push(`            type: '${mapAsyncApiType(field.type)}'`);
       if (field.deprecated) {
         lines.push(`            deprecated: true`);
@@ -249,7 +249,7 @@ function buildMessageYaml(crossings: readonly CrossingInfo[]): string {
     if (crossing.requiredFields.length > 0) {
       lines.push(`        required:`);
       for (const name of crossing.requiredFields) {
-        lines.push(`          - ${name}`);
+        lines.push(`          - ${yamlKey(name)}`);
       }
     }
   }
@@ -280,4 +280,16 @@ function toKebabCase(name: string): string {
 
 function escapeYaml(value: string): string {
   return value.replace(/'/g, "''");
+}
+
+/**
+ * A field name as a YAML key or list item. A Moment name is identifier-shaped, so it is a plain scalar
+ * unless YAML would resolve it as a boolean or a null: YAML 1.1 reads `on`, `off`, `yes`, `no`, `y` and `n`
+ * as booleans, and both versions read `true`, `false` and `null`. `on` is a Moment keyword, and a field
+ * may be named with one (ADR-051). Such a name is single-quoted; every other name is written as before.
+ */
+const YAML_NON_STRING = /^(?:y|n|yes|no|on|off|true|false|null)$/i;
+
+function yamlKey(name: string): string {
+  return YAML_NON_STRING.test(name) ? `'${escapeYaml(name)}'` : name;
 }

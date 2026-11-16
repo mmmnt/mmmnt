@@ -719,6 +719,70 @@ describe('generateAsyncApiSpec', () => {
     expect(doc.components.messages.OrderPlaced.payload.required).toEqual(['orderId']);
   });
 
+  // ADR-051: a field may be named with a Moment keyword. `on` is one, and a YAML 1.1 reader takes a plain
+  // `on` key for the boolean true; the name is quoted wherever YAML would read it as other than a string.
+  it('writes a field named `on` (or any YAML boolean or null word) as a string key', () => {
+    const names = ['on', 'scope', 'policy', 'context', 'type', 'when'];
+    const evt = makeEvent(
+      'JobStarted',
+      names.map((name) => ({ name, type: 'string' })),
+    );
+    const ir = makeIR({
+      contexts: [
+        makeContext('Dispatch', { aggregates: [makeAggregate('Job', [evt])] }),
+        makeContext('Billing'),
+      ],
+      flows: [
+        {
+          id: 'flow-1',
+          name: 'keyword-flow',
+          lanes: [],
+          moments: [
+            {
+              id: 'm0',
+              name: 'Start',
+              contextEntries: [
+                { contextId: 'ctx-Dispatch', nodeName: 'JobStarted', nodeKind: 'event' as const },
+              ],
+            },
+          ],
+          connections: [
+            {
+              id: 'c1',
+              sourceMomentId: 'm0',
+              targetContextId: 'ctx-Billing',
+              eventId: 'evt-JobStarted',
+              connectionType: 'crosses-to' as const,
+              schemaContract: {
+                eventType: 'JobStarted',
+                fields: [],
+                relationshipType: 'Conformist',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const output = generateAsyncApiSpec(ir);
+    expect(output).toContain("          'on':");
+    expect(output).toContain("          - 'on'");
+    expect(output).toContain('          scope:');
+    for (const version of ['1.1', '1.2'] as const) {
+      const doc = parseYaml(output, { version }) as {
+        components: {
+          messages: Record<
+            string,
+            { payload: { properties: Record<string, unknown>; required?: unknown[] } }
+          >;
+        };
+      };
+      const payload = doc.components.messages.JobStarted.payload;
+      expect(Object.keys(payload.properties)).toEqual(names);
+      expect(payload.required).toEqual(names);
+    }
+  });
+
   // -------------------------------------------------------------------------
   // Audit fix #3: flow-only specs still produce channels from schema contracts
   // -------------------------------------------------------------------------
