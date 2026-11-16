@@ -87,6 +87,8 @@ A `.moment` file may hold contexts, flows, external systems, or any mix of them.
 
 Strings are double-quoted and may span lines. A backslash escapes the next character: `\"` for a double quote, `\\` for a backslash, `\n`, `\t` and `\r` for a newline, tab and carriage return. Parsed values arrive in the IR unquoted and unescaped.
 
+A field, an input or a lane may be named with any word, a Moment keyword included (ADR-051): `scope: string`, `input policy: string`, `lane context "Context" [Core]`, `trigger Started when trigger.kind = Scheduled`. A name is always followed by `:` (or `?:`), which no declaration that begins with the same word is, so `policy: string` in an event is a field and `policy P` a declaration. A crossing's `contract` fields stay plain identifiers, because the next placement (`<lane>: <Node>`) has the same shape.
+
 Flow nodes resolve to commands, events, policies, orchestrations, projections and queries. A minimal example using the newer constructs:
 
 ```
@@ -143,7 +145,7 @@ flow "Checkout"
 
 ### Processes, causes, notes and hops
 
-Four additions (ADR-040) model what recurs in process-manager and Event Storming work. `cause`, `causes` and `note` are keywords; a field, input or lane named so keeps parsing. A node named `note` or `cause` is the one source break.
+Four additions (ADR-040) model what recurs in process-manager and Event Storming work. `cause`, `causes` and `note` are keywords; a field, input or lane may still be named so (as with any keyword, ADR-051). A node named `note` or `cause` is the one source break.
 
 A process records its outcomes as events. The orchestration declares them, and its commands emit them. Policies can trigger on them, projections can source from them, and flows can place them:
 
