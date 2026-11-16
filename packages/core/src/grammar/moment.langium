@@ -221,9 +221,9 @@ NodePlacement:
         crossing=ContextCrossing?
         connections+=Connection*;
 
-// A lane may be named with a word ADR-040 or ADR-043 made a keyword, so a model that already used it keeps parsing.
+// A lane may be named with any word, a keyword included (ADR-051, which generalises the escapes of ADR-040 and ADR-043).
 LaneName returns string:
-    ID | 'cause' | 'causes' | 'note' | 'outcome' | 'after' | 'pattern';
+    ID | ReservedWord;
 
 Multiplicity:
     '(' '×' (count=INT | countVar=ID) ')';
@@ -277,16 +277,30 @@ FieldDeprecation:
 FieldPattern:
     '[' 'pattern' pattern=STRING ']';
 
-// ADR-037 made new words keywords. A comma-separated input list may use any of them as a name; a field
-// list, which a new declaration can follow, may use only those that cannot begin a declaration.
+// A field or an input may be named with any word, a keyword included (ADR-051). ADR-037, ADR-040, ADR-043,
+// ADR-045 and ADR-049 escaped their keywords one at a time; the escape is now the whole reserved set.
 InputName returns string:
-    FieldName | 'projection' | 'query' | 'rule' | 'term';
+    FieldName;
 
-// A keyword that never starts a declaration may name a field; one that does (`orchestration`) may not,
-// or a field list would read the next declaration as a field.
 FieldName returns string:
-    ID | 'sources' | 'field' | 'reads' | 'enforced-by' |
-    'state' | 'initial' | 'issues' | 'gateway' | 'none' | 'invoked-by' | 'cause' | 'causes' | 'note' | 'outcome' | 'after' | 'pattern';
+    ID | ReservedWord;
+
+// ADR-051: every word the grammar reserves. Each may name a field, an input or a lane: in those places
+// the word is followed by `:` or `?:` (by `"label"` after `lane`), which no declaration or clause that
+// begins with the word is, so the parser's unbounded lookahead tells the two apart. A keyword added to the
+// grammar is added here too; `keyword-names-adr051.spec.ts` reads the grammar's words and fails otherwise.
+ReservedWord returns string:
+    'AnticorruptionLayer' | 'Conformist' | 'Core' | 'CustomerSupplier' | 'Date' | 'DateTime' |
+    'External' | 'Generic' | 'Money' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' |
+    'SeparateWays' | 'Supporting' | 'Terminal' | 'UUID' | 'action' | 'after' | 'aggregate' | 'boolean' |
+    'branch-lane' | 'cause' | 'causes' | 'chains-to' | 'command' | 'compensation' | 'consumes' |
+    'context' | 'contract' | 'crosses-to' | 'deprecated' | 'description' | 'emits' | 'enforced-by' |
+    'event' | 'external' | 'field' | 'flow' | 'gateway' | 'identity' | 'initial' | 'input' |
+    'invariant' | 'invoked-by' | 'issues' | 'lane' | 'moment' | 'none' | 'note' | 'number' | 'on' |
+    'optional' | 'orchestration' | 'outcome' | 'pattern' | 'policy' | 'precondition' | 'produces' |
+    'projection' | 'query' | 'reads' | 'relationship' | 'returns-to' | 'rule' | 'saga' | 'scope' |
+    'service' | 'sources' | 'state' | 'states' | 'string' | 'term' | 'terminal' | 'timeout' |
+    'trigger' | 'triggered-by' | 'triggers' | 'type' | 'value-object' | 'via' | 'when';
 
 // A field of the trigger event, or a path into it (ADR-050): `decision.kind`. Written back without spaces.
 ConditionPath returns string:

@@ -985,18 +985,28 @@ context "C" [Core]
     expect(saga.commands[1].emits).toBeUndefined();
   });
 
-  it('leaves `when` out of the words a field may be named, as before the clause existed', async () => {
+  // ADR-051 lifts the refusal this spec pinned: any keyword may name a field. `when` followed by `:` is a
+  // field; the guard of an outcome is `when` followed by a state's name.
+  it('reads `when:` as a field and `when <State>` as the guard of an outcome', async () => {
     const doc = await parse(`
 context "C" [Core]
   aggregate "A"
     identity aId: UUID
+    state initial Open
     command Do
-      emits Done
+      emits Done when Open
     event Done
       when: DateTime
       aId: UUID
 `);
-    expect(doc.parseResult.parserErrors.length).toBeGreaterThan(0);
+    expect(doc.parseResult.parserErrors).toEqual([]);
+    const agg = doc.parseResult.value.contexts[0].members[0];
+    if (agg.$type !== 'AggregateDeclaration') throw new Error('expected an aggregate');
+    const [command, event] = agg.members;
+    if (command.$type !== 'CommandDeclaration') throw new Error('expected a command');
+    if (event.$type !== 'DomainEventDeclaration') throw new Error('expected an event');
+    expect(command.emits.outcomes.map((o) => [o.events, o.state])).toEqual([[['Done'], 'Open']]);
+    expect(event.fields.map((f) => f.name)).toEqual(['when', 'aId']);
   });
 });
 

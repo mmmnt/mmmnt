@@ -543,10 +543,10 @@ export function isFieldDeprecation(item: unknown): item is FieldDeprecation {
     return reflection.isInstance(item, FieldDeprecation.$type);
 }
 
-export type FieldName = 'after' | 'cause' | 'causes' | 'enforced-by' | 'field' | 'gateway' | 'initial' | 'invoked-by' | 'issues' | 'none' | 'note' | 'outcome' | 'pattern' | 'reads' | 'sources' | 'state' | string;
+export type FieldName = ReservedWord | string;
 
 export function isFieldName(item: unknown): item is FieldName {
-    return item === 'sources' || item === 'field' || item === 'reads' || item === 'enforced-by' || item === 'state' || item === 'initial' || item === 'issues' || item === 'gateway' || item === 'none' || item === 'invoked-by' || item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || item === 'pattern' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return isReservedWord(item) || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export interface FieldPattern extends langium.AstNode {
@@ -627,11 +627,8 @@ export function isInputField(item: unknown): item is InputField {
     return reflection.isInstance(item, InputField.$type);
 }
 
-export type InputName = 'projection' | 'query' | 'rule' | 'term' | FieldName;
+export type InputName = FieldName;
 
-export function isInputName(item: unknown): item is InputName {
-    return isFieldName(item) || item === 'projection' || item === 'query' || item === 'rule' || item === 'term';
-}
 
 export interface InvariantDeclaration extends langium.AstNode {
     readonly $container: AggregateDeclaration;
@@ -690,10 +687,10 @@ export function isLaneDeclaration(item: unknown): item is LaneDeclaration {
     return reflection.isInstance(item, LaneDeclaration.$type);
 }
 
-export type LaneName = 'after' | 'cause' | 'causes' | 'note' | 'outcome' | 'pattern' | string;
+export type LaneName = ReservedWord | string;
 
 export function isLaneName(item: unknown): item is LaneName {
-    return item === 'cause' || item === 'causes' || item === 'note' || item === 'outcome' || item === 'after' || item === 'pattern' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+    return isReservedWord(item) || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
 }
 
 export type ModifierType = 'optional' | 'outcome' | 'terminal';
@@ -938,6 +935,12 @@ export type RelationshipType = 'AnticorruptionLayer' | 'Conformist' | 'CustomerS
 
 export function isRelationshipType(item: unknown): item is RelationshipType {
     return item === 'CustomerSupplier' || item === 'Partnership' || item === 'Conformist' || item === 'AnticorruptionLayer' || item === 'OpenHostService' || item === 'PublishedLanguage' || item === 'SeparateWays' || (typeof item === 'string' && (/[a-zA-Z_][a-zA-Z0-9_-]*/.test(item)));
+}
+
+export type ReservedWord = 'AnticorruptionLayer' | 'Conformist' | 'Core' | 'CustomerSupplier' | 'Date' | 'DateTime' | 'External' | 'Generic' | 'Money' | 'OpenHostService' | 'Partnership' | 'PublishedLanguage' | 'SeparateWays' | 'Supporting' | 'Terminal' | 'UUID' | 'action' | 'after' | 'aggregate' | 'boolean' | 'branch-lane' | 'cause' | 'causes' | 'chains-to' | 'command' | 'compensation' | 'consumes' | 'context' | 'contract' | 'crosses-to' | 'deprecated' | 'description' | 'emits' | 'enforced-by' | 'event' | 'external' | 'field' | 'flow' | 'gateway' | 'identity' | 'initial' | 'input' | 'invariant' | 'invoked-by' | 'issues' | 'lane' | 'moment' | 'none' | 'note' | 'number' | 'on' | 'optional' | 'orchestration' | 'outcome' | 'pattern' | 'policy' | 'precondition' | 'produces' | 'projection' | 'query' | 'reads' | 'relationship' | 'returns-to' | 'rule' | 'saga' | 'scope' | 'service' | 'sources' | 'state' | 'states' | 'string' | 'term' | 'terminal' | 'timeout' | 'trigger' | 'triggered-by' | 'triggers' | 'type' | 'value-object' | 'via' | 'when';
+
+export function isReservedWord(item: unknown): item is ReservedWord {
+    return item === 'AnticorruptionLayer' || item === 'Conformist' || item === 'Core' || item === 'CustomerSupplier' || item === 'Date' || item === 'DateTime' || item === 'External' || item === 'Generic' || item === 'Money' || item === 'OpenHostService' || item === 'Partnership' || item === 'PublishedLanguage' || item === 'SeparateWays' || item === 'Supporting' || item === 'Terminal' || item === 'UUID' || item === 'action' || item === 'after' || item === 'aggregate' || item === 'boolean' || item === 'branch-lane' || item === 'cause' || item === 'causes' || item === 'chains-to' || item === 'command' || item === 'compensation' || item === 'consumes' || item === 'context' || item === 'contract' || item === 'crosses-to' || item === 'deprecated' || item === 'description' || item === 'emits' || item === 'enforced-by' || item === 'event' || item === 'external' || item === 'field' || item === 'flow' || item === 'gateway' || item === 'identity' || item === 'initial' || item === 'input' || item === 'invariant' || item === 'invoked-by' || item === 'issues' || item === 'lane' || item === 'moment' || item === 'none' || item === 'note' || item === 'number' || item === 'on' || item === 'optional' || item === 'orchestration' || item === 'outcome' || item === 'pattern' || item === 'policy' || item === 'precondition' || item === 'produces' || item === 'projection' || item === 'query' || item === 'reads' || item === 'relationship' || item === 'returns-to' || item === 'rule' || item === 'saga' || item === 'scope' || item === 'service' || item === 'sources' || item === 'state' || item === 'states' || item === 'string' || item === 'term' || item === 'terminal' || item === 'timeout' || item === 'trigger' || item === 'triggered-by' || item === 'triggers' || item === 'type' || item === 'value-object' || item === 'via' || item === 'when';
 }
 
 export interface ReturnsTo extends langium.AstNode {
