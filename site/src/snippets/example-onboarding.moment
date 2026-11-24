@@ -1,0 +1,47 @@
+context "Identity" [Core]
+  aggregate "Account"
+    identity accountId: UUID
+    command CreateAccount
+      input plan: string
+      emits AccountCreated
+    event AccountCreated
+      accountId: UUID
+      plan: string
+
+context "Billing" [Supporting]
+  aggregate "Subscription"
+    identity subscriptionId: UUID
+    command StartSubscription
+      input accountId: UUID, plan: string
+      emits SubscriptionStarted
+    event SubscriptionStarted
+      accountId: UUID
+      seats: number
+
+context "Workspace" [Supporting]
+  aggregate "Workspace"
+    identity workspaceId: UUID
+    command ProvisionWorkspace
+      input accountId: UUID, seats: number
+      emits WorkspaceProvisioned
+    event WorkspaceProvisioned
+      workspaceId: UUID
+
+flow "customer-onboarding"
+  lane accounts "Identity" [Core]
+  lane billing "Billing" [Supporting]
+  lane workspace "Workspace" [Supporting]
+  moment "Sign up"
+    accounts: AccountCreated crosses-to billing via CustomerSupplier
+      contract
+        accountId: UUID [required]
+        plan: string [required]
+  moment "Provision"
+    billing: SubscriptionStarted crosses-to workspace via CustomerSupplier
+      contract
+        accountId: UUID [required]
+        seats: number [required]
+      triggers ProvisionWorkspace
+  moment "Workspace"
+    workspace: ProvisionWorkspace
+    workspace: WorkspaceProvisioned

@@ -1,0 +1,34 @@
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      input items: LineItem[]
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+      items: LineItem[]
+  value-object LineItem
+    sku: string
+    quantity: number
+
+context "Fulfillment" [Supporting]
+  aggregate "Shipment"
+    identity shipmentId: UUID
+    command InitiateFulfillment
+      input orderId: UUID
+      emits FulfillmentInitiated
+    event FulfillmentInitiated
+      shipmentId: UUID
+
+flow "order-placed"
+  lane ordering "Ordering" [Core]
+  lane fulfillment "Fulfillment" [Supporting]
+  moment "Submission"
+    ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        items: LineItem[] [required]
+      triggers InitiateFulfillment
+  moment "Fulfillment starts"
+    fulfillment: InitiateFulfillment
+    fulfillment: FulfillmentInitiated
