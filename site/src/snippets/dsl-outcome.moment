@@ -1,0 +1,29 @@
+context "Inventory" [Core]
+  aggregate "SeatHold"
+    identity holdId: UUID
+    state initial Available
+    state Available -> SoldOut on RequestHold
+    command RequestHold
+      input tierId: UUID, quantity: number
+      emits SeatsHeld when Available | TierSoldOut when SoldOut
+    command JoinWaitlist
+      input tierId: UUID
+      emits WaitlistJoined
+    event SeatsHeld
+      holdId: UUID
+    event TierSoldOut
+      holdId: UUID
+    event WaitlistJoined
+      holdId: UUID
+
+flow "Seat request"
+  lane inventory "Inventory" [Core]
+
+  moment "Availability decision" [branch]
+    inventory: RequestHold
+    when seats-available
+      inventory: SeatsHeld
+    when sold-out
+      inventory: TierSoldOut
+      inventory: JoinWaitlist
+      inventory: WaitlistJoined [outcome]

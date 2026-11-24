@@ -1,0 +1,31 @@
+context "Scheduling" [Core]
+  value-object Trigger
+    | Scheduled
+    | Manual
+        by: string
+
+  aggregate "Job"
+    identity jobId: UUID
+    command StartJob
+      input policy: string, scope: string
+      emits JobStarted
+    command NotifyOwner
+      input jobId: UUID
+      emits OwnerNotified
+    event JobStarted
+      jobId: UUID
+      trigger: Trigger
+    event OwnerNotified
+      jobId: UUID
+
+  policy NotifyOnScheduledStart
+    trigger JobStarted when trigger.kind = Scheduled
+    action "tell the owner a scheduled job started"
+    chains-to NotifyOwner
+
+flow "Jobs"
+  lane context "Scheduling" [Core]
+
+  moment "A job starts"
+    context: StartJob
+    context: JobStarted

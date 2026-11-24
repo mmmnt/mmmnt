@@ -1,0 +1,34 @@
+context "Payments" [Core]
+  value-object Decision
+    | Approved
+    | Declined
+        reason: string
+
+  aggregate "Payment"
+    identity paymentId: UUID
+    command SettlePayment
+      input paymentId: UUID
+      emits PaymentSettled
+    command RefundPayment
+      input paymentId: UUID
+      emits PaymentRefunded
+    event PaymentAuthorised
+      paymentId: UUID
+      channel: "web" | "box-office"
+    event PaymentReviewed
+      paymentId: UUID
+      decision: Decision
+    event PaymentSettled
+      paymentId: UUID
+    event PaymentRefunded
+      paymentId: UUID
+
+  policy SettleWebPayments
+    trigger PaymentAuthorised when channel = "web"
+    action "settle a web payment at once"
+    chains-to SettlePayment
+
+  policy RefundDeclined
+    trigger PaymentReviewed when decision.kind = Declined after PaymentAuthorised
+    action "refund a payment the review declined"
+    chains-to RefundPayment

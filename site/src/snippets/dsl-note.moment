@@ -1,0 +1,21 @@
+external CardNetwork "Authorises card payments; not modelled here"
+
+context "Checkout" [Core]
+  aggregate "Payment"
+    identity paymentId: UUID
+    command RecordPayment
+      input paymentId: UUID
+      emits PaymentRecorded
+    event PaymentRecorded
+      paymentId: UUID
+
+flow "Card payment"
+  lane checkout "Checkout" [Core]
+  lane network "CardNetwork" [External]
+
+  moment "The card is authorised"
+    note network: "The card network authorises the card"
+
+  moment "The payment is recorded"
+    checkout: RecordPayment
+    checkout: PaymentRecorded
