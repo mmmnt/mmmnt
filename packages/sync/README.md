@@ -1,19 +1,27 @@
 # @mmmnt/sync
 
-Implementation synchronization with AST diffing, drift detection, and cascade reconciliation.
+Detects drift between a Moment model and its TypeScript implementation, records it as proposals, and records the decision on each one.
 
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
 [![npm version](https://img.shields.io/npm/v/@mmmnt/sync.svg)](https://www.npmjs.com/package/@mmmnt/sync)
 
 ## Overview
 
-`@mmmnt/sync` monitors the relationship between your `.moment` specification and its TypeScript implementation, detecting when they diverge and providing tools to reconcile the differences. It ensures that your domain model and your codebase remain consistent as both evolve.
+`@mmmnt/emit-ts` generates TypeScript types from a model. `@mmmnt/sync` compares that generated code (expected) with the implementation on disk (actual), type by type, and reports where they differ. Each difference becomes an implementation change proposal. A proposal's id is derived from the drift, so the same drift always has the same id.
 
-The AST diff engine compares the generated TypeScript output from `@mmmnt/emit-ts` against the implementation files on disk, type by type: added, removed and renamed interfaces, and added, removed and retyped fields. Each difference becomes an implementation change proposal whose id is derived from the drift itself, so the same drift always yields the same id. Field-level proposals name the field, its type, and (for a retyped field) its previous type.
+Sync never edits the specification (IS-01). When an architect accepts a proposal, sync records the decision and reports the edit it implies, with the file and line that declare the construct. The architect makes the edit.
 
-For teams using Sift as an upstream domain modeling tool, the Sift event stream reader replays the Sift events in a `.domain/` directory's JSONL files into an import input, used by `moment import --from-sift` and `moment reconcile`. `ReconciliationState` tracks upstream fingerprints and classifies upstream drift into cascade categories -- deterministic re-projection (Category 1), structural drift (Category 2), and breaking change (Category 3). The local Git artifact store reads artifacts working-tree-first, falling back to the committed copy at HEAD.
+Decisions live in three append-only JSONL logs in `.domain/` (ADR-039):
 
-Implementation changes never modify the specification (IS-01): sync proposes specification updates and the architect makes them. Proposal state lives in three append-only JSONL logs in `.domain/` (ADR-039): `sync-state.jsonl` holds `SyncState` (proposals, decisions with their actor, and the cursor), `implementation-feedback.jsonl` holds the `ImplementationFeedbackJournal` (exactly one `ImplementationFeedbackRecorded` per accepted proposal, IS-04), and `push-flow-saga.jsonl` holds one `PushFlowSaga` per accept/reject run. `JsonlSyncLogStore` replays them through each aggregate's `apply()`, so a log that breaks an invariant is refused by file and line.
+| Log                             | Holds                                                                                                       |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `sync-state.jsonl`              | `SyncState`: proposals, decisions with the deciding actor, and the sync cursor                              |
+| `implementation-feedback.jsonl` | `ImplementationFeedbackJournal`: exactly one `ImplementationFeedbackRecorded` per accepted proposal (IS-04) |
+| `push-flow-saga.jsonl`          | One `PushFlowSaga` per accept or reject run                                                                 |
+
+`JsonlSyncLogStore` replays each log through its aggregate's `apply()`, so a log that breaks an invariant is refused, naming the file and line.
+
+The package also reads Sift event streams (`SiftEventStreamReader`, used by `moment import --from-sift` and `moment reconcile`), tracks upstream reconciliation (`ReconciliationState`), and wraps local git: reading artifacts, committing the sync logs, and resolving credentials.
 
 ## Installation
 
@@ -23,150 +31,126 @@ Requires Node.js 22 or newer.
 npm install @mmmnt/sync
 ```
 
-Or with other package managers:
+## Command-line workflow
+
+The `moment` CLI (`@mmmnt/cli`) drives the sync lifecycle. Each command takes a `.moment` file or a model directory.
 
 ```bash
-pnpm add @mmmnt/sync
-yarn add @mmmnt/sync
+moment sync status spec/ticketwave.moment            # Drift detected: 1 drifted, 39 aligned
+moment sync propose spec/ticketwave.moment           # record new drift as pending proposals
+moment sync accept spec/ticketwave.moment prop-e02b7bd27ba948db   # or --all
+moment sync reject spec/ticketwave.moment prop-dde1e5fa712bf6e6 --reason "reason stays a string"
 ```
 
-## Quick Start
+| Command        | What it does                                                                                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sync status`  | Prints the drifted and aligned file counts. Exits 1 when anything has drifted. `--json` prints the `DriftReport`.                                                                                                        |
+| `sync propose` | Records each new drift as a pending proposal, and supersedes pending proposals whose drift is gone. Decided proposals are left alone. `--json` prints `{ proposals, recorded, superseded }`. `--auto-accept` is refused. |
+| `sync accept`  | Accepts the named pending proposals, or every pending one with `--all`, and prints the specification edit each implies.                                                                                                  |
+| `sync reject`  | Rejects the named pending proposals. `--reason` is required.                                                                                                                                                             |
+
+Where the files are:
+
+- The generated files are compared with files at the same paths under the project root: the nearest directory above the spec with a `.manifest.yaml`, else the git root, else the spec's own directory. Files are read from the working tree first, then from HEAD.
+- The `.domain/` logs sit beside a `.moment` file, or inside a model directory.
+
+`sync accept` and `sync reject` refuse the whole run unless every named proposal is pending. The deciding identity is the repository's own `user.name` and `user.email` from git config, and the actor recorded is the email. The run is refused when either is missing or the repository has no commits. A run appends to the logs and commits only those log files, as `chore(sync): accept N proposal(s)` or `chore(sync): reject N proposal(s)`. It then advances the sync cursor in a second commit, `chore(sync): advance the sync cursor`. Nothing is pushed.
+
+An accept prints the edit to make, for example:
+
+```
+Accepted 1 proposal(s) — committed da73b82:
+  prop-e02b7bd27ba948db
+
+Make these edits to the specification:
+  prop-e02b7bd27ba948db: add field `channel: string` to command `ExtendHold`
+    at ticketwave.moment:183
+```
+
+## What the diff compares
+
+The diff reads the exported interfaces, type aliases and enums of each file present on both sides.
+
+| Change in the implementation                    | Drift direction          | Proposal                                                     |
+| ----------------------------------------------- | ------------------------ | ------------------------------------------------------------ |
+| A field or enum member added                    | `implementation-added`   | `ValueObjectFieldAdded`                                      |
+| A field or enum member removed                  | `implementation-removed` | `ValueObjectFieldRemoved`                                    |
+| A field retyped, or a type alias changed        | `specification-added`    | `ValueObjectFieldRevised`                                    |
+| An exported type added                          | `implementation-added`   | `ValueObjectDefined`                                         |
+| An exported type removed                        | `implementation-removed` | `ValueObjectRemoved`                                         |
+| A symbol changed kind (interface to type alias) | `specification-added`    | `ValueObjectFieldRevised`, with `requiresManualReview: true` |
+
+A generated file with no counterpart on disk, or a file only on disk, is a drift point in `detectDrift` but yields no proposal. With `DeprecationMetadata` (a map of deprecated field to replacement field), a removed deprecated field also yields a `ValueObjectFieldAdded` proposal for its replacement.
+
+## Library use
+
+The CLI is a thin layer over these exports. This is `sync propose` followed by `sync accept`:
 
 ```typescript
-import { ASTDiffEngine, JsonlSyncLogStore, planDecision } from '@mmmnt/sync';
+import { readFileSync } from 'node:fs';
+import { MomentParser } from '@mmmnt/core';
+import { TypeScriptEmitter } from '@mmmnt/emit-ts';
+import {
+  ASTDiffEngine,
+  JsonlSyncLogStore,
+  LocalGitArtifactStore,
+  commitPathsOnly,
+  planDecision,
+  resolveRepoIdentity,
+} from '@mmmnt/sync';
 
-// Proposals for the drift between generated (expected) and on-disk (actual) TypeScript.
-// A proposal's id is derived from its drift, so the same drift keeps the same id.
+const path = 'spec/ticketwave.moment';
+const { ir } = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!ir) throw new Error('The specification has errors');
+
+// Expected: the generated TypeScript. Actual: the same paths, read from the repository.
+const expected = new TypeScriptEmitter().emit(ir, { scope: { level: 'system' } }).files;
+const identity = await resolveRepoIdentity('spec');
+if (typeof identity === 'string') throw new Error(identity);
+// readArtifacts throws when a file is missing; the CLI skips missing files instead.
+const actual = await new LocalGitArtifactStore(identity.root).readArtifacts([...expected.keys()]);
+
 const proposals = new ASTDiffEngine().generateProposals({ expected, actual });
 
-// Replay the .domain/ logs; a corrupted line throws SyncLogCorruptedError (file + line).
-const store = new JsonlSyncLogStore('specs/.domain');
+// Replay the .domain/ logs; a corrupted line throws SyncLogCorruptedError (file and line).
+const store = new JsonlSyncLogStore('spec/.domain');
 const logs = store.load();
 const recorded = proposals
   .filter((p) => logs.syncState.getProposalStatus(p.proposalId) === undefined)
   .map((p) => logs.syncState.recordProposal(p));
 store.append({ syncState: recorded });
 
-// Accept: one saga, one feedback event per accepted proposal. The caller commits the logs,
-// then records saga.committed(oid) and saga.complete().
+// Accept: one saga, one feedback event per accepted proposal.
 const plan = planDecision(logs, {
   kind: 'accept',
-  proposalIds: [recorded[0].proposalId],
-  actor: 'dev@example.com',
-  commitRef: headOid,
+  proposalIds: recorded.map((e) => e.proposalId),
+  actor: identity.email,
+  commitRef: identity.head,
 });
 if ('refused' in plan) throw new Error(plan.refused);
 store.append(plan);
+
+// Commit only the logs. The caller then records plan.saga.committed(oid) and plan.saga.complete().
+const oid = await commitPathsOnly({
+  root: identity.root,
+  paths: [
+    'spec/.domain/sync-state.jsonl',
+    'spec/.domain/implementation-feedback.jsonl',
+    'spec/.domain/push-flow-saga.jsonl',
+  ],
+  message: `chore(sync): accept ${plan.proposals.length} proposal(s)\n`,
+  author: { name: identity.name, email: identity.email },
+});
 ```
 
-## Command-Line Workflow
+`commitPathsOnly` takes paths relative to `root`, `/`-separated. It commits exactly those files on top of HEAD, as `git commit --only` would, and leaves everything else in the working tree and index alone.
 
-The `moment` CLI (`@mmmnt/cli`) drives the sync lifecycle. Each command takes a `.moment` file or a model directory; the `.domain/` logs live beside the file, or inside the directory.
-
-```bash
-moment sync status spec.moment            # drift report: drifted and aligned files
-moment sync propose spec.moment           # record new drift as pending proposals; supersede proposals whose drift is gone
-moment sync accept spec.moment prop-4b1a1efced680463   # or --all
-moment sync reject spec.moment prop-4b1a1efced680463 --reason "the implementation is wrong"
-```
-
-`sync accept` and `sync reject` refuse unless every named proposal is pending, and a rejection requires `--reason`. The deciding identity is the repository's own `user.name` and `user.email` from git config; the decision is refused when either is missing or the repository has no commits. Each decision appends to the `.domain/` logs (one feedback record per accepted proposal) and commits exactly those log files locally (`chore(sync): accept N proposal(s)`), then advances the sync cursor in a second commit. Nothing is pushed. Accepting does not edit the specification: the command reports the edit each accepted proposal implies, with the files and lines that declare the construct.
-
-## Key Features
-
-- **AST-level diffing** -- compares generated TypeScript against implementation code at the AST level, not just text, catching structural changes that text diffs miss.
-- **Drift detection** -- identifies added, removed, and modified types, fields, and methods between specification and implementation.
-- **Cascade reconciliation** -- `ReconciliationState` classifies upstream drift into three categories (deterministic re-projection, structural drift, breaking change), each with its required actions.
-- **Persistent sync state** -- proposals, decisions (with the deciding actor) and the sync cursor persist in `.domain/sync-state.jsonl`; drift-derived proposal ids make re-running idempotent.
-- **Sift event stream integration** -- replays Sift events from the JSONL files in a `.domain/` directory into an import input for upstream change detection and reconciliation.
-- **Implementation feedback journal** -- records exactly one `ImplementationFeedbackRecorded` per accepted proposal in `.domain/implementation-feedback.jsonl`, caused by the proposal and correlated to its push-flow saga.
-- **Local decision commits** -- `commitPathsOnly` commits exactly the named files on top of HEAD (like `git commit --only`), leaving everything else the developer modified or staged alone. No push, no network.
-- **Implied spec edits** -- `impliedSpecEdit` describes the specification edit an accepted proposal implies and locates the declaring file and line; sync never writes it.
-- **Local Git artifact store** -- reads artifacts working-tree-first with a fallback to HEAD, and queries the `.moment/index.json` artifact index.
-- **Git remote management** -- supports cloning, pushing, pulling, and branching through `LocalGitRemoteManager` with pluggable credential strategies.
-- **Credential resolution** -- layered credential resolver with strategies for environment variables, GitHub CLI, Git credential helpers, and OAuth device flow.
-- **Consumption detection** -- scans source files for consumption of known event types and fields, with a confidence level per detection.
-- **Proposal generation** -- produces structured change proposals with drift-derived ids; with deprecation metadata, a removed deprecated field also yields a proposal for its replacement.
-
-## API Reference
-
-### Diff Engine
-
-| Export | Description |
-|--------|-------------|
-| `ASTDiffEngine` | Compares generated (expected) TypeScript against implementation (actual) source, both given as maps of file path to source text. `detectDrift(DetectDriftInput)` returns a `DriftReport`; `generateProposals(GenerateProposalsInput)` returns `ImplementationChangeProposal[]`; `detectConsumption(DetectConsumptionInput)` returns a `ConsumptionDetectionResult`. |
-
-### Sync State
-
-| Export | Description |
-|--------|-------------|
-| `SyncState` | Event-sourced proposal lifecycle (pending → accepted \| rejected \| superseded) and sync cursor, persisted in `.domain/sync-state.jsonl`. Events: `ProposalRecorded`, `ProposalAccepted` and `ProposalRejected` (both carrying `actor`), `ProposalSkipped` (superseded: its drift is gone), and `CursorAdvanced`. |
-| `JsonlSyncLogStore` | Loads (replays) and appends the three `.domain/` logs. Throws `SyncLogCorruptedError` naming the file and line. |
-| `planDecision` | Plans one accept or reject run: refuses unless every named proposal is pending; returns the decision, feedback and saga events through `RecordingComplete`. |
-| `ReconciliationState` | Tracks upstream fingerprints and reconciliation progress. Accepts `DetectUpstreamDriftInput`, `StartReconciliationInput`, and `CompleteReconciliationInput`. |
-
-### Feedback
-
-| Export | Description |
-|--------|-------------|
-| `ImplementationFeedbackJournal` | Records feedback for accepted proposals via `RecordImplementationFeedbackInput` (IFJ-01..04), and replays recorded events through `apply()`. Produces `ImplementationFeedbackRecorded` events. |
-| `impliedSpecEdit` / `locateDeclarations` | The spec edit an accepted proposal implies, by feedback type, with every file and line declaring the construct (an exact-text search for `value-object Y`, `event Y`, `command Y`, `aggregate "Y"`). |
-
-### Reconciliation
-
-| Export | Description |
-|--------|-------------|
-| `PushFlowSaga` | One accept/reject run: Diffing → Proposing → AwaitingConfirmation → Recording → Committing → Complete (or Aborted). Enforces IS-04: the recorded count equals the accepted count. |
-
-### Event Stream
-
-| Export | Description |
-|--------|-------------|
-| `SiftEventStreamReader` | `read(domainDir)` replays the Sift events in every `.jsonl` file of a `.domain/` directory into an import input. Returns `SiftEventStreamReadResult` (input, events processed, files read, errors). |
-
-### Infrastructure
-
-| Export | Description |
-|--------|-------------|
-| `LocalGitArtifactStore` | Reads artifacts working-tree-first, falling back to the git object store at HEAD, and reads the `.moment/index.json` artifact index. |
-| `LocalGitArtifactWriter` | Writes and removes artifact files and the artifact index, and commits them with a configured author. |
-| `resolveRepoIdentity` | The repo holding a path, with its own `user.name`, `user.email` and HEAD; a refusal message when any is missing. |
-| `commitPathsOnly` | Commits exactly the named paths on top of HEAD, leaving the rest of the working tree and index alone. |
-| `LocalGitRemoteManager` | Manages Git remote operations (clone, push, pull, branch) with pluggable credential strategies. |
-| `EnvCredentialStrategy` | Resolves Git credentials from `MOMENT_GITHUB_TOKEN` or `GITHUB_TOKEN`. |
-| `GhCliCredentialStrategy` | Resolves Git credentials from the GitHub CLI (`gh auth token`). |
-| `GitCredentialHelperStrategy` | Resolves Git credentials from the configured Git credential helper (`git credential fill`). |
-| `OAuthDeviceFlowStrategy` | Resolves Git credentials via OAuth device flow for interactive authentication. |
-| `LayeredCredentialResolver` | Chains multiple credential strategies, trying each in order until one succeeds. |
-
-### Key Types
-
-| Type | Description |
-|------|-------------|
-| `ASTDifference` | A single difference between generated and implementation ASTs. |
-| `TypeLevelChange` | A type-level change (added, removed, modified interface or class). |
-| `DiffPoint` | A specific point of difference with path and description. |
-| `DriftPoint` | A detected drift point with file, symbol, context, description, and direction (`implementation-added`, `implementation-removed`, `specification-added`, `specification-removed`). |
-| `DriftReport` | Aggregated drift report: scope, drift points, drifted and aligned file counts, and timestamp. |
-| `ImplementationChangeProposal` | A proposed specification change: drift-derived `proposalId`, proposed feedback event type, payload, source file, and the originating `ASTDifference`. |
-| `FeedbackEventType` | The feedback event a proposal implies, one of `FEEDBACK_EVENT_TYPES` (for example `ValueObjectFieldAdded`, `ValueObjectFieldRevised`). |
-| `ProposalStatus` | `pending`, `accepted`, `rejected`, or `superseded`. |
-| `CascadeCategory` | Classification of upstream drift: `1` (deterministic re-projection), `2` (structural drift), or `3` (breaking change). |
-| `CascadeClassification` | A category with its description and required actions. |
-| `ReconciliationResult` | Outcome of a reconciliation: files updated, conflicts resolved, and cascade category. |
-| `SyncCursor` | Specification hash, timestamp, and last processed file at which spec and implementation were last reconciled. |
-| `SourceAttribution` | Provenance of a change (`source`). |
-| `SiftEventEnvelope` | A parsed upstream Sift event with id, type, version, correlation and causation ids, timestamp, and typed payload. |
-
-## Examples
-
-### Detecting Implementation Drift
+### Reporting drift
 
 ```typescript
 import { ASTDiffEngine } from '@mmmnt/sync';
 
-// expected: file path -> generated TypeScript (e.g. TypeScriptEmitter output files)
-// actual:   file path -> implementation source read from disk
+// expected and actual are maps of file path to source text, as above.
 const drift = new ASTDiffEngine().detectDrift({ expected, actual });
 
 if (drift.driftPoints.length === 0) {
@@ -178,25 +162,12 @@ if (drift.driftPoints.length === 0) {
     console.log(`    ${point.description}`);
   }
 }
+// 1 drifted, 39 aligned
+//   [implementation-added] src/inventory/seat-hold.types.ts ExtendHold
+//     Field 'channel' (readonly string) was added to 'ExtendHold'
 ```
 
-### Committing a Decision Locally
-
-```typescript
-import { commitPathsOnly, resolveRepoIdentity } from '@mmmnt/sync';
-
-const identity = await resolveRepoIdentity('specs');
-if (typeof identity === 'string') throw new Error(identity);
-
-const oid = await commitPathsOnly({
-  root: identity.root,
-  paths: ['specs/.domain/sync-state.jsonl', 'specs/.domain/push-flow-saga.jsonl'],
-  message: 'chore(sync): accept 1 proposal(s)\n\nprop-4b1a1efced680463\n',
-  author: { name: identity.name, email: identity.email },
-});
-```
-
-### Reading Sift Event Streams
+### Reading a Sift event stream
 
 ```typescript
 import { SiftEventStreamReader } from '@mmmnt/sync';
@@ -210,24 +181,86 @@ for (const block of result.input.buildingBlocks) {
 for (const error of result.errors) console.warn(error);
 ```
 
+`read(domainDir)` replays the Sift events in every `.jsonl` file of the directory into an import input. A missing directory is reported in `errors`, not thrown.
+
+## API reference
+
+### Diff and proposals
+
+| Export                              | Description                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ASTDiffEngine`                     | `detectDrift(DetectDriftInput)` returns a `DriftReport`. `generateProposals(GenerateProposalsInput)` returns `ImplementationChangeProposal[]`. `detectConsumption(DetectConsumptionInput)` scans source files for reads of known event types and fields, each with a confidence of `high`, `medium` or `low`. |
+| `impliedSpecEdit(proposal, files)`  | The specification edit an accepted proposal implies, with every file and line that declares the construct. `files` maps path to `.moment` text.                                                                                                                                                               |
+| `locateDeclarations(symbol, files)` | An exact-text search for `value-object Y`, `event Y`, `command Y` or `aggregate "Y"`.                                                                                                                                                                                                                         |
+| `FEEDBACK_EVENT_TYPES`              | The feedback event types a proposal can imply.                                                                                                                                                                                                                                                                |
+
+### State and decisions
+
+| Export                                                           | Description                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SyncState`                                                      | Proposal lifecycle (pending, then accepted, rejected or superseded) and the sync cursor. Events: `ProposalRecorded`, `ProposalAccepted`, `ProposalRejected`, `ProposalSkipped` (superseded: the drift is gone) and `CursorAdvanced`.     |
+| `ImplementationFeedbackJournal`                                  | Records one `ImplementationFeedbackRecorded` per accepted proposal (`RecordImplementationFeedbackInput`) and replays them through `apply()`.                                                                                             |
+| `PushFlowSaga`                                                   | One accept or reject run: Diffing, Proposing, AwaitingConfirmation, Recording, Committing, Complete, or Aborted. The recorded count must equal the accepted count (IS-04).                                                               |
+| `planDecision(logs, input)`                                      | Plans one accept or reject run. Returns a `DecisionPlan` (the proposals and the sync-state, feedback and saga events, with the saga at Committing), or `{ refused }` when a proposal is not pending or a rejection has no reason.        |
+| `JsonlSyncLogStore`                                              | `load()` replays the three logs into `SyncLogs`. `append(SyncLogAppend)` appends events. `paths` lists the three files.                                                                                                                  |
+| `SyncLogCorruptedError`                                          | Thrown by `load()`, with `file` and `line`.                                                                                                                                                                                              |
+| `SYNC_STATE_LOG`, `IMPLEMENTATION_FEEDBACK_LOG`, `PUSH_FLOW_LOG` | The three log file names.                                                                                                                                                                                                                |
+| `ReconciliationState`                                            | Tracks upstream fingerprints and reconciliation progress: `detectUpstreamDrift`, `startReconciliation`, `completeReconciliation`. Classifies drift into cascade category 1 (re-projection), 2 (structural drift) or 3 (breaking change). |
+
+### Sift event stream
+
+| Export                  | Description                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `SiftEventStreamReader` | `read(domainDir)` returns a `SiftEventStreamReadResult`: `input`, `eventsProcessed`, `filesRead`, `errors`. |
+
+### Git
+
+| Export                        | Description                                                                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveRepoIdentity(path)`   | The repository holding `path`: `root`, `name`, `email` and `head`. Returns a refusal message instead when any is missing.                                                                                                       |
+| `commitPathsOnly(input)`      | Commits exactly the named paths on top of HEAD. Returns the commit oid.                                                                                                                                                         |
+| `LocalGitArtifactStore`       | `new LocalGitArtifactStore(root, ref = 'HEAD')`. With HEAD it reads the working tree first and falls back to the commit; with another ref it reads that commit. Also reads and queries the `.moment/index.json` artifact index. |
+| `LocalGitArtifactWriter`      | Writes and removes artifact files and the artifact index, and commits them with a configured author.                                                                                                                            |
+| `LocalGitRemoteManager`       | `clone`, `push`, `pull`, `createBranch`, `checkout`, `currentBranch` and `listRemoteBranches`, with credentials from a `CredentialResolver`.                                                                                    |
+| `LayeredCredentialResolver`   | Tries each `CredentialStrategy` in order. Throws when none returns credentials.                                                                                                                                                 |
+| `EnvCredentialStrategy`       | A token from `MOMENT_GITHUB_TOKEN`, else `GITHUB_TOKEN`.                                                                                                                                                                        |
+| `GhCliCredentialStrategy`     | A token from `gh auth token`.                                                                                                                                                                                                   |
+| `GitCredentialHelperStrategy` | Credentials from `git credential fill` for a host (default `github.com`).                                                                                                                                                       |
+| `OAuthDeviceFlowStrategy`     | A token cached in `~/.moment/credentials.json` (written by `moment auth login`). It ignores the file when others can read it, and ignores an expired token.                                                                     |
+
+### Types
+
+| Type                                                                                             | Description                                                                                                                         |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `DriftReport`                                                                                    | `scope`, `driftPoints`, `totalDrifted`, `totalAligned`, `timestamp`                                                                 |
+| `DriftPoint`                                                                                     | `filePath`, `aggregateName` (the symbol), `contextName`, `driftDirection`, `description`                                            |
+| `DriftDirection`                                                                                 | `implementation-added`, `implementation-removed`, `specification-added` or `specification-removed`                                  |
+| `ImplementationChangeProposal`                                                                   | `proposalId`, `proposedEventType`, `proposedPayload`, `sourceFile`, the originating `sourceDifference`, and `dualPopulationApplied` |
+| `FeedbackEventType`                                                                              | One of `FEEDBACK_EVENT_TYPES`                                                                                                       |
+| `ProposalStatus`                                                                                 | `pending`, `accepted`, `rejected` or `superseded`                                                                                   |
+| `SyncCursor`                                                                                     | The specification hash, timestamp and last processed file at which spec and implementation were last reconciled                     |
+| `CascadeCategory`, `CascadeClassification`, `ReconciliationResult`                               | Upstream drift classification and the outcome of a reconciliation                                                                   |
+| `SyncStateRecord`, `ImplementationFeedbackRecord`, `PushFlowRecord`, `ReconciliationStateRecord` | Record shapes of the JSONL logs                                                                                                     |
+| `SiftEventEnvelope`, `SiftEventType`, `SiftEventPayload`                                         | A parsed Sift event and its payload types                                                                                           |
+
 ## Integration
 
-`@mmmnt/sync` depends on `@mmmnt/emit-ts` for the generated TypeScript baseline (which transitively depends on `@mmmnt/core` and `@mmmnt/derive`). It interacts with:
+`@mmmnt/sync` depends on `@mmmnt/emit-ts` for the generated TypeScript (and through it on `@mmmnt/core`) and on `isomorphic-git` for local git.
 
-```
-@mmmnt/core --> @mmmnt/derive --> @mmmnt/emit-ts --> @mmmnt/sync
-                                                          |
-                                                          +-- @mmmnt/cli  (exposed via `moment sync status|propose|accept|reject`, `moment reconcile`, `moment import --from-sift`, `moment lint`, `moment status`)
-                                                          +-- @mmmnt/mcp  (exposed via `moment_status`, `moment_reconcile`, `moment_import` tools)
-```
+| Consumer     | Uses                                                                                                                           |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `@mmmnt/cli` | `moment sync status\|propose\|accept\|reject`, `moment lint`, `moment status`, `moment reconcile`, `moment import --from-sift` |
+| `@mmmnt/mcp` | The `moment_status`, `moment_reconcile` and `moment_import` tools                                                              |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ## Contributing
 
-This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development setup and contribution guidelines.
+This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development setup.
 
 ```bash
-git clone https://github.com/mmmnt/mmmnt.git
-cd mmmnt
 pnpm install
 pnpm turbo build --filter=@mmmnt/sync
 pnpm --filter @mmmnt/sync test

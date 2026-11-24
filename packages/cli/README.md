@@ -1,17 +1,17 @@
 # @mmmnt/cli
 
-Command-line interface for the Moment domain specification language and implementation toolchain.
+The `moment` command: check a Moment model and derive tests, types, scenarios, schemas, documents and boards from it.
 
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
 [![npm version](https://img.shields.io/npm/v/@mmmnt/cli.svg)](https://www.npmjs.com/package/@mmmnt/cli)
 
 ## Overview
 
-`@mmmnt/cli` provides the `moment` command, which is the primary way most developers interact with the Moment toolchain. It wraps every package in the `@mmmnt` ecosystem behind a consistent, discoverable command-line interface with 20+ commands covering the full specification-to-implementation workflow.
+`@mmmnt/cli` puts every `@mmmnt` package behind one command, `moment`. Each command reads a `.moment` file or a model directory, does one job, and prints a short result. The CLI handles file I/O, output, error reporting and exit codes. The library packages hold the logic.
 
-From initializing a new project to parsing specifications, deriving test topologies, generating TypeScript code and BDD scenarios, running structural test suites, detecting and deciding implementation drift, and reporting schema lifecycles -- every operation is available as a single CLI command. The CLI handles file I/O, output formatting, error reporting, and watch mode so that the underlying library packages remain focused on their core logic.
+The commands exit non-zero when the model does not parse, so you can gate CI on them. Some also fail on findings: `test` on a failing case, `status` and `sync status` on drift, `reconcile` on a breaking change. See [Exit codes](#exit-codes).
 
-The CLI is designed for both interactive development and CI/CD pipeline integration. Exit codes follow standard conventions for use in automated workflows, and many commands support the `--json` flag for machine-readable output; see the Common Options table below for details.
+What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
@@ -35,278 +35,258 @@ pnpm add -g @mmmnt/cli
 yarn global add @mmmnt/cli
 ```
 
-## Quick Start
+## Quick start
+
+Every output below is from the TicketWave example in this repository (`examples/ticketwave/spec/`: 7 contexts, 8 flows named `N1 - General admission purchase` to `N8 - Waitlist offer`). The CLI prints absolute paths; they are shortened here.
 
 ```bash
-# Initialize a new Moment project
-moment init --name my-service
+moment parse examples/ticketwave/spec/
+# Parsed project successfully: 1 file(s), 7 context(s), 8 flow(s)
 
-# Parse and validate a .moment specification
-moment parse specs/my-service.moment
+moment derive examples/ticketwave/spec/
+# Derived topology: 8 suite(s), 92 case(s)
 
-# Or parse a whole model directory as one project
-moment parse specs/
+moment test examples/ticketwave/spec/
+# Tests: 92 total, 92 passed, 0 failed, 0 skipped (8 suite(s))
 
-# Derive the test topology
-moment derive specs/my-service.moment
+moment generate examples/ticketwave/spec/ --out out/
+# Generated: 8 .feature file(s), 21 .spec.ts file(s), 1 document(s)
+# Wrote 70 file(s) to out/
 
-# Generate TypeScript types and test scaffolds
-moment emit-ts specs/my-service.moment
+moment simulate examples/ticketwave/spec/ --all --out-dir facet/
+# Wrote 8 topology file(s), 72 scenario file(s), 5 artifact(s), manifest.json to facet/ (733 total events)
 
-# Generate Gherkin features, the specification document, TypeScript, and test scaffolds
-moment generate specs/my-service.moment
+moment schema emit examples/ticketwave/spec/ --out-dir schemas/
+# Wrote 59 payload schema(s) to schemas/
 
-# Run the derived test suites as structural checks
-moment test specs/my-service.moment
-
-# Watch the manifest's paths and regenerate on change
-moment watch
+moment board examples/ticketwave/spec/ --out board/
+# Board written to board/: 39 file(s) and manifest.json (38 frame(s), 509 node(s))
 ```
 
-## Key Features
+Over a directory, `parse` also prints 15 `PM-04` warnings for TicketWave on stderr (a crossing event not declared in its target context). They do not fail the run.
 
-- **Unified entry point** -- a single `moment` binary that wraps all `@mmmnt` packages, so you do not need to import or configure individual libraries.
-- **20+ commands** -- covers the full lifecycle from project initialization through specification, derivation, generation, testing, synchronization, and governance.
-- **Project mode** -- every command documented below with `<file|dir>`, plus `serve --project`, accepts a model directory and loads every `.moment` file beneath it as one merged project.
-- **Watch mode** -- monitors `.moment` files and automatically re-parses and regenerates artifacts on save.
-- **Structured output** -- many commands support `--json` for machine-readable output in CI/CD pipelines.
-- **Standard exit codes** -- non-zero exit on parse or validation errors, failing structural tests, and (for `moment status`) detected drift, for pipeline gating.
-- **Subcommand structure** -- `sync` and `schema` use subcommands (`sync status`, `sync propose`, `sync accept`, `sync reject`, `schema status`, `schema emit`) for organized workflows.
-- **Authentication support** -- `moment auth` subcommands manage GitHub and quorum credentials.
-- **Verbose mode** -- `moment status --verbose` enables detailed output for the unified status command.
+## Project mode
 
-## Project Mode
+Where a command takes `<file|dir>` (and for `serve --project <dir>`), you can pass a directory. The CLI then loads every `.moment` file beneath it, in sorted path order, as one merged project. Names resolve across files, and node placement, saga transitions and External lanes are checked over the whole model.
 
-Pass a directory where a command takes `<file|dir>` (or to `serve --project`) and the CLI loads every `.moment` file beneath it, in sorted path order, as one merged project. Names resolve across files, and node placement, saga transitions and External lanes are checked over the whole model.
-
-The model rules V22–V37 (see [@mmmnt/core](../core/README.md#validation-rules)) are warnings when a file is parsed alone and errors over a project, and a project fails on any file's error. After upgrading, run:
-
-```bash
-moment parse specs/
-```
+The model-level validation rules (see [@mmmnt/core](../core/README.md#validation-rules)) are warnings when a file is parsed alone, because a missing name may be in another file. Over a project they are errors, and a project fails on any file's error.
 
 ## Commands
 
-### Project Initialization
+`moment --help` lists every command. `moment <command> --help` prints that command's usage and runs nothing. `moment --version` prints the version.
 
-| Command | Description |
-|---------|-------------|
-| `moment init --name <name>` | Initialize a new Moment project with `.manifest.yaml`, `.moment/contexts/`, and `.moment/flows/` directories. Optionally specify `--dir <path>` for the target directory (defaults to `.`). Refuses to overwrite an existing manifest. |
+### Model and check
 
-### Specification
+| Command                     | What it does                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment init`               | Create a project in `--dir <path>` (default `.`): a `.manifest.yaml`, `.moment/contexts/` and `.moment/flows/`. `--name <name>` sets the project name (default `my-moment-project`). Refuses to overwrite an existing manifest.                                                                                                                                                                                                     |
+| `moment parse <file\|dir>`  | Parse and validate the model. Prints the context and flow counts; diagnostics go to stderr with file, line and column, and the rule id where there is one.                                                                                                                                                                                                                                                                          |
+| `moment watch`              | Watch the paths listed under `watch.paths` in `.manifest.yaml`, or `.moment/contexts`, `.moment/flows` and `.moment` when there is no manifest. On each change that parses, re-run `generate` and `emit-ts` for the changed file. `--dir <path>` sets the project directory (default `.`). `--no-generate` only re-parses. `--no-watch` exits at once. `watch.enabled: false` in the manifest turns it off. Runs until interrupted. |
+| `moment lint <file\|dir>`   | One report of parse diagnostics, implementation drift and deprecated fields. Exits non-zero only on parse errors. `--json` prints `{ issues, errors, warnings }`.                                                                                                                                                                                                                                                                   |
+| `moment status <file\|dir>` | Four checks in one view: specification validity, implementation sync, schema lifecycle, and the upstream Sift fingerprint. Exits non-zero on a parse error, on drift, or when `.domain/` exists without a fingerprint. `--verbose` adds section details, `--quiet` prints nothing (use the exit code), `--json` prints `{ sections, hasDrift }`.                                                                                    |
 
-| Command | Description |
-|---------|-------------|
-| `moment parse <file\|dir>` | Parse and validate a `.moment` specification file or a model directory. Reports syntax errors and validation diagnostics with line and column positions. |
-| `moment watch` | Watch the paths in `.manifest.yaml` (default `.moment/contexts`, `.moment/flows`, `.moment`) and, on each successful re-parse, re-run `generate` and `emit-ts` for the changed file. `--dir <path>` sets the project directory (defaults to `.`); `--no-generate` only re-parses. Runs until interrupted. |
+When a single `.moment` file sits inside a project that has a `.manifest.yaml`, `parse`, `generate` and `emit-ts` update the manifest's `contexts` and `flows` lists from it. A directory run does not touch the manifest.
 
-### Derivation
+### Derive tests
 
-| Command | Description |
-|---------|-------------|
-| `moment derive <file\|dir>` | Derive the test suite topology from a specification and report its suite and case counts. `--json` prints the topology. |
-| `moment simulate <file\|dir>` | Generate simulation scenarios and report event flow traces. Supports `--all` to generate all branch combinations plus negative (precondition violation) scenarios, `--flow <name>` to select one flow, `--json`, and `--out-dir <path>` (alias `--out`) to write per-flow topology files, individual scenario files, `manifest.json`, and ADR-029 artifacts (`event-catalog.json`, `impact-analysis.json`, `saga-state-machines.json`, `policy-definitions.json`, `asyncapi.yaml`). |
+| Command                            | What it does                                                                                                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment derive <file\|dir>`        | Derive the test topology and print its suite and case counts. `--json` prints the topology.                                                                      |
+| `moment test <file\|dir>`          | Run the derived suites as structural checks against the model and print passed, failed and skipped counts. Exits non-zero when a case fails.                     |
+| `moment cucumber-json <file\|dir>` | Print Cucumber JSON to stdout: one feature per flow, with each scenario's status from the structural checks. Any tool that imports Cucumber results can read it. |
 
-### Code Generation
+### Generate
 
-| Command | Description |
-|---------|-------------|
-| `moment cucumber-json <file\|dir>` | Output Cucumber JSON to stdout, for any tool that imports Cucumber results. |
-| `moment emit-ts <file\|dir>` | Generate TypeScript types, aggregate files, read-model types, and test scaffold files from the specification. `--dry-run` lists the files without writing them. |
-| `moment generate <file\|dir>` | Generate Gherkin `.feature` files, a `specification.md` document with Mermaid diagrams, TypeScript types, and test scaffolds. |
+| Command                       | What it does                                                                                                                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment generate <file\|dir>` | Write Gherkin features, `specification.md` with Mermaid diagrams, TypeScript types and aggregates, and test scaffolds. `--out <dir>` (alias `--out-dir`, `-o`) sets the output directory. |
+| `moment emit-ts <file\|dir>`  | Write only the TypeScript: types, aggregates and test scaffolds. `--out <dir>` (`-o`) sets the output directory. `--dry-run` lists the files and writes nothing.                          |
 
-### Testing
+Without `--out`, both write under the directory of the nearest `.manifest.yaml` above the model, else the current directory. For TicketWave, `generate` writes:
 
-| Command | Description |
-|---------|-------------|
-| `moment test <file\|dir>` | Run the derived test suites as structural checks against the specification and report passed, failed, and skipped counts. Non-zero exit code on failures. |
+| Path                                                                              | Count | Contents                                                                             |
+| --------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
+| `features/<flow>.feature`                                                         | 8     | One feature per flow, e.g. `features/n5-seat-request.feature`                        |
+| `src/<context>/<aggregate>.types.ts`, `.aggregate.ts`, `index.ts`, `src/index.ts` | 40    | Types and an aggregate per aggregate, an index per context and one for the system    |
+| `__tests__/<context>/<aggregate>.spec.ts`                                         | 16    | A test scaffold per aggregate                                                        |
+| `__tests__/flows/<flow>.spec.ts`                                                  | 5     | A test scaffold per flow whose test cases carry assertions; the other flows get none |
+| `specification.md`                                                                | 1     | The specification document                                                           |
 
-### Visualization
+`emit-ts` writes the same 40 TypeScript files and 21 scaffolds (61 files).
 
-| Command | Description |
-|---------|-------------|
-| `moment viz <file\|dir>` | Generate visualization data (context maps, flow timelines) as a JSON `VizDataEnvelope`. Output can be piped to files or visualization tools. |
-| `moment serve <file\|facet-dir>` | Serve topology and scenarios over WebSocket (Facet bridge). A file is parsed and derived live; a directory is a `moment simulate --out-dir` folder. `--project <dir>` serves a model directory as one project. |
+### Simulate and serve
 
-### Synchronization
+| Command                          | What it does                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment simulate <file\|dir>`    | Generate event chains for each flow and print a trace per scenario. By default one happy-path scenario per flow. `--all` adds every branch combination, negative scenarios for unmet preconditions, and timeout scenarios. `--flow "<name>"` selects one flow by its full name. `--json` prints the scenarios.                                                                                              |
+| `moment serve <file\|facet-dir>` | Serve topology and scenarios over WebSocket for [Facet](https://facet.mmmnt.dev), on `ws://localhost:4321` (`--port <n>`, `-p`). A file is parsed and derived, and re-served when it changes. A directory is a folder written by `simulate --out-dir`, and is reloaded when it changes. `--project <dir>` serves a model directory as one project. `--all` serves every scenario, not only the happy paths. |
 
-| Command | Description |
-|---------|-------------|
-| `moment sync status <file\|dir>` | Detect drift between the specification and implementation by comparing generated and actual TypeScript files. Exits 1 when the implementation has drifted, so CI can gate on it; the report still prints on stdout (`--json` too) for callers that only want to read it. |
-| `moment sync propose <file\|dir>` | Record a proposal for each new drift in `.domain/sync-state.jsonl` and print every pending proposal with its id. A proposal's id is derived from its drift (`prop-` + 16 hex of sha256), so re-running records only new drift, leaves pending proposals whose drift remains untouched, and supersedes those whose drift is gone. Accepted and rejected proposals are never touched. `--auto-accept` is refused. |
-| `moment sync accept <file\|dir> (<proposal-id>... \| --all)` | Accept pending proposals. Every named id must be pending or the whole run is refused, naming each id and its status; `--all` with nothing pending says so and exits zero. Records the decision with the repo's git `user.email` as actor, exactly one `ImplementationFeedbackRecorded` per accepted proposal, and one push-flow saga; commits only the three `.domain/` logs to the local repo, then advances the sync cursor in a second commit. Prints the spec edit each proposal implies (e.g. ``add field `note: string` to value-object `OrderItem` ``) with the file and line declaring the construct. Never edits a `.moment` or `.ts` file, never pushes. |
-| `moment sync reject <file\|dir> <proposal-id>... --reason "<why>"` | Reject pending proposals with a required reason. Same all-or-nothing check, actor, saga and local commits as accept; records no feedback. |
-| `moment reconcile <file\|dir> (--local \| --event <path>)` | Run cascade reconciliation to classify upstream drift. `--local` classifies against the local `.domain/` Sift export; `--event <path>` classifies against a cascade event file. Exactly one of the two is required. |
-| `moment status <file\|dir>` | Display unified project status: parse validity, sync drift, schema lifecycle, and upstream fingerprint. Non-zero exit code on errors or drift. |
+`simulate --out-dir <dir>` (alias `--out`) writes:
 
-Sync keeps three append-only logs in `.domain/`, beside the spec file or inside the model directory: `sync-state.jsonl` (proposals, decisions and the cursor), `implementation-feedback.jsonl`, and `push-flow-saga.jsonl`. Every sync command replays them and refuses a corrupted log, naming the file and line; a refused run writes nothing. `accept` and `reject` need a git repository whose own config sets `user.name` and `user.email`, with at least one commit (the feedback's `commitRef` is that HEAD). If the local commit fails, the records stay appended, the saga is recorded as aborted, the cursor does not move, and the command exits non-zero.
+- `topology-<flow>.json`, one per flow, e.g. `topology-n5-seat-request.json`
+- `scenario-<flow id>-<n>.json` and `scenario-<flow id>-neg-<command>-<precondition>.json` per scenario, e.g. `scenario-flow-N5 - Seat request-0.json` (the flow id keeps the flow's name as written, spaces included)
+- `manifest.json`, the index Facet reads
+- `event-catalog.json`, `impact-analysis.json`, `saga-state-machines.json`, `policy-definitions.json` and `asyncapi.yaml`
 
-### Schema Governance
+For TicketWave, `simulate` alone gives 8 scenarios and 111 events; with `--all`, 72 scenarios and 733 events. `serve` on the model prints `Scenarios: 8`, or `Scenarios: 72` with `--all`.
 
-| Command | Description |
-|---------|-------------|
-| `moment schema status <file\|dir>` | Display the lifecycle phase and consumer count of every event field in the specification. |
-| `moment schema emit <file\|dir> [--out-dir <dir>]` | Write one closed JSON Schema (draft 2020-12) per event payload, `<Event>.schema.json`, or print them as one JSON object without `--out-dir`. Exits 1, writing nothing, on a type the model does not declare (ADR-049). |
-| `moment lint <file\|dir>` | Collect parse diagnostics, implementation drift warnings, and deprecated-field warnings into one report. Only parse errors produce a non-zero exit. Supports `--json` for CI integration. |
+### Visualise
 
-### Import
+| Command                                | What it does                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment viz <file\|dir>`               | Print a `viz:initial-load` message as JSON: a session and a `VizDataEnvelope` with the context map and flow timelines.                                                                                                                                                                                                                                     |
+| `moment board <file\|dir> --out <dir>` | Project the model onto an event-storming board: `board.svg` with every frame, one SVG per frame, and `manifest.json`. `--frame <id>` writes only that frame and the manifest. `--pointers <file>` reads a JSON file `{ "pointers": [...] }` that links board nodes to spec locations. Writes nothing when the model does not parse. Does not talk to Miro. |
 
-| Command | Description |
-|---------|-------------|
-| `moment import --from-sift <dir>` | Import Sift JSONL event streams from a `.domain/` directory into `.moment` context files under `.moment/contexts/`. Writes an upstream fingerprint to `.moment/.upstream-fingerprint.json` for drift tracking. Output goes beside the `.domain/` directory unless `--output-dir` is given. |
+For TicketWave, `board` writes 38 frames: `legend`, `grammar`, `context-map`, `policies`, `invariant-coverage`, 7 `context-C<n>`, 16 `aggregate-<Name>`, 2 `services-C<n>`, and 8 `thread-N<n>`, one per flow. An unknown `--frame` fails and lists the frame ids. A flow name must start with an id token such as `N5 - `; a flow with no id, or two flows with one id, fails `board` with exit 1. The numbering and the manifest format are in [@mmmnt/board](../board/README.md).
 
-### Authentication
+### Govern contracts
 
-| Command | Description |
-|---------|-------------|
-| `moment auth login` | Authenticate with GitHub through the OAuth device flow: open the printed URL and enter the code. |
-| `moment auth status` | Display current authentication status. |
-| `moment auth logout` | Clear stored authentication credentials. |
-| `moment auth quorum --token <jwt> [--server <url>]` | Store quorum credentials (`--logout` removes them). `QUORUM_TOKEN` in the environment works without storing. |
+| Command                                            | What it does                                                                                                                                                                                                                |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment schema emit <file\|dir> [--out-dir <dir>]` | Write one closed JSON Schema (draft 2020-12) per event payload, `<Event>.schema.json`. Without `--out-dir`, print them as one JSON object keyed by event. On a type the model does not declare, exits 1 and writes nothing. |
+| `moment schema status <file\|dir>`                 | A table of every event field with its type, lifecycle phase and consumer count. `--json` prints `{ schemas, total }`.                                                                                                       |
 
-### Quorum
+### Keep implementation honest
 
-| Command | Description |
-|---------|-------------|
-| `moment quorum watch <stream>` | Subscribe to a quorum stream and append its entries as JSONL under `.domain/`. Supports `--server <url>`, `--out <dir>`, `--interval <ms>`, `--source <name>`, and `--once`. |
+`sync` compares the TypeScript the model implies with the files in your project, read from the nearest `.manifest.yaml` directory, else the git root, else the model's directory.
 
-Run `moment --help` for the full command list.
+| Command                                                            | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `moment sync status <file\|dir>`                                   | Report drift between the model and the implementation. Exits 1 when there is drift; the report still prints on stdout (`--json` too).                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `moment sync propose <file\|dir>`                                  | Record a proposal in `.domain/sync-state.jsonl` for each new difference in an implemented file, such as a field added in code, and print every pending proposal with its id. A missing file is drift but not a proposal. A proposal's id comes from its drift (`prop-` and 16 hex characters of a sha256), so a re-run records only new drift and supersedes pending proposals whose drift is gone. Decided proposals are never touched. `--json` prints `{ proposals, recorded, superseded }`. `--auto-accept` is refused.                                                                      |
+| `moment sync accept <file\|dir> (<proposal-id>... \| --all)`       | Accept pending proposals. If any named id is not pending, nothing is recorded and the error names each id and its status. `--all` with nothing pending says so and exits 0. Records one `ImplementationFeedbackRecorded` per proposal and a push-flow saga, commits the `.domain/` logs to the local repository, then advances the sync cursor in a second commit. Prints the edit each proposal implies for the model, with the file and line, e.g. ``add field `region: string` to event `VenueRegistered` at ticketwave.moment:80``. Never edits a `.moment` or `.ts` file, and never pushes. |
+| `moment sync reject <file\|dir> <proposal-id>... --reason "<why>"` | Reject pending proposals. `--reason` is required. Same all-or-nothing check, saga and local commits as `accept`; records no feedback.                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `moment reconcile <file\|dir> (--local \| --event <path>)`         | Classify upstream drift as `APPLIED` (Category 1), `DRIFT` (Category 2) or `BREAKING` (Category 3). `--local` compares the model's contexts with the Sift export in `.domain/`; with no `.domain/`, there is nothing to reconcile. `--event <path>` checks the `affectedElements` of a cascade event file against the model. Exactly one of the two is required. Records a `MomentReconcileCompleted` event under `.complai/events/moment/`. Exits 1 on `BREAKING`. `--json` prints `{ outcome, category, success }`.                                                                            |
 
-## Common Options
+Sync keeps three append-only logs in `.domain/`, beside the spec file or inside the model directory: `sync-state.jsonl` (proposals, decisions and the cursor), `implementation-feedback.jsonl`, and `push-flow-saga.jsonl`. Every sync command replays them and refuses a corrupted log, naming the file and line; a refused run writes nothing. `accept` and `reject` need a git repository whose own config sets `user.name` and `user.email`, with at least one commit; the actor is that `user.email`, and the feedback's `commitRef` is HEAD. If the local commit fails, the records stay appended, the saga is recorded as aborted, the cursor does not move, and the command exits non-zero.
 
-These are commonly used options available on the commands indicated, not globally on every command. Individual commands may support additional command-specific flags not listed here.
+### Bring a model in
 
-| Option | Available on | Description |
-|--------|-------------|-------------|
-| `--json` | derive, simulate, lint, schema status, sync status/propose, reconcile, status, import | Machine-readable JSON output to stdout. |
-| `--out <dir>` | generate, emit-ts | Override the output directory for generated artifacts (defaults to the directory of the nearest `.manifest.yaml`, else cwd). `generate` also accepts `--out-dir`. |
-| `--out-dir <dir>` | simulate | Write topology, scenario, and artifact files to the specified directory (`--out` is an alias). |
-| `--output-dir <dir>` | import --from-sift | Write imported `.moment` files to the specified directory. |
-| `--flow <name>` | simulate | Simulate only the named flow. |
-| `--all` | simulate, serve | Generate all branch combinations and negative scenarios (simulate) or serve all scenarios including negatives (serve). |
-| `--all` | sync accept | Accept every pending proposal. |
-| `--reason <why>` | sync reject | Why the proposals are rejected (required). |
-| `--local` / `--event <path>` | reconcile | Classify against the local `.domain/` export, or against a cascade event file. |
-| `--dry-run` | emit-ts | List files that would be emitted without writing them. |
-| `--dir <path>` | init, watch | Target project directory (defaults to `.`). |
-| `--verbose` / `--quiet` | status | More or less detailed output. |
-| `--port <n>` | serve | WebSocket port (default 4321). |
-| `--project <dir>` | serve | Load every `.moment` file beneath `<dir>` as one model project (ADR-038). Without it, a directory argument is a `moment simulate --out-dir` folder. |
+| Command                           | What it does                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment import --from-sift <dir>` | Import the Sift JSONL event streams in a `.domain/` directory as one `.moment` file per context under `.moment/contexts/`, and write `.moment/.upstream-fingerprint.json`. Output goes beside the `.domain/` directory unless `--output-dir <dir>` is given. `--json` prints the counts. |
+
+### Credentials and quorum
+
+| Command                                             | What it does                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment auth login`                                 | Sign in to GitHub with the OAuth device flow: open the printed URL and enter the code. The token is stored in `~/.moment/credentials.json`.                                                                                                                                                                                                                    |
+| `moment auth status`                                | Show whether GitHub and quorum credentials are present.                                                                                                                                                                                                                                                                                                        |
+| `moment auth logout`                                | Remove the stored GitHub token.                                                                                                                                                                                                                                                                                                                                |
+| `moment auth quorum --token <jwt> [--server <url>]` | Store a quorum token and server URL (default `http://localhost:3000`) in `~/.moment/quorum-credentials.json`. `--logout` removes them. `QUORUM_TOKEN` and `QUORUM_SERVER_URL` in the environment work without storing anything and take precedence.                                                                                                            |
+| `moment quorum watch <stream>`                      | Poll a quorum stream and append its entries as JSONL to `<out>/<stream>.jsonl`, keeping a cursor in `<out>/.quorum-cursor.json` so the next run resumes. `--out <dir>` (default `.domain`), `--server <url>`, `--interval <ms>` (default 5000, minimum 1000), `--source <name>` (default `quorum`), `--once` to fetch once and exit. Needs quorum credentials. |
+
+## Options
+
+Options apply only to the commands listed. Most commands ignore a flag they do not know; `generate` and `simulate` print a warning for it.
+
+| Option                       | Commands                                                                                    | Effect                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `--json`                     | derive, simulate, lint, status, schema status, sync status, sync propose, reconcile, import | JSON on stdout                                        |
+| `--out <dir>`                | generate (also `--out-dir`), emit-ts, board, simulate (alias of `--out-dir`), quorum watch  | Output directory. Required for `board`                |
+| `--out-dir <dir>`            | simulate, generate, schema emit                                                             | Output directory                                      |
+| `--output-dir <dir>`         | import --from-sift                                                                          | Where the `.moment/` directory is written             |
+| `--dry-run`                  | emit-ts                                                                                     | List the files and write nothing                      |
+| `--all`                      | simulate, serve                                                                             | Every branch combination and negative scenario        |
+| `--all`                      | sync accept                                                                                 | Accept every pending proposal                         |
+| `--flow <name>`              | simulate                                                                                    | One flow, by its full name                            |
+| `--frame <id>`               | board                                                                                       | One frame and the manifest                            |
+| `--pointers <file>`          | board                                                                                       | Spec pointers to attach to board nodes                |
+| `--reason <why>`             | sync reject                                                                                 | Why the proposals are rejected (required)             |
+| `--local` / `--event <path>` | reconcile                                                                                   | Compare with `.domain/`, or with a cascade event file |
+| `--port <n>`                 | serve                                                                                       | WebSocket port (default 4321)                         |
+| `--project <dir>`            | serve                                                                                       | Serve a model directory as one project                |
+| `--dir <path>`               | init, watch                                                                                 | Project directory (default `.`)                       |
+| `--name <name>`              | init                                                                                        | Project name                                          |
+| `--no-generate`              | watch                                                                                       | Re-parse only                                         |
+| `--verbose` / `--quiet`      | status                                                                                      | More detail, or no output                             |
+
+## Exit codes
+
+Every command that reads a model exits 1 when the model does not parse, the path does not exist, or a required argument is missing. Beyond that:
+
+| Command                      | Also exits 1 when                                                        |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| `test`                       | A case fails                                                             |
+| `status`                     | There is drift, or `.domain/` exists without a fingerprint               |
+| `sync status`                | There is drift                                                           |
+| `sync accept`, `sync reject` | A named id is not pending, a log is corrupted, or the commit fails       |
+| `reconcile`                  | The outcome is `BREAKING`                                                |
+| `schema emit`                | A field uses a type the model does not declare                           |
+| `board`                      | Flow numbering fails, a pointer matches no node, or `--frame` is unknown |
+| `lint`                       | Only on parse errors; drift and deprecations are warnings                |
 
 ## Examples
 
-### New Project Setup
+### A new project
 
 ```bash
-# Scaffold a new project
 moment init --name my-service --dir my-service
 cd my-service
-
-# Write your .moment specifications under .moment/, then generate everything
+# Write .moment files under .moment/contexts and .moment/flows, then:
 moment parse .moment/
-moment derive .moment/
 moment generate .moment/
+moment watch          # regenerate on every save
 ```
 
-### Continuous Development
-
-```bash
-# Watch mode regenerates on every save
-moment watch
-
-# Run the derived structural test suites
-moment test specs/my-service.moment
-
-# Check overall status, including drift
-moment status specs/my-service.moment
-```
-
-### Upstream Specification Import
-
-```bash
-# Import from Sift event streams
-moment import --from-sift .domain/
-
-# Review the generated .moment files, then derive and generate
-moment derive .moment/
-moment emit-ts .moment/
-```
-
-### CI/CD Pipeline
+### CI
 
 ```bash
 #!/bin/bash
 set -e
 
-# Validate the whole model as one project
-moment parse specs/
-
-# Gate on drift (non-zero exit code on drift or errors)
-moment status specs/
-
-# Run structural test suites
-moment test specs/
-
-# Lint (non-zero exit only on parse errors)
-moment lint specs/ --json
-
-# Generate documentation artifacts
-moment generate specs/
+moment parse model/         # fails on any error in the project
+moment test model/          # fails on a failing case
+moment status model/        # fails on drift
+moment lint model/ --json   # fails only on parse errors
+moment schema emit model/ --out-dir schemas/
 ```
 
-### Drift Detection and Reconciliation
+### Drift between model and code
 
 ```bash
-# Check sync status
-moment sync status specs/my-service.moment
+moment sync status model/
+moment sync propose model/
+# Pending 2 proposal(s):
+#   prop-86fdf20bb81d9413  ValueObjectFieldAdded ... fieldName: region ...
+#   prop-517dc7db83c4bfdb  ValueObjectFieldAdded ... fieldName: note ...
 
-# Record proposals for detected drift; prints pending proposal ids
-moment sync propose specs/my-service.moment
+moment sync accept model/ prop-86fdf20bb81d9413
+# Make these edits to the specification:
+#   prop-86fdf20bb81d9413: add field `region: string` to event `VenueRegistered`
+#     at ticketwave.moment:80
 
-# Decide them: accept (prints the spec edit to make, and where) or reject
-moment sync accept specs/my-service.moment prop-4b1a1efced680463
-moment sync reject specs/my-service.moment prop-9c03d2e1aa7f5b10 --reason "local workaround"
-
-# Or classify upstream drift against the local .domain/ export
-moment reconcile specs/my-service.moment --local
+moment sync reject model/ prop-517dc7db83c4bfdb --reason "local workaround"
 ```
 
-### Schema Governance Audit
+### A model from Sift
 
 ```bash
-# View schema lifecycle status
-moment schema status specs/my-service.moment
-
-# Lint parse, drift, and schema lifecycle diagnostics
-moment lint specs/my-service.moment
-
-# Machine-readable output for dashboards
-moment schema status specs/my-service.moment --json
-moment lint specs/my-service.moment --json
+moment import --from-sift .domain/
+# Imported: 4 context(s), 4 file(s) written from 56 events across 4 JSONL file(s)
+moment parse .moment/
 ```
 
-## Integration
-
-`@mmmnt/cli` is the consumer-facing interface to the entire Moment toolchain. It depends on all library packages:
+## Packages it uses
 
 ```
 @mmmnt/cli
-  |
-  +-- @mmmnt/core      (parsing, project loading, and IR generation)
-  +-- @mmmnt/derive    (test topology and scenario derivation)
-  +-- @mmmnt/emit-ts   (TypeScript code generation)
-  +-- @mmmnt/generate  (Gherkin, specification documents, AsyncAPI)
-  +-- @mmmnt/harness   (test execution)
-  +-- @mmmnt/schema    (schema lifecycle governance)
-  +-- @mmmnt/sync      (drift detection, proposals, and reconciliation)
-  +-- @mmmnt/viz       (visualization data generation)
+  +-- @mmmnt/core      parsing, project loading, the IR, Sift import
+  +-- @mmmnt/derive    test topology, scenarios, event catalog, impact analysis
+  +-- @mmmnt/generate  Gherkin, specification documents, AsyncAPI, Cucumber JSON
+  +-- @mmmnt/emit-ts   TypeScript types and test scaffolds
+  +-- @mmmnt/harness   structural test execution
+  +-- @mmmnt/schema    payload JSON Schemas and schema lifecycle
+  +-- @mmmnt/sync      drift detection, proposals, reconciliation
+  +-- @mmmnt/viz       visualization envelope
+  +-- @mmmnt/board     the event-storming board
 ```
 
-For programmatic integration or AI agent workflows, see [@mmmnt/mcp](../mcp/README.md), which exposes core Moment operations over the Model Context Protocol.
+For AI agents, [@mmmnt/mcp](../mcp/README.md) exposes part of this over the Model Context Protocol.
 
 ## Contributing
 
-This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines, development setup, and the code of conduct.
+This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines and development setup.
 
 ```bash
 git clone https://github.com/mmmnt/mmmnt.git

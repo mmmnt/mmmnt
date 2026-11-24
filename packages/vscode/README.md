@@ -1,52 +1,68 @@
 # Moment for Visual Studio Code
 
-Syntax highlighting for **Moment** (`.moment`) specification files.
+Syntax highlighting and editor settings for **Moment** (`.moment`) specification files.
 
-Moment is a DSL that translates Domain-Driven Design into temporal, event-storming
-flows: bounded contexts, aggregates, commands, events, sagas, policies, and
-flow lanes with branching, retries (`returns-to`), terminals, and cross-context
-contracts (`crosses-to … via … contract`).
+Moment is a specification language for event-driven, domain-driven design. A `.moment` file declares bounded contexts, aggregates, commands, events, policies and orchestrations, and the flows that carry events between contexts. See the [Moment README](../../README.md) for the language and its toolchain.
 
-## Features
+## What the extension does
 
-- Highlighting for Moment keywords, including flow constructs
-  (`moment`, `lane`, `branch-lane`, `when`, `triggers`, `triggered-by`,
-  `returns-to`, `crosses-to`, `via`, `contract`), orchestrations
-  (`orchestration`, with `saga` as an alias, `states`, `on`, `compensation`,
-  `timeout`), and the 0.6 building blocks (`projection`, `query`, `rule`,
-  `term`, `external`, `state`, `gateway`)
-- String, comment (`//` and `/* */`), and escape-sequence scopes
-- Bracket matching, comment toggling, and auto-closing pairs
+The extension contributes a language (`moment`, for files ending in `.moment`) with a TextMate grammar and a language configuration. It has no code of its own: no language server, no diagnostics, no completion and no commands. Validation comes from the `moment` CLI.
 
-The TextMate grammar is generated from the language's Langium definition in
-[`@mmmnt/core`](https://github.com/mmmnt/mmmnt) and copied into this
-extension with the `sync-grammar` script, so highlighting follows the parser.
+| Feature              | Details                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Keyword highlighting | Every keyword of the grammar, in one scope (`keyword.control.moment`): declarations (`context`, `aggregate`, `command`, `event`, `policy`, `orchestration`, `saga`, `projection`, `query`, `value-object` and others), flow constructs (`flow`, `lane`, `moment`, `when`, `triggers`, `triggered-by`, `crosses-to`, `returns-to`, `via`, `contract`), built-in types (`string`, `number`, `boolean`, `UUID`, `DateTime`, `Date`, `Money`), classifications and relationship patterns, and the attributes `[branch]`, `[required]` and `[encrypted]` |
+| Strings              | Double-quoted strings (`string.quoted.double.moment`), with escape sequences                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Comments             | `//` line comments and `/* */` block comments, highlighted and toggled with the usual shortcuts                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Brackets             | Matching and auto-closing for `[ ]` and `( )`. Auto-closing for `"` (outside strings and comments) and `/*`. Surrounding a selection with `[ ]`, `( )` or `"`                                                                                                                                                                                                                                                                                                                                                                                       |
+
+The grammar in `syntaxes/moment.tmLanguage.json` is generated by Langium from the grammar in `@mmmnt/core` (`packages/core/syntaxes/`) and copied here with `pnpm sync-grammar`. A keyword added to the core grammar is highlighted only after the copy is refreshed.
+
+## Install
+
+The extension is not on the Visual Studio Marketplace; `package.json` marks it private. Build a `.vsix` from this directory and install it:
+
+```bash
+cd packages/vscode
+pnpm sync-grammar                                   # copy the grammar from @mmmnt/core
+npx @vscode/vsce package --no-dependencies          # writes moment-language-0.1.1.vsix
+code --install-extension moment-language-0.1.1.vsix
+```
+
+`pnpm package` runs the same `vsce package --no-dependencies` when `vsce` is installed. You can also install the `.vsix` from VS Code: open the Extensions view, choose **Install from VSIX…** in its `…` menu, and pick the file. The extension needs VS Code 1.75 or newer.
 
 ## Example
 
 ```moment
-flow "N1 — A stranger books time with you"
-  lane requestor "External Requestor"
-  lane messaging "Messaging"
-  lane refusals "Refusals"
+flow "N5 - Seat request"
+  lane inventory "Inventory" [Core]
+  lane presale "Presale" [Supporting]
+  lane checkout "Checkout" [Core]
 
-  moment "M1 · A request arrives"
-    requestor: SendRequest
+  moment "Seat request"
+    inventory: RequestHold
+    inventory: SeatsHeld
 
-  moment "Cold sender throttled" [branch]
-    when SenderWarmOrActive [messaging]
-      messaging: ThrottleExempt
-    when ColdSenderThrottled [refusals]
-      refusals: RejectInboundMessage
-      refusals: ThrottleNoticeSent
-        returns-to "M1 · A request arrives"
+  moment "Availability decision" [branch]
+    when seats-available
+      checkout: CreateCart
+        triggered-by SeatsHeld
+      checkout: CartCreated
+    when sold-out
+      presale: JoinWaitlist
+      presale: WaitlistJoined [outcome]
 ```
+
+This flow is from [TicketWave](../../examples/ticketwave/spec/ticketwave.moment).
 
 ## Related tooling
 
-- `moment` CLI (`@mmmnt/cli`, Node.js 22 or newer) — parse and validate
-  `.moment` specs, derive test topologies, generate Gherkin features and
-  TypeScript, simulate scenarios (with an AsyncAPI document), and detect and
-  decide implementation drift (`moment sync`)
-- **Facet** — `moment serve` bridges topology and scenarios to Facet over
-  WebSocket
+- The `moment` CLI (`@mmmnt/cli`, Node.js 22 or newer) parses and validates `.moment` files and derives scenarios, types, schemas, documents and boards from them. `npx moment --help` lists every command.
+- [Facet](https://facet.mmmnt.dev) replays the scenarios Moment derives. `moment serve` streams a model to it over WebSocket.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+[FSL-1.1-Apache-2.0](LICENSE.md)

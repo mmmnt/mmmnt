@@ -1,37 +1,39 @@
 # @mmmnt/mcp
 
-Model Context Protocol server exposing Moment domain services as AI agent tools.
+A Model Context Protocol server that exposes Moment as tools an AI agent can call.
 
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](../../LICENSE.md)
 [![npm version](https://img.shields.io/npm/v/@mmmnt/mcp.svg)](https://www.npmjs.com/package/@mmmnt/mcp)
 
 ## Overview
 
-`@mmmnt/mcp` exposes the Moment toolchain as a local Model Context Protocol server, enabling AI coding assistants like Claude, Copilot, and Cursor to validate specifications, check project status and drift, plan TypeScript emission, import upstream specifications, and reconcile changes through structured tool calls. The server communicates over stdio and requires no account or network access -- it runs fully offline.
+`@mmmnt/mcp` runs a local MCP server over stdio. It registers 7 tools: validate a model, report project status, produce visualization data, read local event signals, import a Sift export, plan TypeScript emission, and reconcile upstream drift. Each tool takes JSON arguments and returns JSON in a text content block.
 
-The server registers 7 tools covering the core Moment workflow: validation, project status, visualization, event inspection, Sift import, TypeScript emission, and cascade reconciliation. Each tool accepts structured JSON input and returns structured JSON output per the MCP protocol, with consistent error handling that never crashes on invalid input.
+The server reads and writes only local files. It needs no account and makes no network calls. It calls the `@mmmnt` libraries directly and does not shell out to the `moment` CLI.
 
-This package is the recommended integration point for AI-assisted domain-driven development workflows. While `@mmmnt/cli` serves interactive terminal use, `@mmmnt/mcp` provides core Moment operations in a format optimized for programmatic consumption by language model agents.
+The CLI does more: generation, simulation, boards, schemas and the `sync` proposal workflow are only in [@mmmnt/cli](../cli/README.md).
 
-**Transport:** stdio | **No account required** -- runs fully offline. | **Requires** Node.js 22 or later.
+What changed in each release is in [CHANGELOG.md](CHANGELOG.md).
 
-## Quick Start
+**Transport:** stdio. **Requires** Node.js 22 or later.
+
+## Installation
 
 ```bash
-# Install globally
-npm install -g @mmmnt/mcp
-
-# Or run directly via npx
+# Run without installing
 npx @mmmnt/mcp
+
+# Or install globally; the command is `mcp`
+npm install -g @mmmnt/mcp
 ```
 
-The server starts on stdio and waits for MCP protocol messages on stdin/stdout.
+The server starts on stdio and waits for MCP messages on stdin.
 
-## Connecting to the Server
+## Connecting a client
 
-### Claude Code / Claude Desktop
+### Claude Code and Claude Desktop
 
-Add to your MCP configuration (a project `.mcp.json` for Claude Code, or `claude_desktop_config.json` for Claude Desktop):
+Add to a project `.mcp.json` (Claude Code) or to `claude_desktop_config.json` (Claude Desktop):
 
 ```json
 {
@@ -44,7 +46,7 @@ Add to your MCP configuration (a project `.mcp.json` for Claude Code, or `claude
 }
 ```
 
-### VS Code (Copilot MCP)
+### VS Code (Copilot)
 
 Add to `.vscode/settings.json`:
 
@@ -76,195 +78,171 @@ Add to `.cursor/mcp.json`:
 }
 ```
 
-### From Source (Development)
+### From source
 
 ```bash
-# Build the MCP server
 pnpm turbo build --filter=@mmmnt/mcp
-
-# Run directly
 node packages/mcp/dist/mcp.mjs
 ```
 
+The server reports itself as `moment`, with the package version.
+
 ## Tools
 
-Tools marked **(Read)** carry the MCP `readOnlyHint` annotation. Tools that take a `filePath` accept a single `.moment` file or a model directory, which is loaded as one project exactly as `@mmmnt/cli` loads it (`.domain/` is then read from that directory). Diagnostics carry their `ruleId` and source; the V22–V39 model rules are warnings for a single file and errors over a project (see [@mmmnt/core](../core/README.md#validation-rules)).
+| Tool                | Inputs                                                                        | Annotations                      | Writes files |
+| ------------------- | ----------------------------------------------------------------------------- | -------------------------------- | ------------ |
+| `moment_validate`   | `filePath`                                                                    | `readOnlyHint`, `idempotentHint` | No           |
+| `moment_status`     | `filePath`                                                                    | `readOnlyHint`, `idempotentHint` | No           |
+| `moment_viz`        | `filePath`                                                                    | `readOnlyHint`                   | No           |
+| `moment_get_events` | `projectDir`, `limit?` (default 50), `since?`                                 | `readOnlyHint`, `idempotentHint` | No           |
+| `moment_import`     | `domainDir`, `outputDir?`                                                     | none                             | Yes          |
+| `moment_emit_ts`    | `filePath`, `dryRun?` (default `false`)                                       | none                             | No           |
+| `moment_reconcile`  | `filePath`, `mode?` (`"local"` or `"event"`, default `"local"`), `eventPath?` | none                             | Yes          |
 
-### `moment_validate` (Read)
+A `filePath` is a single `.moment` file or a model directory. A directory is loaded as one project, as `@mmmnt/cli` loads it, and `.domain/`, `.moment/` and `.complai/` are then looked for inside that directory; for a file, beside it. The model-level validation rules are warnings for a single file and errors over a project (see [@mmmnt/core](../core/README.md#validation-rules)).
 
-Parse and validate a `.moment` specification file.
+### `moment_validate`
+
+Parse and validate the model.
 
 ```
 Input:  { filePath: string }
-Output: { success, contextCount, flowCount, diagnostics[] }
+Output: { success, contextCount, flowCount, files, diagnostics[] }
 ```
 
-Use to check if a `.moment` file is syntactically and semantically valid before running other tools. Each diagnostic carries `severity` and `message`.
+`files` is the number of `.moment` files loaded; it is left out when the model does not parse. Each diagnostic has `severity` and `message`, plus `ruleId` and `source` (file, line, column) when the rule gives them. For the TicketWave directory, `examples/ticketwave/spec/`, the result is 7 contexts, 8 flows, 1 file and 15 `PM-04` warnings.
 
-### `moment_status` (Read)
+### `moment_status`
 
-Get unified project status — parse validity, implementation sync drift, schema lifecycle (deprecated fields), and upstream source fingerprint.
+Report four checks: specification validity, implementation sync, schema lifecycle, and the upstream Sift fingerprint.
 
 ```
 Input:  { filePath: string }
 Output: { success, hasDrift, sections: [{ label, state, summary, details? }] }
 ```
 
-Use to assess overall project health at a glance. Drift detection needs the file to sit inside a git repository.
+`state` is `ok`, `drift`, `warning` or `error`. Implementation sync compares the TypeScript the model implies with the files at the root of the enclosing git repository. Outside a git repository the section reads `Not available (no git repository)`. Schema lifecycle counts deprecated fields. Upstream source is `drift` when `.domain/` exists without `.moment/.upstream-fingerprint.json`. `hasDrift` is true when any section is `drift` or `error`.
 
-### `moment_viz` (Read)
+### `moment_viz`
 
-Generate visualization data (context map + timeline layout) as structured JSON. Does not start an HTTP server.
+Produce the visualization data for the model. Starts no server.
 
 ```
 Input:  { filePath: string }
-Output: VizDataEnvelope JSON (context map nodes, edges, timeline entries)
+Output: { sessionId, timestamp, version, contextMap, timeline, metadata }
 ```
 
-Use to get visualization data for diagrams without a browser.
+The output is the `VizDataEnvelope` from [@mmmnt/viz](../viz/README.md). `sessionId` is derived from a hash of the model's files, so the same model gives the same id.
 
-### `moment_get_events` (Read)
+### `moment_get_events`
 
-Read local Moment event signals from `.complai/events/moment/`, newest first.
+Read the event signals in `<projectDir>/.complai/events/moment/*.jsonl`, newest first.
 
 ```
-Input:  { projectDir: string, limit?: number (default 50), since?: string }
+Input:  { projectDir: string, limit?: number, since?: string }
 Output: { success, eventCount, events[] }
 ```
 
-Use to inspect reconciliation history and event signals. `since` keeps events whose timestamp is at or after it.
+`since` keeps events whose `timestamp` is at or after it. Lines that are not JSON, or have no `timestamp`, are skipped. With no event directory the result is an empty list. `moment_reconcile` and `moment reconcile` write these events.
 
-### `moment_import` (Write)
+### `moment_import`
 
-Import Sift JSONL event streams from `.domain/` into `.moment` context files under `<outputDir>/.moment/contexts/`, and write the upstream fingerprint to `<outputDir>/.moment/.upstream-fingerprint.json`. `outputDir` defaults to the parent of `domainDir`.
+Import the Sift JSONL event streams in `domainDir` as one `.moment` file per context.
 
 ```
 Input:  { domainDir: string, outputDir?: string }
 Output: { success, contextsImported, filesWritten, eventsProcessed }
 ```
 
-Use when upstream Sift specification has been updated and `.moment` files need regeneration.
+Files go to `<outputDir>/.moment/contexts/<context>.moment`, and the fingerprint to `<outputDir>/.moment/.upstream-fingerprint.json`. `outputDir` defaults to the parent of `domainDir`. A missing directory, a directory with no events, or an import with errors returns `IMPORT_FAILED`. The fixture in `fixtures/valid/sift/domain` gives 4 contexts, 4 files and 56 events.
 
 ### `moment_emit_ts`
 
-Plan TypeScript type definitions and test scaffolds for a `.moment` specification (parse, derive, emit). The tool reports what would be emitted and writes no files; use `moment emit-ts` or `moment generate` from `@mmmnt/cli` to write them.
+Plan the TypeScript types, aggregates and test scaffolds for the model. Writes no files; use `moment emit-ts` or `moment generate` to write them.
 
 ```
-Input:  { filePath: string, dryRun?: boolean (default false) }
+Input:  { filePath: string, dryRun?: boolean }
 Output: { success, tsFileCount, scaffoldFileCount, fileList? }
 ```
 
-Use to check which TypeScript artifacts a spec change affects. Pass `dryRun: true` to include the file list.
+`fileList`, the project-relative paths, is included only with `dryRun: true`. For TicketWave the counts are 40 and 21.
 
-### `moment_reconcile` (Write)
+### `moment_reconcile`
 
-Run cascade reconciliation. Classifies upstream drift as APPLIED (Category 1), DRIFT (Category 2), or BREAKING (Category 3), and records a `MomentReconcileCompleted` event in `.complai/events/moment/`. In `local` mode with no `.domain/` beside the spec, the outcome is `NO_CHANGES` and nothing is written.
+Classify upstream drift as `APPLIED` (Category 1), `DRIFT` (Category 2) or `BREAKING` (Category 3).
 
 ```
-Input:  { filePath: string, mode?: "local" | "event" (default "local"), eventPath?: string }
+Input:  { filePath: string, mode?: "local" | "event", eventPath?: string }
 Output: { success, outcome, category?, message }
 ```
 
-Use after upstream changes to determine what reconciliation actions are needed. `eventPath` is required in `event` mode.
+- `local` compares the model's contexts with the contexts in `.domain/`. A context in the model but not upstream is `BREAKING`; a context upstream but not in the model is `DRIFT`. With no `.domain/`, the outcome is `NO_CHANGES` and nothing is written.
+- `event` reads the cascade event file at `eventPath` (required) and checks its `affectedElements` against the names of the model's contexts, aggregates, events and commands. Any unknown name is `DRIFT`; otherwise `APPLIED`.
 
-## Error Handling
+Every outcome except `NO_CHANGES` writes a `MomentReconcileCompleted` event to `.complai/events/moment/`. `success` is false for `BREAKING`.
 
-All tools return structured errors when something goes wrong — the server never crashes on invalid input:
+## Errors
+
+A failed call returns `isError: true` and a JSON body:
 
 ```json
 {
   "errorCode": "TOOL_ERROR",
-  "message": "File not found: /path/to/spec.moment",
+  "message": "File not found: /nope.moment",
   "context": {}
 }
 ```
 
-Error codes: `PARSE_FAILED`, `IMPORT_FAILED`, `MISSING_EVENT_PATH`, `EVENT_NOT_FOUND`, `INVALID_EVENT`, `TOOL_ERROR` (any other failure, including a missing file).
+| Code                 | When                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `PARSE_FAILED`       | `moment_viz`, `moment_emit_ts` or `moment_reconcile` on a model that does not parse |
+| `IMPORT_FAILED`      | `moment_import` finds no events, or the import has errors                           |
+| `MISSING_EVENT_PATH` | `moment_reconcile` in `event` mode without `eventPath`                              |
+| `EVENT_NOT_FOUND`    | The cascade event file does not exist                                               |
+| `INVALID_EVENT`      | The cascade event file is not JSON                                                  |
+| `TOOL_ERROR`         | Any other failure, including a `filePath` that does not exist                       |
+
+`moment_validate` and `moment_status` on a model that does not parse are not errors: they return the diagnostics, or an `error` section.
 
 ## Testing
 
-### Manual Smoke Test
+### Smoke test
+
+From the repository root, after a build:
 
 ```bash
-# Build
-pnpm turbo build --filter=@mmmnt/mcp
-
-# List available tools
+# List the tools
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | node packages/mcp/dist/mcp.mjs
 
-# Call a tool
+# Call one
 echo '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"moment_validate","arguments":{"filePath":"examples/ticketwave/spec/ticketwave.moment"}},"id":2}' | node packages/mcp/dist/mcp.mjs
 ```
 
-### Unit Tests
+The call returns `{ "success": true, "contextCount": 7, "flowCount": 8, "files": 1, "diagnostics": [] }` as its text content.
+
+### Unit tests
 
 ```bash
-# Run MCP package tests
 pnpm --filter @mmmnt/mcp test
-
-# With coverage
 pnpm --filter @mmmnt/mcp test -- --coverage
 ```
 
-### Full Monorepo Validation
-
-```bash
-pnpm turbo test -- --coverage --passWithNoTests
-```
-
-## Architecture
-
-The MCP server imports domain services directly from workspace packages — no shell-out to the `moment` CLI binary:
+## Packages it uses
 
 ```
 @mmmnt/mcp
-  ├── @mmmnt/core      (MomentParser, SiftSpecificationImporter)
-  ├── @mmmnt/derive    (deriveTopology)
-  ├── @mmmnt/emit-ts   (TypeScriptEmitter, TestScaffoldEmitter)
-  ├── @mmmnt/viz       (VizEmitter)
-  └── @mmmnt/sync      (ASTDiffEngine, LocalGitArtifactStore, SiftEventStreamReader)
+  +-- @mmmnt/core      model and project loading, Sift import
+  +-- @mmmnt/derive    test topology
+  +-- @mmmnt/emit-ts   TypeScript types and test scaffolds
+  +-- @mmmnt/viz       visualization envelope
+  +-- @mmmnt/sync      drift detection, git artifact reads, Sift stream reading
 ```
 
-Each tool callback is wrapped in `wrapTool()` for exception safety. All results are JSON-serialized `CallToolResult` objects per the MCP protocol.
-
-## Installation
-
-Requires Node.js 22 or later.
-
-```bash
-# Install globally
-npm install -g @mmmnt/mcp
-
-# Or run directly via npx
-npx @mmmnt/mcp
-```
-
-## Integration
-
-`@mmmnt/mcp` imports domain services directly from workspace packages -- it does not shell out to the `moment` CLI binary. Its tools use:
-
-- **@mmmnt/core** for parsing and Sift specification import
-- **@mmmnt/derive** for test topology derivation
-- **@mmmnt/emit-ts** for TypeScript code and test scaffold generation
-- **@mmmnt/viz** for visualization data generation
-- **@mmmnt/sync** for AST diffing, git artifact reads, and Sift event stream reading
-
-For interactive terminal use, model directories, and the `sync` proposal workflow, see [@mmmnt/cli](../cli/README.md).
-
-## Key Features
-
-- **7 structured tools** -- covers the core Moment workflow: validation, status, visualization, event inspection, import, TypeScript emission, and reconciliation.
-- **Stdio transport** -- communicates over stdin/stdout per the MCP protocol specification, compatible with all MCP-aware clients.
-- **Fully offline** -- requires no account, API keys, or network access. All operations run against local files.
-- **Exception-safe** -- every tool callback is wrapped in `wrapTool()` for guaranteed structured error responses. The server never crashes on invalid input.
-- **Structured JSON output** -- all tool responses are JSON-serialized `CallToolResult` objects per the MCP protocol, making them easy for agents to parse.
-- **Read-only annotations** -- the four read tools carry the MCP `readOnlyHint`, so agents can tell them apart from tools with side effects before calling them.
-- **Multi-client configuration** -- configuration examples for Claude Code, Claude Desktop, VS Code Copilot, and Cursor.
-- **Direct library imports** -- imports domain services directly from workspace packages rather than shelling out to the CLI binary, avoiding process overhead.
+Each tool is wrapped so that an exception becomes a `TOOL_ERROR` result instead of stopping the server.
 
 ## Contributing
 
-This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines, development setup, and the code of conduct.
+This package is part of the [mmmnt monorepo](https://github.com/mmmnt/mmmnt). See the repository root for contribution guidelines and development setup.
 
 ```bash
 git clone https://github.com/mmmnt/mmmnt.git
@@ -277,9 +255,3 @@ pnpm --filter @mmmnt/mcp test
 ## License
 
 [FSL-1.1-Apache-2.0](../../LICENSE.md)
-
-## ADR References
-
-- [ADR-022 §4](https://winnovation.atlassian.net/wiki/spaces/MMMNT/pages/23396354) — MCP server specification, 7 tools, tool descriptions
-- [ADR-028](https://winnovation.atlassian.net/wiki/spaces/MMMNT/pages/47742977) — JSONL event stream format for Sift import
-- [ADR-013](https://winnovation.atlassian.net/wiki/spaces/MMMNT/pages/12451841) — FSL-1.1-Apache-2.0 license

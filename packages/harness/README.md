@@ -7,11 +7,19 @@ Test execution engine with event replay and contract assertion for Moment-derive
 
 ## Overview
 
-`@mmmnt/harness` runs the test suites that `@mmmnt/derive` produces from a `.moment` specification and reports whether the specification holds together. It is infrastructure-agnostic: it validates against the intermediate representation (IR) and against payloads you hand it, not against a running system.
+`@mmmnt/harness` runs the test suites that `@mmmnt/derive` derives from a model and reports whether the model holds together. It checks structure against the IR and payloads you hand it. It does not run against a live system.
 
-The test runner walks every derived suite and evaluates each test case structurally against the IR: the contexts a case sets up and asserts across must exist, moment cases must name a moment in their flow, saga cases check their trigger, state adjacency, compensation and timeout, and policy-chain cases check their trigger event and the command they chain to. Every result is traceable to the specification element it came from.
+It has three parts:
 
-The event replay engine replays a flow's moments in order and reports a divergence point wherever a moment names a context the IR does not define. The contract assertion engine validates an event payload against a crossing's schema contract, reporting missing required fields and type mismatches.
+| Export                    | What it checks                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `TestRunner`              | every derived test case, structurally, against the IR. This is what `moment test` runs            |
+| `EventReplayEngine`       | that every placement of a flow names a context the IR defines                                     |
+| `ContractAssertionEngine` | a payload against a crossing's schema contract: required fields present, values of the right type |
+
+To replay the derived scenarios step by step and assert paths, crossings, branches and saga transitions, use [Facet](https://facet.mmmnt.dev), which reads what `moment simulate` writes.
+
+For the history of changes, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
@@ -36,59 +44,76 @@ import { MomentParser } from '@mmmnt/core';
 import { deriveTopology } from '@mmmnt/derive';
 import { TestRunner } from '@mmmnt/harness';
 
-const path = 'path/to/spec.moment';
-const { ir } = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
-if (!ir) throw new Error('parse failed');
+const path = 'examples/ticketwave/spec/ticketwave.moment';
+const result = await new MomentParser().parseContent(readFileSync(path, 'utf-8'), path);
+if (!result.success || !result.ir) throw new Error('The specification has errors');
+const ir = result.ir;
 
-const result = new TestRunner().run(deriveTopology(ir), ir);
+const run = new TestRunner().run(deriveTopology(ir), ir);
 
 console.log(
-  `${result.suitesRun} suites: ${result.testsPassed} passed, ` +
-    `${result.testsFailed} failed, ${result.testsSkipped} skipped`,
+  `${run.suitesRun} suites: ${run.testsPassed} passed, ` +
+    `${run.testsFailed} failed, ${run.testsSkipped} skipped`,
 );
 ```
 
-## Key Features
+Output for TicketWave:
 
-- **Test suite execution** -- runs every derived suite against the IR and aggregates passed, failed, and skipped counts; a suite whose flow is missing from the IR is skipped.
-- **Traceability (TE-01)** -- every test result maps to its originating specification element in `traceabilityMap`.
-- **Structural saga validation (TE-03)** -- dispatches on `assertionType: 'saga'` to validate that the trigger exists in the IR, that states are adjacent in the saga chain, and that both compensation and timeout are defined.
-- **Structural policy chain validation (TE-04)** -- dispatches on `assertionType: 'policy-chain'` to validate that the trigger event exists in the IR and that the `chainsTo` command exists in the IR.
-- **Event replay** -- replays a flow's moments, including branch entries, and records a divergence point for each moment that names an undefined context.
-- **Contract assertion (TE-02)** -- validates a payload against a `SchemaContract`, reporting required fields that are missing and values whose type does not match the contract.
-- **CI/CD integration** -- exposed as `moment test`, which exits non-zero when any test fails.
+```
+8 suites: 92 passed, 0 failed, 0 skipped
+```
+
+`moment test examples/ticketwave/spec/ticketwave.moment` prints the same counts and exits 1 when a test fails:
+
+```
+Tests: 92 total, 92 passed, 0 failed, 0 skipped (8 suite(s))
+```
+
+## What the Test Runner Checks
+
+For every test case of every suite, `run(topology, ir)` first checks that each context a setup step names, and each source and target context of an assertion point, exists in the IR. Then it dispatches on the `assertionType` of the case's first assertion point:
+
+| First assertion    | The case passes when                                                                                                                                                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `saga`             | for the start case, the saga's trigger exists (a command of the orchestration, or an event in the IR); for a transition case, the two states are adjacent in the saga's `states`; for the compensation case, the saga declares both a compensation and a timeout |
+| `policy-chain`     | the policy exists, its trigger event exists in the IR, and its `chains-to` command exists in an aggregate, a context or an orchestration                                                                                                                         |
+| any other, or none | the moment exists in its flow                                                                                                                                                                                                                                    |
+
+A suite whose flow is not in the IR is counted as skipped. Every result is entered in `traceabilityMap`, keyed `<flowId>::<momentId>[<variant>]`, with the id of the case's first assertion point (a crossing, saga or policy id), or `<flowId>/<momentId>` when it has none.
 
 ## API Reference
 
 ### Test Execution
 
-| Export | Description |
-|--------|-------------|
-| `TestRunner` | `run(topology, ir)` evaluates every test case of a `TestSuiteTopology` against the IR. Dispatches on the `assertionType` of each test case's first assertion: `'saga'` and `'policy-chain'` take their structural paths; anything else checks that the moment exists in its flow. Returns `TestRunResult`. |
+| Export       | Description                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| `TestRunner` | `run(topology, ir)` evaluates every test case of a `TestSuiteTopology` and returns a `TestRunResult`. |
 
 ### Event Replay
 
-| Export | Description |
-|--------|-------------|
-| `EventReplayEngine` | `replay(flow, ir)` replays a `FlowDefinition`'s moments against the IR's contexts. Returns `ReplayResult`. |
+| Export              | Description                                                                                                                                                                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EventReplayEngine` | `replay(flow, ir)` walks the moments of a flow in order, main entries and then every branch's entries, and records at most one `DivergencePoint` per moment: the first entry whose context the IR does not define. Returns a `ReplayResult`. |
 
 ### Contract Validation
 
-| Export | Description |
-|--------|-------------|
-| `ContractAssertionEngine` | `validate(crossingId, payload, contract)` checks a payload against a `SchemaContract` and returns `ContractValidationResult`. `coversAllRequiredFields(payload, fields)` returns whether every required field is present. |
+| Export                    | Description                                                                                                                                                                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ContractAssertionEngine` | `validate(crossingId, payload, contract)` checks a payload against a `SchemaContract` and returns a `ContractValidationResult`. `validateAll` is the same check. `coversAllRequiredFields(payload, fields)` returns whether every required field is present and not null. |
 
 ### Key Types
 
-| Type | Description |
-|------|-------------|
-| `TestRunResult` | Suites run, tests passed, failed, and skipped, and the traceability map from test id to specification element. |
-| `DivergencePoint` | Where a replay diverged: moment index, expected and actual state, and the node that caused it. |
-| `ReplayResult` | Flow id, steps replayed, divergence points, and `finalStateMatch`. |
-| `ContractViolation` | A violation with field name, expected and actual type, and the constraint violated (`required field missing` or `type mismatch`). |
-| `ContractValidationResult` | Crossing id, `valid`, and the violations. |
+| Type                       | Description                                                                                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TestRunResult`            | `suitesRun`, `testsPassed`, `testsFailed`, `testsSkipped`, and `traceabilityMap` from test id to specification element.                                        |
+| `ReplayResult`             | `flowId`, `stepsReplayed` (the number of moments), `divergencePoints`, and `finalStateMatch` (true when there are none).                                       |
+| `DivergencePoint`          | `momentIndex`, `expectedState`, `actualState`, and `eventThatCaused` (the node name of the entry).                                                             |
+| `ContractValidationResult` | `crossingId`, `valid`, and `violations`.                                                                                                                       |
+| `ContractViolation`        | `fieldName`, `expected` (the contract type), `actual` (the value's type, or `missing`), and `constraintViolated`: `required field missing` or `type mismatch`. |
 
 ## Examples
+
+The examples below start from a parsed IR, obtained as in the Quick Start.
 
 ### Replaying Every Flow
 
@@ -107,39 +132,68 @@ for (const flow of ir.flows) {
 }
 ```
 
+Output for TicketWave (excerpt):
+
+```
+Flow flow-N2 - Presale access: 1 divergence(s)
+  moment 2 (AccessCodeInvalidated): context ctx-Invalid Code not found
+```
+
+A placement on a `branch-lane` (here `invalidCode: AccessCodeInvalidated [terminal]`) names the lane, not a context, so the engine reports it as a divergence although the model is valid. TicketWave reports five such divergences, in N1 to N4.
+
 ### Validating a Payload Against a Crossing Contract
 
 ```typescript
 import { ContractAssertionEngine } from '@mmmnt/harness';
 
-const contracts = new ContractAssertionEngine();
+const flow = ir.flows.find((f) => f.name === 'N2 - Presale access');
+const crossing = flow.connections.find(
+  (c) => c.connectionType === 'crosses-to' && c.schemaContract?.eventType === 'SeatsHeld',
+);
+console.log(crossing.schemaContract.fields.map((f) => `${f.name}: ${f.type}`).join(', '));
 
-for (const flow of ir.flows) {
-  for (const connection of flow.connections) {
-    if (connection.connectionType !== 'crosses-to') continue;
+// e.g. a payload captured from your implementation
+const payload = { holdId: 'h-1', quantity: '2', customerId: 'c-1' };
+const result = new ContractAssertionEngine().validate(
+  crossing.id,
+  payload,
+  crossing.schemaContract,
+);
 
-    const payload = { holdId: 'h-1', amount: '12.00' }; // e.g. captured from your implementation
-    const result = contracts.validate(connection.id, payload, connection.schemaContract);
-
-    for (const v of result.violations) {
-      console.log(`${result.crossingId} ${v.fieldName}: ${v.constraintViolated} ` +
-        `(expected ${v.expected}, got ${v.actual})`);
-    }
-  }
+console.log(`valid: ${result.valid}`);
+for (const v of result.violations) {
+  console.log(
+    `  ${v.fieldName}: ${v.constraintViolated} (expected ${v.expected}, got ${v.actual})`,
+  );
 }
 ```
 
-A field's type matches when the payload value's JavaScript type (`typeof`, or `array`) equals the contract type in lower case.
+Output:
+
+```
+holdId: UUID, eventId: UUID, tierId: UUID, quantity: number, customerId: UUID, expiresAt: DateTime
+valid: false
+  holdId: type mismatch (expected UUID, got string)
+  eventId: required field missing (expected UUID, got missing)
+  tierId: required field missing (expected UUID, got missing)
+  quantity: type mismatch (expected number, got string)
+  customerId: type mismatch (expected UUID, got string)
+  expiresAt: required field missing (expected DateTime, got missing)
+```
+
+A missing or `null` value fails only a required field. A present value matches when its JavaScript type (`typeof`, or `array` for an array) equals the contract type in lower case. Only `string`, `number` and `boolean` can match that way, so a value for a `UUID`, `DateTime`, `Date` or `Money` field, or for a value object, is always reported as a type mismatch, as `holdId` and `customerId` are above.
 
 ## Integration
 
-`@mmmnt/harness` depends on `@mmmnt/core` for the IR and `@mmmnt/derive` for test topologies:
+`@mmmnt/harness` depends on `@mmmnt/core` for the IR and `@mmmnt/derive` for the test topology:
 
 ```
 @mmmnt/core --> @mmmnt/derive --> @mmmnt/harness
                                        |
-                                       +-- @mmmnt/cli  (exposed via `moment test`)
+                                       +-- @mmmnt/cli  (`moment test`)
 ```
+
+`moment test <file|dir>` derives the topology and runs `TestRunner`. It accepts a single file or a model directory, which it loads as one project.
 
 ## Contributing
 
