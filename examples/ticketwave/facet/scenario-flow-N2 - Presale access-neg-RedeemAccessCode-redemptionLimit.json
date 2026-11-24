@@ -1,0 +1,97 @@
+{
+  "scenarioId": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-redemptionLimit",
+  "flowId": "flow-N2 - Presale access",
+  "flowName": "N2 - Presale access",
+  "scenarioLabel": "Failure: Code must not have exceeded its redemption limit not met",
+  "kind": "negative",
+  "description": "Negative scenario: Code must not have exceeded its redemption limit precondition violation at RedeemAccessCode",
+  "given": "A presale window opens scenario is initiated",
+  "when": "RedeemAccessCode is invoked without satisfying redemptionLimit",
+  "then": "The command RedeemAccessCode is rejected",
+  "expectedPath": [
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+    "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "uses-remain",
+      "routeChosen": "uses-remain"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PresaleWindowOpened",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+        "windowId": "windowId-001",
+        "openedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.RedeemAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+        "processName": "RedeemAccessCode",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "$branch": "uses-remain",
+        "outcome": "uses-remain",
+        "whenState": "Open"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "SimFailure.RedeemAccessCode.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+        "failedPrecondition": "redemptionLimit",
+        "description": "Code must not have exceeded its redemption limit"
+      }
+    }
+  ]
+}

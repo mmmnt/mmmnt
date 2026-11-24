@@ -8,7 +8,7 @@ let pc: BoardManifest;
 let tw: BoardManifest;
 beforeAll(async () => {
   pc = projectBoard(numbered(await loadIr('fixtures/valid/process-constructs'))).manifest;
-  tw = projectBoard(numbered(await loadIr('examples/ticketwave/spec/ticketwave.moment'))).manifest;
+  tw = projectBoard(await loadIr('examples/ticketwave/spec/ticketwave.moment')).manifest;
 });
 
 describe('definitions', () => {
@@ -147,7 +147,7 @@ describe('derived placements (platform ruling dd83fde4)', () => {
   it('marks no authored placement derived: every entry and note of the flow source stays plain', async () => {
     for (const [ir, m] of [
       [numbered(await loadIr('fixtures/valid/process-constructs')), pc],
-      [numbered(await loadIr('examples/ticketwave/spec/ticketwave.moment')), tw],
+      [await loadIr('examples/ticketwave/spec/ticketwave.moment'), tw],
     ] as const) {
       const written = ir.flows.flatMap((f) =>
         f.moments.flatMap((mo) => [

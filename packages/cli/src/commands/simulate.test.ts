@@ -235,10 +235,10 @@ describe('moment simulate ticketwave branch paths (ADR-042, ADR-043)', () => {
     const entries = await manifestEntries('out-042');
     const ids = entries.map((e) => e.scenarioId);
     for (const id of [
-      'scenario-flow-seat-request-neg-JoinWaitlist-notAlreadyOnWaitlist',
-      'scenario-flow-general-admission-purchase-neg-FailPayment-paymentPending',
-      'scenario-flow-ticket-transfer-neg-DeclineTransfer-transferPending',
-      'scenario-flow-ticket-transfer-neg-CancelTransfer-transferPending',
+      'scenario-flow-N5 - Seat request-neg-JoinWaitlist-notAlreadyOnWaitlist',
+      'scenario-flow-N1 - General admission purchase-neg-FailPayment-paymentPending',
+      'scenario-flow-N3 - Ticket transfer-neg-DeclineTransfer-transferPending',
+      'scenario-flow-N3 - Ticket transfer-neg-CancelTransfer-transferPending',
     ]) {
       const entry = entries.find((e) => e.scenarioId === id);
       expect(entry, id).toBeDefined();
@@ -254,8 +254,8 @@ describe('moment simulate ticketwave branch paths (ADR-042, ADR-043)', () => {
     const labelled = (label: string) => entries.find((e) => e.scenarioLabel === label);
 
     for (const label of [
-      'Variant: seat-request [sold-out]',
-      'Variant: payment-settlement [approved-after-rehold]',
+      'Variant: N5 - Seat request [sold-out]',
+      'Variant: N6 - Payment settlement [approved-after-rehold]',
     ]) {
       const entry = labelled(label);
       expect(entry, label).toBeDefined();
@@ -263,8 +263,10 @@ describe('moment simulate ticketwave branch paths (ADR-042, ADR-043)', () => {
       expect(entry!.isHappyPath).toBe(false);
       expect(entry!.isNegative).toBe(false);
     }
-    expect(labelled('Failure Path: general-admission-purchase [declined]')?.kind).toBe('failure');
-    expect(entries.some((e) => e.scenarioLabel.startsWith('Failure Path: seat-request'))).toBe(
+    expect(labelled('Failure Path: N1 - General admission purchase [declined]')?.kind).toBe(
+      'failure',
+    );
+    expect(entries.some((e) => e.scenarioLabel.startsWith('Failure Path: N5 - Seat request'))).toBe(
       false,
     );
   });
@@ -334,11 +336,12 @@ describe('moment simulate policy-definitions artifact', () => {
       equals: 'expired',
     });
     expect(byName.get('ConvertHoldOnPayment')?.condition).toEqual({ after: 'SeatsHeld' });
+    expect(byName.get('ConvertHoldOnRehold')?.condition).toEqual({ after: 'PaymentConfirmed' });
     expect(
       policies
         .filter((p) => 'condition' in p)
         .map((p) => p.name)
         .sort(),
-    ).toEqual(['ConvertHoldOnPayment', 'PromoteWaitlistOnRelease']);
+    ).toEqual(['ConvertHoldOnPayment', 'ConvertHoldOnRehold', 'PromoteWaitlistOnRelease']);
   });
 });

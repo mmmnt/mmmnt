@@ -9,6 +9,18 @@
     ]
   },
   {
+    "name": "ConvertHoldOnRehold",
+    "contextId": "ctx-Inventory",
+    "trigger": "SeatsHeld",
+    "actionDescription": "Payment cleared before the new hold was placed; convert the new hold",
+    "chainsTo": [
+      "ConvertHoldToReservation"
+    ],
+    "condition": {
+      "after": "PaymentConfirmed"
+    }
+  },
+  {
     "name": "AwaitConversionOnPaymentConfirmed",
     "contextId": "ctx-Inventory",
     "trigger": "PaymentConfirmed",

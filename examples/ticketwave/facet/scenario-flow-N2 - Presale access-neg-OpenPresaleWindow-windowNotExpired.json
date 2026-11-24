@@ -1,0 +1,49 @@
+{
+  "scenarioId": "scenario-flow-N2 - Presale access-neg-OpenPresaleWindow-windowNotExpired",
+  "flowId": "flow-N2 - Presale access",
+  "flowName": "N2 - Presale access",
+  "scenarioLabel": "Failure: Window must not have passed its end time not met",
+  "kind": "negative",
+  "description": "Negative scenario: Window must not have passed its end time precondition violation at OpenPresaleWindow",
+  "given": "A presale window opens scenario is initiated",
+  "when": "OpenPresaleWindow is invoked without satisfying windowNotExpired",
+  "then": "The command OpenPresaleWindow is rejected",
+  "expectedPath": [
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "SimFailure.OpenPresaleWindow.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+        "failedPrecondition": "windowNotExpired",
+        "description": "Window must not have passed its end time"
+      }
+    }
+  ]
+}

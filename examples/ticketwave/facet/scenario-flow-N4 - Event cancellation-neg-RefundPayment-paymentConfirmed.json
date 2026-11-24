@@ -1,0 +1,231 @@
+{
+  "scenarioId": "scenario-flow-N4 - Event cancellation-neg-RefundPayment-paymentConfirmed",
+  "flowId": "flow-N4 - Event cancellation",
+  "flowName": "N4 - Event cancellation",
+  "scenarioLabel": "Failure: Payment must have been confirmed not met",
+  "kind": "negative",
+  "description": "Negative scenario: Payment must have been confirmed precondition violation at RefundPayment",
+  "given": "A event cancellation scenario is initiated",
+  "when": "RefundPayment is invoked without satisfying paymentConfirmed",
+  "then": "The command RefundPayment is rejected",
+  "expectedPath": [
+    "moment-0-Event-cancellation::catalog::CancelEvent::main",
+    "moment-0-Event-cancellation::catalog::EventCancelled::main",
+    "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
+    "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
+    "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
+    "moment-4-Active-holds-release::inventory::ReleaseHold::main",
+    "moment-4-Active-holds-release::inventory::HoldReleased::main",
+    "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
+    "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
+    "moment-6-Refund-processing::checkout::RefundPayment::br0"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Refund processing",
+      "condition": "all-successful",
+      "routeChosen": "all-successful"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.CancelEvent",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-cancellation::catalog::CancelEvent::main",
+        "processName": "CancelEvent",
+        "eventId": "eventId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-cancellation::catalog::EventCancelled::main",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "EventCancelled",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-004"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
+        "eventId": "eventId-001",
+        "reason": "sample-reason",
+        "cancelledAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SimProcess.ReleaseHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
+        "processName": "ReleaseHold",
+        "holdId": "holdId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "HoldReleased",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-4-Active-holds-release::inventory::HoldReleased::main",
+        "holdId": "holdId-001",
+        "reason": "sample-reason",
+        "returnedQuantity": 0,
+        "releasedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "SimProcess.RevokeTicket",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
+        "processName": "RevokeTicket",
+        "ticketId": "ticketId-001",
+        "reason": "sample-reason"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "TicketRevoked",
+      "productSource": "delivery",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-008"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-5-Ticket-revocation::delivery::TicketRevoked::main",
+        "ticketId": "ticketId-001",
+        "reason": "sample-reason",
+        "revokedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-010",
+      "eventType": "SimProcess.RefundPayment",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:09.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-6-Refund-processing::checkout::RefundPayment::br0",
+        "processName": "RefundPayment",
+        "paymentId": "paymentId-001",
+        "reason": "sample-reason",
+        "refundAmount": 0,
+        "$branch": "all-successful",
+        "outcome": "all-successful"
+      }
+    },
+    {
+      "eventId": "evt-011",
+      "eventType": "SimFailure.RefundPayment.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N4 - Event cancellation",
+      "causationEventIds": [
+        "evt-010"
+      ],
+      "correlationId": "corr-scenario-flow-N4 - Event cancellation",
+      "timestamp": "2026-01-01T10:00:10.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-6-Refund-processing::checkout::RefundPayment::br0",
+        "failedPrecondition": "paymentConfirmed",
+        "description": "Payment must have been confirmed"
+      }
+    }
+  ]
+}

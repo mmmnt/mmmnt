@@ -1,0 +1,151 @@
+{
+  "scenarioId": "scenario-flow-N2 - Presale access-neg-RequestHold-customerHoldLimit",
+  "flowId": "flow-N2 - Presale access",
+  "flowName": "N2 - Presale access",
+  "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
+  "kind": "negative",
+  "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
+  "given": "A presale window opens scenario is initiated",
+  "when": "RequestHold is invoked without satisfying customerHoldLimit",
+  "then": "The command RequestHold is rejected",
+  "expectedPath": [
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+    "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
+    "moment-2-Code-validation-outcome::inventory::RequestHold::br0"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "uses-remain",
+      "routeChosen": "uses-remain"
+    },
+    {
+      "momentName": "Code validation outcome",
+      "condition": "valid",
+      "routeChosen": "valid"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PresaleWindowOpened",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+        "windowId": "windowId-001",
+        "openedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.RedeemAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+        "processName": "RedeemAccessCode",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "$branch": "uses-remain",
+        "outcome": "uses-remain",
+        "whenState": "Open"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "AccessCodeRedeemed",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "windowId": "windowId-001",
+        "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "uses-remain",
+        "outcome": "uses-remain"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-004"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "$branch": "valid",
+        "outcome": "valid"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SimFailure.RequestHold.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
+        "failedPrecondition": "customerHoldLimit",
+        "description": "Customer must not exceed maximum concurrent holds"
+      }
+    }
+  ]
+}

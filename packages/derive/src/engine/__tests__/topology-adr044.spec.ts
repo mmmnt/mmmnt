@@ -116,7 +116,7 @@ describe('ADR-044 D1 topology connections carry their arm', () => {
 describe('ADR-044 TicketWave: payment-settlement says which arm declared which conversion', () => {
   it('gives the two ConvertHoldToReservation connections their own arms', async () => {
     const ir = await parse(ticketwaveSource(), join(TICKETWAVE, 'ticketwave.moment'));
-    const flow = ir.flows.find((f) => f.name === 'payment-settlement')!;
+    const flow = ir.flows.find((f) => f.name === 'N6 - Payment settlement')!;
     const topology = new TopologyEmitter().emit(ir, flow);
     const conversions = topology.connections.filter(
       (c) => c.targetNodeName === 'ConvertHoldToReservation',

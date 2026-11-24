@@ -1,0 +1,49 @@
+{
+  "scenarioId": "scenario-flow-N1 - General admission purchase-neg-PublishEvent-eventComplete",
+  "flowId": "flow-N1 - General admission purchase",
+  "flowName": "N1 - General admission purchase",
+  "scenarioLabel": "Failure: Event must have at least one ticket tier configured not met",
+  "kind": "negative",
+  "description": "Negative scenario: Event must have at least one ticket tier configured precondition violation at PublishEvent",
+  "given": "A event discovery scenario is initiated",
+  "when": "PublishEvent is invoked without satisfying eventComplete",
+  "then": "The command PublishEvent is rejected",
+  "expectedPath": [
+    "moment-0-Event-discovery::catalog::PublishEvent::main"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.PublishEvent",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N1 - General admission purchase",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N1 - General admission purchase",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
+        "processName": "PublishEvent",
+        "eventId": "eventId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "SimFailure.PublishEvent.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N1 - General admission purchase",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N1 - General admission purchase",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
+        "failedPrecondition": "eventComplete",
+        "description": "Event must have at least one ticket tier configured"
+      }
+    }
+  ]
+}
