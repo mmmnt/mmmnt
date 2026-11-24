@@ -17,6 +17,8 @@
 
 Moment is a specification language and toolchain for domain-driven design that treats time as part of the model. You describe your bounded contexts, and the flows that carry events between them, in plain-text `.moment` files. Moment checks the model, then derives from it the tests, types, simulations, schemas, documents and boards your team would otherwise write by hand. It derives them again, unchanged, every time the model changes.
 
+**See it first.** One example model, [TicketWave](examples/ticketwave/spec/ticketwave.moment), projected three ways: [as an event-storming board](https://miro.com/app/board/uXjVEKasFkQ=/), [as a running rehearsal in Facet](https://facet.mmmnt.dev), and [as Gherkin feature specifications](#one-flow-through-all-three-n5-seat-request). Nothing in any of them was drawn or written by hand.
+
 ## Why Moment
 
 Event-driven systems rarely fail inside one aggregate. They fail at the boundaries:
@@ -36,9 +38,105 @@ Moment adds the missing step:
 
 Moment is for domain architects who want a design they can test, for teams who want contracts settled before implementation, and for anyone tired of documentation that describes last quarter's system.
 
-## A model, and what Moment makes of it
+## One model, three projections: TicketWave
 
-Two contexts and one flow. An order is placed in Ordering, and `OrderPlaced` crosses to Fulfillment under a contract. A policy reacts by reserving stock, and the reservation either succeeds or goes to backorder.
+[`examples/ticketwave/spec/ticketwave.moment`](examples/ticketwave/spec/ticketwave.moment) models a ticketing platform: seven bounded contexts (Catalog, Inventory, Checkout, Presale, Delivery, AntiFraud, Notifications), sixteen aggregates, and eight flows numbered N1 to N8. Everything below is projected from that one file. Change the file and every projection changes with it.
+
+| Projection            | Open it                                                                  | Made by                                                                               | One to one with the model                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The board**         | [TicketWave NDD board in Miro](https://miro.com/app/board/uXjVEKasFkQ=/) | `moment board`                                                                        | Every context, aggregate, command, event, policy and precondition. One thread frame per flow, one column per moment, one row per context the flow crosses |
+| **The rehearsal**     | [Facet](https://facet.mmmnt.dev)                                         | `moment simulate --all` into [`examples/ticketwave/facet`](examples/ticketwave/facet) | One scenario per path: 72 in all (8 happy, 4 variant, 10 failure, 48 negative, 2 saga timeouts)                                                           |
+| **The specification** | the `features/` directory `moment generate` writes                       | `moment generate`                                                                     | One `.feature` per flow, one `Scenario` per moment and per branch arm                                                                                     |
+
+The board is a projection, not a source: you read the `.moment` file through it, the way a client reads an API. Discussion happens on the board, and what the workshop decides goes back into the model, which redraws the board.
+
+### One flow through all three: N5 Seat request
+
+A customer asks for seats. With seats in the pool the customer gets a hold and a cart; with the tier sold out the customer joins the waitlist. In the model:
+
+```moment
+flow "N5 - Seat request"
+  lane inventory "Inventory" [Core]
+  lane presale "Presale" [Supporting]
+  lane checkout "Checkout" [Core]
+
+  moment "Seat request"
+    inventory: RequestHold
+    inventory: SeatsHeld
+
+  moment "Availability decision" [branch]
+    when seats-available
+      checkout: CreateCart
+        triggered-by SeatsHeld
+      checkout: CartCreated
+    when sold-out
+      presale: JoinWaitlist
+      presale: WaitlistJoined [outcome]
+```
+
+**On the board.** [Thread N5](https://miro.com/app/board/uXjVEKasFkQ=/?moveToWidget=3458764691498020020) has two columns, `N5.M1` and `N5.M2`, on the Inventory and Checkout rows. SYSTEM stacks `RequestHold` and `SeatsHeld`. BRANCH holds the two arms, `seats-available` and `sold-out`, and the three refusals that Moment derives from the commands' preconditions (`ticketsAvailable`, `customerHoldLimit`, `notAlreadyOnWaitlist`). The aggregate, policy and invariant frames are on the same board.
+
+**In Facet.** [Facet](https://facet.mmmnt.dev) is the visual test surface of the Complai ecosystem. It draws a flow's topology as lanes (contexts), frames (moments) and crossings, then walks each scenario's event stream step by step. At each step it asserts the path, the boundary crossings and their contracts, the branch taken, the terminal state, saga transitions and policy chains. It opens on TicketWave. N5 rehearses as five scenarios:
+
+| Scenario                                                                    | Kind     | Events |
+| --------------------------------------------------------------------------- | -------- | ------ |
+| Happy Path: N5 - Seat request                                               | happy    | 5      |
+| Variant: N5 - Seat request [sold-out]                                       | variant  | 5      |
+| Failure: Requested quantity must be available in the pool not met           | negative | 2      |
+| Failure: Customer must not exceed maximum concurrent holds not met          | negative | 2      |
+| Failure: Customer must not already be on the waitlist for this tier not met | negative | 5      |
+
+Nobody wrote the three negative scenarios. Each one comes from a precondition in the model. To rehearse your own model, run `moment serve`: Facet connects over WebSocket and re-plays as you edit.
+
+**In the specification.** `moment generate` writes `features/n5-seat-request.feature`. The flow is the `Feature`, each context it touches is a `Rule`, each moment is a `Scenario`, each branch arm is its own `Scenario`, and the preconditions become `Given` steps:
+
+```gherkin
+Feature: N5 - Seat request
+  A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist.
+
+  Rule: Inventory [Core]
+
+    Background:
+      Given Requested quantity must be available in the pool
+      Given Customer must not exceed maximum concurrent holds
+
+    @aggregate:SeatHold @saga:SeatHoldLifecycle @invariant:INV-02 @invariant:INV-03 @invariant:INV-04
+    Scenario: Seat request
+      When Inventory performs RequestHold with eventId, tierId, sectionId, quantity, customerId, sessionId
+      Then Inventory emits SeatsHeld
+        carrying holdId, eventId, tierId, sectionId, quantity, customerId, sessionId, expiresAt, heldAt
+
+  Rule: Checkout [Core]
+
+    @aggregate:Cart @invariant:CHK-01 @invariant:CHK-04 @alt-path
+    Scenario: Availability decision [seats-available]
+      Given SeatsHeld has occurred
+      When Checkout performs CreateCart with customerId, sessionId
+      Then Checkout emits CartCreated
+        carrying cartId, customerId, sessionId, createdAt
+
+    @terminal @alt-path
+    Scenario: Availability decision [sold-out]
+      Given the availability decision is evaluated
+      When the outcome is sold-out
+      Given Customer must not already be on the waitlist for this tier
+      When Presale performs JoinWaitlist with eventId, tierId, customerId, requestedQuantity
+      Then Presale emits WaitlistJoined (outcome)
+        carrying waitlistId, eventId, tierId, customerId, requestedQuantity, position, joinedAt
+      Then the flow ends at WaitlistJoined
+```
+
+The payload fields come from the event declarations in the contexts, so the specification can't drift from the types `moment emit-ts` generates. With each flow, the same command also writes a TypeScript aggregate, types, a `.spec.ts` scaffold, and a `specification.md` for the whole model.
+
+## Quick start
+
+Moment requires **Node.js 22 or newer**.
+
+```bash
+npm install --save-dev @mmmnt/cli
+```
+
+A first model: two contexts and one flow. An order is placed in Ordering, and `OrderPlaced` crosses to Fulfillment under a **contract**, the fields Fulfillment requires. A policy reacts by reserving stock, and the reservation either succeeds or goes to backorder. Save it as `model/shop.moment`:
 
 ```moment
 context "Ordering" [Core]
@@ -92,7 +190,15 @@ flow "N1 - Checkout"
       fulfillment: StockBackordered
 ```
 
-From that one file:
+Then:
+
+```bash
+npx moment parse model/
+npx moment generate model/shop.moment
+npx moment simulate model/shop.moment --all
+```
+
+What each command makes of it:
 
 | Command                                       | What you get                                                                                                                                      |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -102,41 +208,7 @@ From that one file:
 | `moment schema emit model/ --out-dir schemas` | `OrderPlaced.schema.json`, `StockReserved.schema.json`, `StockBackordered.schema.json`                                                            |
 | `moment board model/ --out board`             | An event-storming board as SVG frames: contexts, aggregates, policies, the thread of the flow, the context map, plus `manifest.json`              |
 
-An excerpt of the generated feature. The crossing is asserted with its contract, and each arm of the branch is its own scenario:
-
-```gherkin
-@aggregate:Order @crossing
-Scenario: The customer places an order
-  When Ordering performs PlaceOrder with customerId, total
-  Then OrderPlaced crosses to Fulfillment via CustomerSupplier
-    | orderId | total |
-    | UUID | number |
-
-@aggregate:Shipment @policy:ReserveStockWhenOrderPlaced @alt-path
-Scenario: Fulfillment reserves the stock [outOfStock]
-  Given OrderPlaced has occurred
-  When Fulfillment performs ReserveStock with orderId
-  Then Fulfillment emits StockBackordered
-    carrying shipmentId, orderId
-```
-
-## Quick start
-
-Moment requires **Node.js 22 or newer**.
-
-```bash
-npm install --save-dev @mmmnt/cli
-```
-
-Save the model above as `model/shop.moment`, then:
-
-```bash
-npx moment parse model/
-npx moment generate model/shop.moment
-npx moment simulate model/shop.moment --all
-```
-
-`npx moment --help` lists every command. A larger worked model, a ticketing platform across seven contexts, lives in [`examples/ticketwave`](examples/ticketwave).
+`npx moment --help` lists every command. To work with TicketWave itself, clone this repository and point the same commands at `examples/ticketwave/spec/`.
 
 ## What Moment does
 
@@ -145,7 +217,7 @@ npx moment simulate model/shop.moment --all
 | **Model and check**            | `parse`, `watch`, `lint`, `status` | One file or a directory of files loaded as one project, held to grammar, completeness and palette rules                                |
 | **Derive tests**               | `derive`, `test`, `cucumber-json`  | A test topology per flow: a case per moment and branch arm, an assertion per crossing, negative scenarios for every unmet precondition |
 | **Generate**                   | `generate`, `emit-ts`              | Gherkin features, TypeScript types, aggregates and test scaffolds, specification documents                                             |
-| **Simulate**                   | `simulate`, `serve`                | Event chains with causation and payloads for each path, served over WebSocket to [Facet](https://moment.mmmnt.ai/ecosystem)            |
+| **Simulate**                   | `simulate`, `serve`                | Event chains with causation and payloads for each path, served over WebSocket to [Facet](https://facet.mmmnt.dev)                      |
 | **Visualise**                  | `viz`, `board`                     | A context map and timeline envelope, and a board of SVG frames with a manifest you can diff                                            |
 | **Govern contracts**           | `schema emit`, `schema status`     | A closed JSON Schema per event payload, and the schema lifecycle report                                                                |
 | **Keep implementation honest** | `sync`, `reconcile`                | Drift between model and code recorded as proposals you accept or reject, and upstream drift reconciled                                 |
@@ -176,7 +248,7 @@ Every `@mmmnt/*` package is released together at the same version.
 Moment is the open-source core of the [Complai](https://moment.mmmnt.ai/ecosystem) ecosystem, and it runs entirely on its own: no `@mmmnt` package depends on any Complai service. Complai products plug in around it when you want them:
 
 - **Sift** automates event storming and hands Moment a model to import.
-- **Facet** plays Moment's simulation scenarios as a visual test of every crossing.
+- **[Facet](https://facet.mmmnt.dev)** plays Moment's simulation scenarios as a visual test of every crossing.
 
 ## Documentation
 
