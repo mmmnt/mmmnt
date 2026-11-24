@@ -31,6 +31,7 @@ import {
 } from '@mmmnt/derive';
 import type { SimulationScenario, SimulationTopology } from '@mmmnt/derive';
 import { COMMAND_OPTIONS } from '../lib/command-options.js';
+import { ScenarioFileNames, topologyFileName } from '../lib/facet-files.js';
 
 // ---------------------------------------------------------------------------
 // Message types (ADR-031 §2)
@@ -126,10 +127,10 @@ function buildPayloads(ir: IntermediateRepresentation, includeAll: boolean): Pip
   const topologies: Record<string, SimulationTopology> = {};
   const scenarios: Record<string, SimulationScenario> = {};
   const manifestFlows: ManifestFlow[] = [];
+  const scenarioFiles = new ScenarioFileNames();
 
   for (const flow of ir.flows) {
-    const flowSlug = kebab(flow.name);
-    const topoKey = `topology-${flowSlug}.json`;
+    const topoKey = topologyFileName(flow);
     topologies[topoKey] = topoEmitter.emit(ir, flow);
 
     const flowScenarios: SimulationScenario[] = includeAll
@@ -141,8 +142,10 @@ function buildPayloads(ir: IntermediateRepresentation, includeAll: boolean): Pip
         ]
       : [generateSimulationScenario(ir, flow)];
 
+    // Keyed by the file name `moment simulate --out-dir` writes the scenario to, as the facet-dir
+    // mode keys by the manifest's `file`.
     for (const s of flowScenarios) {
-      scenarios[`${s.scenarioId}.json`] = s;
+      scenarios[scenarioFiles.name(flow, s.scenarioId)] = s;
     }
 
     manifestFlows.push({
@@ -174,13 +177,6 @@ function buildPayloads(ir: IntermediateRepresentation, includeAll: boolean): Pip
       policyDefinitions: generatePolicyDefinitions(ir),
     },
   };
-}
-
-function kebab(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 // ---------------------------------------------------------------------------

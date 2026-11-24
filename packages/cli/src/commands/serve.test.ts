@@ -48,7 +48,7 @@ const SAMPLE_MANIFEST = {
           scenarioId: 'scenario-flow-order-placed',
           scenarioLabel: 'Happy Path: order-placed',
           description: 'Happy path',
-          file: 'scenario-flow-order-placed.json',
+          file: 'scenario-order-placed.json',
           eventCount: 4,
           pathLength: 4,
           branchCount: 0,
@@ -59,7 +59,7 @@ const SAMPLE_MANIFEST = {
           scenarioId: 'scenario-flow-order-placed-neg-PlaceOrder-orderNotPlaced',
           scenarioLabel: 'Failure: precondition violation',
           description: 'Negative',
-          file: 'scenario-flow-order-placed-neg-PlaceOrder-orderNotPlaced.json',
+          file: 'scenario-order-placed-neg-placeorder-ordernotplaced.json',
           eventCount: 2,
           pathLength: 1,
           branchCount: 0,
@@ -84,9 +84,9 @@ function writeJson(path: string, value: unknown): void {
 function populateValidFacetDir(dir: string): void {
   writeJson(join(dir, 'manifest.json'), SAMPLE_MANIFEST);
   writeJson(join(dir, 'topology-order-placed.json'), SAMPLE_TOPOLOGY);
-  writeJson(join(dir, 'scenario-flow-order-placed.json'), SAMPLE_HAPPY_SCENARIO);
+  writeJson(join(dir, 'scenario-order-placed.json'), SAMPLE_HAPPY_SCENARIO);
   writeJson(
-    join(dir, 'scenario-flow-order-placed-neg-PlaceOrder-orderNotPlaced.json'),
+    join(dir, 'scenario-order-placed-neg-placeorder-ordernotplaced.json'),
     SAMPLE_NEGATIVE_SCENARIO,
   );
   writeJson(join(dir, 'event-catalog.json'), { events: [] });
@@ -134,7 +134,7 @@ describe('runFacetDirPipeline', () => {
       writeJson(join(facetDir, 'manifest.json'), SAMPLE_MANIFEST);
       writeJson(join(facetDir, 'topology-order-placed.json'), SAMPLE_TOPOLOGY);
       expect(() => runFacetDirPipeline(facetDir, true)).toThrow(
-        /'scenario-flow-order-placed\.json' that does not exist/,
+        /'scenario-order-placed\.json' that does not exist/,
       );
     });
 
@@ -191,7 +191,7 @@ describe('runFacetDirPipeline', () => {
     it('serves only the happy-path scenario by default', () => {
       const result = runFacetDirPipeline(facetDir, false);
 
-      expect(Object.keys(result.scenarios)).toEqual(['scenario-flow-order-placed.json']);
+      expect(Object.keys(result.scenarios)).toEqual(['scenario-order-placed.json']);
       expect(result.manifest.flows).toHaveLength(1);
       expect(result.manifest.flows[0].scenarioCount).toBe(1);
       expect(result.manifest.flows[0].flowId).toBe('flow-order-placed');
@@ -226,8 +226,8 @@ describe('runFacetDirPipeline', () => {
       const result = runFacetDirPipeline(facetDir, true);
 
       expect(Object.keys(result.scenarios).sort()).toEqual([
-        'scenario-flow-order-placed-neg-PlaceOrder-orderNotPlaced.json',
-        'scenario-flow-order-placed.json',
+        'scenario-order-placed-neg-placeorder-ordernotplaced.json',
+        'scenario-order-placed.json',
       ]);
       expect(result.manifest.flows[0].scenarioCount).toBe(2);
     });
@@ -261,7 +261,7 @@ describe('runFacetDirPipeline', () => {
       };
       writeJson(join(facetDir, 'manifest.json'), partial);
       writeJson(join(facetDir, 'topology-order-placed.json'), SAMPLE_TOPOLOGY);
-      writeJson(join(facetDir, 'scenario-flow-order-placed.json'), SAMPLE_HAPPY_SCENARIO);
+      writeJson(join(facetDir, 'scenario-order-placed.json'), SAMPLE_HAPPY_SCENARIO);
       writeJson(join(facetDir, 'event-catalog.json'), { events: [] });
       writeJson(join(facetDir, 'saga-state-machines.json'), { sagas: [] });
       // impact-analysis.json intentionally absent so loadArtifact returns null
@@ -291,7 +291,7 @@ describe('runFacetDirPipeline', () => {
       };
       writeJson(join(facetDir, 'manifest.json'), manifestNoArtifactFiles);
       writeJson(join(facetDir, 'topology-order-placed.json'), SAMPLE_TOPOLOGY);
-      writeJson(join(facetDir, 'scenario-flow-order-placed.json'), SAMPLE_HAPPY_SCENARIO);
+      writeJson(join(facetDir, 'scenario-order-placed.json'), SAMPLE_HAPPY_SCENARIO);
 
       const result = runFacetDirPipeline(facetDir, false);
 
@@ -299,7 +299,7 @@ describe('runFacetDirPipeline', () => {
       expect(result.artifacts.impactAnalysis).toBeNull();
       expect(result.artifacts.sagaStateMachines).toBeNull();
       expect(result.artifacts.policyDefinitions).toBeNull();
-      expect(Object.keys(result.scenarios)).toEqual(['scenario-flow-order-placed.json']);
+      expect(Object.keys(result.scenarios)).toEqual(['scenario-order-placed.json']);
     });
   });
 });
@@ -404,12 +404,29 @@ describe('runPipeline --all serves every scenario simulate writes', () => {
     const ids = Object.keys(all.scenarios);
 
     expect(ids.filter((id) => id.includes('-timeout-')).sort()).toEqual([
-      'scenario-flow-N1 - General admission purchase-timeout-SeatHoldLifecycle.json',
-      'scenario-flow-N3 - Ticket transfer-timeout-TransferLifecycle.json',
+      'scenario-n1-general-admission-purchase-timeout-seatholdlifecycle.json',
+      'scenario-n3-ticket-transfer-timeout-transferlifecycle.json',
     ]);
     expect(ids).toHaveLength(72);
     const counted = all.manifest.flows.reduce((n, f) => n + f.scenarioCount, 0);
     expect(counted).toBe(72);
+  });
+
+  it('keys each scenario by the file simulate --out-dir writes it to, and keeps its scenarioId', async () => {
+    const all = await runPipeline(TICKETWAVE, true);
+    const committed = JSON.parse(
+      readFileSync(
+        resolve(import.meta.dirname, '../../../../examples/ticketwave/facet/manifest.json'),
+        'utf-8',
+      ),
+    ) as { flows: { scenarios: { scenarioId: string; file: string }[] }[] };
+    const files = committed.flows.flatMap((f) => f.scenarios.map((s) => [s.file, s.scenarioId]));
+
+    expect(Object.keys(all.scenarios).sort()).toEqual(files.map(([file]) => file).sort());
+    for (const [file, scenarioId] of files) expect(all.scenarios[file].scenarioId).toBe(scenarioId);
+    expect(all.scenarios['scenario-n5-seat-request-0.json'].scenarioId).toBe(
+      'scenario-flow-N5 - Seat request-0',
+    );
   });
 });
 

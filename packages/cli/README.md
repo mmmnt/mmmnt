@@ -124,7 +124,7 @@ Without `--out`, both write under the directory of the nearest `.manifest.yaml` 
 `simulate --out-dir <dir>` (alias `--out`) writes:
 
 - `topology-<flow>.json`, one per flow, e.g. `topology-n5-seat-request.json`
-- `scenario-<flow id>-<n>.json` and `scenario-<flow id>-neg-<command>-<precondition>.json` per scenario, e.g. `scenario-flow-N5 - Seat request-0.json` (the flow id keeps the flow's name as written, spaces included)
+- `scenario-<flow>.json` per flow, or with `--all` `scenario-<flow>-<n>.json`, `scenario-<flow>-neg-<command>-<precondition>.json` and `scenario-<flow>-timeout-<saga>.json` per scenario, slugged like the topology files, e.g. `scenario-n5-seat-request-0.json`. The file's `scenarioId` keeps the flow name as written, e.g. `scenario-flow-N5 - Seat request-0`, and `manifest.json` gives each scenario's `file`. Two scenarios whose names slug to one file fail the run.
 - `manifest.json`, the index Facet reads
 - `event-catalog.json`, `impact-analysis.json`, `saga-state-machines.json`, `policy-definitions.json` and `asyncapi.yaml`
 

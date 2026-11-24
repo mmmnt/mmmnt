@@ -57,30 +57,21 @@ describe('moment simulate path-traversal guard', () => {
     expect(files).toContain('manifest.json');
   });
 
-  it('rejects a flow name crafted to escape --out-dir via ../', async () => {
-    // Craft a flow name that escapes exactly one level out of outDir into
-    // the test workDir. The first `scenario-flow-..` directory segment
-    // absorbs one `..` during path.join normalization, so THREE `..`
-    // segments climb: one to cancel scenario-flow-.., one to climb out of
-    // outDir's parent (workDir/out → workDir), one more kept by the path
-    // renderer. Then 'escaped/sentinel.json' lands at
-    // <workDir>/escaped/sentinel.json — outside outDir but inside the
-    // temp workspace so the test is hermetic and cross-platform.
+  it('keeps a flow name crafted to escape --out-dir via ../ inside it', async () => {
+    // Scenario files were named from the raw scenarioId (`scenario-flow-<flow name>-<n>`), so
+    // '../' in a flow name climbed out of --out-dir and only the writeSafe guard stopped it. File
+    // names are slugged now, so the same name lands inside --out-dir with no '/' or '..' left.
     const specPath = writeSpec('"../../../escaped/sentinel"');
     const outDir = join(workDir, 'out');
-    // This is the path the exploit would write to if the guard were
-    // absent. It's derived from workDir so tests don't collide across
-    // runners or touch any global filesystem state.
-    const escapeTarget = join(workDir, 'escaped', 'sentinel.json');
 
     const result = await runSimulate([specPath, '--all', '--out-dir', outDir]);
 
-    expect(result.success).toBe(false);
-    expect(result.message).toMatch(/Path traversal detected/);
-    // Crucial assertion: nothing was written at the escape path.
-    expect(existsSync(escapeTarget)).toBe(false);
-    // And no `escaped/` sibling directory was created next to outDir.
+    expect(result.success).toBe(true);
     expect(existsSync(join(workDir, 'escaped'))).toBe(false);
+    expect(readdirSync(workDir).sort()).toEqual(['flow.moment', 'out']);
+    const files = readdirSync(outDir);
+    expect(files).toContain('topology-escaped-sentinel.json');
+    expect(files).toContain('scenario-escaped-sentinel.json');
   });
 
   // NOTE: absolute paths in flow names are NOT a traversal vector via this
@@ -181,6 +172,27 @@ describe('moment simulate manifest kind classification (M-S15)', () => {
   });
 });
 
+describe('moment simulate scenario file names', () => {
+  it('refuses two scenarios whose ids slug to one file name, and names both', async () => {
+    const specPath = join(workDir, 'twins.moment');
+    writeFileSync(
+      specPath,
+      FLOW_TEMPLATE.replace('$NAME', '"Order placed"') +
+        '\n' +
+        FLOW_TEMPLATE.replace('$NAME', '"order-placed"'),
+      'utf-8',
+    );
+    const outDir = join(workDir, 'out-twins');
+
+    const result = await runSimulate([specPath, '--out-dir', outDir]);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(
+      "Scenarios 'scenario-flow-Order placed' and 'scenario-flow-order-placed' would both be written to scenario-order-placed.json; rename a flow, a command or a precondition so their names differ in more than case or punctuation",
+    );
+  });
+});
+
 describe('moment simulate ticketwave branch paths (ADR-042, ADR-043)', () => {
   const TICKETWAVE = join(
     import.meta.dirname,
@@ -201,6 +213,36 @@ describe('moment simulate ticketwave branch paths (ADR-042, ADR-043)', () => {
     const manifest = JSON.parse(readFileSync(join(outDir, 'manifest.json'), 'utf-8'));
     return manifest.flows.flatMap((f: { scenarios: Entry[] }) => f.scenarios);
   }
+
+  it('names scenario files with the slug topology files use, and keeps each scenarioId', async () => {
+    const outDir = join(workDir, 'out-slug');
+    expect((await runSimulate([TICKETWAVE, '--all', '--out-dir', outDir])).success).toBe(true);
+    const manifest = JSON.parse(readFileSync(join(outDir, 'manifest.json'), 'utf-8')) as {
+      flows: { flowName: string; topology: string; scenarios: (Entry & { file: string })[] }[];
+    };
+
+    const n5 = manifest.flows.find((f) => f.flowName === 'N5 - Seat request')!;
+    expect(n5.topology).toBe('topology-n5-seat-request.json');
+    expect(n5.scenarios[0].file).toBe('scenario-n5-seat-request-0.json');
+    expect(n5.scenarios[0].scenarioId).toBe('scenario-flow-N5 - Seat request-0');
+    const negative = n5.scenarios.find(
+      (s) =>
+        s.scenarioId === 'scenario-flow-N5 - Seat request-neg-JoinWaitlist-notAlreadyOnWaitlist',
+    );
+    expect(negative?.file).toBe(
+      'scenario-n5-seat-request-neg-joinwaitlist-notalreadyonwaitlist.json',
+    );
+
+    const scenarios = manifest.flows.flatMap((f) => f.scenarios);
+    expect(scenarios).toHaveLength(72);
+    expect(new Set(scenarios.map((s) => s.file)).size).toBe(72);
+    for (const entry of scenarios) {
+      expect(entry.file).toMatch(/^scenario-[a-z0-9-]+\.json$/);
+      const written = JSON.parse(readFileSync(join(outDir, entry.file), 'utf-8'));
+      expect(written.scenarioId).toBe(entry.scenarioId);
+    }
+    expect(readdirSync(outDir).filter((f) => f.startsWith('scenario-'))).toHaveLength(72);
+  });
 
   it('lists a negative for the refusal a later arm issues (ADR-042)', async () => {
     const entries = await manifestEntries('out-042');
