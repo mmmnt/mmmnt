@@ -1,0 +1,57 @@
+---
+import { FACET_URL, FEATURE_URL } from '../consts';
+
+const rows = [
+  {
+    name: 'Moment',
+    href: null,
+    question: 'Is the design complete and consistent over time?',
+    write: 'A .moment model',
+    get: 'Validation, every path through every flow, a board, scenarios, types and documents',
+  },
+  {
+    name: 'Facet',
+    href: FACET_URL,
+    question: 'Does the design behave the way it says it does?',
+    write: 'Nothing. Facet reads what Moment derives',
+    get: 'Every scenario replayed and asserted, before any code exists',
+  },
+  {
+    name: 'Feature',
+    href: FEATURE_URL,
+    question: 'Does the code do what the design decided?',
+    write: 'A .feat spec for each command, taken from the model',
+    get: 'Test suites compiled from the spec, the same ones every time, which gate CI',
+  },
+];
+---
+
+<div style="border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;">
+  <div
+    style="display:grid; grid-template-columns:130px 1fr 1fr 1.2fr; gap:24px; padding:14px 28px; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#5b7077;"
+  >
+    <span>Tool</span><span>The question it answers</span><span>What you write</span><span
+      >What you get</span
+    >
+  </div>
+  {
+    rows.map((row, i) => (
+      <div
+        style={`display:grid; grid-template-columns:130px 1fr 1fr 1.2fr; gap:24px; padding:18px 28px; ${i === rows.length - 1 ? '' : 'border-bottom:1px solid rgba(255,255,255,0.05);'} align-items:start; font-size:14px; line-height:1.55; ${i === 0 ? 'background:linear-gradient(90deg, rgba(34,211,238,0.07), rgba(34,211,238,0.01));' : ''}`}
+      >
+        <span style="font-weight:600; font-size:15px; color:#F2FBFC;">
+          {row.href ? (
+            <a href={row.href} target="_blank" rel="noopener" style="color:#7FE9F5;">
+              {row.name} →
+            </a>
+          ) : (
+            row.name
+          )}
+        </span>
+        <span style="color:#C9CDD6;">{row.question}</span>
+        <span style="color:#90A2AA;">{row.write}</span>
+        <span style="color:#90A2AA;">{row.get}</span>
+      </div>
+    ))
+  }
+</div>

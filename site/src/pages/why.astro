@@ -2,10 +2,31 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import ThreeTools from '../components/ThreeTools.astro';
+import { FACET_URL, TICKETWAVE_BOARD_URL, TICKETWAVE_SPEC_URL } from '../consts';
 
 const title = 'Why Moment';
 const description =
-  'DDD maps the domain in two dimensions; systems run in three. Moment adds the temporal dimension — flows, crossings, and contracts you can specify, simulate, and test before implementation.';
+  'Event-driven systems fail at the boundaries between contexts. Moment makes flows, crossings and contracts part of the model, so you can check, simulate and test them before you build.';
+
+const steps = [
+  {
+    title: 'The model is code.',
+    body: 'Contexts, aggregates, commands, events, policies, orchestrations, projections and queries are typed declarations in a file you review like any other change. They are not sticky notes.',
+  },
+  {
+    title: 'Time is part of the model.',
+    body: 'A flow says what happens in which order, which event crosses to which context, and under which contract: the fields the receiving side requires.',
+  },
+  {
+    title: 'Every path is derived.',
+    body: 'Each branch arm, each crossing and each unmet precondition becomes a test scenario. Nobody has to remember to write it.',
+  },
+  {
+    title: 'Nothing rots.',
+    body: 'Types, Gherkin features, test scaffolds, JSON Schemas and specification documents are regenerated from the model. Drift between the model and an implementation is detected and recorded as a decision.',
+  },
+];
 ---
 
 <Base title={title} description={description}>
@@ -37,11 +58,11 @@ const description =
         Domain-driven design maps the domain in two dimensions. Systems run in three.
       </h1>
       <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
-        Contexts, aggregates, and events give you a static map. But behavior happens over <span
+        Contexts, aggregates and events give you a static map. Behavior happens over <span
           style="color:#C9E8ED;">time</span
-        > — events cross boundaries, sagas orchestrate, contracts are honored or broken. That third
-        dimension has never been specified, simulated, or tested before implementation. Moment is the
-        layer that closes it.
+        >: events cross boundaries, policies react, processes run, contracts are kept or broken.
+        Event-driven systems rarely fail inside one aggregate. They fail at those boundaries. Moment
+        makes the boundaries part of the model, so you can check and rehearse them before you build.
       </p>
     </section>
 
@@ -71,8 +92,9 @@ const description =
             Domain-driven design
           </div>
           <p style="font-size:17px; line-height:1.6; color:#C9CDD6; margin:0 0 18px;">
-            Goes straight from the whiteboard to the code. The event flows between bounded contexts —
-            where incidents are actually born — are written directly into production.
+            Its usual output is a whiteboard, a Miro board or a wiki page. That static map goes
+            straight into production code, and the event flows between bounded contexts, where
+            incidents start, are never rehearsed.
           </p>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0;">
             There is no rehearsal. Moment adds it.
@@ -101,7 +123,7 @@ const description =
             <div
               style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92; margin-bottom:18px;"
             >
-              2D — the static map (DDD today)
+              2D · the static map (DDD today)
             </div>
             <svg viewBox="0 0 420 200" width="100%" style="display:block; margin-bottom:20px;">
               <rect
@@ -183,7 +205,7 @@ const description =
             <div
               style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#22D3EE; margin-bottom:18px;"
             >
-              + time — the flow (Moment)
+              + time · the flow (Moment)
             </div>
             <svg viewBox="0 0 420 200" width="100%" style="display:block; margin-bottom:20px;">
               <defs
@@ -257,6 +279,41 @@ const description =
       </div>
     </section>
 
+    {/* THE MISSING STEP */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:84px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          The missing step
+        </div>
+        <h2
+          style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 44px; max-width:720px; color:#F2FBFC;"
+        >
+          A design you can test, with contracts settled before implementation.
+        </h2>
+        <div
+          style="display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.08); border-radius:14px; overflow:hidden;"
+        >
+          {
+            steps.map((step) => (
+              <div style="background:#07090D; padding:32px 30px;">
+                <div style="font-weight:600; font-size:17px; margin-bottom:10px; color:#E6F0F2;">
+                  {step.title}
+                </div>
+                <p style="margin:0; font-size:14.5px; line-height:1.6; color:#90A2AA;">{step.body}</p>
+              </div>
+            ))
+          }
+        </div>
+        <p style="font-size:15px; line-height:1.6; color:#90A2AA; max-width:680px; margin:28px 0 0;">
+          Moment is for domain architects who want a design they can test, for teams who want
+          contracts settled before implementation, and for anyone tired of documentation that
+          describes last quarter's system.
+        </p>
+      </div>
+    </section>
+
     {/* THE MOMENT — unit of value */}
     <section
       style="position:relative; border-top:1px solid rgba(255,255,255,0.06); background:#0A0F14;"
@@ -277,13 +334,12 @@ const description =
             A <span style="color:#7FE9F5;">moment</span> is a behavioral assertion.
           </h2>
           <p style="font-size:16px; line-height:1.62; color:#90A2AA; margin:0 0 16px;">
-            It states when, where, and how an event participates in a cross-context flow — including
-            the schema contract the crossing carries. Every crossing must declare its contract
-            explicitly.
+            It states when, where and how an event takes part in a flow across contexts, including
+            the contract the crossing carries. Every crossing declares its contract explicitly.
           </p>
           <p style="font-size:15px; line-height:1.62; color:#90A2AA; margin:0;">
-            An implicit crossing is not a shortcut. It is a specification error, and Moment reports
-            it as one.
+            A crossing with an empty contract is not a shortcut. It is a specification error, and
+            Moment reports it as one.
           </p>
         </div>
         <div
@@ -305,6 +361,51 @@ const description =
       </div>
     </section>
 
+    {/* MOMENT, FACET AND FEATURE */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:84px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          From design to running code
+        </div>
+        <h2
+          style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 14px; max-width:760px; color:#F2FBFC;"
+        >
+          Moment, then Facet, then Feature.
+        </h2>
+        <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0 0 40px;">
+          Each tool answers one question and hands the next something it can check. Moment settles
+          the design. Facet proves it behaves. Feature holds the code to it. A <span
+            style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;">.feat</span
+          > spec is cheap to write correctly only once the design has stopped moving, and Facet is
+          where it stops moving.
+        </p>
+        <ThreeTools />
+        <div
+          style="margin-top:22px; background:linear-gradient(180deg, rgba(34,211,238,0.06), rgba(34,211,238,0.015)); border:1px solid rgba(34,211,238,0.22); border-radius:14px; padding:26px 30px; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center;"
+        >
+          <div>
+            <div
+              style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE; margin-bottom:10px;"
+            >
+              See it first
+            </div>
+            <p style="margin:0; font-size:15.5px; line-height:1.6; color:#C9CDD6;">
+              TicketWave, an example ticketing platform, is modelled in Moment, projected as an
+              event-storming board, and rehearsed in Facet before a line of its code exists. Seven
+              contexts, sixteen aggregates, eight flows and 72 derived scenarios.
+            </p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; font-family:'JetBrains Mono',monospace; font-size:13px; white-space:nowrap;">
+            <a href={TICKETWAVE_SPEC_URL} target="_blank" rel="noopener" style="color:#7FE9F5;">The model →</a>
+            <a href={TICKETWAVE_BOARD_URL} target="_blank" rel="noopener" style="color:#7FE9F5;">The board →</a>
+            <a href={FACET_URL} target="_blank" rel="noopener" style="color:#7FE9F5;">Facet →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     {/* CONVERGENCE */}
     <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
       <div class="site-container" style="max-width:1200px; margin:0 auto; padding:84px 40px;">
@@ -316,7 +417,7 @@ const description =
         <h2
           style="font-weight:600; font-size:38px; line-height:1.1; letter-spacing:-.02em; margin:0 0 14px; max-width:720px; color:#F2FBFC;"
         >
-          Gaps between spec and code are diagnosed by severity — and driven to zero.
+          Gaps between model and code are reported by severity, and driven to zero.
         </h2>
         <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0 0 44px;">
           Moment never claims your system is “correct.” It measures the distance between the design
@@ -391,9 +492,9 @@ const description =
         <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0 auto 32px;">
           No <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;"
             >@mmmnt</span
-          > package may take a runtime or build-time dependency on any Complai service. The open-source
-          community uses the entire toolchain without ever knowing Complai exists. Everything commercial
-          plugs in around Moment — never inside it.
+          > package may take a runtime or build-time dependency on any Complai service. You can use
+          the whole toolchain without ever knowing Complai exists. Everything commercial plugs in
+          around Moment, never inside it.
         </p>
         <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
           <a

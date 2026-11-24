@@ -1,0 +1,104 @@
+---
+/**
+ * A `.moment` snippet, highlighted with the site's palette. The text is the
+ * snippet exactly as a reader would copy it, so every snippet can be parsed.
+ */
+interface Props {
+  code: string;
+  fontSize?: number;
+}
+const { code, fontSize = 12.5 } = Astro.props;
+
+const DECLARATION = new Set([
+  'context',
+  'aggregate',
+  'command',
+  'event',
+  'value-object',
+  'policy',
+  'orchestration',
+  'saga',
+  'external',
+  'projection',
+  'query',
+  'rule',
+  'term',
+  'flow',
+  'lane',
+  'branch-lane',
+  'moment',
+  'when',
+  'note',
+]);
+const CLAUSE = new Set([
+  'identity',
+  'input',
+  'emits',
+  'precondition',
+  'causes',
+  'cause',
+  'state',
+  'initial',
+  'on',
+  'trigger',
+  'after',
+  'action',
+  'chains-to',
+  'invoked-by',
+  'issues',
+  'states',
+  'compensation',
+  'timeout',
+  'sources',
+  'reads',
+  'field',
+  'description',
+  'enforced-by',
+  'via',
+  'contract',
+  'triggered-by',
+  'returns-to',
+  'relationship',
+  'type',
+]);
+const CONNECTION = new Set(['crosses-to', 'triggers']);
+const TYPES = new Set(['UUID', 'string', 'number', 'boolean', 'DateTime', 'Date', 'Money']);
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const span = (color: string, text: string) => `<span style="color:${color};">${esc(text)}</span>`;
+
+const TOKEN = /(\/\/.*$)|("(?:[^"\\]|\\.)*")|(\[(?:"(?:[^"\\]|\\.)*"|[^\]"])*\])|([A-Za-z_][\w-]*)|([\s\S])/g;
+
+function highlightLine(line: string): string {
+  let out = '';
+  let previous = '';
+  for (const m of line.matchAll(TOKEN)) {
+    const [text, comment, str, bracket, word] = m;
+    const rest = line.slice((m.index ?? 0) + text.length);
+    if (comment) out += span('#5b7077', text);
+    else if (str) out += span('#9DE6C6', text);
+    else if (bracket) out += span('#5b7077', text);
+    else if (word) {
+      // A word followed by `:`, `?:` or `.`, or the id after `lane`, is a name, even a keyword.
+      const isName = /^(\??:|\.)/.test(rest) || previous === 'lane' || previous === 'branch-lane';
+      if (isName) out += esc(text);
+      else if (CONNECTION.has(text)) out += span('#C58CFF', text);
+      else if (DECLARATION.has(text)) out += span('#22D3EE', text);
+      else if (CLAUSE.has(text)) out += span('#5b7077', text);
+      else if (TYPES.has(text)) out += span('#8FD3FF', text);
+      else if (/^[A-Z]/.test(text)) out += span('#E7C9A0', text);
+      else out += esc(text);
+      previous = text;
+    } else out += esc(text);
+  }
+  return out;
+}
+
+const html = code.replace(/\n+$/, '').split('\n').map(highlightLine).join('\n');
+---
+
+<pre
+  data-lang="moment"
+  style={`margin:0; padding:20px 18px; font-family:'JetBrains Mono',monospace; font-size:${fontSize}px; line-height:1.8; color:#C2C6D2; overflow:auto;`}
+  set:html={html}
+/>
