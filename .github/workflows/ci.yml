@@ -20,6 +20,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # commitlint 21 needs the merge-base with the target branch; a shallow
+          # clone has none and it now errors instead of linting nothing.
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
