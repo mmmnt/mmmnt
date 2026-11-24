@@ -18,6 +18,7 @@ import type { Diagnostic } from '@mmmnt/core';
 import type { ImplementationChangeProposal, SyncState, SyncStateEvent } from '@mmmnt/sync';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
 import { openSyncLogs } from '../lib/sync-logs.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface SyncProposeResult {
   readonly success: boolean;
@@ -50,10 +51,7 @@ function readFile(path: string): string | SyncProposeResult {
 export async function runSyncPropose(argv: string[]): Promise<SyncProposeResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      json: { type: 'boolean' },
-      'auto-accept': { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS['sync propose'],
     allowPositionals: true,
     strict: false,
   });

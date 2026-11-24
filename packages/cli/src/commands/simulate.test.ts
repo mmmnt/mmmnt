@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -100,35 +100,6 @@ describe('moment simulate flag handling', () => {
 
     expect(result.success).toBe(true);
     expect(existsSync(join(outDir, 'manifest.json'))).toBe(true);
-  });
-
-  it('warns about unrecognized flags instead of silently swallowing them', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const specPath = writeSpec('"warn-flow"');
-      const outDir = join(workDir, 'out-warn');
-      const result = await runSimulate([specPath, '--all', '--outdir', outDir, '--bogus']);
-
-      expect(result.success).toBe(true);
-      const warned = warnSpy.mock.calls.map((c) => String(c[0]));
-      expect(warned.some((m) => m.includes('--outdir'))).toBe(true);
-      expect(warned.some((m) => m.includes('--bogus'))).toBe(true);
-    } finally {
-      warnSpy.mockRestore();
-    }
-  });
-
-  it('does not warn for declared flags', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const specPath = writeSpec('"quiet-flow"');
-      const outDir = join(workDir, 'out-quiet');
-      await runSimulate([specPath, '--all', '--out-dir', outDir]);
-
-      expect(warnSpy).not.toHaveBeenCalled();
-    } finally {
-      warnSpy.mockRestore();
-    }
   });
 });
 

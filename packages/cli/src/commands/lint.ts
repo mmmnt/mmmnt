@@ -19,6 +19,7 @@ import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 interface LintIssue {
   readonly source: 'parse' | 'drift' | 'schema' | 'codex';
@@ -42,7 +43,7 @@ function fail(message: string): LintResult {
 export async function runLint(argv: string[]): Promise<LintResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { json: { type: 'boolean' } },
+    options: COMMAND_OPTIONS.lint,
     allowPositionals: true,
     strict: false,
   });

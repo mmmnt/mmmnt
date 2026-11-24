@@ -32,7 +32,8 @@ import type { SimulationScenario, ScenarioKind } from '@mmmnt/derive';
 import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { updateManifestFromIr } from './update-manifest.js';
 import { assertPathWithin } from './project-fs.js';
-import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
+import { resolveStringFlag } from '../lib/flags.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface SimulateCommandResult {
@@ -282,22 +283,13 @@ function runOutDirWrite(
 // ---------------------------------------------------------------------------
 
 export async function runSimulate(argv: string[]): Promise<SimulateCommandResult> {
-  const options = {
-    json: { type: 'boolean' },
-    flow: { type: 'string' },
-    all: { type: 'boolean' },
-    'out-dir': { type: 'string' },
-    // Alias for --out-dir, symmetric with `moment generate --out`.
-    out: { type: 'string' },
-  } as const;
-  const { values, positionals, tokens } = parseArgs({
+  const options = COMMAND_OPTIONS.simulate;
+  const { values, positionals } = parseArgs({
     args: argv,
     options,
     allowPositionals: true,
     strict: false,
-    tokens: true,
   });
-  warnUnknownFlags(tokens, Object.keys(options));
 
   const filePath = positionals[0];
   if (!filePath)

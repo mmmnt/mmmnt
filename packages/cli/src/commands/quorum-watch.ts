@@ -21,6 +21,7 @@ import {
   toComplaiEnvelope,
   type QuorumConnection,
 } from '../lib/quorum-client.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface QuorumWatchResult {
   readonly success: boolean;
@@ -95,13 +96,7 @@ interface WatchOptions {
 function parseWatchArgs(argv: string[]): WatchOptions | { usage: string } {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      server: { type: 'string' },
-      out: { type: 'string' },
-      interval: { type: 'string' },
-      source: { type: 'string' },
-      once: { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS['quorum watch'],
     allowPositionals: true,
     strict: false,
   });

@@ -30,6 +30,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { USAGE, commandHelp, wantsHelp } from './help.js';
+import { commandOptions } from './lib/command-options.js';
+import { unknownFlagError } from './lib/flags.js';
 
 const [command, ...args] = process.argv.slice(2);
 
@@ -60,6 +62,19 @@ if (wantsHelp(args)) {
   if (help !== undefined) {
     console.log(help);
     process.exit(0);
+  }
+}
+
+// A flag the command does not declare is a usage error: exit 2 and run nothing. Commands parse
+// with `strict: false`, so without this check they ignored it: `moment emit-ts <spec> --out-dir
+// <dir>` wrote into the current directory. Every command reads its flags from the same table.
+const parsedCommand = commandOptions(command, args);
+if (parsedCommand !== undefined) {
+  const error = unknownFlagError(parsedCommand.name, parsedCommand.args, parsedCommand.options);
+  if (error !== undefined) {
+    for (const line of error.split('\n')) console.error(line);
+    console.error(`Run 'moment ${parsedCommand.name.split(' ')[0]} --help' for usage.`);
+    process.exit(2);
   }
 }
 

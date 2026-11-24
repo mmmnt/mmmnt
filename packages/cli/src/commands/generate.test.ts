@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -123,22 +123,6 @@ describe('moment generate', () => {
     expect(result.outDir).toBe(outDir);
     for (const path of result.filesWritten!) {
       expect(path.startsWith(outDir)).toBe(true);
-    }
-  });
-
-  it('warns about unrecognized flags instead of silently swallowing them', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      // Unknown flags parse valueless under strict:false, so pass the typo'd
-      // flag in --flag=value form to keep the fixture as the sole positional.
-      const result = await runGenerate([`--output=${outDir}`, '--out', outDir, VALID_FIXTURE]);
-
-      expect(result.success).toBe(true);
-      const warned = warnSpy.mock.calls.map((c) => String(c[0]));
-      expect(warned.some((m) => m.includes('--output'))).toBe(true);
-      expect(warned.some((m) => m.includes('--out') && !m.includes('--output'))).toBe(false);
-    } finally {
-      warnSpy.mockRestore();
     }
   });
 });

@@ -176,7 +176,7 @@ Sync keeps three append-only logs in `.domain/`, beside the spec file or inside 
 
 ## Options
 
-Options apply only to the commands listed. Most commands ignore a flag they do not know; `generate` and `simulate` print a warning for it.
+Options apply only to the commands listed. A flag the command does not take is an error: the command runs nothing, prints the flag and the flags it does take, and exits 2. For example, `moment emit-ts model/ --out-dir gen/` fails, because `emit-ts` takes `--out`.
 
 | Option                       | Commands                                                                                    | Effect                                                |
 | ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -201,7 +201,7 @@ Options apply only to the commands listed. Most commands ignore a flag they do n
 
 ## Exit codes
 
-Every command that reads a model exits 1 when the model does not parse, the path does not exist, or a required argument is missing. Beyond that:
+Every command exits 2 on a flag it does not take, and runs nothing. Every command that reads a model exits 1 when the model does not parse, the path does not exist, or a required argument is missing. Beyond that:
 
 | Command                      | Also exits 1 when                                                        |
 | ---------------------------- | ------------------------------------------------------------------------ |

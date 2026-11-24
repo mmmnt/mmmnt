@@ -14,6 +14,7 @@ import { VizEmitter } from '@mmmnt/viz';
 import type { Diagnostic } from '@mmmnt/core';
 import type { VizInitialLoad } from '@mmmnt/viz';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface VizCommandResult {
   readonly success: boolean;
@@ -42,7 +43,7 @@ function readFile(path: string): string | VizCommandResult {
 export async function runViz(argv: string[]): Promise<VizCommandResult> {
   const { positionals } = parseArgs({
     args: argv,
-    options: {},
+    options: COMMAND_OPTIONS.viz,
     allowPositionals: true,
     strict: false,
   });

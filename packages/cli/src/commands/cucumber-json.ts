@@ -14,6 +14,7 @@ import { GherkinGenerator, generateCucumberJson } from '@mmmnt/generate';
 import { TestRunner } from '@mmmnt/harness';
 import type { Diagnostic } from '@mmmnt/core';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface CucumberJsonCommandResult {
   readonly success: boolean;
@@ -41,7 +42,7 @@ function readFile(path: string): string | CucumberJsonCommandResult {
 export async function runCucumberJson(argv: string[]): Promise<CucumberJsonCommandResult> {
   const { positionals } = parseArgs({
     args: argv,
-    options: {},
+    options: COMMAND_OPTIONS['cucumber-json'],
     allowPositionals: true,
     strict: false,
   });

@@ -14,6 +14,7 @@ import { TestRunner } from '@mmmnt/harness';
 import type { Diagnostic } from '@mmmnt/core';
 import type { TestRunResult } from '@mmmnt/harness';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface TestCommandResult {
   readonly success: boolean;
@@ -41,7 +42,7 @@ function readFile(path: string): string | TestCommandResult {
 export async function runTest(argv: string[]): Promise<TestCommandResult> {
   const { positionals } = parseArgs({
     args: argv,
-    options: {},
+    options: COMMAND_OPTIONS.test,
     allowPositionals: true,
     strict: false,
   });

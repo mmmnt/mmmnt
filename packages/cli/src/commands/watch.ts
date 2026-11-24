@@ -22,6 +22,7 @@ import {
 import { formatDiagnostic } from './parse.js';
 import { runGenerate } from './generate.js';
 import { runEmitTs } from './emit-ts.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface WatchCommandResult {
   readonly started: boolean;
@@ -83,11 +84,7 @@ export function runWatch(
 ): WatchCommandResult {
   const { values } = parseArgs({
     args: argv,
-    options: {
-      dir: { type: 'string', short: 'd' },
-      'no-watch': { type: 'boolean' },
-      'no-generate': { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS.watch,
     strict: false,
   });
 

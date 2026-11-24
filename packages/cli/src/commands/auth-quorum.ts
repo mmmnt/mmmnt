@@ -16,6 +16,7 @@ import {
   removeQuorumToken,
   DEFAULT_QUORUM_SERVER_URL,
 } from '../auth/quorum-storage.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface AuthQuorumResult {
   readonly success: boolean;
@@ -25,11 +26,7 @@ export interface AuthQuorumResult {
 export async function runAuthQuorum(argv: string[]): Promise<AuthQuorumResult> {
   const { values } = parseArgs({
     args: argv,
-    options: {
-      token: { type: 'string' },
-      server: { type: 'string' },
-      logout: { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS['auth quorum'],
     strict: false,
   });
 

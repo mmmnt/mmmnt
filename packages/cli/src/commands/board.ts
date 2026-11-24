@@ -14,6 +14,7 @@ import type { BoardProjection, Pointer } from '@mmmnt/board';
 import { ManifestReader } from '@mmmnt/core';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import { loadSpecification } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface BoardCommandResult {
   readonly success: boolean;
@@ -82,7 +83,7 @@ function project(
 export async function runBoard(argv: string[]): Promise<BoardCommandResult> {
   const { positionals, values } = parseArgs({
     args: argv,
-    options: { out: { type: 'string' }, frame: { type: 'string' }, pointers: { type: 'string' } },
+    options: COMMAND_OPTIONS.board,
     allowPositionals: true,
     strict: false,
   });

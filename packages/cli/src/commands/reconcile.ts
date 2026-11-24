@@ -21,6 +21,7 @@ import { SiftEventStreamReader } from '@mmmnt/sync';
 import type { IntermediateRepresentation, ParseResult } from '@mmmnt/core';
 import type { CascadeCategory } from '@mmmnt/sync';
 import { isDirectory, loadSpecification } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 type ReconcileOutcome = 'APPLIED' | 'DRIFT' | 'BREAKING';
 
@@ -39,11 +40,7 @@ function fail(message: string): ReconcileResult {
 export async function runReconcile(argv: string[]): Promise<ReconcileResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      local: { type: 'boolean' },
-      event: { type: 'string' },
-      json: { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS.reconcile,
     allowPositionals: true,
     strict: false,
   });

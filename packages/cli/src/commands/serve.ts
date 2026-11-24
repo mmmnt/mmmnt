@@ -30,6 +30,7 @@ import {
   generatePolicyDefinitions,
 } from '@mmmnt/derive';
 import type { SimulationScenario, SimulationTopology } from '@mmmnt/derive';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 // ---------------------------------------------------------------------------
 // Message types (ADR-031 §2)
@@ -707,11 +708,7 @@ function resolveServeTarget(
 export function parseServeArgs(argv: string[]): ServeArgs | ServeCommandResult {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      port: { type: 'string', short: 'p' },
-      all: { type: 'boolean' },
-      project: { type: 'string' },
-    },
+    options: COMMAND_OPTIONS.serve,
     allowPositionals: true,
     strict: false,
   });

@@ -13,6 +13,7 @@ import { SchemaRegistry, ConsumptionManifest } from '@mmmnt/schema';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import type { FieldPhase } from '@mmmnt/schema';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 interface SchemaStatusEntry {
   readonly eventType: string;
@@ -41,7 +42,7 @@ function fail(message: string): SchemaStatusResult {
 export async function runSchemaStatus(argv: string[]): Promise<SchemaStatusResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { json: { type: 'boolean' } },
+    options: COMMAND_OPTIONS['schema status'],
     allowPositionals: true,
     strict: false,
   });

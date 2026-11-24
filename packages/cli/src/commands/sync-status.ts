@@ -16,6 +16,7 @@ import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { DriftReport } from '@mmmnt/sync';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface SyncStatusResult {
   readonly success: boolean;
@@ -46,7 +47,7 @@ function readFile(path: string): string | SyncStatusResult {
 export async function runSyncStatus(argv: string[]): Promise<SyncStatusResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { json: { type: 'boolean' } },
+    options: COMMAND_OPTIONS['sync status'],
     allowPositionals: true,
     strict: false,
   });

@@ -16,6 +16,7 @@ import { deriveTopology } from '@mmmnt/derive';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface EmitTsCommandResult {
   readonly success: boolean;
@@ -48,10 +49,7 @@ function readFile(path: string): string | EmitTsCommandResult {
 export async function runEmitTs(argv: string[]): Promise<EmitTsCommandResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      'dry-run': { type: 'boolean' },
-      out: { type: 'string', short: 'o' },
-    },
+    options: COMMAND_OPTIONS['emit-ts'],
     allowPositionals: true,
     strict: false,
   });
