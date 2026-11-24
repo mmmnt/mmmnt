@@ -63,6 +63,8 @@ moment board examples/ticketwave/spec/ --out board/
 # Board written to board/: 39 file(s) and manifest.json (38 frame(s), 509 node(s))
 ```
 
+`board` prints one `note:` line on stderr for TicketWave, because TicketWave has no `manifest.yaml` to number its contexts. It does not fail the run.
+
 ## Project mode
 
 Where a command takes `<file|dir>` (and for `serve --project <dir>`), you can pass a directory. The CLI then loads every `.moment` file beneath it, in sorted path order, as one merged project. Names resolve across files, and node placement, saga transitions and External lanes are checked over the whole model.
@@ -135,7 +137,7 @@ For TicketWave, `simulate` alone gives 8 scenarios and 111 events; with `--all`,
 | `moment viz <file\|dir>`               | Print a `viz:initial-load` message as JSON: a session and a `VizDataEnvelope` with the context map and flow timelines.                                                                                                                                                                                                                                     |
 | `moment board <file\|dir> --out <dir>` | Project the model onto an event-storming board: `board.svg` with every frame, one SVG per frame, and `manifest.json`. `--frame <id>` writes only that frame and the manifest. `--pointers <file>` reads a JSON file `{ "pointers": [...] }` that links board nodes to spec locations. Writes nothing when the model does not parse. Does not talk to Miro. |
 
-For TicketWave, `board` writes 38 frames: `legend`, `grammar`, `context-map`, `policies`, `invariant-coverage`, 7 `context-C<n>`, 16 `aggregate-<Name>`, 2 `services-C<n>`, and 8 `thread-N<n>`, one per flow. An unknown `--frame` fails and lists the frame ids. A flow name must start with an id token such as `N5 - `; a flow with no id, or two flows with one id, fails `board` with exit 1. The numbering and the manifest format are in [@mmmnt/board](../board/README.md).
+For TicketWave, `board` writes 38 frames: `legend`, `grammar`, `context-map`, `policies`, `invariant-coverage`, 7 `context-C<n>`, 16 `aggregate-<Name>`, 2 `services-C<n>`, and 8 `thread-N<n>`, one per flow. An unknown `--frame` fails and lists the frame ids. A flow name must start with an id token such as `N5 - `; a flow with no id, or two flows with one id, fails `board` with exit 1. For a model directory with a `manifest.yaml`, contexts are numbered in the order it lists them. A context it does not list, or any context of a single file, is numbered in load order, and `board` prints a `note:` line on stderr that names it. A note does not fail the run. The numbering and the manifest format are in [@mmmnt/board](../board/README.md).
 
 ### Govern contracts
 

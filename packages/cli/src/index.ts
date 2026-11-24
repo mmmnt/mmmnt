@@ -200,6 +200,8 @@ switch (command) {
   case 'board': {
     runBoard(args)
       .then((result) => {
+        // Notices (context numbers taken from the load order, for example) do not fail the run.
+        for (const notice of result.notices ?? []) console.error(`note: ${notice}`);
         if (result.success) {
           console.log(result.message);
         } else {

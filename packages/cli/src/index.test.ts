@@ -400,6 +400,44 @@ describe('moment viz', () => {
   });
 });
 
+describe('moment board', () => {
+  it('prints each projection notice to stderr as a note, and the summary to stdout', async () => {
+    m.runBoard.mockResolvedValue({
+      success: true,
+      message: 'Board written to out',
+      diagnostics: [],
+      notices: ['context numbers follow the load order for A, B', 'second notice'],
+    });
+    const { code, out, err } = await runCli(['board', 'model/', '--out', 'out']);
+    expect(code).toBe(0);
+    expect(out).toEqual(['Board written to out']);
+    expect(err).toEqual([
+      'note: context numbers follow the load order for A, B',
+      'note: second notice',
+    ]);
+  });
+
+  it('prints nothing to stderr when there are no notices', async () => {
+    m.runBoard.mockResolvedValue({ success: true, message: 'ok', diagnostics: [], notices: [] });
+    const { code, err } = await runCli(['board', 'model/', '--out', 'out']);
+    expect(code).toBe(0);
+    expect(err).toEqual([]);
+  });
+
+  it('prints a failure and its diagnostics to stderr with exit 1', async () => {
+    m.runBoard.mockResolvedValue({
+      success: false,
+      message: 'Parse failed with 1 diagnostic(s)',
+      diagnostics: [diag],
+      filePath: 'shop.moment',
+    });
+    const { code, err } = await runCli(['board', 'shop.moment', '--out', 'out']);
+    expect(code).toBe(1);
+    expect(err[0]).toBe('Parse failed with 1 diagnostic(s)');
+    expect(err[1]).toContain('Unknown aggregate');
+  });
+});
+
 describe('moment sync', () => {
   it('status prints the drift report but exits 1 when drift is found', async () => {
     m.runSyncStatus.mockResolvedValue({
