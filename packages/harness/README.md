@@ -14,7 +14,7 @@ It has three parts:
 | Export                    | What it checks                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------------- |
 | `TestRunner`              | every derived test case, structurally, against the IR. This is what `moment test` runs            |
-| `EventReplayEngine`       | that every placement of a flow names a context the IR defines                                     |
+| `EventReplayEngine`       | that every placement of a flow resolves: to a context, a branch-lane or a declared external       |
 | `ContractAssertionEngine` | a payload against a crossing's schema contract: required fields present, values of the right type |
 
 To replay the derived scenarios step by step and assert paths, crossings, branches and saga transitions, use [Facet](https://facet.mmmnt.dev), which reads what `moment simulate` writes.
@@ -91,9 +91,9 @@ A suite whose flow is not in the IR is counted as skipped. Every result is enter
 
 ### Event Replay
 
-| Export              | Description                                                                                                                                                                                                                                  |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EventReplayEngine` | `replay(flow, ir)` walks the moments of a flow in order, main entries and then every branch's entries, and records at most one `DivergencePoint` per moment: the first entry whose context the IR does not define. Returns a `ReplayResult`. |
+| Export              | Description                                                                                                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EventReplayEngine` | `replay(flow, ir)` walks the moments of a flow in order, main entries and then every branch's entries, and records at most one `DivergencePoint` per moment: the first entry that does not resolve. Returns a `ReplayResult`. |
 
 ### Contract Validation
 
@@ -121,25 +121,40 @@ The examples below start from a parsed IR, obtained as in the Quick Start.
 import { EventReplayEngine } from '@mmmnt/harness';
 
 const engine = new EventReplayEngine();
+const replays = ir.flows.map((flow) => engine.replay(flow, ir));
 
-for (const flow of ir.flows) {
-  const replay = engine.replay(flow, ir);
+for (const replay of replays) {
   if (replay.finalStateMatch) continue;
   console.log(`Flow ${replay.flowId}: ${replay.divergencePoints.length} divergence(s)`);
   for (const d of replay.divergencePoints) {
     console.log(`  moment ${d.momentIndex} (${d.eventThatCaused}): ${d.actualState}`);
   }
 }
+console.log(
+  `${replays.length} flows replayed, ${replays.filter((r) => !r.finalStateMatch).length} diverged`,
+);
 ```
 
-Output for TicketWave (excerpt):
+Output for TicketWave:
+
+```
+8 flows replayed, 0 diverged
+```
+
+A placement resolves in one of three ways:
+
+| The placement's lane                               | It resolves when                                     |
+| -------------------------------------------------- | ---------------------------------------------------- |
+| a `lane` of a context                              | the IR defines the context                           |
+| a `branch-lane`, or a lane classified `[Terminal]` | always. The lane routes an outcome and is no context |
+| a lane classified `[External]`                     | the IR declares an external of the lane's label      |
+
+So `invalidCode: AccessCodeInvalidated [terminal]` on N2's `branch-lane invalidCode "Invalid Code" [Terminal]` is no divergence. This is how `moment parse` treats branch-lanes too. Lanes resolve per flow: a placement on a lane that the flow does not declare, or on a context the IR does not define, is a divergence. With a placement `GhostHappened` in a context `Ghost` that the model does not define, added to the second moment of N2, the example prints:
 
 ```
 Flow flow-N2 - Presale access: 1 divergence(s)
-  moment 2 (AccessCodeInvalidated): context ctx-Invalid Code not found
+  moment 1 (GhostHappened): context ctx-Ghost not found
 ```
-
-A placement on a `branch-lane` (here `invalidCode: AccessCodeInvalidated [terminal]`) names the lane, not a context, so the engine reports it as a divergence although the model is valid. TicketWave reports five such divergences, in N1 to N4.
 
 ### Validating a Payload Against a Crossing Contract
 
