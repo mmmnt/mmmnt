@@ -79,7 +79,7 @@ switch (command) {
       .then((result) => {
         if (result.success) {
           console.log(result.message);
-          // Warnings (V22–V37 on a single file, for example) do not fail a parse but must be seen.
+          // Warnings (V22 and up on a single file, for example) do not fail a parse but must be seen.
           // Cross-reference rules carry no position, so they are attributed to the file parsed.
           for (const d of result.diagnostics) {
             console.error(formatDiagnostic(d, args[0]));

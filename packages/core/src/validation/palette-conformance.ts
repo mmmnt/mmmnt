@@ -399,7 +399,7 @@ function v43(ir: IntermediateRepresentation): Finding[] {
   });
 }
 
-/** Every V29–V37 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
+/** Every V29–V37, V40–V51 and V56–V57 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
 export function validatePaletteConformance(
   ir: IntermediateRepresentation,
   options: { readonly merged?: boolean } = {},

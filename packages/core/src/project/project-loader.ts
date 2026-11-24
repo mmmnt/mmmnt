@@ -99,8 +99,8 @@ export class ProjectLoader {
     };
     allDiagnostics.push(...mergeResult.diagnostics);
 
-    // Phase 3: Cross-file validation on the merged IR. V22–V37 are advisories per file and errors over
-    // the merge, which supersedes them.
+    // Phase 3: Cross-file validation on the merged IR. The model-level rules (V22 and up) are advisories
+    // per file and errors over the merge, which supersedes them.
     const validationResult = validateCrossFileReferences(mergeResult.ir);
     const perFile = allDiagnostics.filter(
       (d) => failedDiagnostics.has(d) || !isCompletenessRule(d),
