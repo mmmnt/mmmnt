@@ -94,13 +94,13 @@ flow "N1 - Checkout"
 
 From that one file:
 
-| Command | What you get |
-|---|---|
-| `moment parse model/` | The model checked against the grammar and the validation rules, as one project |
-| `moment generate model/shop.moment` | `features/n1-checkout.feature`, a TypeScript aggregate, types and `.spec.ts` scaffold per aggregate, a flow test scaffold, and `specification.md` |
-| `moment simulate model/shop.moment --all` | Three scenarios: the happy path, the `outOfStock` variant, and the failure when `notYetPlaced` is not met |
-| `moment schema emit model/ --out-dir schemas` | `OrderPlaced.schema.json`, `StockReserved.schema.json`, `StockBackordered.schema.json` |
-| `moment board model/ --out board` | An event-storming board as SVG frames: contexts, aggregates, policies, the thread of the flow, the context map, plus `manifest.json` |
+| Command                                       | What you get                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moment parse model/`                         | The model checked against the grammar and the validation rules, as one project                                                                    |
+| `moment generate model/shop.moment`           | `features/n1-checkout.feature`, a TypeScript aggregate, types and `.spec.ts` scaffold per aggregate, a flow test scaffold, and `specification.md` |
+| `moment simulate model/shop.moment --all`     | Three scenarios: the happy path, the `outOfStock` variant, and the failure when `notYetPlaced` is not met                                         |
+| `moment schema emit model/ --out-dir schemas` | `OrderPlaced.schema.json`, `StockReserved.schema.json`, `StockBackordered.schema.json`                                                            |
+| `moment board model/ --out board`             | An event-storming board as SVG frames: contexts, aggregates, policies, the thread of the flow, the context map, plus `manifest.json`              |
 
 An excerpt of the generated feature. The crossing is asserted with its contract, and each arm of the branch is its own scenario:
 
@@ -140,16 +140,16 @@ npx moment simulate model/shop.moment --all
 
 ## What Moment does
 
-| | Commands | |
-|---|---|---|
-| **Model and check** | `parse`, `watch`, `lint`, `status` | One file or a directory of files loaded as one project, held to grammar, completeness and palette rules |
-| **Derive tests** | `derive`, `test`, `cucumber-json` | A test topology per flow: a case per moment and branch arm, an assertion per crossing, negative scenarios for every unmet precondition |
-| **Generate** | `generate`, `emit-ts` | Gherkin features, TypeScript types, aggregates and test scaffolds, specification documents |
-| **Simulate** | `simulate`, `serve` | Event chains with causation and payloads for each path, served over WebSocket to [Facet](https://moment.mmmnt.ai/ecosystem) |
-| **Visualise** | `viz`, `board` | A context map and timeline envelope, and a board of SVG frames with a manifest you can diff |
-| **Govern contracts** | `schema emit`, `schema status` | A closed JSON Schema per event payload, and the schema lifecycle report |
-| **Keep implementation honest** | `sync`, `reconcile` | Drift between model and code recorded as proposals you accept or reject, and upstream drift reconciled |
-| **Bring a model in** | `init`, `import --from-sift` | A new project manifest, or a model imported from a Sift export |
+|                                | Commands                           |                                                                                                                                        |
+| ------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Model and check**            | `parse`, `watch`, `lint`, `status` | One file or a directory of files loaded as one project, held to grammar, completeness and palette rules                                |
+| **Derive tests**               | `derive`, `test`, `cucumber-json`  | A test topology per flow: a case per moment and branch arm, an assertion per crossing, negative scenarios for every unmet precondition |
+| **Generate**                   | `generate`, `emit-ts`              | Gherkin features, TypeScript types, aggregates and test scaffolds, specification documents                                             |
+| **Simulate**                   | `simulate`, `serve`                | Event chains with causation and payloads for each path, served over WebSocket to [Facet](https://moment.mmmnt.ai/ecosystem)            |
+| **Visualise**                  | `viz`, `board`                     | A context map and timeline envelope, and a board of SVG frames with a manifest you can diff                                            |
+| **Govern contracts**           | `schema emit`, `schema status`     | A closed JSON Schema per event payload, and the schema lifecycle report                                                                |
+| **Keep implementation honest** | `sync`, `reconcile`                | Drift between model and code recorded as proposals you accept or reject, and upstream drift reconciled                                 |
+| **Bring a model in**           | `init`, `import --from-sift`       | A new project manifest, or a model imported from a Sift export                                                                         |
 
 Moment also runs as an MCP server ([`@mmmnt/mcp`](packages/mcp)), so an AI agent can validate, query and emit from your model without a network connection. A [VS Code extension](packages/vscode) highlights `.moment` files.
 
@@ -157,19 +157,19 @@ Moment also runs as an MCP server ([`@mmmnt/mcp`](packages/mcp)), so an AI agent
 
 Every `@mmmnt/*` package is released together at the same version.
 
-| Package | |
-|---|---|
-| [`@mmmnt/cli`](packages/cli) | The `moment` command |
-| [`@mmmnt/core`](packages/core) | Parser and intermediate representation for the Moment language |
-| [`@mmmnt/derive`](packages/derive) | Test topology, simulation scenarios, event catalogs and impact analysis |
-| [`@mmmnt/generate`](packages/generate) | Gherkin scenarios, specification documents and AsyncAPI contracts |
-| [`@mmmnt/emit-ts`](packages/emit-ts) | TypeScript types and test scaffolds |
-| [`@mmmnt/harness`](packages/harness) | Test execution with event replay and contract assertion |
-| [`@mmmnt/schema`](packages/schema) | Payload JSON Schemas and schema lifecycle governance |
-| [`@mmmnt/sync`](packages/sync) | Drift detection between model and implementation, and reconciliation |
-| [`@mmmnt/viz`](packages/viz) | Context map and flow timeline visualisation |
-| [`@mmmnt/board`](packages/board) | The model projected onto an event-storming board, one SVG per frame plus a manifest |
-| [`@mmmnt/mcp`](packages/mcp) | Model Context Protocol server exposing Moment as agent tools |
+| Package                                |                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`@mmmnt/cli`](packages/cli)           | The `moment` command                                                                |
+| [`@mmmnt/core`](packages/core)         | Parser and intermediate representation for the Moment language                      |
+| [`@mmmnt/derive`](packages/derive)     | Test topology, simulation scenarios, event catalogs and impact analysis             |
+| [`@mmmnt/generate`](packages/generate) | Gherkin scenarios, specification documents and AsyncAPI contracts                   |
+| [`@mmmnt/emit-ts`](packages/emit-ts)   | TypeScript types and test scaffolds                                                 |
+| [`@mmmnt/harness`](packages/harness)   | Test execution with event replay and contract assertion                             |
+| [`@mmmnt/schema`](packages/schema)     | Payload JSON Schemas and schema lifecycle governance                                |
+| [`@mmmnt/sync`](packages/sync)         | Drift detection between model and implementation, and reconciliation                |
+| [`@mmmnt/viz`](packages/viz)           | Context map and flow timeline visualisation                                         |
+| [`@mmmnt/board`](packages/board)       | The model projected onto an event-storming board, one SVG per frame plus a manifest |
+| [`@mmmnt/mcp`](packages/mcp)           | Model Context Protocol server exposing Moment as agent tools                        |
 
 ## Where Moment fits
 
