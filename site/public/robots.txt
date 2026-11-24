@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /design/
 
-Sitemap: https://moment.dev/sitemap-index.xml
+Sitemap: https://moment.mmmnt.ai/sitemap-index.xml

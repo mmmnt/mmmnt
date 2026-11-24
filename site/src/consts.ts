@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://moment.dev';
+export const SITE_URL = 'https://moment.mmmnt.ai';
 export const SITE_NAME = 'Moment';
 export const SITE_TITLE = 'Moment · The open-source temporal DSL for domain-driven design';
 export const SITE_DESCRIPTION =

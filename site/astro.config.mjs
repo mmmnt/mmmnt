@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-export const SITE_URL = 'https://moment.dev';
+export const SITE_URL = 'https://moment.mmmnt.ai';
 
 export default defineConfig({
   site: SITE_URL,
