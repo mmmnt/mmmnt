@@ -425,21 +425,21 @@ Every syntax-level rule is an error unless the table says it is a warning. V3, V
 
 ### Structural and project checks
 
-| Rule  | Reported by                                         | Checks                                                              |
-| ----- | --------------------------------------------------- | ------------------------------------------------------------------- |
-| SP-01 | `SchemaValidator.validate`, and the parser (syntax) | A lane label, or a connection's target, is a declared context.      |
-| SP-02 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's event is declared by its source or its target context. |
-| SP-03 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's contract has at least one field.                       |
-| SP-04 | `SchemaValidator.validate`                          | A `returns-to` lands on a prior moment of the same flow.            |
-| SP-05 | `SchemaValidator.validateManifestFiles`             | Every file the manifest references exists.                          |
-| PM-00 | `ProjectLoader`                                     | A project file can be read.                                         |
-| PM-01 | `mergeIrs`                                          | A context is defined in exactly one file.                           |
-| PM-02 | `validateCrossFileReferences`                       | A flow lane names a context defined in some loaded file.            |
-| PM-03 | `validateCrossFileReferences`                       | A crossing's target context is defined in some loaded file.         |
-| PM-04 | `validateCrossFileReferences`                       | A crossing's event is declared in its target context. A warning.    |
-| PM-05 | `validateCrossFileReferences`                       | A placed node's context is defined in some loaded file.             |
-| PM-06 | `validateCrossFileReferences`                       | A relationship's ends are defined in some loaded file.              |
-| PM-07 | `validateCrossFileReferences`                       | A node on a context's lane names a building block of that context.  |
+| Rule  | Reported by                                         | Checks                                                                         |
+| ----- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| SP-01 | `SchemaValidator.validate`, and the parser (syntax) | A lane label, or a connection's target, is a declared context.                 |
+| SP-02 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's event is declared by its source or its target context.            |
+| SP-03 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's contract has at least one field.                                  |
+| SP-04 | `SchemaValidator.validate`                          | A `returns-to` lands on a prior moment of the same flow.                       |
+| SP-05 | `SchemaValidator.validateManifestFiles`             | Every file the manifest references exists.                                     |
+| PM-00 | `ProjectLoader`                                     | A project file can be read.                                                    |
+| PM-01 | `mergeIrs`                                          | A context is defined in exactly one file.                                      |
+| PM-02 | `validateCrossFileReferences`                       | A flow lane names a context defined in some loaded file.                       |
+| PM-03 | `validateCrossFileReferences`                       | A crossing's target context is defined in some loaded file.                    |
+| PM-04 | `validateCrossFileReferences`                       | A crossing's event is declared by its source or its target context. A warning. |
+| PM-05 | `validateCrossFileReferences`                       | A placed node's context is defined in some loaded file.                        |
+| PM-06 | `validateCrossFileReferences`                       | A relationship's ends are defined in some loaded file.                         |
+| PM-07 | `validateCrossFileReferences`                       | A node on a context's lane names a building block of that context.             |
 
 `MomentParser.parseContent` runs `SchemaValidator.validate` on every file that declares contexts and reports its findings as warnings. The parser's own SP-01 to SP-03 checks are errors.
 

@@ -149,7 +149,7 @@ describe('validateCrossFileReferences', () => {
     expect(result.diagnostics[0].ruleId).toBe('PM-03');
   });
 
-  it('warns when crossing event is not in target context (PM-04)', () => {
+  it('warns when the target context does not declare the event of a crossing with no source node (PM-04)', () => {
     const ir = makeIr({
       contexts: [
         {
@@ -217,6 +217,52 @@ describe('validateCrossFileReferences', () => {
     const result = validateCrossFileReferences(ir);
     expect(result.valid).toBe(true);
     expect(result.diagnostics.filter((d) => d.ruleId === 'PM-04')).toEqual([]);
+  });
+
+  // A crossing carries its source context's event (SP-02's rule, which PM-04 agrees with).
+  const crossingIr = (sourceEvents: string[], targetEvents: string[], event: string) =>
+    makeIr({
+      contexts: [
+        { id: 'ctx-Source', name: 'Source', events: sourceEvents.map((name) => ({ name })) },
+        { id: 'ctx-Target', name: 'Target', events: targetEvents.map((name) => ({ name })) },
+      ] as any,
+      flows: [
+        {
+          id: 'flow-test',
+          name: 'test',
+          lanes: [],
+          moments: [
+            {
+              id: 'm-1',
+              name: 'Moment 1',
+              contextEntries: [{ contextId: 'ctx-Source', nodeName: event, nodeKind: 'event' }],
+            },
+          ],
+          connections: [
+            {
+              id: 'conn-1',
+              sourceMomentId: 'm-1',
+              sourceNodeName: event,
+              targetContextId: 'ctx-Target',
+              eventId: `evt-${event}`,
+              connectionType: 'crosses-to',
+              schemaContract: { eventType: event, fields: [], relationshipType: 'CS' },
+            },
+          ],
+        } as any,
+      ],
+    });
+  const pm04 = (ir: ReturnType<typeof makeIr>) =>
+    validateCrossFileReferences(ir).diagnostics.filter((d) => d.ruleId === 'PM-04');
+
+  it('does not warn when only the source context declares the crossing event (PM-04)', () => {
+    expect(pm04(crossingIr(['Emitted'], [], 'Emitted'))).toEqual([]);
+  });
+
+  it('warns when neither the source nor the target context declares the crossing event (PM-04)', () => {
+    expect(pm04(crossingIr(['Other'], ['Another'], 'Emitted')).map((d) => d.message)).toEqual([
+      "Flow 'test': crossing event 'Emitted' is declared neither by its source context nor by target context 'ctx-Target'.",
+    ]);
   });
 
   it('flags unresolved moment entry contextIds (PM-05)', () => {

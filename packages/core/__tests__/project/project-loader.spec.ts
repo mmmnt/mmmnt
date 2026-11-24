@@ -6,9 +6,17 @@ const FIXTURES = resolve(import.meta.dirname, '../../../../fixtures');
 const MINIMAL_CONTEXTS = resolve(FIXTURES, 'valid/minimal/contexts');
 const MINIMAL_FLOWS = resolve(FIXTURES, 'valid/minimal/flows');
 const MULTI_CONTEXT = resolve(FIXTURES, 'valid/multi-context');
+const TICKETWAVE = resolve(FIXTURES, '../examples/ticketwave/spec/ticketwave.moment');
 
 describe('ProjectLoader', () => {
   const loader = new ProjectLoader();
+
+  it('loads TicketWave with no PM-04 warning: its crossings carry events their source declares', async () => {
+    const result = await loader.loadProject([TICKETWAVE]);
+
+    expect(result.success).toBe(true);
+    expect(result.diagnostics.filter((d) => d.ruleId === 'PM-04')).toEqual([]);
+  });
 
   describe('multi-file loading', () => {
     it('merges contexts from multiple files into one IR', async () => {

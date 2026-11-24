@@ -3,7 +3,8 @@
  *
  * Runs on the merged IR after all files have been parsed independently
  * and their IRs concatenated. Checks that every cross-file reference
- * (flow lanes → contexts, crossings → target contexts, relationships)
+ * (flow lanes → contexts, crossings → target contexts and the events they
+ * carry, relationships)
  * resolves to an entity that actually exists in the merged IR.
  *
  * Per ADR-034 G8: this is a dedicated post-merge pass, NOT a re-run of
@@ -14,6 +15,7 @@
  */
 
 import type { IntermediateRepresentation, FlowDefinition, Diagnostic } from '../ir/index.js';
+import { crossingSourceContextId } from '../services/schema-validator.js';
 
 export interface CrossFileValidationResult {
   readonly valid: boolean;
@@ -91,12 +93,17 @@ function validateConnections(
       });
       continue;
     }
-    const targetEvents = eventsByContext.get(conn.targetContextId);
+    // PM-04 agrees with SP-02: a crossing carries its source context's event, so the event may be
+    // declared by the source context (the emitter) or by the target context (a re-declaration).
     const eventName = conn.eventId.replace(/^evt-/, '');
-    if (targetEvents && !targetEvents.has(eventName)) {
+    const sourceContextId = crossingSourceContextId(flow, conn);
+    const declaredOnBoundary = [sourceContextId, conn.targetContextId].some(
+      (id) => id !== undefined && eventsByContext.get(id)?.has(eventName),
+    );
+    if (!declaredOnBoundary) {
       diagnostics.push({
         severity: 'warning',
-        message: `Flow '${flow.name}': crossing event '${eventName}' is not declared in target context '${conn.targetContextId}'.`,
+        message: `Flow '${flow.name}': crossing event '${eventName}' is declared neither by its source context nor by target context '${conn.targetContextId}'.`,
         ruleId: 'PM-04',
       });
     }

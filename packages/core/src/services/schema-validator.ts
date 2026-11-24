@@ -7,6 +7,21 @@ import type {
   ConnectionDefinition,
 } from '../ir/index.js';
 
+/**
+ * The context that owns a connection's declaring node, read from that node's moment entry. A
+ * crossing carries the source context's event, so for a crossing this is the emitting context.
+ */
+export function crossingSourceContextId(
+  flow: FlowDefinition,
+  conn: ConnectionDefinition,
+): string | undefined {
+  if (conn.sourceNodeName === undefined) return undefined;
+  const moment = flow.moments.find((m) => m.id === conn.sourceMomentId);
+  if (!moment) return undefined;
+  const entries = [...moment.contextEntries, ...(moment.branches?.flatMap((b) => b.entries) ?? [])];
+  return entries.find((e) => e.nodeName === conn.sourceNodeName)?.contextId;
+}
+
 export class SchemaValidator {
   /**
    * Validates structural correctness of an IntermediateRepresentation.
@@ -86,7 +101,7 @@ export class SchemaValidator {
     diagnostics: Diagnostic[],
   ): void {
     const targetEvents = contextEventsMap.get(conn.targetContextId);
-    const sourceContextId = this.resolveSourceContextId(flow, conn);
+    const sourceContextId = crossingSourceContextId(flow, conn);
     const sourceEvents =
       sourceContextId !== undefined ? contextEventsMap.get(sourceContextId) : undefined;
     // Unknown contexts on both ends are SP-01's finding, not SP-02's.
@@ -98,21 +113,6 @@ export class SchemaValidator {
         ruleId: 'SP-02',
       });
     }
-  }
-
-  /** Context that owns the connection's declaring node, via its moment entry. */
-  private resolveSourceContextId(
-    flow: FlowDefinition,
-    conn: ConnectionDefinition,
-  ): string | undefined {
-    if (conn.sourceNodeName === undefined) return undefined;
-    const moment = flow.moments.find((m) => m.id === conn.sourceMomentId);
-    if (!moment) return undefined;
-    const entries = [
-      ...moment.contextEntries,
-      ...(moment.branches?.flatMap((b) => b.entries) ?? []),
-    ];
-    return entries.find((e) => e.nodeName === conn.sourceNodeName)?.contextId;
   }
 
   private checkSP03(ir: IntermediateRepresentation, diagnostics: Diagnostic[]): void {
