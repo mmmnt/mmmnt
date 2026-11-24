@@ -2,15 +2,33 @@
 
 ## 0.14.0
 
-No changes in this release.
+### Minor Changes
+
+- [`6f80ae3`](https://github.com/mmmnt/mmmnt/commit/6f80ae32cec4f161d0be1d5d06d4aaf51df8f3d4) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Any Moment keyword may name a field, an input or a lane (ADR-051).
+
+  - core: a field (of an event, a value object, a variant, an exclusive group, an identity or a projection), a command, orchestration-command or query input, a lane, and every segment of a policy condition path may be named with any word the grammar reserves: `scope`, `policy`, `context`, `trigger`, `type`, `on`, `state`, `when`, `string`, ... A name is followed by `:` or `?:`, which no declaration that begins with the same word is, so the parser tells them apart. One rule, `ReservedWord`, replaces the word-by-word escapes of ADR-037, ADR-040, ADR-043, ADR-045 and ADR-049; a spec reads the grammar's keywords and fails if one is missing from it. A crossing's `contract` fields stay identifiers. No new token, IR key or rule.
+
+  Not breaking: every model that parsed under 0.13.0 has the same IR, and `parse`, `test`, `derive`, `viz`, `cucumber-json`, `simulate --all`, `generate`, `emit-ts`, `board` and `schema emit` write the same files for TicketWave, every valid fixture and the Sift model copy.
 
 ## 0.13.0
 
-No changes in this release.
+### Minor Changes
+
+- [`e39ae92`](https://github.com/mmmnt/mmmnt/commit/e39ae92e0a61b6a6bd55f59ab5a4a4b0a8f681cc) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - A policy condition reads the variant of a tagged union field (ADR-050).
+
+  - core: a policy's `when` field may be the path `<field>.kind` on a field of its trigger typed by a tagged union (ADR-049): `trigger DecisionRecorded when decision.kind = Admitted`. The IR's `condition.field` is the path as written (`"decision.kind"`) and `condition.equals` the variant; no IR key is added, and a condition without a dot is unchanged. No new keyword or token (`.` already was one). New rules, with V49's severity (a warning per file, an error over a merged project): V56 (a path on a field that is not a single union, a segment other than `kind`, or a union field guarded without `.kind`) and V57 (a variant the union does not declare). V49 checks a path's first segment.
+
+  Not breaking: every model that parsed under 0.12.0 has the same IR, and `parse`, `test`, `derive`, `viz`, `cucumber-json`, `simulate --all`, `generate`, `emit-ts`, `board` and `schema emit` write the same files for TicketWave, every valid fixture and the Sift model copy. A Facet that does not read dotted paths treats the guard as undecidable, so it holds the reaction at every occurrence, as for a policy with no condition.
 
 ## 0.12.0
 
-No changes in this release.
+### Minor Changes
+
+- [`e9c9266`](https://github.com/mmmnt/mmmnt/commit/e9c9266d3f0dd7adfac7fcd1c330d8b052a29059) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Fields declare optionality, code sets, unions, maps and patterns, and `moment schema emit` writes one closed JSON Schema per event payload (ADR-049).
+
+  - core: `name?: T` is optional; `"a" | "b"` is a code set; `value-object Name: T` is a scalar value object (a code set when `T` is one) and a value object with `| Variant` lines is a tagged union discriminated by `kind`; `a: T | b: U` on one field line is an exclusive group (exactly one present); `T{}` and `T{key}` are maps keyed by string; `[pattern "<regex>"]` and `[encrypted]` are field attributes beside `[deprecated …]`. The IR gains optional keys only: `FieldDefinition.enum`, `map`, `pattern`, `encrypted`, `exclusive` and `ValueObjectDefinition.scalar`, `variants`; `required` is `false` for an optional field and for every member of an exclusive group. `pattern` is a new keyword, escaped in field, input and lane names; `?`, `{` and `}` are new tokens. New rules, errors in a single file: V52 (a union field named `kind`), V53 (a variant or a code twice), V54 (an optional member of an exclusive group), V55 (an invalid pattern, or a pattern on a type that is not string-valued).
+
+  Not breaking: every model that parsed under 0.11.0 has the same IR, and `parse`, `test`, `simulate --all`, `derive`, `generate` and `emit-ts` write the same files for TicketWave, every valid fixture and the Sift model copy.
 
 ## 0.11.0
 
@@ -18,23 +36,67 @@ No changes in this release.
 
 ## 0.10.1
 
-No changes in this release.
+### Patch Changes
+
+- Project mode no longer reports a per-file V49, V50 or V51 that the merged project does not report (ADR-045).
+
+  - core: `ProjectLoader` drops a per-file diagnostic only for the rules the merged validation re-checks, and matched V22 to V48. A policy `trigger X after Y` in one context file, with `Y` declared in another file, got a spurious V50 in `moment parse <dir>`. Every rule from V22 on is now treated as checked over the merge, so a rule added later needs no change here.
 
 ## 0.10.0
 
-No changes in this release.
+### Minor Changes
+
+- A policy declares the condition under which it reacts, and the branch stamp moves to its own key (ADR-045, ADR-046).
+
+  ADR-045, a policy declares the condition under which it reacts:
+
+  - core: `trigger E when <field> = <value>` and `trigger E after <Event>` on a policy, in that order, either or both. `=` is a new token and `after` a new keyword, escaped in `FieldName` and `LaneName` so a field, lane or input named `after` still parses. The IR's `PolicyDefinition` gains an optional `condition` (`field` and `equals`, and/or `after`); a policy that declares none has no such key. New rules: V49 (a `when` field the trigger does not carry), V50 (an `after` event that is not declared), V51 (an advisory: no flow places the `after` event before the trigger). A guard on a field named `outcome` is allowed.
+
+  Compatibility: golden comparison against the 0.9.0 build on every valid fixture, ticketwave at its 0.9.0 spec and the SAMMI model (simulate, generate, emit-ts, derive, viz, parse). The only differences are an added `"$branch"` line on every event inside an arm and `"field": "outcome"` becoming `"field": "$branch"` in branch predicates; every other output is byte-identical. The specs were verified by reintroducing each defect.
 
 ## 0.9.0
 
-No changes in this release.
+### Minor Changes
+
+- [`2debed1`](https://github.com/mmmnt/mmmnt/commit/2debed1062f0067d6d30c8c40df10ef4ca02cb5b) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Branch paths: negatives for every path, an arm that ends at an outcome, and the arm a topology connection is declared in (ADR-042, ADR-043, ADR-044).
+
+  ADR-043, an arm may end at an outcome:
+
+  - core: a second exit modifier, `[outcome]`. It sets `terminal: true` and `exit: 'outcome'` on the IR entry, so everything that stops at a terminal behaves the same. `[terminal]` is unchanged and stays a failure exit. `outcome` is a keyword inside the modifier brackets and is escaped in `FieldName` and `LaneName` (and so in input names), so a field, lane or input named `outcome` still parses. V8 (a terminal is the last node of its block) holds for `[outcome]` too.
+  - Syntax files (core and vscode) know the new word. A model that does not use `[outcome]` has a byte-identical IR and derived output.
+
+  Compatibility: golden comparison against the build of 0.8.0 on every valid fixture, ticketwave at its previous spec and the SAMMI model. Every old scenario is present and byte-identical; the new build adds only the negatives above; topology differs only by the `branchCondition` keys; every other artifact is byte-identical. The three regression specs were verified by reintroducing each defect.
 
 ## 0.8.0
 
-No changes in this release.
+### Minor Changes
+
+- A command records one or more events: events recorded together, and alternative outcomes chosen by state (ADR-041).
+
+  Syntax (aggregate commands, and orchestration commands for the process events they declare):
+
+  - `emits A` records one event, as before. `emits A, B` records both in one transaction. `emits A | B` records exactly one of them, chosen by the aggregate's state. `emits A when Open | A, B when OneUseLeft` names the declared state in which each outcome is recorded. `,` binds tighter than `|`; `when` belongs to the outcome it follows. No keyword is added.
+
+  Rules:
+
+  - V31 and V38 check every event of every outcome (the message for a single event is unchanged). New V44: a command that records more than one distinct event records only its own aggregate's events (a single-event command is unchanged). V45: an event is listed once inside one outcome. V46: a `when` names a declared state, no two outcomes share one, and a command guards every outcome or none; alternatives with no guard are an advisory. V47: the events a flow places after one placement of a multi-event command come from one outcome (part of an outcome is an advisory). V48: an outcome that no flow places, over a merged project only (an advisory). V44 to V48 are advisories per file and errors over a merged project, except where a finding carries its own severity (V46 errors; the V46 missing-guard advisory, the V47 partial outcome and V48 are always warnings).
+  - A project now keeps the findings of a file it could not merge. Before, an error in a file whose own findings include one that the merged validation re-reports could be dropped with the file.
+
+  IR:
+
+  - core: a plain `emits A` writes `emitsEvent` and nothing else, so the IR of every model that parses today is byte-identical. Any other clause adds `outcomes: { events: string[]; whenState?: string }[]` to `CommandDefinition` and `OrchestrationCommandDefinition`, and `emitsEvent` is the first event of the first outcome. New helpers `emittedEvents(cmd)` and `emitOutcomes(cmd)` read a command's events and outcomes (hand-built IR that sets only `emitsEvent` reads as a single outcome); no package reads the fields directly (a test sweeps the sources). `momentPlacements` exposes the events a flow places for a command.
+
+  Compatibility: every model that parses today parses with an identical IR and identical derived artifacts. This was checked on every valid fixture, the rule ids of every invalid fixture, ticketwave at its previous spec and the SAMMI model, against the build of 0.7.2, and the comparison fails on a build that writes `outcomes` for a plain `emits`. The ticketwave example now uses the new forms (`HoldClosed` recorded with `HoldConvertedToReservation`; `AccessCodeExhausted` on the last use of an access code) and its facet files are regenerated, so its scenarios and tests change.
 
 ## 0.7.2
 
-No changes in this release.
+### Patch Changes
+
+- Audit fixes and corrections to the 0.7.0 notes.
+
+  - **V43 is an error in a single file when the file can decide.** A same-moment `triggered-by` must be a hop a policy declares. When the node is a policy (event -> policy) or the cause is a policy (policy -> command), the supporting declaration is that policy's own, so a file that declares the policy now fails with V43 instead of passing with a warning. When the hop is event -> command, the supporting policy may be declared in another file, so V43 stays an advisory per file; over a merged project it is always an error. This restores the guarantee V5 gave before it was relaxed, without needing the whole project when the file already holds the answer.
+  - **V5 keeps its safe default.** A `triggered-by` check on a node that its moment does not hold sees no earlier siblings, rather than all but the last. The V43 message names the moment from the flow's own moment list.
+  - **Correction to the 0.7.0 notes.** `causes`, as well as `note` and `cause`, became a keyword: a node (command, event, policy and so on) named `causes` no longer parses. Lane names and field names are unaffected.
 
 ## 0.7.1
 

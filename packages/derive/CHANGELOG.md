@@ -9,12 +9,28 @@
 
 ## 0.13.0
 
+### Minor Changes
+
+- [`e39ae92`](https://github.com/mmmnt/mmmnt/commit/e39ae92e0a61b6a6bd55f59ab5a4a4b0a8f681cc) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - A policy condition reads the variant of a tagged union field (ADR-050).
+
+  - derive: the trigger occurrence a declared reaction names carries `<field>: { kind: <Variant> }`; the trigger's other occurrences carry the union's first variant that no guard on the field declares, so they decidably do not meet it. `policy-definitions.json` carries the path as written.
+
+  Not breaking: every model that parsed under 0.12.0 has the same IR, and `parse`, `test`, `derive`, `viz`, `cucumber-json`, `simulate --all`, `generate`, `emit-ts`, `board` and `schema emit` write the same files for TicketWave, every valid fixture and the Sift model copy. A Facet that does not read dotted paths treats the guard as undecidable, so it holds the reaction at every occurrence, as for a policy with no condition.
+
 ### Patch Changes
 
 - Updated dependencies []:
   - @mmmnt/core@0.13.0
 
 ## 0.12.0
+
+### Minor Changes
+
+- [`e9c9266`](https://github.com/mmmnt/mmmnt/commit/e9c9266d3f0dd7adfac7fcd1c330d8b052a29059) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Fields declare optionality, code sets, unions, maps and patterns, and `moment schema emit` writes one closed JSON Schema per event payload (ADR-049).
+
+  - derive: a sample payload takes a code set's first value, `{}` for a map, and only the first member of an exclusive group.
+
+  Not breaking: every model that parsed under 0.11.0 has the same IR, and `parse`, `test`, `simulate --all`, `derive`, `generate` and `emit-ts` write the same files for TicketWave, every valid fixture and the Sift model copy.
 
 ### Patch Changes
 
@@ -37,12 +53,44 @@
 
 ## 0.10.0
 
+### Minor Changes
+
+- A policy declares the condition under which it reacts, and the branch stamp moves to its own key (ADR-045, ADR-046).
+
+  ADR-045, a policy declares the condition under which it reacts:
+
+  - derive: `policy-definitions.json` entries carry `condition` when declared and nothing otherwise. The scenario generator sets the declared value on the occurrence of the trigger that a declared reaction names (the nearest earlier placement the `triggered-by` link uses) and keeps every other occurrence off that value. `after` needs no generation.
+
+  ADR-046, the branch condition stamp has its own key:
+
+  - derive: the arm a scenario took is written to `payload.$branch` (exported as `BRANCH_KEY`), a key the grammar cannot produce as a field name, and the topology's `branchPredicates[*].field` is `$branch`. `payload.outcome` is still written for an event that declares no `outcome` field, and is no longer written over one that does: a model's own `outcome` keeps its value. Facet reads the arm through the predicate's field, so older artifacts (field `outcome`) read as before.
+
+  Compatibility: golden comparison against the 0.9.0 build on every valid fixture, ticketwave at its 0.9.0 spec and the SAMMI model (simulate, generate, emit-ts, derive, viz, parse). The only differences are an added `"$branch"` line on every event inside an arm and `"field": "outcome"` becoming `"field": "$branch"` in branch predicates; every other output is byte-identical. The specs were verified by reintroducing each defect.
+
 ### Patch Changes
 
 - Updated dependencies []:
   - @mmmnt/core@0.10.0
 
 ## 0.9.0
+
+### Minor Changes
+
+- [`2debed1`](https://github.com/mmmnt/mmmnt/commit/2debed1062f0067d6d30c8c40df10ef4ca02cb5b) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Branch paths: negatives for every path, an arm that ends at an outcome, and the arm a topology connection is declared in (ADR-042, ADR-043, ADR-044).
+
+  ADR-042, negative scenarios for every branch path:
+
+  - derive: `deriveNegativeScenarios` derives over every path `generateAllScenarios` enumerates, with one negative per (command, precondition, cause) not already covered. The first-arm path is derived first, exactly as before, so its scenarios, ids and order are byte-identical. A command placed only in a later arm (a decline, a cancel, a fail, an expire) now has its negatives. An explicit `branchSelections` still walks that one path. Scenario shape, `kind` values and manifest fields are unchanged; there are more `kind: negative` entries.
+
+  ADR-043, an arm may end at an outcome:
+
+  - derive: an arm that ends at `[outcome]` is a `variant` (`Variant: ...`); an arm that ends at `[terminal]` is a `failure`. Label and kind share one rule. `ScenarioKind` has the same five values.
+
+  ADR-044, a topology connection declared inside a `when` arm carries that arm:
+
+  - derive: `TopologyConnection` gains an optional `branchCondition`, the arm's condition as written in the spec (the key `branchPredicates[<frame>].routes` and `activeBranches[].condition` use), copied from the IR for `triggered-by`, `triggers`, `crosses-to` and `returns-to`. A connection declared outside an arm has no such field. Additive: with the keys removed, the topology of every model is byte-identical to 0.8.0's. Ticketwave 10 of 50 connections carry it; SAMMI 16 of 19.
+
+  Compatibility: golden comparison against the build of 0.8.0 on every valid fixture, ticketwave at its previous spec and the SAMMI model. Every old scenario is present and byte-identical; the new build adds only the negatives above; topology differs only by the `branchCondition` keys; every other artifact is byte-identical. The three regression specs were verified by reintroducing each defect.
 
 ### Patch Changes
 
@@ -51,7 +99,19 @@
 
 ## 0.8.0
 
+### Minor Changes
+
+- A command records one or more events: events recorded together, and alternative outcomes chosen by state (ADR-041).
+
+  Artifacts:
+
+  - derive: the scenario for a multi-event command shows the command step, then the events the flow places for one outcome, contiguous and in declared order, each caused by the command step alone and carrying its timestamp. A scenario that reaches a guarded outcome names the state in its `when` and in the command step's payload (`whenState`). A rejection records no event of any outcome. The event catalog has an entry per event whose producer is the command, with `recordedWith` and `alternativeTo` (absent for a single-event command). Impact analysis links the command to every event of every outcome, in both directions. Topology is unchanged.
+
+  Compatibility: every model that parses today parses with an identical IR and identical derived artifacts. This was checked on every valid fixture, the rule ids of every invalid fixture, ticketwave at its previous spec and the SAMMI model, against the build of 0.7.2, and the comparison fails on a build that writes `outcomes` for a plain `emits`. The ticketwave example now uses the new forms (`HoldClosed` recorded with `HoldConvertedToReservation`; `AccessCodeExhausted` on the last use of an access code) and its facet files are regenerated, so its scenarios and tests change.
+
 ### Patch Changes
+
+- derive: node ids are unique within a topology. The first placement of a name in a moment, lane and scope keeps its id; a later one adds an occurrence mark (`<moment>::<lane>::<name>::main#2`, `…::br0#2`), so a moment that places the same node twice no longer fails Facet's "Duplicate node ID". Topology frames, event routing, scenario `payload.nodeId` and `expectedPath` use the same id. Output for a model with no repeated placement is unchanged.
 
 - Updated dependencies []:
   - @mmmnt/core@0.8.0
@@ -59,6 +119,10 @@
 ## 0.7.2
 
 ### Patch Changes
+
+- Audit fixes and corrections to the 0.7.0 notes.
+
+  - **Correction to the 0.7.0 notes: derived topology.** A placed policy is now routed in the topology by its own name, and an orchestration command is typed and routed as `SimProcess.<Name>`. The `eventRouting` of every model that places a policy gains those entries, so a regenerated topology differs from one derived with 0.6.x.
 
 - Updated dependencies []:
   - @mmmnt/core@0.7.2

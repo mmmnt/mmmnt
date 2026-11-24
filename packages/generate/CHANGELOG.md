@@ -2,6 +2,14 @@
 
 ## 0.14.0
 
+### Minor Changes
+
+- [`6f80ae3`](https://github.com/mmmnt/mmmnt/commit/6f80ae32cec4f161d0be1d5d06d4aaf51df8f3d4) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Any Moment keyword may name a field, an input or a lane (ADR-051).
+
+  - generate: the AsyncAPI document single-quotes a field name that YAML would read as a boolean or null (`on`, `yes`, `no`, `off`, `y`, `n`, `true`, `false`, `null`).
+
+  Not breaking: every model that parsed under 0.13.0 has the same IR, and `parse`, `test`, `derive`, `viz`, `cucumber-json`, `simulate --all`, `generate`, `emit-ts`, `board` and `schema emit` write the same files for TicketWave, every valid fixture and the Sift model copy.
+
 ### Patch Changes
 
 - Updated dependencies []:
@@ -50,6 +58,16 @@
 
 ## 0.9.0
 
+### Minor Changes
+
+- [`2debed1`](https://github.com/mmmnt/mmmnt/commit/2debed1062f0067d6d30c8c40df10ef4ca02cb5b) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Branch paths: negatives for every path, an arm that ends at an outcome, and the arm a topology connection is declared in (ADR-042, ADR-043, ADR-044).
+
+  ADR-043, an arm may end at an outcome:
+
+  - generate: Gherkin writes `(outcome)` for `(terminal)`, tags the arm `@terminal @alt-path` (not `@failure-path`), ends it with `the flow ends at <node>`, and attributes no failed precondition to it. The specification document writes `flow ends at` with a check mark, and the sequence diagram closes the arm with `Flow ends at an outcome`.
+
+  Compatibility: golden comparison against the build of 0.8.0 on every valid fixture, ticketwave at its previous spec and the SAMMI model. Every old scenario is present and byte-identical; the new build adds only the negatives above; topology differs only by the `branchCondition` keys; every other artifact is byte-identical. The three regression specs were verified by reintroducing each defect.
+
 ### Patch Changes
 
 - Updated dependencies []:
@@ -57,6 +75,16 @@
   - @mmmnt/derive@0.9.0
 
 ## 0.8.0
+
+### Minor Changes
+
+- A command records one or more events: events recorded together, and alternative outcomes chosen by state (ADR-041).
+
+  Artifacts:
+
+  - generate: Gherkin writes the events recorded after the first as `And ... emits`; the specification document writes `produces A, B`, `produces A or B`, and `produces A when S, or A, B when T` in the narrative, the command table and the sequence diagram.
+
+  Compatibility: every model that parses today parses with an identical IR and identical derived artifacts. This was checked on every valid fixture, the rule ids of every invalid fixture, ticketwave at its previous spec and the SAMMI model, against the build of 0.7.2, and the comparison fails on a build that writes `outcomes` for a plain `emits`. The ticketwave example now uses the new forms (`HoldClosed` recorded with `HoldConvertedToReservation`; `AccessCodeExhausted` on the last use of an access code) and its facet files are regenerated, so its scenarios and tests change.
 
 ### Patch Changes
 

@@ -16,6 +16,14 @@
 
 ## 0.12.0
 
+### Minor Changes
+
+- [`e9c9266`](https://github.com/mmmnt/mmmnt/commit/e9c9266d3f0dd7adfac7fcd1c330d8b052a29059) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Fields declare optionality, code sets, unions, maps and patterns, and `moment schema emit` writes one closed JSON Schema per event payload (ADR-049).
+
+  - schema: `emitPayloadSchemas(ir)` returns one JSON Schema (draft 2020-12) per event, closed at every level, with value objects in `$defs`: an optional field is not in `required`, a code set is `enum`, a union is `oneOf` with one closed branch per variant, an exclusive group is `oneOf` of `required`, a map types `additionalProperties`, a pattern is `pattern`, and `[encrypted]` is `x-encrypted: true` with the `{dataKeyId, ciphertext}` envelope. An undeclared type is a diagnostic.
+
+  Not breaking: every model that parsed under 0.11.0 has the same IR, and `parse`, `test`, `simulate --all`, `derive`, `generate` and `emit-ts` write the same files for TicketWave, every valid fixture and the Sift model copy.
+
 ### Patch Changes
 
 - Updated dependencies []:
