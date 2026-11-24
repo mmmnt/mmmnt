@@ -12,11 +12,11 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.4",
-    "astro": "~7.3.8"
+    "@astrojs/sitemap": "^3.7.5",
+    "astro": "~7.4.12"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
