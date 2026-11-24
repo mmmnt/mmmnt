@@ -13,9 +13,112 @@
 
 # Moment
 
-A DSL and toolchain for temporal DDD modeling.
+**Rehearse an event-driven domain before you build it.**
 
-Moment transforms `.moment` specification files into typed TypeScript implementations, Gherkin test scenarios, simulation topologies, and specification documents — creating a single source of truth for how bounded contexts communicate through time.
+Moment is a specification language and toolchain for domain-driven design that treats time as part of the model. You describe your bounded contexts, and the flows that carry events between them, in plain-text `.moment` files. Moment checks the model, then derives from it the tests, types, simulations, schemas, documents and boards your team would otherwise write by hand. It derives them again, unchanged, every time the model changes.
+
+## Why Moment
+
+Event-driven systems rarely fail inside one aggregate. They fail at the boundaries:
+
+- an event crosses into another context without a field that context needs
+- a policy reacts to the wrong occurrence
+- a branch nobody wrote a test for takes the system somewhere unexpected
+
+Domain-driven design gives you the vocabulary for those boundaries. Its usual output, though, is a whiteboard, a Miro board or a wiki page. That is a static, two-dimensional map, and it goes straight into production code with no rehearsal in between.
+
+Moment adds the missing step:
+
+- **The model is code.** Contexts, aggregates, commands, events, policies, orchestrations, projections and queries are typed declarations in a file you review like any other change. They are not sticky notes.
+- **Time is part of the model.** A `flow` says what happens in which order, which event crosses to which context, and under which **contract**: the fields the receiving side requires.
+- **Every path is derived.** Each branch arm, each crossing and each unmet precondition becomes a test scenario. Nobody has to remember to write it.
+- **Nothing rots.** Types, Gherkin features, test scaffolds, JSON Schemas and specification documents are regenerated from the model. Drift between the model and an implementation is detected and recorded as a decision.
+
+Moment is for domain architects who want a design they can test, for teams who want contracts settled before implementation, and for anyone tired of documentation that describes last quarter's system.
+
+## A model, and what Moment makes of it
+
+Two contexts and one flow. An order is placed in Ordering, and `OrderPlaced` crosses to Fulfillment under a contract. A policy reacts by reserving stock, and the reservation either succeeds or goes to backorder.
+
+```moment
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      input customerId: UUID, total: number
+      precondition notYetPlaced: "An order is placed once"
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+      customerId: UUID
+      total: number
+
+context "Fulfillment" [Supporting]
+  aggregate "Shipment"
+    identity shipmentId: UUID
+    state initial InStock
+    state InStock -> OutOfStock on ReserveStock
+    command ReserveStock
+      input orderId: UUID
+      emits StockReserved when InStock | StockBackordered when OutOfStock
+    event StockReserved
+      shipmentId: UUID
+      orderId: UUID
+    event StockBackordered
+      shipmentId: UUID
+      orderId: UUID
+  policy ReserveStockWhenOrderPlaced
+    trigger OrderPlaced
+    action "Reserve stock for the order"
+    chains-to ReserveStock
+
+flow "N1 - Checkout"
+  lane ordering "Ordering" [Core]
+  lane fulfillment "Fulfillment" [Supporting]
+
+  moment "The customer places an order"
+    ordering: PlaceOrder
+    ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        total: number [required]
+
+  moment "Fulfillment reserves the stock" [branch]
+    fulfillment: ReserveStock
+      triggered-by OrderPlaced
+    when inStock
+      fulfillment: StockReserved
+    when outOfStock
+      fulfillment: StockBackordered
+```
+
+From that one file:
+
+| Command | What you get |
+|---|---|
+| `moment parse model/` | The model checked against the grammar and the validation rules, as one project |
+| `moment generate model/shop.moment` | `features/n1-checkout.feature`, a TypeScript aggregate, types and `.spec.ts` scaffold per aggregate, a flow test scaffold, and `specification.md` |
+| `moment simulate model/shop.moment --all` | Three scenarios: the happy path, the `outOfStock` variant, and the failure when `notYetPlaced` is not met |
+| `moment schema emit model/ --out-dir schemas` | `OrderPlaced.schema.json`, `StockReserved.schema.json`, `StockBackordered.schema.json` |
+| `moment board model/ --out board` | An event-storming board as SVG frames: contexts, aggregates, policies, the thread of the flow, the context map, plus `manifest.json` |
+
+An excerpt of the generated feature. The crossing is asserted with its contract, and each arm of the branch is its own scenario:
+
+```gherkin
+@aggregate:Order @crossing
+Scenario: The customer places an order
+  When Ordering performs PlaceOrder with customerId, total
+  Then OrderPlaced crosses to Fulfillment via CustomerSupplier
+    | orderId | total |
+    | UUID | number |
+
+@aggregate:Shipment @policy:ReserveStockWhenOrderPlaced @alt-path
+Scenario: Fulfillment reserves the stock [outOfStock]
+  Given OrderPlaced has occurred
+  When Fulfillment performs ReserveStock with orderId
+  Then Fulfillment emits StockBackordered
+    carrying shipmentId, orderId
+```
 
 ## Quick start
 
@@ -23,82 +126,65 @@ Moment requires **Node.js 22 or newer**.
 
 ```bash
 npm install --save-dev @mmmnt/cli
-npx moment parse model/           # validate a model directory as one project
+```
+
+Save the model above as `model/shop.moment`, then:
+
+```bash
+npx moment parse model/
 npx moment generate model/shop.moment
+npx moment simulate model/shop.moment --all
 ```
 
-A model declares bounded contexts and the flows that move through them:
+`npx moment --help` lists every command. A larger worked model, a ticketing platform across seven contexts, lives in [`examples/ticketwave`](examples/ticketwave).
 
-```moment
-context "Shop" [Core]
-  aggregate "Order"
-    identity orderId: UUID
-    command PlaceOrder
-      input total: number
-      emits OrderPlaced
-    event OrderPlaced
-      orderId: UUID
-      total: number
-  projection OrderSummary
-    sources OrderPlaced
-  query GetOrderSummary
-    reads OrderSummary
+## What Moment does
 
-flow "checkout"
-  lane shop "Shop" [Core]
-  moment "The customer places an order"
-    shop: PlaceOrder
-    shop: OrderPlaced
-  moment "The customer checks the order"
-    shop: GetOrderSummary
-```
+| | Commands | |
+|---|---|---|
+| **Model and check** | `parse`, `watch`, `lint`, `status` | One file or a directory of files loaded as one project, held to grammar, completeness and palette rules |
+| **Derive tests** | `derive`, `test`, `cucumber-json` | A test topology per flow: a case per moment and branch arm, an assertion per crossing, negative scenarios for every unmet precondition |
+| **Generate** | `generate`, `emit-ts` | Gherkin features, TypeScript types, aggregates and test scaffolds, specification documents |
+| **Simulate** | `simulate`, `serve` | Event chains with causation and payloads for each path, served over WebSocket to [Facet](https://moment.mmmnt.ai/ecosystem) |
+| **Visualise** | `viz`, `board` | A context map and timeline envelope, and a board of SVG frames with a manifest you can diff |
+| **Govern contracts** | `schema emit`, `schema status` | A closed JSON Schema per event payload, and the schema lifecycle report |
+| **Keep implementation honest** | `sync`, `reconcile` | Drift between model and code recorded as proposals you accept or reject, and upstream drift reconciled |
+| **Bring a model in** | `init`, `import --from-sift` | A new project manifest, or a model imported from a Sift export |
 
-Run `npx moment --help` for every command.
-
-## What's in 0.10
-
-- **A policy declares when it reacts (ADR-045).** `trigger Event when field = value` and `trigger Event after Other` say which occurrences of the trigger the policy reacts to. `policy-definitions.json` carries them as `condition`, and a scenario sets the declared value on the occurrence the reaction names. Rules V49 to V51 check them. A policy that declares nothing derives exactly as before.
-- **The branch stamp has its own key (ADR-046).** The arm a scenario took is in `payload.$branch` (a name no model field can have) and the topology's branch predicate names it; `payload.outcome` is still written for events that declare no `outcome` field, and never over one that does.
-
-## What's in 0.6
-
-- **A complete modeling vocabulary (ADR-037).** Projections, queries, context-level rules with their enforcers, value objects, glossary terms and external systems, carried through code generation, specification documents and the context map.
-- **Models held to the palette (ADR-038).** A policy is one event and one command, `orchestration` is the palette's saga, and aggregates can declare internal state. Completeness rules V22–V28 and palette rules V29–V37 check a model, and every read-only command, `serve --project` and `reconcile` take a model directory and check it as one project. Processes record their outcomes as events (ADR-040), refusals can be scoped to the cause a command is issued for, a moment can be a note for a step outside the model, and one moment can show a whole reactive column of event, policy and command.
-- **Commands record one or more events (ADR-041).** `emits A, B` records both in one transaction, `emits A | B` records the one the aggregate's state chooses, and `when <State>` names that state. `emits A` is unchanged. Rules V44–V48 keep a multi-event command inside its aggregate and its flows consistent.
-- **Breaking for existing models.** `chains-to` is required on every policy, and the `condition` and `"file-watcher"` policy triggers are removed. Run `moment parse <dir>` after upgrading.
-- **A board renderer (ADR-047).** `moment board <path> --out <dir>` projects a model's IR onto an NDD board in the platform palette: one Canvas Composer SVG per context, flow, the context map and invariant coverage, and a `manifest.json` that lists every node for a diff against a board of record. Files only; nothing is written to Miro.
-- **Implementation sync (ADR-039).** `moment sync propose` records drift between a model and its implementation as proposals in `.domain/`; `sync accept` and `sync reject` decide them and commit the decision.
-- **Node 22.** Node 20 reached end-of-life on April 30, 2026 and is no longer supported.
-
-Per-package details are in each package's `CHANGELOG.md`.
+Moment also runs as an MCP server ([`@mmmnt/mcp`](packages/mcp)), so an AI agent can validate, query and emit from your model without a network connection. A [VS Code extension](packages/vscode) highlights `.moment` files.
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| [`@mmmnt/core`](packages/core) | Langium parser, AST-to-IR transform, completeness and palette validation, project mode, manifest management, Sift import |
-| [`@mmmnt/derive`](packages/derive) | Test topology, simulation scenarios, event catalog, impact analysis, saga state machines, topology emitter |
-| [`@mmmnt/emit-ts`](packages/emit-ts) | TypeScript types, aggregates, read-model types, test scaffolds |
-| [`@mmmnt/generate`](packages/generate) | Gherkin features, specification documents, AsyncAPI, Cucumber JSON |
-| [`@mmmnt/harness`](packages/harness) | Test runner (structural validation for payload, saga, policy), event replay, contract assertion |
-| [`@mmmnt/schema`](packages/schema) | Schema lifecycle governance, consumption manifest tracking |
-| [`@mmmnt/sync`](packages/sync) | AST diffing, drift proposals and decisions, cascade reconciliation, Sift event stream reading |
-| [`@mmmnt/viz`](packages/viz) | Context map and timeline rendering, visualization data envelope, live preview server |
-| [`@mmmnt/cli`](packages/cli) | The `moment` command: parse, derive, generate, emit-ts, simulate, test, viz, serve, sync, reconcile, lint and more |
-| [`@mmmnt/mcp`](packages/mcp) | Model Context Protocol server (7 tools, fully offline) |
+Every `@mmmnt/*` package is released together at the same version.
 
-The [VS Code extension](packages/vscode) provides syntax highlighting for `.moment` files.
+| Package | |
+|---|---|
+| [`@mmmnt/cli`](packages/cli) | The `moment` command |
+| [`@mmmnt/core`](packages/core) | Parser and intermediate representation for the Moment language |
+| [`@mmmnt/derive`](packages/derive) | Test topology, simulation scenarios, event catalogs and impact analysis |
+| [`@mmmnt/generate`](packages/generate) | Gherkin scenarios, specification documents and AsyncAPI contracts |
+| [`@mmmnt/emit-ts`](packages/emit-ts) | TypeScript types and test scaffolds |
+| [`@mmmnt/harness`](packages/harness) | Test execution with event replay and contract assertion |
+| [`@mmmnt/schema`](packages/schema) | Payload JSON Schemas and schema lifecycle governance |
+| [`@mmmnt/sync`](packages/sync) | Drift detection between model and implementation, and reconciliation |
+| [`@mmmnt/viz`](packages/viz) | Context map and flow timeline visualisation |
+| [`@mmmnt/board`](packages/board) | The model projected onto an event-storming board, one SVG per frame plus a manifest |
+| [`@mmmnt/mcp`](packages/mcp) | Model Context Protocol server exposing Moment as agent tools |
+
+## Where Moment fits
+
+Moment is the open-source core of the [Complai](https://moment.mmmnt.ai/ecosystem) ecosystem, and it runs entirely on its own: no `@mmmnt` package depends on any Complai service. Complai products plug in around it when you want them:
+
+- **Sift** automates event storming and hands Moment a model to import.
+- **Facet** plays Moment's simulation scenarios as a visual test of every crossing.
 
 ## Documentation
 
-Full documentation is maintained in the **[Moment Wiki](https://github.com/mmmnt/mmmnt/wiki)**.
-
-- **[Product Overview](https://github.com/mmmnt/mmmnt/wiki/Moment)** — What Moment does, design principles, DSL examples
-- **[The Moment DSL](https://github.com/mmmnt/mmmnt/wiki/The-Moment-DSL)** — The language, construct by construct
-- **[Architecture](https://github.com/mmmnt/mmmnt/wiki/Architecture-Overview)** — Bounded context map, data flow
-- **[Pipeline](https://github.com/mmmnt/mmmnt/wiki/Pipeline)** — parse → derive → generate, emit-ts and topology
-- **[Package Reference](https://github.com/mmmnt/mmmnt/wiki/Package-Reference)** — All packages with their dependency graph
-- **[Contributing](CONTRIBUTING.md)** — Setup, conventions, testing
+- **[moment.mmmnt.ai](https://moment.mmmnt.ai)**: what Moment is, the language at a glance, and examples
+- **[The Moment DSL](https://github.com/mmmnt/mmmnt/wiki/The-Moment-DSL)**: the language, construct by construct
+- **[Wiki](https://github.com/mmmnt/mmmnt/wiki)**: getting started, the pipeline, the architecture and the package reference
+- **[Architecture decisions](docs/adr)**: why the language and the toolchain are the way they are
+- Each package's `README.md` covers its API, and its `CHANGELOG.md` covers what changed in each release
 
 ## Developing Moment
 
@@ -111,24 +197,16 @@ pnpm turbo run build
 pnpm turbo run test
 ```
 
-Use `turbo run <task>`: a bare `turbo generate` invokes Turbo's own code generator instead of the packages' `generate` task.
+Use `turbo run <task>`: a bare `turbo generate` runs Turbo's own code generator, not the packages' `generate` task. [CONTRIBUTING.md](CONTRIBUTING.md) covers commit conventions, changesets and pull requests.
 
 ## Releases
 
-Every `@mmmnt/*` package is versioned together and published to npm through [changesets](.changeset); each package keeps its own `CHANGELOG.md`, and each publish is tagged and released on GitHub. The earlier milestone tags (`v0.1.0-m2`, `v0.1.0-m3`, `v0.1.0-m6`, `v0.4.0`, `v1.0.0`) predate npm publishing and do not correspond to npm versions.
+Packages are published to npm through [changesets](.changeset). Each publish is tagged and released on GitHub. The milestone tags `v0.1.0-m2`, `v0.1.0-m3`, `v0.1.0-m6`, `v0.4.0` and `v1.0.0` predate npm publishing and do not correspond to npm versions.
 
 ## Community
 
-Join our [Discord server](https://discord.gg/YcRqsQUQuu) to discuss Moment, get help, and connect with other domain-driven teams.
+Join the [Discord server](https://discord.gg/YcRqsQUQuu) to discuss Moment, get help, and meet other teams doing domain-driven design.
 
 ## License
 
-Moment is licensed under the [Functional Source License, Version 1.1, Apache 2.0 Future License (FSL-1.1-Apache-2.0)](LICENSE.md).
-
-This means:
-
-- The source code is available for reading, learning, and use under the FSL 1.1 terms.
-- Two years after each version's release, that version automatically converts to the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0), a fully permissive open-source license.
-- During the FSL period, the only restriction is on competing commercial use. See [LICENSE.md](LICENSE.md) for details.
-
-Licensor: [Moment](https://github.com/mmmnt)
+Moment is licensed under the [Functional Source License, Version 1.1, Apache 2.0 Future License](LICENSE.md) (FSL-1.1-Apache-2.0). You may read, use and modify it for any purpose except a competing commercial product. Two years after each version is released, that version becomes available under the [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0).
