@@ -60,6 +60,10 @@ A policy declares the condition under which it reacts.
 - cli: the new flag.
 ```
 
+## Package READMEs and the wiki
+
+Each package's `README.md` is mirrored to the [wiki](https://github.com/mmmnt/mmmnt/wiki) on every push to `main` that changes one: `packages/<pkg>/README.md` becomes the page `@mmmnt-<pkg>`, and `packages/vscode/README.md` becomes `VS-Code-Extension`. The `wiki-sync` workflow runs `scripts/wiki-sync.mjs`, which rewrites relative links so they work from the wiki. Do not edit those wiki pages by hand: the next sync overwrites them. Change the README instead. To preview a sync against a local clone of the wiki, run `node scripts/wiki-sync.mjs --wiki-dir <path> --dry-run`.
+
 ## How to Contribute
 
 1. **Fork** the repository.
