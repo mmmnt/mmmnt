@@ -121,6 +121,8 @@ export class MomentParser {
         .map((d) => ({
           severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
           message: messageText(d.message),
+          // The validator passes each rule's id as the diagnostic code (V1, SP-02, ...).
+          ...(typeof d.code === 'string' ? { ruleId: d.code } : {}),
           source: d.range
             ? {
                 file,
