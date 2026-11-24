@@ -384,7 +384,7 @@ console.log('\n=== Generating Artifacts ===');
 const tmpScript = resolve(ROOT, 'packages/cli', '_e2e_gen.mjs');
 const genCode = [
   'import{mkdirSync,writeFileSync,readFileSync}from"node:fs";',
-  'import{join,dirname}from"node:path";',
+  'import{join,dirname,basename}from"node:path";',
   'import{MomentParser}from"@mmmnt/core";',
   'import{deriveTopology}from"@mmmnt/derive";',
   'import{TypeScriptEmitter,TestScaffoldEmitter}from"@mmmnt/emit-ts";',
@@ -400,7 +400,7 @@ const genCode = [
   'for(const[p,c]of ts.files){const o=join(od,"typescript",p);mkdirSync(dirname(o),{recursive:true});writeFileSync(o,c);}',
   'console.log("  TS: "+ts.files.size+" files");',
   'const gm=new GherkinGenerator().generate(ir,topo);',
-  'for(const f of gm.featuresGenerated||[]){const n=f.fileName||f.name||"feature";const o=join(od,"gherkin",n+".feature");mkdirSync(dirname(o),{recursive:true});writeFileSync(o,f.content||JSON.stringify(f,null,2));}',
+  'for(const f of gm.featuresGenerated){const o=join(od,"gherkin",basename(f.filePath));mkdirSync(dirname(o),{recursive:true});writeFileSync(o,f.content);}',
   'console.log("  Gherkin: "+(gm.featuresGenerated?.length??0)+" features");',
   'const docs=new SpecificationDocumentGenerator().generate(ir);',
   'for(let i=0;i<docs.length;i++){const d=docs[i];const o=join(od,"docs",d.filePath||("doc-"+i+".md"));mkdirSync(dirname(o),{recursive:true});writeFileSync(o,d.content||JSON.stringify(d,null,2));}',

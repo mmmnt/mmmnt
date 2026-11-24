@@ -27,13 +27,35 @@ import { emittedEvents, momentPlacements } from '@mmmnt/core';
  * GN-03: Exact specification vocabulary preserved
  */
 export function renderFeatureFromIr(flow: FlowDefinition, ir: IntermediateRepresentation): string {
+  return renderFeature(flow, ir).content;
+}
+
+/** A rendered feature and the number of `Scenario:` blocks in it. */
+export interface RenderedFeature {
+  readonly content: string;
+  readonly scenarioCount: number;
+}
+
+/** A scenario header line, as every scenario renderer below pushes it: four spaces, then `Scenario: `. */
+const SCENARIO_HEADER = /^ {4}Scenario: /;
+
+/**
+ * Renders a flow and counts the scenarios it rendered. The count is read from the rendered lines, so it
+ * covers every kind of scenario (a moment, a branch arm, a saga) and a moment that renders none adds none.
+ * A pushed line is one array element, so a multi-line description never starts a match.
+ */
+export function renderFeature(
+  flow: FlowDefinition,
+  ir: IntermediateRepresentation,
+): RenderedFeature {
   const lines: string[] = [];
   const ctxMap = new Map(ir.contexts.map((c) => [c.id, c]));
 
   renderFeatureHeader(lines, flow, ir);
   renderMomentsByContext(lines, flow, ir, ctxMap);
 
-  return lines.join('\n').trimEnd() + '\n';
+  const scenarioCount = lines.filter((line) => SCENARIO_HEADER.test(line)).length;
+  return { content: lines.join('\n').trimEnd() + '\n', scenarioCount };
 }
 
 function renderFeatureHeader(
