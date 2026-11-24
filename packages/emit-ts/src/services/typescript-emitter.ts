@@ -51,17 +51,33 @@ function sanitizeJsDoc(text: string): string {
   return text.replace(/\*\//g, '* /');
 }
 
+/**
+ * The TypeScript of each built-in type, by lower-case name. `UUID`, `DateTime` and `Money` are
+ * written as the type of their recorded value, as `@mmmnt/schema` writes them (ADR-049): a string, an
+ * ISO 8601 string and a number. Any other name is a declared type and is imported where it is used.
+ */
+const BUILT_IN_TYPES: Readonly<Record<string, string>> = {
+  string: 'string',
+  number: 'number',
+  boolean: 'boolean',
+  date: 'Date',
+  datetime: 'string',
+  uuid: 'string',
+  money: 'number',
+  int: 'number',
+  float: 'number',
+  decimal: 'number',
+};
+
+/** The declared type a field names, in PascalCase; undefined for a built-in type or a code set. */
+function referencedType(field: FieldDefinition): string | undefined {
+  if (field.enum !== undefined || BUILT_IN_TYPES[field.type.toLowerCase()] !== undefined) {
+    return undefined;
+  }
+  return toPascalCase(field.type);
+}
+
 function mapFieldType(field: FieldDefinition): string {
-  const typeMap: Record<string, string> = {
-    string: 'string',
-    number: 'number',
-    boolean: 'boolean',
-    date: 'Date',
-    uuid: 'string',
-    int: 'number',
-    float: 'number',
-    decimal: 'number',
-  };
   // ADR-049: a code set is a union of string literals; a map is a record keyed by string.
   if (field.enum !== undefined) {
     const literals = field.enum.map((v) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`);
@@ -70,7 +86,7 @@ function mapFieldType(field: FieldDefinition): string {
     if (field.map !== undefined) return `Readonly<Record<string, ${union}>>`;
     return union;
   }
-  const mapped = typeMap[field.type.toLowerCase()] ?? toPascalCase(field.type);
+  const mapped = BUILT_IN_TYPES[field.type.toLowerCase()] ?? toPascalCase(field.type);
   if (field.map !== undefined) return `Readonly<Record<string, ${mapped}>>`;
   const base = field.isArray ? `readonly ${mapped}[]` : mapped;
   return base;
@@ -162,7 +178,153 @@ function generateCommandInterface(cmd: CommandDefinition): string {
   return output;
 }
 
-function generateTypesFile(aggregate: AggregateDefinition): string {
+// ---------------------------------------------------------------------------
+// Where each type is declared, so a file can import what it uses from another file.
+// ---------------------------------------------------------------------------
+
+function contextDir(context: ContextDefinition): string {
+  return `src/${safePathSegment(toKebabCase(context.name))}`;
+}
+
+function typesPath(context: ContextDefinition, aggregate: AggregateDefinition): string {
+  return `${contextDir(context)}/${toKebabCase(aggregate.name)}.types.ts`;
+}
+
+function aggregatePath(context: ContextDefinition, aggregate: AggregateDefinition): string {
+  return `${contextDir(context)}/${toKebabCase(aggregate.name)}.aggregate.ts`;
+}
+
+function readModelPath(context: ContextDefinition): string {
+  return `${contextDir(context)}/read-model.types.ts`;
+}
+
+function processPath(context: ContextDefinition, saga: SagaDefinition): string {
+  return `${contextDir(context)}/${toKebabCase(saga.name)}.process.types.ts`;
+}
+
+/** The names `<aggregate>.types.ts` declares: value objects, commands, events. */
+function typesFileNames(aggregate: AggregateDefinition): string[] {
+  return [...aggregate.valueObjects, ...aggregate.commands, ...aggregate.events].map((d) =>
+    toPascalCase(d.name),
+  );
+}
+
+/** The names `read-model.types.ts` declares: value objects, projections, queries and their results. */
+function readModelNames(context: ContextDefinition): string[] {
+  return [
+    ...contextLevelValueObjects(context).map((v) => toPascalCase(v.name)),
+    ...(context.projections ?? []).map((p) => toPascalCase(p.name)),
+    ...(context.queries ?? []).flatMap((q) => [
+      `${toPascalCase(q.name)}Query`,
+      `${toPascalCase(q.name)}Result`,
+    ]),
+  ];
+}
+
+function processNames(saga: SagaDefinition): string[] {
+  return (saga.events ?? []).map((e) => toPascalCase(e.name));
+}
+
+/** Every type file of the model and the names it declares, by context, in declaration order. */
+interface TypeIndex {
+  readonly contexts: readonly { readonly name: string; readonly files: Map<string, Set<string>> }[];
+}
+
+function buildTypeIndex(ir: IntermediateRepresentation): TypeIndex {
+  return {
+    contexts: ir.contexts.map((context) => {
+      const files = new Map<string, Set<string>>();
+      for (const aggregate of context.aggregates) {
+        files.set(typesPath(context, aggregate), new Set(typesFileNames(aggregate)));
+      }
+      if (hasReadSide(context)) files.set(readModelPath(context), new Set(readModelNames(context)));
+      for (const saga of processSagas(context)) {
+        files.set(processPath(context, saga), new Set(processNames(saga)));
+      }
+      return { name: context.name, files };
+    }),
+  };
+}
+
+/**
+ * The file that declares a type: the preferred file, then the context's own files, then the other
+ * contexts in declaration order. Undefined for a name no type file of the model declares.
+ */
+function resolveType(
+  index: TypeIndex,
+  contextName: string,
+  name: string,
+  preferred?: string,
+): string | undefined {
+  const own = index.contexts.find((c) => c.name === contextName);
+  if (preferred !== undefined && own?.files.get(preferred)?.has(name)) return preferred;
+  const ordered = [...(own ? [own] : []), ...index.contexts.filter((c) => c !== own)];
+  for (const context of ordered) {
+    for (const [path, names] of context.files) {
+      if (names.has(name)) return path;
+    }
+  }
+  return undefined;
+}
+
+/** The module specifier of one emitted file from another; both sit at `src/<context>/`. */
+function relativeModule(from: string, to: string): string {
+  const [fromDir] = from.split('/').slice(-2);
+  const [toDir, toFile] = to.split('/').slice(-2);
+  const specifier = toFile.replace(/\.ts$/, '.js');
+  return fromDir === toDir ? `./${specifier}` : `../${toDir}/${specifier}`;
+}
+
+/**
+ * One `import type` line per file that declares a name the file uses and does not declare itself,
+ * sorted by module specifier, each with its names sorted.
+ */
+function importLines(
+  index: TypeIndex,
+  context: ContextDefinition,
+  from: string,
+  used: Iterable<string>,
+  declared: ReadonlySet<string>,
+  preferred?: string,
+): string[] {
+  const byPath = new Map<string, Set<string>>();
+  for (const name of used) {
+    if (declared.has(name)) continue;
+    const path = resolveType(index, context.name, name, preferred);
+    if (path === undefined || path === from) continue;
+    const names = byPath.get(path) ?? new Set<string>();
+    names.add(name);
+    byPath.set(path, names);
+  }
+  return [...byPath]
+    .map(([path, names]) => ({ specifier: relativeModule(from, path), names: [...names].sort() }))
+    .sort((x, y) => (x.specifier < y.specifier ? -1 : 1))
+    .map(({ specifier, names }) => `import type { ${names.join(', ')} } from '${specifier}';`);
+}
+
+/** The declared types the fields name, in order. */
+function usedTypes(fields: readonly FieldDefinition[]): string[] {
+  return fields.map(referencedType).filter((n): n is string => n !== undefined);
+}
+
+function valueObjectUses(vo: ValueObjectDefinition): string[] {
+  return usedTypes([
+    ...(vo.scalar !== undefined ? [vo.scalar] : []),
+    ...vo.fields,
+    ...(vo.variants ?? []).flatMap((v) => v.fields),
+  ]);
+}
+
+/** A file's imports, a blank line, then its body; the body alone when it imports nothing. */
+function withImports(imports: readonly string[], body: string): string {
+  return imports.length > 0 ? `${imports.join('\n')}\n\n${body}` : body;
+}
+
+function generateTypesFile(
+  aggregate: AggregateDefinition,
+  context: ContextDefinition,
+  index: TypeIndex,
+): string {
   const parts: string[] = [];
 
   parts.push(generateJsDoc(`Types for the ${aggregate.name} aggregate.`, '').trimEnd());
@@ -180,7 +342,14 @@ function generateTypesFile(aggregate: AggregateDefinition): string {
     parts.push(generateEventInterface(event));
   }
 
-  return parts.join('\n');
+  const path = typesPath(context, aggregate);
+  const used = [
+    ...aggregate.valueObjects.flatMap(valueObjectUses),
+    ...aggregate.commands.flatMap((c) => usedTypes(c.inputs)),
+    ...aggregate.events.flatMap((e) => usedTypes(e.fields)),
+  ];
+  const imports = importLines(index, context, path, used, new Set(typesFileNames(aggregate)));
+  return withImports(imports, parts.join('\n'));
 }
 
 /**
@@ -205,28 +374,30 @@ function emitsTags(cmd: CommandDefinition): string[] {
   ];
 }
 
-function generateAggregateFile(aggregate: AggregateDefinition): string {
+function generateAggregateFile(
+  aggregate: AggregateDefinition,
+  context: ContextDefinition,
+  index: TypeIndex,
+): string {
   const aggregateName = toPascalCase(aggregate.name);
-  const kebabName = toKebabCase(aggregate.name);
   const parts: string[] = [];
 
-  const importNames: string[] = [];
-  for (const cmd of aggregate.commands) {
-    importNames.push(toPascalCase(cmd.name));
-  }
-  for (const event of aggregate.events) {
-    importNames.push(toPascalCase(event.name));
-  }
-  for (const vo of aggregate.valueObjects) {
-    importNames.push(toPascalCase(vo.name));
-  }
-
-  const uniqueImportNames = Array.from(new Set(importNames)).sort();
-
-  if (uniqueImportNames.length > 0) {
-    parts.push(`import type { ${uniqueImportNames.join(', ')} } from './${kebabName}.types.js';`);
-    parts.push('');
-  }
+  // The aggregate's own types, then any other type its identity or handlers name.
+  const used = [
+    ...typesFileNames(aggregate),
+    ...usedTypes([aggregate.identityField]),
+    ...aggregate.commands.flatMap((c) => emittedEvents(c).map(toPascalCase)),
+  ];
+  const ownTypes = typesPath(context, aggregate);
+  const imports = importLines(
+    index,
+    context,
+    aggregatePath(context, aggregate),
+    used,
+    new Set([`${aggregateName}Aggregate`]),
+    ownTypes,
+  );
+  if (imports.length > 0) parts.push(...imports, '');
 
   parts.push(generateJsDoc(`Aggregate root for ${aggregate.name}.`, '').trimEnd());
 
@@ -264,7 +435,11 @@ function processSagas(context: ContextDefinition): SagaDefinition[] {
   return context.sagas.filter((s) => (s.events ?? []).length > 0);
 }
 
-function generateProcessTypesFile(saga: SagaDefinition): string {
+function generateProcessTypesFile(
+  saga: SagaDefinition,
+  context: ContextDefinition,
+  index: TypeIndex,
+): string {
   const parts: string[] = [
     generateJsDoc(`Events the ${saga.name} process records.`, '').trimEnd(),
     '',
@@ -272,7 +447,10 @@ function generateProcessTypesFile(saga: SagaDefinition): string {
   for (const event of saga.events ?? []) {
     parts.push(generateEventInterface(event));
   }
-  return parts.join('\n');
+  const used = (saga.events ?? []).flatMap((e) => usedTypes(e.fields));
+  const path = processPath(context, saga);
+  const imports = importLines(index, context, path, used, new Set(processNames(saga)));
+  return withImports(imports, parts.join('\n'));
 }
 
 function generateEventUnionType(context: ContextDefinition): string {
@@ -312,7 +490,7 @@ function hasReadSide(context: ContextDefinition): boolean {
 }
 
 /** ADR-037: a context's value objects, projections and queries, outside its aggregates. */
-function generateReadModelFile(context: ContextDefinition): string {
+function generateReadModelFile(context: ContextDefinition, index: TypeIndex): string {
   const parts: string[] = [
     generateJsDoc(`Read side of the ${context.name} context.`, '').trimEnd(),
     '',
@@ -336,27 +514,87 @@ function generateReadModelFile(context: ContextDefinition): string {
     );
     parts.push(`export type ${name}Result = ${query.reads.map(toPascalCase).join(' | ')};\n`);
   }
-  return parts.join('\n');
+  const used = [
+    ...contextLevelValueObjects(context).flatMap(valueObjectUses),
+    ...(context.projections ?? []).flatMap((p) => usedTypes(p.fields)),
+    ...(context.queries ?? []).flatMap((q) => [
+      ...usedTypes(q.inputs),
+      ...q.reads.map(toPascalCase),
+    ]),
+  ];
+  const path = readModelPath(context);
+  const imports = importLines(index, context, path, used, new Set(readModelNames(context)));
+  return withImports(imports, parts.join('\n'));
 }
 
-function generateContextIndexFile(context: ContextDefinition): string {
-  const parts: string[] = [];
-  if (hasReadSide(context)) {
-    parts.push("export type * from './read-model.types.js';");
+interface BarrelModule {
+  readonly specifier: string;
+  readonly names: readonly string[];
+}
+
+/**
+ * `export *` of two modules that export the same name exports neither (TS2308). For each such name,
+ * an explicit re-export from the first module that declares it, grouped by module.
+ */
+function disambiguationLines(modules: readonly BarrelModule[], note: string): string[] {
+  const first = new Map<string, string>();
+  const repeated = new Map<string, Set<string>>();
+  for (const module of modules) {
+    for (const name of module.names) {
+      const owner = first.get(name);
+      if (owner === undefined) first.set(name, module.specifier);
+      else if (owner !== module.specifier)
+        repeated.set(owner, (repeated.get(owner) ?? new Set()).add(name));
+    }
   }
+  if (repeated.size === 0) return [];
+  const lines = modules
+    .filter((m) => repeated.has(m.specifier))
+    .map(
+      (m) =>
+        `export type { ${[...(repeated.get(m.specifier) ?? [])].sort().join(', ')} } from '${m.specifier}';`,
+    );
+  return ['', `// ${note}`, ...lines];
+}
+
+/** The modules a context's barrel re-exports, and the names each exports. */
+function contextBarrelModules(context: ContextDefinition, readSide: boolean): BarrelModule[] {
+  const modules: BarrelModule[] = [];
+  if (readSide)
+    modules.push({ specifier: './read-model.types.js', names: readModelNames(context) });
+  for (const aggregate of context.aggregates) {
+    const kebabName = toKebabCase(aggregate.name);
+    modules.push({ specifier: `./${kebabName}.types.js`, names: typesFileNames(aggregate) });
+    modules.push({
+      specifier: `./${kebabName}.aggregate.js`,
+      names: [`${toPascalCase(aggregate.name)}Aggregate`],
+    });
+  }
+  for (const saga of processSagas(context)) {
+    modules.push({
+      specifier: `./${toKebabCase(saga.name)}.process.types.js`,
+      names: processNames(saga),
+    });
+  }
+  return modules;
+}
+
+function generateContextIndexFile(context: ContextDefinition, readSide: boolean): string {
+  const parts: string[] = [];
+  const modules = contextBarrelModules(context, readSide);
+  for (const module of modules) {
+    const exportStar = module.specifier === './read-model.types.js' ? 'export type *' : 'export *';
+    parts.push(`${exportStar} from '${module.specifier}';`);
+  }
+  parts.push(
+    ...disambiguationLines(
+      modules,
+      'Declared in more than one file of the context: exported from the first.',
+    ),
+  );
 
   // Collect event names for import statements
   const eventImports = collectEventImports(context);
-
-  for (const aggregate of context.aggregates) {
-    const kebabName = toKebabCase(aggregate.name);
-    parts.push(`export * from './${kebabName}.types.js';`);
-    parts.push(`export * from './${kebabName}.aggregate.js';`);
-  }
-
-  for (const saga of processSagas(context)) {
-    parts.push(`export * from './${toKebabCase(saga.name)}.process.types.js';`);
-  }
 
   if (eventImports.length > 0) {
     parts.push('');
@@ -413,15 +651,20 @@ function filterAggregates(
   return context.aggregates;
 }
 
-/** Emit one included context's files; returns its directory when it produced an index, for the root barrel. */
+/** What one context contributes to the root barrel: its directory and the names its index exports. */
+interface EmittedContext {
+  readonly dir: string;
+  readonly names: readonly string[];
+}
+
+/** Emit one included context's files; returns its directory and exports when it produced an index. */
 function emitContext(
   context: ContextDefinition,
   scope: GenerationScope,
+  index: TypeIndex,
   files: Map<string, string>,
   filesWritten: string[],
-): string | undefined {
-  const dir = safePathSegment(toKebabCase(context.name));
-  const contextDir = `src/${dir}`;
+): EmittedContext | undefined {
   const write = (path: string, content: string): void => {
     files.set(path, content);
     filesWritten.push(path);
@@ -429,44 +672,50 @@ function emitContext(
   const aggregates = filterAggregates(context, scope);
 
   for (const aggregate of aggregates) {
-    const kebabAggregate = toKebabCase(aggregate.name);
-    write(`${contextDir}/${kebabAggregate}.types.ts`, generateTypesFile(aggregate));
-    write(`${contextDir}/${kebabAggregate}.aggregate.ts`, generateAggregateFile(aggregate));
+    write(typesPath(context, aggregate), generateTypesFile(aggregate, context, index));
+    write(aggregatePath(context, aggregate), generateAggregateFile(aggregate, context, index));
   }
 
   const readSide = scope.level !== 'aggregate' && hasReadSide(context);
-  if (readSide) write(`${contextDir}/read-model.types.ts`, generateReadModelFile(context));
+  if (readSide) write(readModelPath(context), generateReadModelFile(context, index));
 
   // Process events belong to the orchestration, not to an aggregate (ADR-040 D1).
   const sagas = scope.level !== 'aggregate' ? processSagas(context) : [];
   for (const saga of sagas) {
-    write(
-      `${contextDir}/${toKebabCase(saga.name)}.process.types.ts`,
-      generateProcessTypesFile(saga),
-    );
+    write(processPath(context, saga), generateProcessTypesFile(saga, context, index));
   }
 
   if (aggregates.length === 0 && !readSide && sagas.length === 0) return undefined;
-  write(`${contextDir}/index.ts`, generateContextIndexFile({ ...context, aggregates, sagas }));
-  return dir;
+  const emitted = { ...context, aggregates, sagas };
+  write(`${contextDir(context)}/index.ts`, generateContextIndexFile(emitted, readSide));
+  const names = contextBarrelModules(emitted, readSide).flatMap((m) => m.names);
+  if (generateEventUnionType(emitted)) names.push(`${toPascalCase(context.name)}Event`);
+  return { dir: safePathSegment(toKebabCase(context.name)), names };
+}
+
+function generateRootIndexFile(contexts: readonly EmittedContext[]): string {
+  const modules = contexts.map((c) => ({ specifier: `./${c.dir}/index.js`, names: c.names }));
+  return [
+    ...modules.map((m) => `export * from '${m.specifier}';`),
+    ...disambiguationLines(modules, 'Declared in more than one context: exported from the first.'),
+    '',
+  ].join('\n');
 }
 
 export class TypeScriptEmitter {
   emit(ir: IntermediateRepresentation, options: EmitOptions): TypeScriptEmitterOutput {
     const files = new Map<string, string>();
     const filesWritten: string[] = [];
+    const index = buildTypeIndex(ir);
 
     const exported = ir.contexts
       .filter((context) => shouldIncludeContext(context, options.scope))
-      .map((context) => emitContext(context, options.scope, files, filesWritten))
-      .filter((dir): dir is string => dir !== undefined);
+      .map((context) => emitContext(context, options.scope, index, files, filesWritten))
+      .filter((c): c is EmittedContext => c !== undefined);
 
     if (exported.length > 0) {
       const rootIndexPath = 'src/index.ts';
-      files.set(
-        rootIndexPath,
-        [...exported.map((dir) => `export * from './${dir}/index.js';`), ''].join('\n'),
-      );
+      files.set(rootIndexPath, generateRootIndexFile(exported));
       filesWritten.push(rootIndexPath);
     }
 

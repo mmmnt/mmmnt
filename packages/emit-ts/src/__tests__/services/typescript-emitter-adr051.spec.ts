@@ -34,11 +34,11 @@ describe('TypeScript emission with ADR-051 keyword names', () => {
         '  readonly trigger: Trigger;',
         '  readonly context: Target;',
         '  readonly type: string;',
-        '  readonly on: DateTime;',
+        '  readonly on: string;',
         '}',
       ].join('\n'),
     );
-    expect(all).toContain('  readonly state: string;\n  readonly when: DateTime;\n}');
+    expect(all).toContain('  readonly state: string;\n  readonly when: string;\n}');
   });
 
   it('writes value object, variant, projection and query fields named with keywords', () => {
