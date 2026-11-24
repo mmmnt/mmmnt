@@ -17,6 +17,9 @@ export default {
         'schema',
         'cli',
         'mcp',
+        // Dependabot writes chore(deps): and chore(deps-dev):.
+        'deps',
+        'deps-dev',
         '',
       ],
     ],

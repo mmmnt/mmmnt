@@ -11,8 +11,6 @@ updates:
           - 'minor'
           - 'patch'
     open-pull-requests-limit: 10
-    reviewers:
-      - 'mmmnt/maintainers'
     labels:
       - 'dependencies'
 
