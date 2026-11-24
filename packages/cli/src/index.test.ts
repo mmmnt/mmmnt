@@ -71,7 +71,10 @@ vi.mock('./commands/auth-login.js', () => ({ runAuthLogin: m.runAuthLogin }));
 vi.mock('./commands/auth-status.js', () => ({ runAuthStatus: m.runAuthStatus }));
 vi.mock('./commands/auth-logout.js', () => ({ runAuthLogout: m.runAuthLogout }));
 vi.mock('./commands/auth-quorum.js', () => ({ runAuthQuorum: m.runAuthQuorum }));
-vi.mock('./commands/quorum-watch.js', () => ({ runQuorumWatch: m.runQuorumWatch }));
+vi.mock('./commands/quorum-watch.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./commands/quorum-watch.js')>()),
+  runQuorumWatch: m.runQuorumWatch,
+}));
 
 class ExitCalled extends Error {
   constructor(readonly code: number | undefined) {
@@ -718,7 +721,10 @@ describe('moment quorum', () => {
   it('any other subcommand prints usage and exits 1', async () => {
     const { code, err } = await runCli(['quorum', 'list']);
     expect(code).toBe(1);
-    expect(err[0]).toMatch(/^Usage: moment quorum watch <streamId>/);
+    // The command's own usage, --source included: the dispatcher once printed a copy without it.
+    expect(err).toEqual([
+      'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--source <name>] [--once]',
+    ]);
     expect(m.runQuorumWatch).not.toHaveBeenCalled();
   });
 });

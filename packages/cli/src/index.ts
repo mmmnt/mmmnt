@@ -24,7 +24,7 @@ import { runAuthLogin } from './commands/auth-login.js';
 import { runAuthStatus } from './commands/auth-status.js';
 import { runAuthLogout } from './commands/auth-logout.js';
 import { runAuthQuorum } from './commands/auth-quorum.js';
-import { runQuorumWatch } from './commands/quorum-watch.js';
+import { runQuorumWatch, QUORUM_WATCH_USAGE } from './commands/quorum-watch.js';
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -494,9 +494,7 @@ switch (command) {
   case 'quorum': {
     const [subcommand, ...quorumArgs] = args;
     if (subcommand !== 'watch') {
-      console.error(
-        'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--once]',
-      );
+      console.error(QUORUM_WATCH_USAGE);
       process.exitCode = 1;
       break;
     }

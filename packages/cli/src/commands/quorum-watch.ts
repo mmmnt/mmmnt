@@ -93,6 +93,10 @@ interface WatchOptions {
   readonly once: boolean;
 }
 
+/** The usage of `moment quorum watch`; the dispatcher prints it for any other subcommand. */
+export const QUORUM_WATCH_USAGE =
+  'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--source <name>] [--once]';
+
 function parseWatchArgs(argv: string[]): WatchOptions | { usage: string } {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -103,10 +107,7 @@ function parseWatchArgs(argv: string[]): WatchOptions | { usage: string } {
 
   const streamId = positionals[0];
   if (!streamId) {
-    return {
-      usage:
-        'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--source <name>] [--once]',
-    };
+    return { usage: QUORUM_WATCH_USAGE };
   }
 
   return {
