@@ -29,5 +29,7 @@
 
 ### Patch Changes
 
+- fix(board): commandText takes outcomes by destructuring so the ADR-041 sweep finds no direct read
+
 - Updated dependencies []:
   - @mmmnt/core@0.11.0

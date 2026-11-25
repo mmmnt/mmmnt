@@ -18,6 +18,14 @@
 
 ## 0.12.0
 
+### Minor Changes
+
+- [`e9c9266`](https://github.com/mmmnt/mmmnt/commit/e9c9266d3f0dd7adfac7fcd1c330d8b052a29059) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Fields declare optionality, code sets, unions, maps and patterns, and `moment schema emit` writes one closed JSON Schema per event payload (ADR-049).
+
+  - emit-ts: a code set is a union of string literals, a map `Readonly<Record<string, T>>`, a scalar value object a type alias and a union a discriminated union on `kind`.
+
+  Not breaking: every model that parsed under 0.11.0 has the same IR, and `parse`, `test`, `simulate --all`, `derive`, `generate` and `emit-ts` write the same files for TicketWave, every valid fixture and the Sift model copy.
+
 ### Patch Changes
 
 - Updated dependencies []:
@@ -57,6 +65,16 @@
   - @mmmnt/derive@0.9.0
 
 ## 0.8.0
+
+### Minor Changes
+
+- A command records one or more events: events recorded together, and alternative outcomes chosen by state (ADR-041).
+
+  Artifacts:
+
+  - emit-ts: a handler returns the event for `emits A`, `readonly [A, B]` for events recorded together, `A | B` for alternatives, `readonly [A, B] | C` for both; the JSDoc has one `@emits` per event and `@outcome <State>: <events>` per guarded outcome.
+
+  Compatibility: every model that parses today parses with an identical IR and identical derived artifacts. This was checked on every valid fixture, the rule ids of every invalid fixture, ticketwave at its previous spec and the SAMMI model, against the build of 0.7.2, and the comparison fails on a build that writes `outcomes` for a plain `emits`. The ticketwave example now uses the new forms (`HoldClosed` recorded with `HoldConvertedToReservation`; `AccessCodeExhausted` on the last use of an access code) and its facet files are regenerated, so its scenarios and tests change.
 
 ### Patch Changes
 
