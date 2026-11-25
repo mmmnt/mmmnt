@@ -160,7 +160,7 @@ export class MomentParser {
         // are advisories here and errors only over a merged project (ProjectLoader). Model completeness
         // covers V22 to V28, V38 and V39.
         ...validateModelCompleteness(ir).map((d) => ({ severity: 'warning' as const, ...d })),
-        // Palette conformance covers V29 to V37, V40 to V51, V56 and V57, likewise. A finding that carries
+        // Palette conformance covers V29 to V37, V40 to V51 and V56 to V58, likewise. A finding that carries
         // its own severity (V43 when the file declares the policy the hop needs) keeps it.
         ...validatePaletteConformance(ir).map((d) => ({ severity: 'warning' as const, ...d })),
       );

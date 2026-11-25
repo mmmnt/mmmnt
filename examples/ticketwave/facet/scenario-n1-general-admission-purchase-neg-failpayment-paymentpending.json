@@ -375,8 +375,7 @@
         "subtotal": 0,
         "totalFees": 0,
         "totalAmount": 0,
-        "initiatedAt": "2026-01-01T10:00:00.000Z",
-        "amount": 0
+        "initiatedAt": "2026-01-01T10:00:00.000Z"
       }
     },
     {

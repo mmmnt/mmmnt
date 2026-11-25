@@ -53,258 +53,150 @@ components:
     EventPublished:
       name: 'EventPublished'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           eventId:
             type: 'string'
-            format: 'uuid'
           publishedAt:
             type: 'string'
-            format: 'date-time'
         required:
-          - 'eventId'
+          - eventId
     SeatsHeld:
       name: 'SeatsHeld'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           holdId:
             type: 'string'
-            format: 'uuid'
           eventId:
             type: 'string'
-            format: 'uuid'
           tierId:
             type: 'string'
-            format: 'uuid'
           sectionId:
             type: 'string'
-            format: 'uuid'
           quantity:
             type: 'number'
           customerId:
             type: 'string'
-            format: 'uuid'
           sessionId:
             type: 'string'
-            format: 'uuid'
           expiresAt:
             type: 'string'
-            format: 'date-time'
           heldAt:
             type: 'string'
-            format: 'date-time'
         required:
-          - 'holdId'
-          - 'eventId'
-          - 'tierId'
-          - 'quantity'
-          - 'customerId'
-          - 'expiresAt'
+          - holdId
+          - eventId
+          - tierId
+          - quantity
+          - customerId
+          - expiresAt
     PaymentInitiated:
       name: 'PaymentInitiated'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           paymentId:
             type: 'string'
-            format: 'uuid'
           cartId:
             type: 'string'
-            format: 'uuid'
           customerId:
             type: 'string'
-            format: 'uuid'
           paymentMethod:
-            $ref: '#/components/schemas/PaymentMethod'
+            type: 'string'
           subtotal:
-            type: 'number'
+            type: 'string'
           totalFees:
-            type: 'number'
+            type: 'string'
           totalAmount:
-            type: 'number'
+            type: 'string'
           initiatedAt:
             type: 'string'
-            format: 'date-time'
         required:
-          - 'paymentId'
-          - 'customerId'
+          - paymentId
+          - customerId
+          - totalAmount
     PaymentConfirmed:
       name: 'PaymentConfirmed'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           paymentId:
             type: 'string'
-            format: 'uuid'
+          paymentConfirmationId:
+            type: 'string'
+          orderId:
+            type: 'string'
+          customerId:
+            type: 'string'
+          eventId:
+            type: 'string'
+          holdId:
+            type: 'string'
           gatewayTransactionId:
             type: 'string'
           confirmedAt:
             type: 'string'
-            format: 'date-time'
+        required:
+          - holdId
+          - paymentConfirmationId
     TicketsIssued:
       name: 'TicketsIssued'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           orderId:
             type: 'string'
-            format: 'uuid'
           customerId:
             type: 'string'
-            format: 'uuid'
           eventId:
             type: 'string'
-            format: 'uuid'
           holdId:
             type: 'string'
-            format: 'uuid'
           tickets:
-            type: 'array'
-            items:
-              $ref: '#/components/schemas/TicketAllocation'
+            type: 'string'
           barcodes:
-            type: 'array'
-            items:
-              $ref: '#/components/schemas/Barcode'
+            type: 'string'
           issuedAt:
             type: 'string'
-            format: 'date-time'
         required:
-          - 'orderId'
-          - 'customerId'
+          - orderId
+          - customerId
     TransferInitiated:
       name: 'TransferInitiated'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           transferId:
             type: 'string'
-            format: 'uuid'
           ticketId:
             type: 'string'
-            format: 'uuid'
           fromCustomerId:
             type: 'string'
-            format: 'uuid'
           toEmail:
             type: 'string'
           toName:
             type: 'string'
           expiresAt:
             type: 'string'
-            format: 'date-time'
           initiatedAt:
             type: 'string'
-            format: 'date-time'
         required:
-          - 'transferId'
-          - 'ticketId'
-          - 'toEmail'
-          - 'toName'
+          - transferId
+          - ticketId
+          - toEmail
+          - toName
     EventCancelled:
       name: 'EventCancelled'
       payload:
-        type: 'object'
-        additionalProperties: false
+        type: object
         properties:
           eventId:
             type: 'string'
-            format: 'uuid'
           reason:
             type: 'string'
           cancelledAt:
             type: 'string'
-            format: 'date-time'
         required:
-          - 'eventId'
-          - 'reason'
-  schemas:
-    Barcode:
-      type: 'object'
-      additionalProperties: false
-      required:
-        - 'ticketId'
-        - 'barcodeType'
-        - 'barcodeValue'
-        - 'rotatesAt'
-      properties:
-        ticketId:
-          type: 'string'
-          format: 'uuid'
-        barcodeType:
-          type: 'string'
-        barcodeValue:
-          type: 'string'
-        rotatesAt:
-          type: 'string'
-          format: 'date-time'
-    BillingAddress:
-      type: 'object'
-      additionalProperties: false
-      required:
-        - 'street'
-        - 'city'
-        - 'state'
-        - 'postalCode'
-        - 'country'
-      properties:
-        street:
-          type: 'string'
-        city:
-          type: 'string'
-        state:
-          type: 'string'
-        postalCode:
-          type: 'string'
-        country:
-          type: 'string'
-    PaymentMethod:
-      type: 'object'
-      additionalProperties: false
-      required:
-        - 'methodType'
-        - 'lastFourDigits'
-        - 'expiryMonth'
-        - 'expiryYear'
-        - 'billingAddress'
-      properties:
-        methodType:
-          type: 'string'
-        lastFourDigits:
-          type: 'string'
-        expiryMonth:
-          type: 'number'
-        expiryYear:
-          type: 'number'
-        billingAddress:
-          $ref: '#/components/schemas/BillingAddress'
-    TicketAllocation:
-      type: 'object'
-      additionalProperties: false
-      required:
-        - 'tierId'
-        - 'sectionId'
-        - 'seatId'
-        - 'row'
-        - 'seatNumber'
-      properties:
-        tierId:
-          type: 'string'
-          format: 'uuid'
-        sectionId:
-          type: 'string'
-          format: 'uuid'
-        seatId:
-          type: 'string'
-          format: 'uuid'
-        row:
-          type: 'string'
-        seatNumber:
-          type: 'number'
+          - eventId
+          - reason

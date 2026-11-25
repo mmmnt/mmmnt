@@ -373,13 +373,13 @@
       "payload": {
         "nodeId": "moment-7-Presale-payment-confirmation::checkout::PaymentConfirmed::main",
         "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
         "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
         "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
         "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9"
+        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "gatewayTransactionId": "sample-gatewayTransactionId",
+        "confirmedAt": "2026-01-01T10:00:00.000Z"
       }
     },
     {
@@ -396,13 +396,13 @@
       "payload": {
         "nodeId": "moment-8-Presale-delivery-trigger::checkout::PaymentConfirmed::main",
         "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "gatewayTransactionId": "sample-gatewayTransactionId",
-        "confirmedAt": "2026-01-01T10:00:00.000Z",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
         "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
         "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
         "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9"
+        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "gatewayTransactionId": "sample-gatewayTransactionId",
+        "confirmedAt": "2026-01-01T10:00:00.000Z"
       }
     },
     {

@@ -917,6 +917,31 @@
             "isArray": false
           },
           {
+            "name": "paymentConfirmationId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "orderId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "customerId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "eventId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
+            "name": "holdId",
+            "type": "UUID",
+            "isArray": false
+          },
+          {
             "name": "gatewayTransactionId",
             "type": "string",
             "isArray": false
@@ -3093,7 +3118,7 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-25T00:39:25.499Z",
+    "generatedAt": "2026-11-25T00:55:08.574Z",
     "totalEvents": 96
   }
 }

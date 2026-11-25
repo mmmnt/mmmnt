@@ -1,5 +1,5 @@
 /**
- * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43, ADR-045's V49–V51, ADR-050's V56–V57) over an IR.
+ * ADR-038 — palette conformance checks V29–V37 (and ADR-040's V40–V43, ADR-045's V49–V51, ADR-050's V56–V57, and V58) over an IR.
  *
  * Like V22–V28 they compare names across declarations: advisories per file, errors over a merged
  * project. Hand-built IR that predates ADR-038 carries no orchestration fields and is not checked
@@ -18,6 +18,7 @@ import type {
 import { emittedEvents } from '../ir/emits.js';
 import { validateMultiEvent, type Finding as MultiEventFinding } from './multi-event.js';
 import { validatePolicyConditions } from './policy-condition.js';
+import { validateCrossingContracts } from './crossing-contract.js';
 
 /**
  * A finding carries its own severity only when the rule can decide on what the IR holds; without one the
@@ -399,7 +400,7 @@ function v43(ir: IntermediateRepresentation): Finding[] {
   });
 }
 
-/** Every V29–V37, V40–V51 and V56–V57 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
+/** Every V29–V37, V40–V51 and V56–V58 finding of an IR, in declaration order. Severity is the caller's (see the module comment). */
 export function validatePaletteConformance(
   ir: IntermediateRepresentation,
   options: { readonly merged?: boolean } = {},
@@ -419,6 +420,7 @@ export function validatePaletteConformance(
     ...v43(ir),
     ...validateMultiEvent(ir, options),
     ...validatePolicyConditions(ir),
+    ...validateCrossingContracts(ir),
     ...(ir.externals ?? []).flatMap((e) =>
       gatewayFindings(`external '${e.name}'`, e.gateways ?? [], known),
     ),
