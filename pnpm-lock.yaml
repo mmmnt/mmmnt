@@ -179,6 +179,9 @@ importers:
       '@mmmnt/derive':
         specifier: workspace:*
         version: link:../derive
+      '@mmmnt/schema':
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
       '@cucumber/gherkin':
         specifier: ^43.0.0
@@ -189,6 +192,12 @@ importers:
       '@types/node':
         specifier: ^26.6.6
         version: 26.6.6
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

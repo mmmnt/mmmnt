@@ -5,7 +5,7 @@ import type {
   GeneratedFeatureFile,
   GeneratedDocument,
 } from '../types/index.js';
-import { renderFeatureFromIr } from './feature-renderer.js';
+import { renderFeature } from './feature-renderer.js';
 
 /**
  * GherkinGenerator produces .feature files from the IR's flows.
@@ -15,6 +15,7 @@ import { renderFeatureFromIr } from './feature-renderer.js';
  *  - GN-02: Given=precondition, When=command, Then=event
  *  - GN-03: Exact specification vocabulary preserved
  *  - Deterministic: same IR yields the same output
+ *  - scenarioCount is the number of `Scenario:` blocks in content
  */
 export class GherkinGenerator {
   generate(ir: IntermediateRepresentation, topology: TestSuiteTopology): GenerationManifest {
@@ -22,18 +23,12 @@ export class GherkinGenerator {
     void topology;
 
     const featuresGenerated: GeneratedFeatureFile[] = ir.flows.map((flow) => {
-      const content = renderFeatureFromIr(flow, ir);
-      const scenarioCount = flow.moments.reduce((sum, m) => {
-        if (m.branches && m.branches.length > 0) return sum + m.branches.length;
-        return sum + 1;
-      }, 0);
-
+      const { content, scenarioCount } = renderFeature(flow, ir);
       return {
         flowId: flow.id,
         filePath: `features/${safeFileName(flow.name)}.feature`,
         content,
         scenarioCount,
-        name: flow.name,
       };
     });
 

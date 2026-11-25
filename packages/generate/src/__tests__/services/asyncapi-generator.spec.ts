@@ -89,7 +89,7 @@ describe('generateAsyncApiSpec', () => {
 
   it('generates channels and messages for crossing connections', () => {
     const evt = makeEvent('OrderPlaced', [
-      { name: 'orderId', type: 'uuid' },
+      { name: 'orderId', type: 'UUID' },
       { name: 'amount', type: 'number' },
     ]);
     const ir = makeIR({
@@ -143,7 +143,7 @@ describe('generateAsyncApiSpec', () => {
     expect(output).toContain('  messages:');
     expect(output).toContain('    OrderPlaced:');
     expect(output).toContain("      name: 'OrderPlaced'");
-    expect(output).toContain('        type: object');
+    expect(output).toContain("        type: 'object'");
     expect(output).toContain('          orderId:');
     expect(output).toContain("            type: 'string'");
     expect(output).toContain('          amount:');
@@ -223,16 +223,15 @@ describe('generateAsyncApiSpec', () => {
     expect(channelMatches).toBe(1);
   });
 
-  it('maps type aliases correctly', () => {
+  it('types each built-in as @mmmnt/schema does, and an undeclared type as an empty schema', () => {
     const evt = makeEvent('TestEvent', [
       { name: 'a', type: 'string' },
       { name: 'b', type: 'number' },
       { name: 'c', type: 'boolean' },
-      { name: 'd', type: 'date' },
-      { name: 'e', type: 'uuid' },
-      { name: 'f', type: 'int' },
-      { name: 'g', type: 'float' },
-      { name: 'h', type: 'decimal' },
+      { name: 'd', type: 'Date' },
+      { name: 'e', type: 'UUID' },
+      { name: 'f', type: 'DateTime' },
+      { name: 'g', type: 'Money' },
       { name: 'i', type: 'CustomType' },
     ]);
     const ir = makeIR({
@@ -265,11 +264,10 @@ describe('generateAsyncApiSpec', () => {
                   { name: 'a', type: 'string', required: true },
                   { name: 'b', type: 'number', required: true },
                   { name: 'c', type: 'boolean', required: true },
-                  { name: 'd', type: 'date', required: true },
-                  { name: 'e', type: 'uuid', required: true },
-                  { name: 'f', type: 'int', required: true },
-                  { name: 'g', type: 'float', required: true },
-                  { name: 'h', type: 'decimal', required: true },
+                  { name: 'd', type: 'Date', required: true },
+                  { name: 'e', type: 'UUID', required: true },
+                  { name: 'f', type: 'DateTime', required: true },
+                  { name: 'g', type: 'Money', required: true },
                   { name: 'i', type: 'CustomType', required: true },
                 ],
                 relationshipType: 'Conformist',
@@ -280,11 +278,21 @@ describe('generateAsyncApiSpec', () => {
       ],
     });
 
-    const output = generateAsyncApiSpec(ir);
-    expect(output).toContain("type: 'string'");
-    expect(output).toContain("type: 'number'");
-    expect(output).toContain("type: 'boolean'");
-    expect(output).toContain("type: 'integer'");
+    const doc = parseYaml(generateAsyncApiSpec(ir)) as {
+      components: {
+        messages: Record<string, { payload: { properties: Record<string, unknown> } }>;
+      };
+    };
+    expect(doc.components.messages.TestEvent.payload.properties).toEqual({
+      a: { type: 'string' },
+      b: { type: 'number' },
+      c: { type: 'boolean' },
+      d: { type: 'string', format: 'date' },
+      e: { type: 'string', format: 'uuid' },
+      f: { type: 'string', format: 'date-time' },
+      g: { type: 'number' },
+      i: {},
+    });
   });
 
   it('handles kebab-case conversion for channel names', () => {
@@ -608,7 +616,7 @@ describe('generateAsyncApiSpec', () => {
   // Audit fix #4: unique channel keys, consumers merged
   // -------------------------------------------------------------------------
   it('emits one channel per event with consumers merged — output parses as YAML with unique keys', () => {
-    const evt = makeEvent('OrderPlaced', [{ name: 'orderId', type: 'uuid' }]);
+    const evt = makeEvent('OrderPlaced', [{ name: 'orderId', type: 'UUID' }]);
     const crossingTo = (id: string, momentId: string, target: string) => ({
       id,
       sourceMomentId: momentId,
@@ -617,7 +625,7 @@ describe('generateAsyncApiSpec', () => {
       connectionType: 'crosses-to' as const,
       schemaContract: {
         eventType: 'OrderPlaced',
-        fields: [{ name: 'orderId', type: 'uuid', required: true }],
+        fields: [{ name: 'orderId', type: 'UUID', required: true }],
         relationshipType: 'CustomerSupplier',
       },
     });
@@ -667,7 +675,7 @@ describe('generateAsyncApiSpec', () => {
   // -------------------------------------------------------------------------
   it('surfaces crossing [required] markers as a payload required array', () => {
     const evt = makeEvent('OrderPlaced', [
-      { name: 'orderId', type: 'uuid' },
+      { name: 'orderId', type: 'UUID' },
       { name: 'notes', type: 'string' },
     ]);
     const ir = makeIR({
@@ -699,7 +707,7 @@ describe('generateAsyncApiSpec', () => {
               schemaContract: {
                 eventType: 'OrderPlaced',
                 fields: [
-                  { name: 'orderId', type: 'uuid', required: true },
+                  { name: 'orderId', type: 'UUID', required: true },
                   { name: 'notes', type: 'string', required: false },
                 ],
                 relationshipType: 'CustomerSupplier',
