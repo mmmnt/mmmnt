@@ -61,6 +61,10 @@ jobs:
       - name: Build
         run: pnpm turbo build
 
+      # The site builds above, but `astro build` does not type-check its .astro files.
+      - name: Site type check
+        run: pnpm --filter @mmmnt/site check
+
       - name: Unit tests with coverage
         run: pnpm turbo test -- --coverage --passWithNoTests
 
