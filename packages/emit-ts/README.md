@@ -126,22 +126,21 @@ The JSDoc carries one `@precondition` per precondition, one `@emits` per distinc
 
 Every property is `readonly`. A field that is not required is written with `?`.
 
-| Moment                               | TypeScript                                                   |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `string`, `UUID`                     | `string`                                                     |
-| `number`                             | `number`                                                     |
-| `boolean`                            | `boolean`                                                    |
-| `Date`                               | `Date`                                                       |
-| `T[]`                                | `readonly T[]`                                               |
-| `x?: T`                              | `readonly x?: T`                                             |
-| `"a" \| "b"` (code set)              | `'a' \| 'b'`                                                 |
-| `T{}` or `T{key}` (map)              | `Readonly<Record<string, T>>`                                |
-| `a: T \| b: U` (exclusive group)     | two optional properties, `a?: T` and `b?: U`                 |
-| `value-object V: T` (scalar)         | `export type V = T`                                          |
-| value object with `\| Variant` lines | a discriminated union on `kind`                              |
-| `[encrypted]`                        | the field's own (plaintext) type                             |
-| `[deprecated "reason" -> "other"]`   | a `@deprecated reason (use other instead)` JSDoc tag         |
-| any other type name                  | the name in PascalCase (`DateTime`, `Money`, a value object) |
+| Moment                               | TypeScript                                                      |
+| ------------------------------------ | --------------------------------------------------------------- |
+| `string`, `UUID`, `DateTime`, `Date` | `string`                                                        |
+| `number`, `Money`                    | `number`                                                        |
+| `boolean`                            | `boolean`                                                       |
+| `T[]`                                | `readonly T[]`                                                  |
+| `x?: T`                              | `readonly x?: T`                                                |
+| `"a" \| "b"` (code set)              | `'a' \| 'b'`                                                    |
+| `T{}` or `T{key}` (map)              | `Readonly<Record<string, T>>`                                   |
+| `a: T \| b: U` (exclusive group)     | two optional properties, `a?: T` and `b?: U`                    |
+| `value-object V: T` (scalar)         | `export type V = T`                                             |
+| value object with `\| Variant` lines | a discriminated union on `kind`                                 |
+| `[encrypted]`                        | the field's own (plaintext) type                                |
+| `[deprecated "reason" -> "other"]`   | a `@deprecated reason (use other instead)` JSDoc tag            |
+| any other type name                  | the name in PascalCase, imported from the file that declares it |
 
 A `[pattern]` is not expressed in TypeScript. For a closed JSON Schema of every event payload, use `moment schema emit` from `@mmmnt/schema`.
 
@@ -181,14 +180,50 @@ export type Arrival =
     };
 ```
 
-### Limitations
+### Built-in Types and Imports
 
-The emitted files do not yet type-check on their own in two cases:
+The emitted files type-check on their own under `tsc --strict`.
 
-- `DateTime` and `Money` are written as the type names `DateTime` and `Money`, which no emitted file declares.
-- A `<aggregate>.types.ts` file does not import the value objects it uses from another file: one declared in another aggregate's file, or at the context level in `read-model.types.ts`.
+`UUID`, `DateTime` and `Money` are written as the type of the value an event records, the same as `moment schema emit` writes them: `UUID` and `DateTime` are strings (a `DateTime` holds an ISO 8601 date-time) and `Money` is a number. No emitted file declares a type of that name. From TicketWave's `src/catalog/event.types.ts`:
 
-Declare or import those names in your project until the emitter does.
+```typescript
+export interface RescheduleEvent {
+  readonly eventId: string;
+  readonly newStartsAt: string;
+  readonly reason: string;
+}
+```
+
+A file imports each declared type it names and does not declare itself, with `import type` and a relative path to the file that declares it. The type is looked up in the context's own files first (for an aggregate root, its own `.types.ts` file first), then in the other contexts in the order the model declares them. A name that no file declares is written as it is, with no import. From `src/intake/receipt.types.ts` of the field-types fixture:
+
+```typescript
+import type {
+  Actor,
+  Arrival,
+  ContentHash,
+  CorpusVersion,
+  ReceiptEffect,
+  RecordRef,
+} from './read-model.types.js';
+```
+
+A type declared in another context is imported from that context's directory, for example `from '../ordering/order.types.js'`.
+
+When two files of a context, or two contexts, declare the same name, `export *` alone would export neither. The barrel then re-exports that name from the first file or context that declares it. From the root barrel of the multi-context fixture:
+
+```typescript
+export * from './fulfillment/index.js';
+export * from './ordering/index.js';
+export * from './shipping/index.js';
+
+// Declared in more than one context: exported from the first.
+export type { OrderItem, ReservedItem } from './fulfillment/index.js';
+export type { Address } from './ordering/index.js';
+```
+
+The other declaration stays available from its own context's barrel.
+
+An emit at `context` or `aggregate` scope imports a type from the file that declares it even when that file is outside the scope. Emit at `system` scope for a set of files that compiles on its own.
 
 ### Test Scaffolds
 
