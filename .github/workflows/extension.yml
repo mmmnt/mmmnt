@@ -1,0 +1,124 @@
+name: Extension
+
+# Publishes the VS Code extension (packages/vscode, mmmnt.moment-language):
+#  - on every toolchain release: release.yml calls this workflow with the released version and
+#    commit, and the extension is stamped with that version, so each release ships the grammar
+#    @mmmnt/core ships at it
+#  - by hand (workflow_dispatch) with a released version and its commit, when the release run did
+#    not publish it
+# Targets:
+#  - Open VSX (open-vsx.org): the registry VSCodium, Cursor, Windsurf, Gitpod and other editors
+#    built on VS Code install from (the Microsoft marketplace serves only official VS Code)
+#  - VS Code Marketplace: official VS Code
+# Each registry publishes only when its token secret (OVSX_PAT, VSCE_PAT; repository secrets) is
+# set, and skips a version it already lists, so a rerun is harmless. The .vsix is always built and
+# uploaded as an artifact.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: The toolchain version just released (X.Y.Z); the extension is published at it.
+        required: true
+        type: string
+      ref:
+        description: The commit that version was released from.
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The released toolchain version (X.Y.Z) to publish the extension at.
+        required: true
+        type: string
+      ref:
+        description: The commit that version was released from (its vX.Y.Z tag works).
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vscode
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      # The extension has no code to build: its grammar is the one @mmmnt/core commits in
+      # packages/core/syntaxes/, which vsce copies in through the vscode:prepublish script.
+      # Nothing from the workspace has to be installed.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Stamp the released version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const m = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            m.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(m, null, 2) + "\n");
+          '
+          echo "mmmnt.moment-language $VERSION"
+
+      - name: Package .vsix
+        # The README links to files elsewhere in the monorepo. Without a base, vsce resolves a
+        # relative link from the repository root and the registry listing links nowhere.
+        run: >-
+          npx --yes @vscode/vsce package --no-dependencies
+          --baseContentUrl https://github.com/mmmnt/mmmnt/blob/main/packages/vscode
+          --baseImagesUrl https://raw.githubusercontent.com/mmmnt/mmmnt/main/packages/vscode
+
+      - name: Check the grammar is @mmmnt/core's
+        run: cmp syntaxes/moment.tmLanguage.json ../core/syntaxes/moment.tmLanguage.json
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: moment-language-vsix
+          path: packages/vscode/*.vsix
+
+      # A secret cannot be read in a step's if:, so this step says which tokens are set.
+      - name: Which registries have a token
+        id: tokens
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          echo "ovsx=${OVSX_PAT:+true}" >> "$GITHUB_OUTPUT"
+          echo "vsce=${VSCE_PAT:+true}" >> "$GITHUB_OUTPUT"
+          [ -n "$OVSX_PAT" ] || echo "::notice::OVSX_PAT is not set; not publishing to Open VSX."
+          [ -n "$VSCE_PAT" ] || echo "::notice::VSCE_PAT is not set; not publishing to the VS Code Marketplace."
+
+      - name: Publish to Open VSX (VSCodium, Cursor, Windsurf, Gitpod)
+        if: steps.tokens.outputs.ovsx == 'true'
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if curl -sf "https://open-vsx.org/api/mmmnt/moment-language/$VERSION" > /dev/null; then
+            echo "skip: mmmnt.moment-language $VERSION is already on Open VSX"
+          else
+            npx --yes ovsx publish ./*.vsix -p "$OVSX_PAT"
+          fi
+
+      - name: Publish to VS Code Marketplace
+        if: steps.tokens.outputs.vsce == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if npx --yes @vscode/vsce show mmmnt.moment-language --json 2>/dev/null \
+            | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let v=[];try{v=JSON.parse(d).versions?.map(x=>x.version)??[]}catch{}process.exit(v.includes(process.env.VERSION)?0:1)})"; then
+            echo "skip: mmmnt.moment-language $VERSION is already on the VS Code Marketplace"
+          else
+            npx --yes @vscode/vsce publish --packagePath ./*.vsix -p "$VSCE_PAT"
+          fi
