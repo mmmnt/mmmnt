@@ -61,7 +61,7 @@
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9"
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc"
       }
     },
     {
@@ -77,7 +77,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -95,9 +95,9 @@
       "payload": {
         "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "totalTickets": 0,
         "basePrice": 0
       }
@@ -115,10 +115,10 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
-        "poolId": "fe43ce85-04ce-57b7-8a6f-0d1bfe8216a3",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "poolId": "417aaf09-b201-86a5-8282-e3afb4228f3e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "totalTickets": 0,
         "availableTickets": 0,
         "basePrice": 0,
@@ -139,12 +139,12 @@
       "payload": {
         "nodeId": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
         "processName": "RequestHold",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e"
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc"
       }
     },
     {
@@ -160,13 +160,13 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Seat-selection-and-hold::inventory::SeatsHeld::main",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "expiresAt": "2026-01-01T10:00:00.000Z",
         "heldAt": "2026-01-01T10:00:00.000Z"
       }
@@ -185,10 +185,10 @@
       "payload": {
         "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::EvaluateHoldRisk::main",
         "processName": "EvaluateHoldRisk",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "quantity": 0,
         "deviceFingerprint": {},
         "ipAddress": "sample-ipAddress"
@@ -207,9 +207,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-3-Hold-fraud-evaluation::antifraud::HoldRiskEvaluated::main",
-        "assessmentId": "f6ad2183-4f0a-56a0-a8ba-87fc3fc052e3",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "assessmentId": "1297ee8b-e87a-8be9-a48a-24d590699de7",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "riskScore": 0,
         "riskLevel": "sample-riskLevel",
         "signals": {},
@@ -231,8 +231,8 @@
       "payload": {
         "nodeId": "moment-4-Hold-risk-decision::checkout::CreateCart::br0",
         "processName": "CreateCart",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "$branch": "low-risk",
         "outcome": "low-risk"
       }
@@ -250,9 +250,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-4-Hold-risk-decision::checkout::CartCreated::br0",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "createdAt": "2026-01-01T10:00:00.000Z",
         "$branch": "low-risk",
         "outcome": "low-risk"
@@ -272,10 +272,10 @@
       "payload": {
         "nodeId": "moment-5-Cart-population::checkout::AddTicketsToCart::main",
         "processName": "AddTicketsToCart",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
         "quantity": 0,
         "unitPrice": 0
       }
@@ -293,11 +293,11 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-5-Cart-population::checkout::TicketsAddedToCart::main",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a",
-        "lineItemId": "980171d4-b234-582a-be4a-c8b4a4a1f977",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
+        "lineItemId": "d7047772-32d1-8cc6-8db8-ee2bf0e4ff2f",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
         "quantity": 0,
         "unitPrice": 0,
         "lineTotal": 0,
@@ -318,7 +318,7 @@
       "payload": {
         "nodeId": "moment-6-Fee-calculation::checkout::CalculateFees::main",
         "processName": "CalculateFees",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a"
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237"
       }
     },
     {
@@ -334,7 +334,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-6-Fee-calculation::checkout::FeesCalculated::main",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
         "serviceFee": 0,
         "facilityFee": 0,
         "processingFee": 0,
@@ -356,8 +356,8 @@
       "payload": {
         "nodeId": "moment-7-Payment-initiation::checkout::InitiatePayment::main",
         "processName": "InitiatePayment",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "paymentMethod": {},
         "totalAmount": 0
       }
@@ -375,9 +375,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-7-Payment-initiation::checkout::PaymentInitiated::main",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "cartId": "f0cc726f-3931-5706-b843-0c917ca3659a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "paymentMethod": {},
         "subtotal": 0,
         "totalFees": 0,
@@ -399,8 +399,8 @@
       "payload": {
         "nodeId": "moment-8-Payment-fraud-evaluation::antifraud::EvaluatePaymentRisk::main",
         "processName": "EvaluatePaymentRisk",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "paymentMethod": "sample-paymentMethod",
         "amount": 0,
         "ipAddress": "sample-ipAddress",
@@ -420,9 +420,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-8-Payment-fraud-evaluation::antifraud::PaymentRiskEvaluated::main",
-        "assessmentId": "f6ad2183-4f0a-56a0-a8ba-87fc3fc052e3",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "assessmentId": "1297ee8b-e87a-8be9-a48a-24d590699de7",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "riskScore": 0,
         "riskLevel": "sample-riskLevel",
         "signals": {},
@@ -443,7 +443,7 @@
       "payload": {
         "nodeId": "moment-9-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "$branch": "approved",
         "outcome": "approved"
@@ -462,12 +462,12 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-9-Payment-processing::checkout::PaymentConfirmed::br0",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
-        "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
@@ -487,12 +487,12 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-10-Delivery-trigger::checkout::PaymentConfirmed::main",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
-        "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -510,12 +510,12 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-11-Notification-trigger::checkout::PaymentConfirmed::main",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
-        "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z"
       }
@@ -534,8 +534,8 @@
       "payload": {
         "nodeId": "moment-12-Hold-conversion::inventory::ConvertHoldToReservation::main",
         "processName": "ConvertHoldToReservation",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd"
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67"
       }
     },
     {
@@ -551,8 +551,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-12-Hold-conversion::inventory::HoldConvertedToReservation::main",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "convertedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -569,7 +569,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-12-Hold-conversion::inventory::HoldClosed::main",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "closedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -587,10 +587,10 @@
       "payload": {
         "nodeId": "moment-13-Ticket-issuance::delivery::IssueTickets::main",
         "processName": "IssueTickets",
-        "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "tickets": {}
       }
     },

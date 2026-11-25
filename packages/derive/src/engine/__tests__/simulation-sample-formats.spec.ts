@@ -89,7 +89,7 @@ describe('sample payload formats', () => {
     expect([...checked]).toEqual(expect.arrayContaining(['UUID', 'DateTime', 'Money']));
   });
 
-  it('a UUID sample is the version 5 style UUID of its field name, the same in every payload', async () => {
+  it('a UUID sample is the version 8 UUID of its field name, the same in every payload', async () => {
     const ir = await load();
     const holdIds = new Set<unknown>();
     for (const scenario of allScenarios(ir)) {
@@ -99,7 +99,7 @@ describe('sample payload formats', () => {
       }
     }
     expect([...holdIds]).toEqual([expectedSampleUuid('holdId')]);
-    expect(expectedSampleUuid('holdId')[14]).toBe('5');
+    expect(expectedSampleUuid('holdId')[14]).toBe('8');
     expect('89ab').toContain(expectedSampleUuid('holdId')[19]);
   });
 

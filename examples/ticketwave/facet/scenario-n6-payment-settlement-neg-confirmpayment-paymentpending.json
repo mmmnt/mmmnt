@@ -31,7 +31,7 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "$branch": "approved",
         "outcome": "approved"

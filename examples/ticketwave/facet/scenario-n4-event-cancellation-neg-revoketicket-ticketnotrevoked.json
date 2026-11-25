@@ -32,7 +32,7 @@
       "payload": {
         "nodeId": "moment-0-Event-cancellation::catalog::CancelEvent::main",
         "processName": "CancelEvent",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason"
       }
     },
@@ -49,7 +49,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Event-cancellation::catalog::EventCancelled::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -67,7 +67,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -85,7 +85,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -103,7 +103,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -122,7 +122,7 @@
       "payload": {
         "nodeId": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
         "processName": "ReleaseHold",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "sample-reason"
       }
     },
@@ -139,7 +139,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-4-Active-holds-release::inventory::HoldReleased::main",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "sample-reason",
         "returnedQuantity": 0,
         "releasedAt": "2026-01-01T10:00:00.000Z"
@@ -159,7 +159,7 @@
       "payload": {
         "nodeId": "moment-5-Ticket-revocation::delivery::RevokeTicket::main",
         "processName": "RevokeTicket",
-        "ticketId": "02359d5d-03f0-5030-84f7-cab21ac871ba",
+        "ticketId": "3044d4b5-de08-8983-8075-d558980c9b81",
         "reason": "sample-reason"
       }
     },

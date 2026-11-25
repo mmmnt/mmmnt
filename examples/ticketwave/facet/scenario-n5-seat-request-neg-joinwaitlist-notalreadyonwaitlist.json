@@ -33,12 +33,12 @@
       "payload": {
         "nodeId": "moment-0-Seat-request::inventory::RequestHold::main",
         "processName": "RequestHold",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e"
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc"
       }
     },
     {
@@ -54,13 +54,13 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Seat-request::inventory::SeatsHeld::main",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "expiresAt": "2026-01-01T10:00:00.000Z",
         "heldAt": "2026-01-01T10:00:00.000Z"
       }
@@ -79,9 +79,9 @@
       "payload": {
         "nodeId": "moment-1-Availability-decision::presale::JoinWaitlist::br1",
         "processName": "JoinWaitlist",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "requestedQuantity": 0,
         "$branch": "sold-out",
         "outcome": "sold-out"

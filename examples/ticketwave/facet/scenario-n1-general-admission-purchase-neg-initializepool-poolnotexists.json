@@ -27,7 +27,7 @@
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9"
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc"
       }
     },
     {
@@ -43,7 +43,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -61,9 +61,9 @@
       "payload": {
         "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "totalTickets": 0,
         "basePrice": 0
       }

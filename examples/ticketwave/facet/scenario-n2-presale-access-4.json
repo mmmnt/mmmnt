@@ -43,7 +43,7 @@
       "payload": {
         "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "processName": "OpenPresaleWindow",
-        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a"
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c"
       }
     },
     {
@@ -59,7 +59,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
-        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a",
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c",
         "openedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -77,10 +77,10 @@
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br1",
         "processName": "RedeemAccessCode",
-        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "code": "sample-code",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "$branch": "last-use",
         "outcome": "last-use",
         "whenState": "OneUseLeft"
@@ -99,11 +99,11 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br1",
-        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "code": "sample-code",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c",
         "redeemedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "last-use",
         "outcome": "last-use"
@@ -122,8 +122,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeExhausted::br1",
-        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
-        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c",
         "exhaustedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "last-use",
         "outcome": "last-use"
@@ -143,7 +143,7 @@
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1",
         "processName": "InvalidateAccessCode",
-        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "reason": "sample-reason",
         "$branch": "invalid",
         "outcome": "invalid"
@@ -162,7 +162,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::presale::AccessCodeInvalidated::br1",
-        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "reason": "sample-reason",
         "invalidatedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "invalid",

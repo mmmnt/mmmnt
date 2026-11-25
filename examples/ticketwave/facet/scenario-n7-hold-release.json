@@ -29,7 +29,7 @@
       "payload": {
         "nodeId": "moment-0-Holds-released::inventory::ReleaseHold::main",
         "processName": "ReleaseHold",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "sample-reason"
       }
     },
@@ -46,7 +46,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Holds-released::inventory::HoldReleased::main",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "sample-reason",
         "returnedQuantity": 0,
         "releasedAt": "2026-01-01T10:00:00.000Z"
@@ -65,7 +65,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Holds-released::inventory::HoldReleased::main#2",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "expired",
         "returnedQuantity": 0,
         "releasedAt": "2026-01-01T10:00:00.000Z"
@@ -85,8 +85,8 @@
       "payload": {
         "nodeId": "moment-0-Holds-released::presale::NotifyWaitlistPromotion::main",
         "processName": "NotifyWaitlistPromotion",
-        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "waitlistId": "345ab747-1a52-8cc7-8831-737e02869d4d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "availableQuantity": 0
       }
     },
@@ -103,8 +103,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Holds-released::presale::WaitlistPromotionNotified::main",
-        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "waitlistId": "345ab747-1a52-8cc7-8831-737e02869d4d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "availableQuantity": 0,
         "notifiedAt": "2026-01-01T10:00:00.000Z"
       }

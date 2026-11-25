@@ -34,8 +34,8 @@
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br0",
         "processName": "AnswerWaitlistOffer",
-        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "waitlistId": "345ab747-1a52-8cc7-8831-737e02869d4d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "outcome": "sample-outcome",
         "$branch": "accepted"
       }
@@ -53,8 +53,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br0",
-        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "waitlistId": "345ab747-1a52-8cc7-8831-737e02869d4d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
         "outcome": "sample-outcome",
         "answeredAt": "2026-01-01T10:00:00.000Z",
         "$branch": "accepted"
@@ -74,9 +74,9 @@
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0",
         "processName": "PromoteFromWaitlist",
-        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "waitlistId": "345ab747-1a52-8cc7-8831-737e02869d4d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "$branch": "accepted",
         "outcome": "accepted"
       }
@@ -94,9 +94,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::WaitlistPromoted::br0",
-        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "waitlistId": "345ab747-1a52-8cc7-8831-737e02869d4d",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "promotedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "accepted",
         "outcome": "accepted"

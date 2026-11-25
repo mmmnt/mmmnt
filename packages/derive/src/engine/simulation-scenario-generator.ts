@@ -1603,12 +1603,13 @@ function generatePlaceholder(type: string, name: string): unknown {
 }
 
 /**
- * A version 5 style UUID made from the SHA-1 of the field name. The same name gives the same
- * UUID in every payload and on every run, so `holdId` is one id across a scenario.
+ * A version 8 (custom) UUID made from the SHA-256 of the field name. The same name gives the same
+ * UUID in every payload and on every run, so `holdId` is one id across a scenario. Sample data only:
+ * the hash seeds a stable value and protects nothing.
  */
 function sampleUuid(name: string): string {
-  const b = createHash('sha1').update(`moment:sample:${name}`).digest().subarray(0, 16);
-  b[6] = (b[6] & 0x0f) | 0x50;
+  const b = createHash('sha256').update(`moment:sample:${name}`).digest().subarray(0, 16);
+  b[6] = (b[6] & 0x0f) | 0x80;
   b[8] = (b[8] & 0x3f) | 0x80;
   const h = b.toString('hex');
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;

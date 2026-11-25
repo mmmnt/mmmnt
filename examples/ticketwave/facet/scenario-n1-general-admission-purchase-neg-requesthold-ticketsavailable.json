@@ -29,7 +29,7 @@
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9"
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc"
       }
     },
     {
@@ -45,7 +45,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -63,9 +63,9 @@
       "payload": {
         "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "totalTickets": 0,
         "basePrice": 0
       }
@@ -83,10 +83,10 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Pool-initialization::inventory::PoolInitialized::main",
-        "poolId": "fe43ce85-04ce-57b7-8a6f-0d1bfe8216a3",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "poolId": "417aaf09-b201-86a5-8282-e3afb4228f3e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "totalTickets": 0,
         "availableTickets": 0,
         "basePrice": 0,
@@ -107,12 +107,12 @@
       "payload": {
         "nodeId": "moment-2-Seat-selection-and-hold::inventory::RequestHold::main",
         "processName": "RequestHold",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
-        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e"
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc"
       }
     },
     {

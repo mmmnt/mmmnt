@@ -35,7 +35,7 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "$branch": "approved",
         "outcome": "approved"
@@ -54,12 +54,12 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
-        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
-        "orderId": "f8837920-fa80-5a13-91f1-37d16f43e4a9",
-        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
-        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
@@ -80,8 +80,8 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
         "processName": "ConvertHoldToReservation",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "$branch": "approved",
         "outcome": "approved"
       }
@@ -99,7 +99,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br0",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "closedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
         "outcome": "approved"
@@ -118,8 +118,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
-        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "convertedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
         "outcome": "approved"

@@ -25,7 +25,7 @@
       "payload": {
         "nodeId": "moment-0-Holds-released::inventory::ReleaseHold::main",
         "processName": "ReleaseHold",
-        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "sample-reason"
       }
     },
