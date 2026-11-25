@@ -288,7 +288,7 @@ Moment is the open-source core of the [Complai](https://moment.mmmnt.ai/ecosyste
 - **[moment.mmmnt.ai](https://moment.mmmnt.ai)**: what Moment is, the language at a glance, and examples
 - **[The Moment DSL](https://github.com/mmmnt/mmmnt/wiki/The-Moment-DSL)**: the language, construct by construct
 - **[Wiki](https://github.com/mmmnt/mmmnt/wiki)**: getting started, the pipeline, the architecture and the package reference
-- **[Architecture decisions](docs/adr)**: why the language and the toolchain are the way they are
+- **[Architecture decisions](docs/adr/README.md)**: why the language and the toolchain are the way they are, indexed from ADR-001 on
 - Each package's `README.md` covers its API, and its `CHANGELOG.md` covers what changed in each release
 
 ## Developing Moment

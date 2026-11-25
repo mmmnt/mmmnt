@@ -4,7 +4,7 @@
 - **Date:** 2026-11-04
 - **Supersedes:** nothing. Amends ADR-038 section 2 (orchestration) and the validation rules V5, V10, V31.
 - **Founder ruling (2026-11-04, verbatim):** "1, but generalize what's being added. do not extend Moment with specificity to [a single consumer]'s use case. update the palette and documentation"
-- **Where ADRs live:** this repository had no ADR directory. ADR-037, ADR-038 and ADR-039 landed in e5b7fc1 (#181) and survive only as the changeset text in `packages/core/CHANGELOG.md`, in code comments that cite them, and in the fixtures and specs named `*-adr037` / `*-adr038`. This file creates `docs/adr/` and takes the next number, 040. The text of ADR-038 was not available in the repository; its rules are read here from the changelog, `moment.langium`, `palette-conformance.ts` and `README.md`. The author of the ratified version should check section references to ADR-038 against the original.
+- **Where ADRs live:** this file created `docs/adr/` and took the next number, 040. ADR-037, ADR-038 and ADR-039 landed in e5b7fc1 (#181). Their original documents did not survive. They were rebuilt on 2026-11-24 from PR #181, the 0.6.0 release notes and the code: [ADR-037](ADR-037-grammar-model-completeness.md), [ADR-038](ADR-038-palette-conformance.md) and [ADR-039](ADR-039-implementation-sync-completion.md). The index of every ADR is [README.md](README.md). When this file was written, ADR-038's rules were read from the changelog, `moment.langium`, `palette-conformance.ts` and `README.md`. Its section references to ADR-038 were never checked against the original text, which is lost.
 
 ## Context
 
