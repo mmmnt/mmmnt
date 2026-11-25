@@ -1,5 +1,26 @@
 # @mmmnt/mcp
 
+## 0.15.0
+
+### Patch Changes
+
+- [#231](https://github.com/mmmnt/mmmnt/pull/231) [`1687f16`](https://github.com/mmmnt/mmmnt/commit/1687f16ba0e6736549bd7dc2ea460bce5c29e20c) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Every command refuses a flag it does not take, and four smaller CLI and MCP fixes.
+
+  - cli: a flag the command does not declare fails the run with exit 2 and runs nothing. The error names the flag and lists the flags the command takes. Before, every command but `generate` and `simulate` ignored it, so `moment emit-ts <spec> --out-dir <dir>` wrote into the current directory; `generate` and `simulate` printed a warning and ran.
+  - cli: `board` prints the notices of the projection on stderr, one `note:` line each, as `derive` does. It dropped them, so a model numbered in load order said nothing.
+  - cli: `moment quorum <other>` prints the usage of `quorum watch` with `--source`, the same text the command prints.
+  - cli: `simulate --out-dir` names scenario files with the slug topology files use: `scenario-n5-seat-request-0.json`, not `scenario-flow-N5 - Seat request-0.json`. Each `scenarioId` is unchanged, and `manifest.json` gives the new `file` names, so Facet, which reads them from there, needs no change. `serve` keys its scenarios by the same names. Two scenarios whose names slug to one file fail the run instead of overwriting each other. `examples/ticketwave/facet` is regenerated.
+  - mcp: `moment_viz` gives the same output for the same model. Its `timestamp` and `metadata.generatedAt` are the fixed time its session already used; they were the current time, which the code comment said they were not.
+
+  Behaviour change: a command line that passed a flag the command does not take, and ran anyway, now exits 2. That includes `generate` and `simulate`, which only warned. Every flag and alias in the CLI README still works: `--out`, `--out-dir` and `-o` on `generate`, `--out` on `simulate`, `-o` on `emit-ts`, `-p` on `serve`, `-n` and `-d` on `init`, `-d` on `watch`.
+
+- Updated dependencies [[`98ba180`](https://github.com/mmmnt/mmmnt/commit/98ba180e76b8b6fee2b6c8d4500657e7b2b5f75a), [`8600af1`](https://github.com/mmmnt/mmmnt/commit/8600af17174e0b48c8f8b853a874f7a64d0768a0), [`c7f6001`](https://github.com/mmmnt/mmmnt/commit/c7f6001899078840d2218d5afcb9e02e41cb6aed)]:
+  - @mmmnt/core@0.15.0
+  - @mmmnt/emit-ts@0.15.0
+  - @mmmnt/derive@0.15.0
+  - @mmmnt/viz@0.15.0
+  - @mmmnt/sync@0.15.0
+
 ## 0.14.0
 
 ### Patch Changes

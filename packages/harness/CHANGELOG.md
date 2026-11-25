@@ -1,5 +1,18 @@
 # @mmmnt/harness
 
+## 0.15.0
+
+### Patch Changes
+
+- [#227](https://github.com/mmmnt/mmmnt/pull/227) [`345f494`](https://github.com/mmmnt/mmmnt/commit/345f4943035f9fc55e56e2dce67a834013f47387) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - The harness replays branch-lanes and checks contract values by their Moment type.
+
+  - harness: `EventReplayEngine` resolves a placement on a `branch-lane` (or a lane classified `[Terminal]`) to the lane, as `moment parse` does, and a placement on an `[External]` lane to the declared external. TicketWave replays all eight flows with no divergence; it reported five false ones in N1 to N4. A placement on a context the IR does not define, or on a lane of another flow, still diverges.
+  - harness: `ContractAssertionEngine` checks a value against its Moment type as `@mmmnt/schema` maps it (ADR-049). `UUID`, `DateTime` and `Date` are strings of that format, `Money` is a number, `T[]` is an array of `T` checked item by item, and a value object is an object. A valid UUID no longer fails as a type mismatch. Given the IR (`new ContractAssertionEngine(ir)`), a value object is checked as declared: its fields, a scalar value object with its pattern, a code set by its values, a tagged union by its `kind`, maps, exclusive groups and `[encrypted]` fields. New violations: `format mismatch`, `pattern mismatch`, `not in code set` and `exclusive fields`.
+
+- Updated dependencies [[`98ba180`](https://github.com/mmmnt/mmmnt/commit/98ba180e76b8b6fee2b6c8d4500657e7b2b5f75a), [`c7f6001`](https://github.com/mmmnt/mmmnt/commit/c7f6001899078840d2218d5afcb9e02e41cb6aed)]:
+  - @mmmnt/core@0.15.0
+  - @mmmnt/derive@0.15.0
+
 ## 0.14.0
 
 ### Patch Changes

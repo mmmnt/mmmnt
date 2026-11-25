@@ -1,5 +1,23 @@
 # @mmmnt/core
 
+## 0.15.0
+
+### Patch Changes
+
+- [#228](https://github.com/mmmnt/mmmnt/pull/228) [`98ba180`](https://github.com/mmmnt/mmmnt/commit/98ba180e76b8b6fee2b6c8d4500657e7b2b5f75a) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Project mode agrees with a single file on crossings, and every validation diagnostic names its rule.
+
+  - core: PM-04 accepts a crossing whose event is declared by its source context or by its target context, as SP-02 does. A crossing carries the source context's event, so the target-only rule warned on every crossing of TicketWave. An event declared by neither context still warns.
+  - core: a syntax-level diagnostic (V1 to V20, V52 to V55, and the parser's SP-01 to SP-03) carries its rule id in `ruleId`, as a model-level one does. Its message still begins with the id (`V55: ...`), so code that reads the message is unaffected.
+  - cli: `moment parse examples/ticketwave/spec/` prints no PM-04 warning.
+
+- [#236](https://github.com/mmmnt/mmmnt/pull/236) [`c7f6001`](https://github.com/mmmnt/mmmnt/commit/c7f6001899078840d2218d5afcb9e02e41cb6aed) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Derived sample payloads have the formats their types declare, a crossing contract names only fields its event declares, and the cli type-checks.
+
+  - derive: a `UUID` field samples a valid UUID, a version 8 (custom) UUID made from the SHA-256 of the field name. It was `<name>-001`, which a format check of UUIDs rejects. A field has the same UUID in every payload and on every run, so the same model still gives byte-identical scenarios. `DateTime`, `Date` and `Money` samples already had their formats and do not change.
+  - core: new rule V58. A crossing's `contract` field that the crossing event does not declare is a warning on a single file and an error over a project, like the other model-level rules. The diagnostic carries `ruleId: 'V58'`.
+  - Behaviour change: V58 can turn a project that loaded clean into one that fails. Declare the field on the event, or drop it from the contract.
+  - TicketWave's crossings of `PaymentInitiated` and `PaymentConfirmed` now name only fields their events declare.
+  - cli: `tsc --noEmit -p packages/cli` passes. The `derive` command read `result.notices`, which `runDerive` never returns; that line is gone and output is unchanged. The cli has a `typecheck` script, so CI's `pnpm turbo typecheck` checks it.
+
 ## 0.14.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @mmmnt/sync
 
+## 0.15.0
+
+### Patch Changes
+
+- Updated dependencies [[`8600af1`](https://github.com/mmmnt/mmmnt/commit/8600af17174e0b48c8f8b853a874f7a64d0768a0)]:
+  - @mmmnt/emit-ts@0.15.0
+
 ## 0.14.0
 
 ### Patch Changes
