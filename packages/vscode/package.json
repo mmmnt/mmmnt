@@ -2,10 +2,11 @@
   "name": "moment-language",
   "displayName": "Moment — DDD flow specifications",
   "description": "Syntax highlighting for Moment (.moment) files — DDD designs translated to temporal, event-storming flows",
-  "version": "0.1.1",
+  "version": "0.15.0",
   "publisher": "mmmnt",
   "private": true,
   "license": "FSL-1.1-Apache-2.0",
+  "homepage": "https://moment.mmmnt.ai",
   "icon": "icon.png",
   "galleryBanner": {
     "color": "#4FC7B0",
@@ -34,6 +35,7 @@
   ],
   "scripts": {
     "sync-grammar": "cp ../core/syntaxes/moment.tmLanguage.json syntaxes/moment.tmLanguage.json",
+    "vscode:prepublish": "npm run sync-grammar",
     "package": "vsce package --no-dependencies"
   },
   "contributes": {

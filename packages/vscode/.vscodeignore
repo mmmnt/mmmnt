@@ -1,2 +1,10 @@
-.gitignore
-*.vsix
+# Only what the extension needs goes into the .vsix: the manifest, the listing files, the language
+# configuration and the grammar (copied from @mmmnt/core when the extension is packaged).
+**
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+!icon.png
+!language-configuration.json
+!syntaxes/**

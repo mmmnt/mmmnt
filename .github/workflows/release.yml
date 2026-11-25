@@ -30,6 +30,8 @@ jobs:
     outputs:
       # true only when this run published packages; otherwise it opened or updated the version PR.
       published: ${{ steps.changesets.outputs.published }}
+      # The toolchain version this run published (@mmmnt/cli's), for the extension job.
+      version: ${{ steps.released.outputs.version }}
     steps:
       # Generate a short-lived installation token for the mmmnt-release
       # GitHub App. We use this (instead of the default GITHUB_TOKEN) as the
@@ -183,6 +185,23 @@ jobs:
         env:
           # npm authenticates through OIDC trusted publishing (id-token: write).
           NPM_CONFIG_PROVENANCE: true
+
+      - name: Read the released version
+        id: released
+        if: steps.changesets.outputs.published == 'true'
+        run: echo "version=$(node -p "require('./packages/cli/package.json').version")" >> "$GITHUB_OUTPUT"
+
+  # The VS Code extension is released with the toolchain, at its version, from the released commit.
+  extension:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/extension.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit
 
   discord-notify:
     runs-on: ubuntu-latest

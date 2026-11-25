@@ -16,7 +16,7 @@
     "smoke:install": "node scripts/smoke-test-install.mjs",
     "prepare": "husky",
     "changeset": "changeset",
-    "changeset:version": "changeset version",
+    "changeset:version": "changeset version && node scripts/sync-extension.mjs",
     "changeset:publish": "changeset publish",
     "docs": "typedoc",
     "moment": "node packages/cli/dist/moment.mjs"
