@@ -1,0 +1,6 @@
+{
+  "local_graphql_endpoint": "http://localhost:4000/graphql",
+  "project_id": "2f84b12a-a1b0-4c15-b199-b54f312417af",
+  "project_name": "moment",
+  "server_url": "http://localhost:8000/mcp"
+}

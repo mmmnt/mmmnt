@@ -3,7 +3,9 @@
     "atlassian": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["mcp-atlassian"],
+      "args": [
+        "mcp-atlassian"
+      ],
       "env": {
         "JIRA_URL": "https://coada.atlassian.net/",
         "JIRA_USERNAME": "${ATLASSIAN_USERNAME}",
@@ -13,15 +15,14 @@
         "CONFLUENCE_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
       }
     },
+    "flmnt": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp"
+    },
     "quorum": {
       "type": "http",
       "url": "http://localhost:8000/mcp",
       "headersHelper": "bash scripts/mcp-auth-header.sh"
-    },
-    "flmnt": {
-      "type": "http",
-      "url": "https://mcp.production.flmnt.ai/mcp",
-      "headersHelper": "flmnt mcp auth-header --server-url https://mcp.production.flmnt.ai/mcp"
     }
   }
 }
