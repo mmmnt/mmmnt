@@ -7,7 +7,7 @@
   },
   "packageManager": "pnpm@10.29.3",
   "scripts": {
-    "claude:session": "npx @dotenvx/dotenvx run -f .env.local -- npx -y @anthropic-ai/claude-code",
+    "claude:session": "npx @dotenvx/dotenvx run -f .env.local -- claude",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -31,7 +31,6 @@
     ]
   },
   "devDependencies": {
-    "@anthropic-ai/claude-code": "^2.1.325",
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "^3.0.3",
     "@commitlint/cli": "^21.2.4",
