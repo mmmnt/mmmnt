@@ -1,24 +1,29 @@
 #!/usr/bin/env node
 /**
- * Mirrors each package README onto a page of the GitHub wiki.
+ * Mirrors each package README, and the ADR index, onto a page of the GitHub wiki.
  *
  * Every `packages/<pkg>/README.md` becomes one page in a local clone of the
  * wiki. An `@mmmnt/<pkg>` package is written to `@mmmnt-<pkg>.md`; the VS Code
  * extension (`packages/vscode`) is written to `VS-Code-Extension.md`.
+ * When `docs/adr/README.md` exists it is written to `ADR-Index.md`; when it
+ * does not, an existing `ADR-Index.md` is left as it is.
  *
  * Relative links are rewritten so they work from the wiki:
  *
  *   - a link to another package README (`../core/README.md`, `../core`) becomes
  *     a link to that package's wiki page; an anchor is kept
  *   - a link to any other file or directory in the repo becomes an absolute
- *     `https://github.com/<repo>/blob/<ref>/<path>` URL (`tree` for a directory)
+ *     `https://github.com/<repo>/blob/<ref>/<path>` URL (`tree` for a directory);
+ *     from the ADR index, `ADR-040-....md` becomes `.../blob/<ref>/docs/adr/ADR-040-....md`
  *   - an image becomes a `https://raw.githubusercontent.com/<repo>/<ref>/<path>` URL
  *   - an anchor on the same page (`#exit-codes`) and an absolute URL are left alone
  *
  * Links inside fenced code blocks and inline code are not touched.
  *
- * Each page starts with one line saying which README it is generated from.
- * A page that starts with that line and no longer has a README is deleted.
+ * Each page starts with one line saying which file it is generated from.
+ * A page that starts with that line is deleted when no source writes it any
+ * more: the file it names is gone, or that file is now written to another page.
+ * A page without that line (a hand-written page) is never touched.
  * The script only writes files; committing and pushing is the caller's job.
  *
  * USAGE
@@ -54,6 +59,12 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PAGE_BY_DIRECTORY = { vscode: 'VS-Code-Extension' };
 
 const NOTE_PREFIX = '> This page is generated from';
+
+/** The note on the first line of a generated page; captures the source file it names. */
+const NOTE_SOURCE = /^> This page is generated from \[([^\]]+)\]/;
+
+/** The ADR index and the wiki page it is written to. */
+const ADR_INDEX = { page: 'ADR-Index', source: 'docs/adr/README.md', baseDir: 'docs/adr' };
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|svg|webp|ico)$/i;
 
@@ -103,9 +114,21 @@ function discoverPackages(repoRoot) {
       console.warn(`skipped packages/${directory}: no wiki page name for it`);
       continue;
     }
-    packages.set(directory, { directory, page, readme: `packages/${directory}/README.md` });
+    packages.set(directory, {
+      directory,
+      page,
+      source: `packages/${directory}/README.md`,
+      baseDir: `packages/${directory}`,
+    });
   }
   return packages;
+}
+
+/** Every page to write: one per package, and the ADR index when docs/adr/README.md exists. */
+function discoverSources(repoRoot, packages) {
+  const sources = [...packages.values()];
+  if (existsSync(join(repoRoot, ADR_INDEX.source))) sources.push(ADR_INDEX);
+  return sources;
 }
 
 function splitTarget(target) {
@@ -132,7 +155,7 @@ function repoUrl(repoPath, ctx, { image }) {
   return `https://github.com/${ctx.repo}/${kind}/${ctx.ref}/${repoPath}`;
 }
 
-/** Rewrites one link target found in `packages/<dir>/README.md`. */
+/** Rewrites one link target found in the source file, relative to `ctx.baseDir`. */
 function rewriteTarget(target, ctx, { image = false } = {}) {
   if (target === '' || target.startsWith('#') || isExternal(target)) return target;
   const { path, anchor } = splitTarget(target);
@@ -190,7 +213,7 @@ function fenceOf(line) {
   return match ? match[1] : undefined;
 }
 
-/** Rewrites every link in a README, skipping fenced code blocks. */
+/** Rewrites every link in a source file, skipping fenced code blocks. */
 export function rewriteReadme(markdown, ctx) {
   let openFence;
   return markdown
@@ -211,14 +234,15 @@ export function rewriteReadme(markdown, ctx) {
     .join('\n');
 }
 
-function noteFor(pkg, ctx) {
-  const source = `https://github.com/${ctx.repo}/blob/${ctx.ref}/${pkg.readme}`;
-  return `${NOTE_PREFIX} [${pkg.readme}](${source}). Edit that file; changes made to this page are overwritten.`;
+function noteFor(source, ctx) {
+  const url = `https://github.com/${ctx.repo}/blob/${ctx.ref}/${source.source}`;
+  return `${NOTE_PREFIX} [${source.source}](${url}). Edit that file; changes made to this page are overwritten.`;
 }
 
-export function renderPage(pkg, readmeText, ctx) {
-  const body = rewriteReadme(readmeText, { ...ctx, baseDir: `packages/${pkg.directory}` });
-  return `${noteFor(pkg, ctx)}\n\n${body.replace(/\s*$/, '\n')}`;
+/** One wiki page from one source: a package README or the ADR index. */
+export function renderPage(source, text, ctx) {
+  const body = rewriteReadme(text, { ...ctx, baseDir: source.baseDir });
+  return `${noteFor(source, ctx)}\n\n${body.replace(/\s*$/, '\n')}`;
 }
 
 /** A rough size of a change: lines only in the old page, lines only in the new one. */
@@ -237,29 +261,38 @@ function lineDelta(before, after) {
 
 function planPages(ctx) {
   const plan = [];
-  for (const pkg of ctx.packages.values()) {
-    const file = join(ctx.wikiDir, `${pkg.page}.md`);
-    const next = renderPage(pkg, readFileSync(join(ctx.repoRoot, pkg.readme), 'utf8'), ctx);
+  for (const source of ctx.sources) {
+    const file = join(ctx.wikiDir, `${source.page}.md`);
+    const next = renderPage(source, readFileSync(join(ctx.repoRoot, source.source), 'utf8'), ctx);
     const current = existsSync(file) ? readFileSync(file, 'utf8') : undefined;
-    if (current === next) plan.push({ action: 'unchanged', file, source: pkg.readme });
+    if (current === next) plan.push({ action: 'unchanged', file, source: source.source });
     else
       plan.push({
         action: current === undefined ? 'create' : 'update',
         file,
         next,
         current,
-        source: pkg.readme,
+        source: source.source,
       });
   }
   return plan;
 }
 
-/** Generated pages whose package README is gone. */
+/**
+ * Generated pages no source writes any more. A page counts as generated only when its
+ * first line is the note. It is stale when the file the note names is gone from the
+ * repo, or is a source now written to another page (a renamed page).
+ */
 function planStale(ctx) {
-  const live = new Set([...ctx.packages.values()].map((pkg) => `${pkg.page}.md`));
+  const live = new Set(ctx.sources.map((source) => `${source.page}.md`));
+  const written = new Set(ctx.sources.map((source) => source.source));
   return readdirSync(ctx.wikiDir)
     .filter((name) => name.endsWith('.md') && !live.has(name))
-    .filter((name) => readFileSync(join(ctx.wikiDir, name), 'utf8').startsWith(NOTE_PREFIX))
+    .filter((name) => {
+      const named = NOTE_SOURCE.exec(readFileSync(join(ctx.wikiDir, name), 'utf8'));
+      if (!named) return false;
+      return written.has(named[1]) || !existsSync(join(ctx.repoRoot, named[1]));
+    })
     .map((name) => ({ action: 'delete', file: join(ctx.wikiDir, name) }));
 }
 
@@ -278,8 +311,14 @@ function apply(step) {
 
 function main() {
   const options = parseOptions(process.argv.slice(2));
-  const ctx = { ...options, repoRoot: REPO_ROOT, packages: discoverPackages(REPO_ROOT) };
-  if (ctx.packages.size === 0) throw new Error('no packages/*/README.md found');
+  const packages = discoverPackages(REPO_ROOT);
+  if (packages.size === 0) throw new Error('no packages/*/README.md found');
+  const ctx = {
+    ...options,
+    repoRoot: REPO_ROOT,
+    packages,
+    sources: discoverSources(REPO_ROOT, packages),
+  };
   const plan = [...planPages(ctx), ...planStale(ctx)];
   for (const step of plan) {
     console.log(describe(step, ctx));

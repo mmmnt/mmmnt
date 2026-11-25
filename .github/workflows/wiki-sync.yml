@@ -2,7 +2,8 @@ name: Wiki Sync
 
 # Mirrors every packages/*/README.md onto the GitHub wiki, one page per package:
 # @mmmnt-<pkg> for the @mmmnt packages and VS-Code-Extension for packages/vscode.
-# The READMEs are the source; a wiki package page is never edited by hand.
+# docs/adr/README.md, when it exists, is mirrored onto ADR-Index.
+# The source files are the record; a generated wiki page is never edited by hand.
 # scripts/wiki-sync.mjs does the rewriting and can be run locally:
 #   node scripts/wiki-sync.mjs --wiki-dir <wiki clone> --dry-run
 #
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths:
       - 'packages/*/README.md'
+      - 'docs/adr/**'
       - 'scripts/wiki-sync.mjs'
       - '.github/workflows/wiki-sync.yml'
   workflow_dispatch:
@@ -69,7 +71,7 @@ jobs:
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
             clone --depth 1 "$WIKI_URL" wiki
 
-      - name: Write the package pages
+      - name: Write the package and ADR index pages
         run: node scripts/wiki-sync.mjs --wiki-dir wiki
 
       - name: Commit and push changed pages
@@ -79,7 +81,7 @@ jobs:
         run: |
           git add -A
           if git diff --cached --quiet; then
-            echo "The wiki already matches the package READMEs; nothing to push."
+            echo "The wiki already matches its source files; nothing to push."
             exit 0
           fi
           git diff --cached --stat
