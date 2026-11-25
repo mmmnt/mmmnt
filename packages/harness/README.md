@@ -14,7 +14,7 @@ It has three parts:
 | Export                    | What it checks                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------------- |
 | `TestRunner`              | every derived test case, structurally, against the IR. This is what `moment test` runs            |
-| `EventReplayEngine`       | that every placement of a flow names a context the IR defines                                     |
+| `EventReplayEngine`       | that every placement of a flow resolves: to a context, a branch-lane or a declared external       |
 | `ContractAssertionEngine` | a payload against a crossing's schema contract: required fields present, values of the right type |
 
 To replay the derived scenarios step by step and assert paths, crossings, branches and saga transitions, use [Facet](https://facet.mmmnt.dev), which reads what `moment simulate` writes.
@@ -91,25 +91,25 @@ A suite whose flow is not in the IR is counted as skipped. Every result is enter
 
 ### Event Replay
 
-| Export              | Description                                                                                                                                                                                                                                  |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EventReplayEngine` | `replay(flow, ir)` walks the moments of a flow in order, main entries and then every branch's entries, and records at most one `DivergencePoint` per moment: the first entry whose context the IR does not define. Returns a `ReplayResult`. |
+| Export              | Description                                                                                                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EventReplayEngine` | `replay(flow, ir)` walks the moments of a flow in order, main entries and then every branch's entries, and records at most one `DivergencePoint` per moment: the first entry that does not resolve. Returns a `ReplayResult`. |
 
 ### Contract Validation
 
-| Export                    | Description                                                                                                                                                                                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ContractAssertionEngine` | `validate(crossingId, payload, contract)` checks a payload against a `SchemaContract` and returns a `ContractValidationResult`. `validateAll` is the same check. `coversAllRequiredFields(payload, fields)` returns whether every required field is present and not null. |
+| Export                    | Description                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ContractAssertionEngine` | `new ContractAssertionEngine(ir?)`. With the IR, a value object field is checked as declared. `validate(crossingId, payload, contract)` checks a payload against a `SchemaContract` and returns a `ContractValidationResult`. `validateAll` is the same check. `coversAllRequiredFields(payload, fields)` returns whether every required field is present and not null. |
 
 ### Key Types
 
-| Type                       | Description                                                                                                                                                    |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TestRunResult`            | `suitesRun`, `testsPassed`, `testsFailed`, `testsSkipped`, and `traceabilityMap` from test id to specification element.                                        |
-| `ReplayResult`             | `flowId`, `stepsReplayed` (the number of moments), `divergencePoints`, and `finalStateMatch` (true when there are none).                                       |
-| `DivergencePoint`          | `momentIndex`, `expectedState`, `actualState`, and `eventThatCaused` (the node name of the entry).                                                             |
-| `ContractValidationResult` | `crossingId`, `valid`, and `violations`.                                                                                                                       |
-| `ContractViolation`        | `fieldName`, `expected` (the contract type), `actual` (the value's type, or `missing`), and `constraintViolated`: `required field missing` or `type mismatch`. |
+| Type                       | Description                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TestRunResult`            | `suitesRun`, `testsPassed`, `testsFailed`, `testsSkipped`, and `traceabilityMap` from test id to specification element.                                                                                                                                                                                                                     |
+| `ReplayResult`             | `flowId`, `stepsReplayed` (the number of moments), `divergencePoints`, and `finalStateMatch` (true when there are none).                                                                                                                                                                                                                    |
+| `DivergencePoint`          | `momentIndex`, `expectedState`, `actualState`, and `eventThatCaused` (the node name of the entry).                                                                                                                                                                                                                                          |
+| `ContractValidationResult` | `crossingId`, `valid`, and `violations`.                                                                                                                                                                                                                                                                                                    |
+| `ContractViolation`        | `fieldName` (a path such as `actor.sub` or `ids[1]` inside a value), `expected` (the type), `actual` (the value's JSON type, the value itself for a wrong form or code, or `missing`), and `constraintViolated`: `required field missing`, `type mismatch`, `format mismatch`, `pattern mismatch`, `not in code set` or `exclusive fields`. |
 
 ## Examples
 
@@ -121,29 +121,45 @@ The examples below start from a parsed IR, obtained as in the Quick Start.
 import { EventReplayEngine } from '@mmmnt/harness';
 
 const engine = new EventReplayEngine();
+const replays = ir.flows.map((flow) => engine.replay(flow, ir));
 
-for (const flow of ir.flows) {
-  const replay = engine.replay(flow, ir);
+for (const replay of replays) {
   if (replay.finalStateMatch) continue;
   console.log(`Flow ${replay.flowId}: ${replay.divergencePoints.length} divergence(s)`);
   for (const d of replay.divergencePoints) {
     console.log(`  moment ${d.momentIndex} (${d.eventThatCaused}): ${d.actualState}`);
   }
 }
+console.log(
+  `${replays.length} flows replayed, ${replays.filter((r) => !r.finalStateMatch).length} diverged`,
+);
 ```
 
-Output for TicketWave (excerpt):
+Output for TicketWave:
+
+```
+8 flows replayed, 0 diverged
+```
+
+A placement resolves in one of three ways:
+
+| The placement's lane                               | It resolves when                                     |
+| -------------------------------------------------- | ---------------------------------------------------- |
+| a `lane` of a context                              | the IR defines the context                           |
+| a `branch-lane`, or a lane classified `[Terminal]` | always. The lane routes an outcome and is no context |
+| a lane classified `[External]`                     | the IR declares an external of the lane's label      |
+
+So `invalidCode: AccessCodeInvalidated [terminal]` on N2's `branch-lane invalidCode "Invalid Code" [Terminal]` is no divergence. This is how `moment parse` treats branch-lanes too. Lanes resolve per flow: a placement on a lane that the flow does not declare, or on a context the IR does not define, is a divergence. With a placement `GhostHappened` in a context `Ghost` that the model does not define, added to the second moment of N2, the example prints:
 
 ```
 Flow flow-N2 - Presale access: 1 divergence(s)
-  moment 2 (AccessCodeInvalidated): context ctx-Invalid Code not found
+  moment 1 (GhostHappened): context ctx-Ghost not found
 ```
-
-A placement on a `branch-lane` (here `invalidCode: AccessCodeInvalidated [terminal]`) names the lane, not a context, so the engine reports it as a divergence although the model is valid. TicketWave reports five such divergences, in N1 to N4.
 
 ### Validating a Payload Against a Crossing Contract
 
 ```typescript
+import { randomUUID } from 'node:crypto';
 import { ContractAssertionEngine } from '@mmmnt/harness';
 
 const flow = ir.flows.find((f) => f.name === 'N2 - Presale access');
@@ -153,8 +169,13 @@ const crossing = flow.connections.find(
 console.log(crossing.schemaContract.fields.map((f) => `${f.name}: ${f.type}`).join(', '));
 
 // e.g. a payload captured from your implementation
-const payload = { holdId: 'h-1', quantity: '2', customerId: 'c-1' };
-const result = new ContractAssertionEngine().validate(
+const payload = {
+  holdId: 'h-1',
+  quantity: '2',
+  customerId: randomUUID(),
+  expiresAt: '2026-01-01T10:15:00Z',
+};
+const result = new ContractAssertionEngine(ir).validate(
   crossing.id,
   payload,
   crossing.schemaContract,
@@ -173,15 +194,37 @@ Output:
 ```
 holdId: UUID, eventId: UUID, tierId: UUID, quantity: number, customerId: UUID, expiresAt: DateTime
 valid: false
-  holdId: type mismatch (expected UUID, got string)
+  holdId: format mismatch (expected UUID, got "h-1")
   eventId: required field missing (expected UUID, got missing)
   tierId: required field missing (expected UUID, got missing)
   quantity: type mismatch (expected number, got string)
-  customerId: type mismatch (expected UUID, got string)
-  expiresAt: required field missing (expected DateTime, got missing)
 ```
 
-A missing or `null` value fails only a required field. A present value matches when its JavaScript type (`typeof`, or `array` for an array) equals the contract type in lower case. Only `string`, `number` and `boolean` can match that way, so a value for a `UUID`, `DateTime`, `Date` or `Money` field, or for a value object, is always reported as a type mismatch, as `holdId` and `customerId` are above.
+`customerId` is a UUID and `expiresAt` a date-time, so both pass.
+
+A missing or `null` value fails only a required field. A present value is checked against its Moment type, mapped as `@mmmnt/schema` maps it to JSON Schema (ADR-049):
+
+| Contract type       | A value matches when it is                                                          |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `string`, `boolean` | a JSON string or boolean                                                            |
+| `number`, `Money`   | a finite number                                                                     |
+| `UUID`              | a string in the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`, hex digits in any case |
+| `DateTime`          | an RFC 3339 date-time string with an offset, such as `2026-01-01T10:00:00.000Z`     |
+| `Date`              | an RFC 3339 date string of a real day, such as `2026-01-01`                         |
+| `T[]`               | an array whose every item matches `T`. A bad item is named by index, as `ids[1]`    |
+| a value object      | an object. Without the IR, any object that is not an array                          |
+
+A value of the wrong JSON type is a `type mismatch`. A string of the right type but the wrong form is a `format mismatch`.
+
+Pass the IR to the constructor, as above, and a value object is checked as the model declares it:
+
+- a record value object: each of its fields, by the same rules, required ones present. A violation names the path, as `actor.sub`.
+- a scalar value object (`value-object ContentHash: string [pattern "..."]`): the value is its scalar, with its pattern.
+- a code set (`value-object ActorKind: "user" | "api" | "system"`, or a field typed `"a" | "b"`): the value is one of its strings, else `not in code set`.
+- a tagged union: the value's `kind` names a variant, else `not in code set`, and the common and that variant's fields are checked.
+- a map (`T{}`): every value matches `T`. An exclusive group (`a: T | b: U`): exactly one member is present, else `exclusive fields`. An `[encrypted]` field: `{dataKeyId, ciphertext}`, both strings. A `[pattern]`: else `pattern mismatch`.
+
+A crossing's `contract` writes a code set or a map of its own as its value type only, so those checks apply to a field typed with a value object. Fields the contract does not list are not checked.
 
 ## Integration
 
