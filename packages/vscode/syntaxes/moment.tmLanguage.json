@@ -1,7 +1,9 @@
 {
   "name": "moment",
   "scopeName": "source.moment",
-  "fileTypes": [".moment"],
+  "fileTypes": [
+    ".moment"
+  ],
   "patterns": [
     {
       "include": "#comments"

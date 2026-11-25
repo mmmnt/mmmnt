@@ -6,3 +6,4 @@ coverage/
 test-results/
 examples/**/facet/
 packages/board/fixtures/
+packages/vscode/syntaxes/
