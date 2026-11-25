@@ -2,6 +2,10 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Specs that parse, derive or spawn the CLI on the whole TicketWave model take seconds on a loaded
+    // CI runner; the 5 s default made them time out at random.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     // Vitest 4 no longer skips build output by default; compiled tests in dist/ must not run.
     exclude: [...configDefaults.exclude, '**/dist/**'],
     globals: true,
