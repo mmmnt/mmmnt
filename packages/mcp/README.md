@@ -132,7 +132,7 @@ Input:  { filePath: string }
 Output: { sessionId, timestamp, version, contextMap, timeline, metadata }
 ```
 
-The output is the `VizDataEnvelope` from [@mmmnt/viz](../viz/README.md). `sessionId` is derived from a hash of the model's files, so the same model gives the same id.
+The output is the `VizDataEnvelope` from [@mmmnt/viz](../viz/README.md). `sessionId` is derived from a hash of the model's files. `timestamp` and `metadata.generatedAt` are fixed at `2026-01-01T00:00:00.000Z`. So the same model gives the same output, byte for byte. `moment viz` in the CLI stamps the current time instead.
 
 ### `moment_get_events`
 

@@ -137,6 +137,21 @@ describe('MCP Integration — tools/call', () => {
     expect(typeof parsed).toBe('object');
   });
 
+  it('moment_viz gives the same output for the same model, timestamps included', async () => {
+    const call = () =>
+      client.callTool({ name: 'moment_viz', arguments: { filePath: VALID_FIXTURE } });
+    const first = (await call()).content as Array<{ text: string }>;
+    // Past a millisecond boundary, so a timestamp taken from the clock would differ.
+    await new Promise((r) => setTimeout(r, 5));
+    const second = (await call()).content as Array<{ text: string }>;
+
+    expect(second[0].text).toBe(first[0].text);
+    const parsed = JSON.parse(first[0].text);
+    expect(parsed.timestamp).toBe('2026-01-01T00:00:00.000Z');
+    expect(parsed.metadata.generatedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(parsed.sessionId).toMatch(/^viz-[0-9a-f]{12}$/);
+  });
+
   it('moment_emit_ts with dryRun returns file list', async () => {
     const result = await client.callTool({
       name: 'moment_emit_ts',

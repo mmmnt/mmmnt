@@ -63,6 +63,8 @@ moment board examples/ticketwave/spec/ --out board/
 # Board written to board/: 39 file(s) and manifest.json (38 frame(s), 509 node(s))
 ```
 
+`board` prints one `note:` line on stderr for TicketWave, because TicketWave has no `manifest.yaml` to number its contexts. It does not fail the run.
+
 ## Project mode
 
 Where a command takes `<file|dir>` (and for `serve --project <dir>`), you can pass a directory. The CLI then loads every `.moment` file beneath it, in sorted path order, as one merged project. Names resolve across files, and node placement, saga transitions and External lanes are checked over the whole model.
@@ -122,7 +124,7 @@ Without `--out`, both write under the directory of the nearest `.manifest.yaml` 
 `simulate --out-dir <dir>` (alias `--out`) writes:
 
 - `topology-<flow>.json`, one per flow, e.g. `topology-n5-seat-request.json`
-- `scenario-<flow id>-<n>.json` and `scenario-<flow id>-neg-<command>-<precondition>.json` per scenario, e.g. `scenario-flow-N5 - Seat request-0.json` (the flow id keeps the flow's name as written, spaces included)
+- `scenario-<flow>.json` per flow, or with `--all` `scenario-<flow>-<n>.json`, `scenario-<flow>-neg-<command>-<precondition>.json` and `scenario-<flow>-timeout-<saga>.json` per scenario, slugged like the topology files, e.g. `scenario-n5-seat-request-0.json`. The file's `scenarioId` keeps the flow name as written, e.g. `scenario-flow-N5 - Seat request-0`, and `manifest.json` gives each scenario's `file`. Two scenarios whose names slug to one file fail the run.
 - `manifest.json`, the index Facet reads
 - `event-catalog.json`, `impact-analysis.json`, `saga-state-machines.json`, `policy-definitions.json` and `asyncapi.yaml`
 
@@ -135,7 +137,7 @@ For TicketWave, `simulate` alone gives 8 scenarios and 111 events; with `--all`,
 | `moment viz <file\|dir>`               | Print a `viz:initial-load` message as JSON: a session and a `VizDataEnvelope` with the context map and flow timelines.                                                                                                                                                                                                                                     |
 | `moment board <file\|dir> --out <dir>` | Project the model onto an event-storming board: `board.svg` with every frame, one SVG per frame, and `manifest.json`. `--frame <id>` writes only that frame and the manifest. `--pointers <file>` reads a JSON file `{ "pointers": [...] }` that links board nodes to spec locations. Writes nothing when the model does not parse. Does not talk to Miro. |
 
-For TicketWave, `board` writes 38 frames: `legend`, `grammar`, `context-map`, `policies`, `invariant-coverage`, 7 `context-C<n>`, 16 `aggregate-<Name>`, 2 `services-C<n>`, and 8 `thread-N<n>`, one per flow. An unknown `--frame` fails and lists the frame ids. A flow name must start with an id token such as `N5 - `; a flow with no id, or two flows with one id, fails `board` with exit 1. The numbering and the manifest format are in [@mmmnt/board](../board/README.md).
+For TicketWave, `board` writes 38 frames: `legend`, `grammar`, `context-map`, `policies`, `invariant-coverage`, 7 `context-C<n>`, 16 `aggregate-<Name>`, 2 `services-C<n>`, and 8 `thread-N<n>`, one per flow. An unknown `--frame` fails and lists the frame ids. A flow name must start with an id token such as `N5 - `; a flow with no id, or two flows with one id, fails `board` with exit 1. For a model directory with a `manifest.yaml`, contexts are numbered in the order it lists them. A context it does not list, or any context of a single file, is numbered in load order, and `board` prints a `note:` line on stderr that names it. A note does not fail the run. The numbering and the manifest format are in [@mmmnt/board](../board/README.md).
 
 ### Govern contracts
 
@@ -176,7 +178,7 @@ Sync keeps three append-only logs in `.domain/`, beside the spec file or inside 
 
 ## Options
 
-Options apply only to the commands listed. Most commands ignore a flag they do not know; `generate` and `simulate` print a warning for it.
+Options apply only to the commands listed. A flag the command does not take is an error: the command runs nothing, prints the flag and the flags it does take, and exits 2. For example, `moment emit-ts model/ --out-dir gen/` fails, because `emit-ts` takes `--out`.
 
 | Option                       | Commands                                                                                    | Effect                                                |
 | ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -201,7 +203,7 @@ Options apply only to the commands listed. Most commands ignore a flag they do n
 
 ## Exit codes
 
-Every command that reads a model exits 1 when the model does not parse, the path does not exist, or a required argument is missing. Beyond that:
+Every command exits 2 on a flag it does not take, and runs nothing. Every command that reads a model exits 1 when the model does not parse, the path does not exist, or a required argument is missing. Beyond that:
 
 | Command                      | Also exits 1 when                                                        |
 | ---------------------------- | ------------------------------------------------------------------------ |

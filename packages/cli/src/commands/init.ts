@@ -8,6 +8,7 @@
 import { parseArgs } from 'node:util';
 import { resolve } from 'node:path';
 import { ManifestScaffolder } from '@mmmnt/core';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface InitResult {
   readonly success: boolean;
@@ -18,10 +19,7 @@ export interface InitResult {
 export function runInit(argv: string[]): InitResult {
   const { values } = parseArgs({
     args: argv,
-    options: {
-      name: { type: 'string', short: 'n' },
-      dir: { type: 'string', short: 'd' },
-    },
+    options: COMMAND_OPTIONS.init,
     strict: false,
   });
 

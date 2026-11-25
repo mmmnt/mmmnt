@@ -32,7 +32,9 @@ import type { SimulationScenario, ScenarioKind } from '@mmmnt/derive';
 import { generateAsyncApiSpec } from '@mmmnt/generate';
 import { updateManifestFromIr } from './update-manifest.js';
 import { assertPathWithin } from './project-fs.js';
-import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
+import { resolveStringFlag } from '../lib/flags.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
+import { ScenarioFileNames, topologyFileName } from '../lib/facet-files.js';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface SimulateCommandResult {
@@ -121,15 +123,11 @@ interface ManifestScenario {
 /**
  * Write a file into `baseDir`, guarding against path traversal.
  *
- * The filename may include user-controlled substrings. Concretely, scenario
- * files are written as `${scenario.scenarioId}.json` where `scenarioId` is
- * built by the derive package as `scenario-${flow.id}` and `flow.id` is
- * `flow-${flow.name}`. `flow.name` is a langium STRING with no character
- * restrictions, so a `.moment` file declaring `flow "../../etc/evil"`
- * produces a filename containing `../` segments that `path.join` would
- * normalize through, escaping `baseDir`. `assertPathWithin` rejects any
- * resolved target that falls outside the directory using a path-separator
- * boundary check (so `/base-sibling` can't masquerade as inside `/base`).
+ * Every file name here is built from user-controlled text: `flow.name` is a langium STRING with no
+ * character restrictions, so a `.moment` file may declare `flow "../../etc/evil"`. Topology and
+ * scenario names are slugged (lib/facet-files.ts), which leaves no `/` or `.` in them, so the
+ * guard is defense in depth: `assertPathWithin` rejects any resolved target outside the directory
+ * using a path-separator boundary check (so `/base-sibling` can't masquerade as inside `/base`).
  */
 function writeSafe(baseDir: string, filename: string, content: string): void {
   const fullPath = join(baseDir, filename);
@@ -147,24 +145,22 @@ function writeOutputFiles(
 
   const topoEmitter = new TopologyEmitter();
   const manifestFlows: ManifestFlow[] = [];
+  const scenarioFiles = new ScenarioFileNames();
   let totalScenarios = 0;
   let totalEvents = 0;
 
   for (const group of groups) {
-    const flowSlug = kebab(group.flow.name);
-
-    // Write topology for this flow. flowSlug is kebab-sanitized so traversal
-    // is impossible here, but writeSafe is used uniformly for consistency.
+    // Write topology for this flow. The name is slugged, so traversal is impossible here, but
+    // writeSafe is used uniformly for consistency.
     const topology = topoEmitter.emit(ir, group.flow);
-    const topologyFile = `topology-${flowSlug}.json`;
+    const topologyFile = topologyFileName(group.flow);
     writeSafe(resolvedDir, topologyFile, JSON.stringify(topology, null, 2) + '\n');
 
-    // Write each scenario. scenarioId is NOT kebab-sanitized and may contain
-    // raw user content via flow.name → flow.id → `scenario-${flow.id}`, so
-    // writeSafe's path-traversal guard is load-bearing here.
+    // Write each scenario. The file name is slugged like the topology's; the scenarioId, which
+    // keeps the flow name as written, stays as it is inside the file and the manifest.
     const manifestScenarios: ManifestScenario[] = [];
     for (const scenario of group.scenarios) {
-      const fileName = `${scenario.scenarioId}.json`;
+      const fileName = scenarioFiles.name(group.flow, scenario.scenarioId);
       writeSafe(resolvedDir, fileName, JSON.stringify(scenario, null, 2) + '\n');
       totalScenarios++;
       totalEvents += scenario.events.length;
@@ -237,13 +233,6 @@ function writeArtifacts(ir: IntermediateRepresentation, outDir: string): Record<
   return files;
 }
 
-function kebab(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 /**
  * Run simulate in --out-dir mode. Builds the scenario groups and delegates
  * to writeOutputFiles, catching any path-traversal error from assertPathWithin
@@ -282,22 +271,13 @@ function runOutDirWrite(
 // ---------------------------------------------------------------------------
 
 export async function runSimulate(argv: string[]): Promise<SimulateCommandResult> {
-  const options = {
-    json: { type: 'boolean' },
-    flow: { type: 'string' },
-    all: { type: 'boolean' },
-    'out-dir': { type: 'string' },
-    // Alias for --out-dir, symmetric with `moment generate --out`.
-    out: { type: 'string' },
-  } as const;
-  const { values, positionals, tokens } = parseArgs({
+  const options = COMMAND_OPTIONS.simulate;
+  const { values, positionals } = parseArgs({
     args: argv,
     options,
     allowPositionals: true,
     strict: false,
-    tokens: true,
   });
-  warnUnknownFlags(tokens, Object.keys(options));
 
   const filePath = positionals[0];
   if (!filePath)

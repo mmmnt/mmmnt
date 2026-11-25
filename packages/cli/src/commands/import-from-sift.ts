@@ -16,6 +16,7 @@ import { SiftEventStreamReader } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import type { SiftImportInput } from '@mmmnt/core';
 import { assertPathWithin } from './project-fs.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface ImportResult {
   readonly success: boolean;
@@ -35,10 +36,7 @@ function fail(message: string): ImportResult {
 export async function runImportFromSift(argv: string[]): Promise<ImportResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      json: { type: 'boolean' },
-      'output-dir': { type: 'string' },
-    },
+    options: COMMAND_OPTIONS.import,
     allowPositionals: true,
     strict: false,
   });

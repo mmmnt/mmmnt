@@ -16,7 +16,8 @@ import { deriveTopology } from '@mmmnt/derive';
 import { GherkinGenerator, SpecificationDocumentGenerator } from '@mmmnt/generate';
 import { TypeScriptEmitter, TestScaffoldEmitter } from '@mmmnt/emit-ts';
 import type { Diagnostic } from '@mmmnt/core';
-import { warnUnknownFlags, resolveStringFlag } from '../lib/flags.js';
+import { resolveStringFlag } from '../lib/flags.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
 
 export interface GenerateCommandResult {
@@ -47,19 +48,13 @@ function readFile(path: string): string | GenerateCommandResult {
 }
 
 export async function runGenerate(argv: string[]): Promise<GenerateCommandResult> {
-  const options = {
-    out: { type: 'string', short: 'o' },
-    // Alias for --out, symmetric with `moment simulate --out-dir`.
-    'out-dir': { type: 'string' },
-  } as const;
-  const { values, positionals, tokens } = parseArgs({
+  const options = COMMAND_OPTIONS.generate;
+  const { values, positionals } = parseArgs({
     args: argv,
     options,
     allowPositionals: true,
     strict: false,
-    tokens: true,
   });
-  warnUnknownFlags(tokens, Object.keys(options));
 
   const filePath = positionals[0];
   if (!filePath)

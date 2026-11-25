@@ -14,6 +14,7 @@ import { deriveTopology } from '@mmmnt/derive';
 import type { Diagnostic } from '@mmmnt/core';
 import type { TestSuiteTopology } from '@mmmnt/derive';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 export interface DeriveCommandResult {
   readonly success: boolean;
   readonly message: string;
@@ -41,7 +42,7 @@ function readFile(path: string): string | DeriveCommandResult {
 export async function runDerive(argv: string[]): Promise<DeriveCommandResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { json: { type: 'boolean' } },
+    options: COMMAND_OPTIONS.derive,
     allowPositionals: true,
     strict: false,
   });

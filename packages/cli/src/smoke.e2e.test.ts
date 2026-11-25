@@ -89,6 +89,18 @@ describe.skipIf(!hasCli)('moment CLI bundle smoke', { timeout: SPAWN_TIMEOUT }, 
     expect(err).toContain('--help');
   });
 
+  it('an unknown flag exits 2 and writes nothing (emit-ts --out-dir wrote into the cwd)', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'smoke-flag-'));
+    const spec = join(cwd, 'good.moment');
+    writeFileSync(spec, 'context "X" [Core]\n\n  aggregate "A"\n    identity id: UUID\n');
+    const { code, out, err } = runCli(['emit-ts', spec, '--out-dir', join(cwd, 'gen')], cwd);
+    expect(code).toBe(2);
+    expect(out).toBe('');
+    expect(err).toContain("Error: Unknown flag --out-dir for 'moment emit-ts'");
+    expect(err).toContain('Valid flags: --dry-run, --out (-o)');
+    expect(readdirSync(cwd)).toEqual(['good.moment']);
+  });
+
   it('parse: valid spec exits 0; invalid spec exits 1 with file:line:col', () => {
     const dir = mkdtempSync(join(tmpdir(), 'smoke-'));
     const good = join(dir, 'good.moment');

@@ -11,6 +11,7 @@ import { parseArgs } from 'node:util';
 import type { Diagnostic } from '@mmmnt/core';
 import { emitPayloadSchemas } from '@mmmnt/schema';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface SchemaEmitResult {
   readonly success: boolean;
@@ -24,7 +25,7 @@ const USAGE = 'Usage: moment schema emit <file.moment|dir> [--out-dir <dir>]';
 export async function runSchemaEmit(argv: string[]): Promise<SchemaEmitResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: { 'out-dir': { type: 'string' } },
+    options: COMMAND_OPTIONS['schema emit'],
     allowPositionals: true,
     strict: false,
   });

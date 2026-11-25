@@ -9,6 +9,12 @@ import { VizEmitter } from '@mmmnt/viz';
 import { loadModel, okResult, errorResult, wrapTool } from './shared.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
+/**
+ * The one timestamp of the output. VizEmitter stamps an envelope with the current time; the tool
+ * replaces it, so the same model always gives the same output, byte for byte.
+ */
+const STABLE_TIMESTAMP = '2026-01-01T00:00:00.000Z';
+
 interface VizParams {
   filePath: string;
 }
@@ -35,10 +41,15 @@ async function vizImpl(params: VizParams): Promise<CallToolResult> {
   const event = emitter.createInitialLoad(ir, {
     sessionId,
     specificationName: basename(resolvedPath, '.moment'),
-    startedAt: '2026-01-01T00:00:00.000Z', // stable timestamp for idempotent output
+    startedAt: STABLE_TIMESTAMP,
   });
 
-  return okResult(event.envelope);
+  const { envelope } = event;
+  return okResult({
+    ...envelope,
+    timestamp: STABLE_TIMESTAMP,
+    metadata: { ...envelope.metadata, generatedAt: STABLE_TIMESTAMP },
+  });
 }
 
 export const viz = wrapTool(vizImpl);

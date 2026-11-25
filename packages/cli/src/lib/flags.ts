@@ -1,11 +1,12 @@
 /**
  * Shared CLI flag hygiene for commands that parse with `strict: false`.
  *
- * `parseArgs({ strict: false })` silently swallows unknown flags — a typo like
- * `--outdir` produces a run that quietly ignores the user's intent. Commands
- * pass their parsed tokens here to surface a warning for every option token
- * whose name is not declared in the command's options table.
+ * `parseArgs({ strict: false })` silently swallows unknown flags: a typo like `--outdir` gave a
+ * run that quietly ignored what was asked. The dispatcher checks every command line against the
+ * command's options table (`command-options.ts`) and fails on a flag the table does not declare.
  */
+
+import { parseArgs } from 'node:util';
 
 export interface OptionToken {
   readonly kind: 'option' | 'positional' | 'option-terminator';
@@ -45,16 +46,39 @@ export function resolveStringFlag(
   return undefined;
 }
 
+interface FlagSpec {
+  readonly type: 'string' | 'boolean';
+  readonly short?: string;
+}
+
+/** One flag as `--name`, with its short form when it has one: `--out (-o)`. */
+function describeFlag(name: string, option: FlagSpec): string {
+  return option.short ? `--${name} (-${option.short})` : `--${name}`;
+}
+
 /**
- * Warn (stderr) about unrecognized flags. Injectable `warn` for tests;
- * defaults to console.warn.
+ * The error for a command line that passes a flag its command does not declare, or undefined when
+ * every flag is declared. It names each unknown flag and lists the flags the command takes.
+ * `--help` and `-h` are always known: the dispatcher answers them before any command runs.
  */
-export function warnUnknownFlags(
-  tokens: readonly OptionToken[],
-  knownOptions: Iterable<string>,
-  warn: (message: string) => void = (m) => console.warn(m),
-): void {
-  for (const flag of collectUnknownFlags(tokens, knownOptions)) {
-    warn(`Warning: unrecognized flag ${flag} (ignored)`);
-  }
+export function unknownFlagError(
+  command: string,
+  args: readonly string[],
+  options: Readonly<Record<string, FlagSpec>>,
+): string | undefined {
+  const { tokens } = parseArgs({
+    args: [...args],
+    options: { ...options, help: { type: 'boolean', short: 'h' } },
+    allowPositionals: true,
+    strict: false,
+    tokens: true,
+  });
+  const unknown = collectUnknownFlags(tokens, [...Object.keys(options), 'help']);
+  if (unknown.length === 0) return undefined;
+  const flags = Object.entries(options).map(([name, option]) => describeFlag(name, option));
+  const label = unknown.length === 1 ? 'Unknown flag' : 'Unknown flags';
+  return [
+    `Error: ${label} ${unknown.join(', ')} for 'moment ${command}'`,
+    flags.length === 0 ? `'moment ${command}' takes no flags.` : `Valid flags: ${flags.join(', ')}`,
+  ].join('\n');
 }

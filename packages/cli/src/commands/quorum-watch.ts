@@ -21,6 +21,7 @@ import {
   toComplaiEnvelope,
   type QuorumConnection,
 } from '../lib/quorum-client.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 export interface QuorumWatchResult {
   readonly success: boolean;
@@ -92,26 +93,21 @@ interface WatchOptions {
   readonly once: boolean;
 }
 
+/** The usage of `moment quorum watch`; the dispatcher prints it for any other subcommand. */
+export const QUORUM_WATCH_USAGE =
+  'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--source <name>] [--once]';
+
 function parseWatchArgs(argv: string[]): WatchOptions | { usage: string } {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      server: { type: 'string' },
-      out: { type: 'string' },
-      interval: { type: 'string' },
-      source: { type: 'string' },
-      once: { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS['quorum watch'],
     allowPositionals: true,
     strict: false,
   });
 
   const streamId = positionals[0];
   if (!streamId) {
-    return {
-      usage:
-        'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--source <name>] [--once]',
-    };
+    return { usage: QUORUM_WATCH_USAGE };
   }
 
   return {

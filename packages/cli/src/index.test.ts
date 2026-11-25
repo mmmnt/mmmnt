@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Mock } from 'vitest';
+import { COMMAND_OPTIONS } from './lib/command-options.js';
 
 const m = vi.hoisted(() => ({
   runInit: vi.fn(),
@@ -22,6 +23,7 @@ const m = vi.hoisted(() => ({
   runEmitTs: vi.fn(),
   runTest: vi.fn(),
   runViz: vi.fn(),
+  runBoard: vi.fn(),
   runSyncStatus: vi.fn(),
   runSyncPropose: vi.fn(),
   runSyncAccept: vi.fn(),
@@ -53,6 +55,7 @@ vi.mock('./commands/cucumber-json.js', () => ({ runCucumberJson: m.runCucumberJs
 vi.mock('./commands/emit-ts.js', () => ({ runEmitTs: m.runEmitTs }));
 vi.mock('./commands/test.js', () => ({ runTest: m.runTest }));
 vi.mock('./commands/viz.js', () => ({ runViz: m.runViz }));
+vi.mock('./commands/board.js', () => ({ runBoard: m.runBoard }));
 vi.mock('./commands/sync-status.js', () => ({ runSyncStatus: m.runSyncStatus }));
 vi.mock('./commands/sync-propose.js', () => ({ runSyncPropose: m.runSyncPropose }));
 vi.mock('./commands/sync-accept.js', () => ({ runSyncAccept: m.runSyncAccept }));
@@ -68,7 +71,10 @@ vi.mock('./commands/auth-login.js', () => ({ runAuthLogin: m.runAuthLogin }));
 vi.mock('./commands/auth-status.js', () => ({ runAuthStatus: m.runAuthStatus }));
 vi.mock('./commands/auth-logout.js', () => ({ runAuthLogout: m.runAuthLogout }));
 vi.mock('./commands/auth-quorum.js', () => ({ runAuthQuorum: m.runAuthQuorum }));
-vi.mock('./commands/quorum-watch.js', () => ({ runQuorumWatch: m.runQuorumWatch }));
+vi.mock('./commands/quorum-watch.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./commands/quorum-watch.js')>()),
+  runQuorumWatch: m.runQuorumWatch,
+}));
 
 class ExitCalled extends Error {
   constructor(readonly code: number | undefined) {
@@ -164,6 +170,87 @@ describe('moment CLI dispatcher: global flags', () => {
     const { code, err } = await runCli(['frobnicate', '--help']);
     expect(code).toBe(1);
     expect(err).toEqual(["Error: Unknown command 'frobnicate'", "Run 'moment --help' for usage."]);
+  });
+});
+
+describe('moment CLI dispatcher: unknown flags', () => {
+  const allHandlers = Object.values(m);
+
+  it.each(Object.keys(COMMAND_OPTIONS))(
+    'moment %s refuses an unknown flag with exit 2 and runs nothing',
+    async (name) => {
+      const { code, out, err } = await runCli([...name.split(' '), 'a.moment', '--bogus']);
+      expect(code).toBe(2);
+      expect(out).toEqual([]);
+      expect(err[0]).toBe(`Error: Unknown flag --bogus for 'moment ${name}'`);
+      expect(err[2]).toBe(`Run 'moment ${name.split(' ')[0]} --help' for usage.`);
+      for (const fn of allHandlers) expect(fn).not.toHaveBeenCalled();
+    },
+  );
+
+  it('names the valid flags, with their short forms', async () => {
+    // The reported case: --out-dir is not an emit-ts flag, and was ignored, so the files were
+    // written into the current directory.
+    const { code, err } = await runCli(['emit-ts', 'a.moment', '--out-dir', 'gen']);
+    expect(code).toBe(2);
+    expect(err.slice(0, 2)).toEqual([
+      "Error: Unknown flag --out-dir for 'moment emit-ts'",
+      'Valid flags: --dry-run, --out (-o)',
+    ]);
+    expect(m.runEmitTs).not.toHaveBeenCalled();
+  });
+
+  it('says so for a command that takes no flags', async () => {
+    const { code, err } = await runCli(['viz', 'a.moment', '--json']);
+    expect(code).toBe(2);
+    expect(err[1]).toBe("'moment viz' takes no flags.");
+  });
+
+  it('lists every unknown flag once, in --flag=value and short forms too', async () => {
+    const { code, err } = await runCli(['simulate', 'a.moment', '--outdir=x', '-z', '--outdir=y']);
+    expect(code).toBe(2);
+    expect(err[0]).toBe("Error: Unknown flags --outdir, -z for 'moment simulate'");
+  });
+
+  it('refuses a flag that belongs to the other sync decision', async () => {
+    const { code, err } = await runCli(['sync', 'reject', 'a.moment', 'prop-1', '--all']);
+    expect(code).toBe(2);
+    expect(err.slice(0, 2)).toEqual([
+      "Error: Unknown flag --all for 'moment sync reject'",
+      'Valid flags: --reason',
+    ]);
+  });
+
+  it.each([
+    ['generate', ['generate', 'a.moment', '--out', 'o'], m.runGenerate],
+    ['generate', ['generate', 'a.moment', '--out-dir', 'o'], m.runGenerate],
+    ['generate', ['generate', 'a.moment', '-o', 'o'], m.runGenerate],
+    ['emit-ts', ['emit-ts', 'a.moment', '-o', 'o', '--dry-run'], m.runEmitTs],
+    ['simulate', ['simulate', 'a.moment', '--all', '--out', 'o'], m.runSimulate],
+    ['simulate', ['simulate', 'a.moment', '--flow=N5 - Seat request', '--json'], m.runSimulate],
+    ['simulate', ['simulate', 'a.moment', '--out-dir', 'o'], m.runSimulate],
+    [
+      'board',
+      ['board', 'a.moment', '--out', 'o', '--frame', 'legend', '--pointers', 'p'],
+      m.runBoard,
+    ],
+    ['serve', ['serve', 'a.moment', '-p', '4000', '--all'], m.runServe],
+    ['sync accept', ['sync', 'accept', 'a.moment', '--all'], m.runSyncAccept],
+    ['sync reject', ['sync', 'reject', 'a.moment', 'p', '--reason', 'no'], m.runSyncReject],
+    ['import', ['import', '--from-sift', '.domain', '--output-dir', 'o'], m.runImportFromSift],
+    ['parse', ['parse', 'a.moment', '--', '--not-a-flag'], m.runParse],
+  ] as const)('passes the declared flags of %s through: %j', async (_name, argv, fn) => {
+    fn.mockResolvedValue({ success: true, message: 'ok', diagnostics: [] });
+    const { code } = await runCli([...argv]);
+    expect(code).toBe(0);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('passes the short flags of init through', async () => {
+    m.runInit.mockReturnValue({ success: true, message: 'ok' });
+    const { code } = await runCli(['init', '-n', 'x', '-d', 'y']);
+    expect(code).toBe(0);
+    expect(m.runInit).toHaveBeenCalledWith(['-n', 'x', '-d', 'y']);
   });
 });
 
@@ -311,8 +398,46 @@ describe.each(diagnosticCommands)('moment $argv', ({ argv, fn, forwarded }) => {
 describe('moment viz', () => {
   it('prints the JSON envelope instead of the message when one is returned', async () => {
     m.runViz.mockResolvedValue({ success: true, message: 'ok', json: '{"v":1}', diagnostics: [] });
-    const { out } = await runCli(['viz', 'a.moment', '--json']);
+    const { out } = await runCli(['viz', 'a.moment']);
     expect(out).toEqual(['{"v":1}']);
+  });
+});
+
+describe('moment board', () => {
+  it('prints each projection notice to stderr as a note, and the summary to stdout', async () => {
+    m.runBoard.mockResolvedValue({
+      success: true,
+      message: 'Board written to out',
+      diagnostics: [],
+      notices: ['context numbers follow the load order for A, B', 'second notice'],
+    });
+    const { code, out, err } = await runCli(['board', 'model/', '--out', 'out']);
+    expect(code).toBe(0);
+    expect(out).toEqual(['Board written to out']);
+    expect(err).toEqual([
+      'note: context numbers follow the load order for A, B',
+      'note: second notice',
+    ]);
+  });
+
+  it('prints nothing to stderr when there are no notices', async () => {
+    m.runBoard.mockResolvedValue({ success: true, message: 'ok', diagnostics: [], notices: [] });
+    const { code, err } = await runCli(['board', 'model/', '--out', 'out']);
+    expect(code).toBe(0);
+    expect(err).toEqual([]);
+  });
+
+  it('prints a failure and its diagnostics to stderr with exit 1', async () => {
+    m.runBoard.mockResolvedValue({
+      success: false,
+      message: 'Parse failed with 1 diagnostic(s)',
+      diagnostics: [diag],
+      filePath: 'shop.moment',
+    });
+    const { code, err } = await runCli(['board', 'shop.moment', '--out', 'out']);
+    expect(code).toBe(1);
+    expect(err[0]).toBe('Parse failed with 1 diagnostic(s)');
+    expect(err[1]).toContain('Unknown aggregate');
   });
 });
 
@@ -502,7 +627,11 @@ describe('moment auth', () => {
     ['quorum', m.runAuthQuorum, [['--token', 't']]],
   ] as const)('%s routes to its handler and prints success', async (sub, fn, expectedArgs) => {
     fn.mockResolvedValue({ success: true, message: `${sub} ok` });
-    const { code, out } = await runCli(['auth', sub, '--token', 't']);
+    const { code, out } = await runCli([
+      'auth',
+      sub,
+      ...(sub === 'quorum' ? ['--token', 't'] : []),
+    ]);
     expect(fn).toHaveBeenCalledWith(...expectedArgs);
     expect(code).toBe(0);
     expect(out).toEqual([`${sub} ok`]);
@@ -592,7 +721,10 @@ describe('moment quorum', () => {
   it('any other subcommand prints usage and exits 1', async () => {
     const { code, err } = await runCli(['quorum', 'list']);
     expect(code).toBe(1);
-    expect(err[0]).toMatch(/^Usage: moment quorum watch <streamId>/);
+    // The command's own usage, --source included: the dispatcher once printed a copy without it.
+    expect(err).toEqual([
+      'Usage: moment quorum watch <streamId> [--server <url>] [--out <dir>] [--interval <ms>] [--source <name>] [--once]',
+    ]);
     expect(m.runQuorumWatch).not.toHaveBeenCalled();
   });
 });

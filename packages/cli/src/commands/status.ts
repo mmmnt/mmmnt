@@ -16,6 +16,7 @@ import { TypeScriptEmitter } from '@mmmnt/emit-ts';
 import { ASTDiffEngine, LocalGitArtifactStore } from '@mmmnt/sync';
 import type { Diagnostic, IntermediateRepresentation } from '@mmmnt/core';
 import { parseSpecification, specificationText } from '../lib/load-specification.js';
+import { COMMAND_OPTIONS } from '../lib/command-options.js';
 
 interface StatusSection {
   readonly label: string;
@@ -39,11 +40,7 @@ function fail(message: string): StatusResult {
 export async function runStatus(argv: string[]): Promise<StatusResult> {
   const { values, positionals } = parseArgs({
     args: argv,
-    options: {
-      verbose: { type: 'boolean' },
-      quiet: { type: 'boolean' },
-      json: { type: 'boolean' },
-    },
+    options: COMMAND_OPTIONS.status,
     allowPositionals: true,
     strict: false,
   });

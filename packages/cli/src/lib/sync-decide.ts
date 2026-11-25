@@ -28,6 +28,7 @@ import type {
 } from '@mmmnt/sync';
 import type { Diagnostic } from '@mmmnt/core';
 import { isDirectory, specificationFiles } from './load-specification.js';
+import { COMMAND_OPTIONS } from './command-options.js';
 import { domainDirOf, openSyncLogs } from './sync-logs.js';
 
 export interface SyncDecisionResult {
@@ -70,13 +71,16 @@ interface DecisionArgs {
 }
 
 function parseDecisionArgs(kind: DecisionKind, argv: string[]): DecisionArgs | string {
-  const { values, positionals } = parseArgs({
+  // Each kind declares only its own flag; under strict: false the other still parses (as a
+  // boolean or a string) and is refused below, though the dispatcher refuses it first.
+  const parsed = parseArgs({
     args: argv,
-    options: { all: { type: 'boolean' }, reason: { type: 'string' } },
+    options: COMMAND_OPTIONS[`sync ${kind}`],
     allowPositionals: true,
     strict: false,
   });
-  const [specPath, ...ids] = positionals;
+  const values: Record<string, unknown> = parsed.values;
+  const [specPath, ...ids] = parsed.positionals;
   const all = kind === 'accept' && values.all === true;
   if (!specPath || all === ids.length > 0) return DECISION_USAGE[kind];
   if (kind === 'reject' && values.all === true) return DECISION_USAGE[kind];

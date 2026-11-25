@@ -24,6 +24,12 @@ const kebab = (s: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+/** The file `moment simulate --out-dir` writes a scenario to: the flow name slugged, then the rest of the id. */
+const scenarioFile = (flow: { id: string; name: string }, scenarioId: string): string => {
+  const prefix = `scenario-${flow.id}`;
+  const rest = kebab(scenarioId.startsWith(prefix) ? scenarioId.slice(prefix.length) : scenarioId);
+  return `scenario-${kebab(flow.name)}${rest ? `-${rest}` : ''}.json`;
+};
 const committed = (file: string): unknown => JSON.parse(readFileSync(join(FACET, file), 'utf-8'));
 const roundTrip = (value: unknown): unknown => JSON.parse(JSON.stringify(value));
 /** Derivations stamp the moment they ran; the files hold the moment `moment simulate` ran. */
@@ -50,7 +56,7 @@ describe('ADR-041 derivation compat: examples/ticketwave/facet is the derivation
         ...deriveNegativeScenarios(ir, flow),
         ...deriveTimeoutScenarios(ir, flow),
       ])
-        expected.set(`${s.scenarioId}.json`, roundTrip(s));
+        expected.set(scenarioFile(flow, s.scenarioId), roundTrip(s));
     }
     const files = readdirSync(FACET).filter((f) => f.startsWith('scenario-'));
     expect(files.sort()).toEqual([...expected.keys()].sort());
