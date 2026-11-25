@@ -52,7 +52,7 @@ const topology = deriveTopology(ir);
 const manifest = new GherkinGenerator().generate(ir, topology);
 
 for (const feature of manifest.featuresGenerated) {
-  console.log(feature.filePath);
+  console.log(feature.filePath, feature.scenarioCount);
   // Write feature.content to disk as a .feature file
 }
 ```
@@ -60,17 +60,17 @@ for (const feature of manifest.featuresGenerated) {
 Output for TicketWave:
 
 ```
-features/n1-general-admission-purchase.feature
-features/n2-presale-access.feature
-features/n3-ticket-transfer.feature
-features/n4-event-cancellation.feature
-features/n5-seat-request.feature
-features/n6-payment-settlement.feature
-features/n7-hold-release.feature
-features/n8-waitlist-offer.feature
+features/n1-general-admission-purchase.feature 22
+features/n2-presale-access.feature 16
+features/n3-ticket-transfer.feature 10
+features/n4-event-cancellation.feature 9
+features/n5-seat-request.feature 3
+features/n6-payment-settlement.feature 2
+features/n7-hold-release.feature 1
+features/n8-waitlist-offer.feature 2
 ```
 
-The file name is the flow name in lower case, with every run of other characters replaced by `-`.
+The file name is the flow name in lower case, with every run of other characters replaced by `-`. `scenarioCount` is the number of `Scenario:` blocks in `content`.
 
 ## Gherkin Features
 
@@ -79,6 +79,8 @@ A feature has one `Rule` per context the flow crosses. Under each rule, a `Backg
 - one scenario per moment, and one per arm of a branch moment (`<moment> [<arm>]`)
 - for each saga the flow owns, `<Saga> state transitions`, and `<Saga> compensation` (or one `<Saga> compensation on <Command>` per named compensation of an orchestration)
 - no scenario for a moment that holds only notes. It renders as a `# moment:` comment followed by its notes
+
+`scenarioCount` counts all of these: the moment and arm scenarios, the saga scenarios, and nothing for a note-only moment. In TicketWave, N1 has 22 scenarios and N3 has 10, saga scenarios included.
 
 A precondition is a `Given`, a command a `When` (`<Context> performs <Command> with <inputs>`), and an event a `Then` (`<Context> emits <Event>`, with the fields it is `carrying`). A query step reads `answers query` and a projection step `serves projection`. A `triggered-by` source becomes `<Event> has occurred`, as a `Given` or an `And`. A crossing renders its contract as a data table. A note renders as a comment line, `# note (<lane>): <text>`, and asserts nothing.
 
@@ -160,12 +162,33 @@ The generator returns an empty array when the IR has no contexts and no flows.
 
 - the title from the specification metadata, and version `1.0.0`
 - one channel and one message per event that crosses a context boundary, with the producing and consuming contexts in the channel description
-- a payload schema from the event's fields. A field typed `number` or `boolean` keeps its type; every other type is written as `string`. A deprecated field is marked `deprecated: true`
-- a `required` list from the crossing contract's `[required]` fields, or from the event's required fields when the contract marks none
+- a payload schema from the event's fields, typed as `@mmmnt/schema` types them (ADR-049 D8). The payload is a closed object (`additionalProperties: false`)
+- a `required` list from the crossing contract's `[required]` fields, or from the event's required fields when the contract marks none. A required name that the event does not declare is left out, because the payload is closed
+- one schema under `components.schemas` per value object a payload reaches, referenced by `$ref: '#/components/schemas/<Name>'`
 
-A field name that YAML would read as a boolean or null (`on`, `off`, `yes`, `no`, `y`, `n`, `true`, `false`, `null`) is single-quoted.
+A field is typed this way:
 
-For a closed JSON Schema of every event payload, with code sets, unions, maps and patterns, use `moment schema emit` from `@mmmnt/schema`.
+| Moment                        | Payload schema                                                          |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| `string`, `number`, `boolean` | `type`                                                                  |
+| `UUID`, `DateTime`, `Date`    | `type: 'string'` with `format: 'uuid'`, `'date-time'`, `'date'`         |
+| `Money`                       | `type: 'number'`                                                        |
+| `"a" \| "b"`                  | `type: 'string'`, `enum`                                                |
+| value object `V`              | `$ref: '#/components/schemas/V'`                                        |
+| `T[]`                         | `type: 'array'`, `items`                                                |
+| `T{}`, `T{key}`               | `type: 'object'`, `additionalProperties: <T>`, and `x-key` for `T{key}` |
+| `x?: T`                       | `x` not in `required`                                                   |
+| `a: T \| b: U`                | both in `properties`, and `oneOf: [{required: [a]}, {required: [b]}]`   |
+| `[pattern "r"]`               | `pattern`                                                               |
+| `[encrypted]`                 | `x-encrypted: true`, an object of `dataKeyId` and `ciphertext`          |
+| `[deprecated …]`              | `deprecated: true`                                                      |
+| a type that is not declared   | `{}`, which accepts any value. `moment schema emit` reports it          |
+
+A scalar value object is its scalar's schema, and a tagged union a `oneOf` of closed objects tagged by `kind`. AsyncAPI reads a schema as JSON Schema draft 07, which ignores the siblings of a `$ref`. So a value object field with a pattern or a deprecation is written `allOf: [{ $ref }]` beside them. A value object name that two payloads resolve to different schemas (one name declared in two contexts) is written `<Event>.<Name>` for the second payload.
+
+A field name that YAML would read as a boolean or null (`on`, `off`, `yes`, `no`, `y`, `n`, `true`, `false`, `null`) is single-quoted. Every string value is single-quoted.
+
+The document covers the events that cross a context boundary. For a JSON Schema of every event payload, use `moment schema emit` from `@mmmnt/schema`.
 
 ## Cucumber JSON
 
@@ -191,14 +214,14 @@ For a closed JSON Schema of every event payload, with code sets, unions, maps an
 
 ### Key Types
 
-| Type                   | Description                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| `GeneratedFeatureFile` | `flowId`, `filePath`, `content`, `scenarioCount` (one per moment and per branch arm).       |
-| `GeneratedDocument`    | `documentType`, `filePath`, `content`.                                                      |
-| `GenerationManifest`   | `featuresGenerated` and `docsGenerated` of one run.                                         |
-| `CucumberFeature`      | A Cucumber JSON feature: `keyword`, `name`, `description`, `id`, `uri`, `tags`, `elements`. |
-| `CucumberScenario`     | A scenario of a feature: `keyword`, `name`, `id`, `type`, `tags`, `steps`.                  |
-| `CucumberStep`         | A step: `keyword`, `name`, `line`, `result` (`status`, `duration`).                         |
+| Type                   | Description                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `GeneratedFeatureFile` | `flowId`, `filePath`, `content`, `scenarioCount` (the number of `Scenario:` blocks in `content`). |
+| `GeneratedDocument`    | `documentType`, `filePath`, `content`.                                                            |
+| `GenerationManifest`   | `featuresGenerated` and `docsGenerated` of one run.                                               |
+| `CucumberFeature`      | A Cucumber JSON feature: `keyword`, `name`, `description`, `id`, `uri`, `tags`, `elements`.       |
+| `CucumberScenario`     | A scenario of a feature: `keyword`, `name`, `id`, `type`, `tags`, `steps`.                        |
+| `CucumberStep`         | A step: `keyword`, `name`, `line`, `result` (`status`, `duration`).                               |
 
 ## Examples
 
@@ -264,6 +287,42 @@ channels:
         $ref: '#/components/messages/EventPublished'
 ```
 
+The payload of `PaymentInitiated`. `paymentMethod` is a value object and the amounts are `Money`:
+
+```yaml
+PaymentInitiated:
+  name: 'PaymentInitiated'
+  payload:
+    type: 'object'
+    additionalProperties: false
+    properties:
+      paymentId:
+        type: 'string'
+        format: 'uuid'
+      cartId:
+        type: 'string'
+        format: 'uuid'
+      customerId:
+        type: 'string'
+        format: 'uuid'
+      paymentMethod:
+        $ref: '#/components/schemas/PaymentMethod'
+      subtotal:
+        type: 'number'
+      totalFees:
+        type: 'number'
+      totalAmount:
+        type: 'number'
+      initiatedAt:
+        type: 'string'
+        format: 'date-time'
+    required:
+      - 'paymentId'
+      - 'customerId'
+```
+
+The crossing contract of `PaymentInitiated` also marks `amount` required. The event declares no `amount`, so it is not in the list.
+
 ### Cucumber JSON
 
 ```typescript
@@ -290,12 +349,13 @@ Availability decision [sold-out] pending,pending,pending,pending,pending,pending
 
 ## Integration
 
-`@mmmnt/generate` depends on `@mmmnt/core` for the IR and `@mmmnt/derive` for the test topology:
+`@mmmnt/generate` depends on `@mmmnt/core` for the IR, `@mmmnt/derive` for the test topology, and `@mmmnt/schema` for the AsyncAPI payload schemas:
 
 ```
-@mmmnt/core --> @mmmnt/derive --> @mmmnt/generate
-                                       |
-                                       +-- @mmmnt/cli       (`moment generate`, `moment cucumber-json`, `moment simulate --out-dir`)
+@mmmnt/core --> @mmmnt/derive --+
+     |                          +--> @mmmnt/generate
+     +--------> @mmmnt/schema --+          |
+                                           +-- @mmmnt/cli  (`moment generate`, `moment cucumber-json`, `moment simulate --out-dir`)
 ```
 
 `moment generate <file|dir> --out <dir>` writes, in one pass, the feature files, `specification.md`, and the TypeScript types and test scaffolds of `@mmmnt/emit-ts`. For TicketWave: 8 `.feature` files, 21 `.spec.ts` files and 1 document. `moment cucumber-json <file|dir>` prints the Cucumber JSON. `moment simulate --all --out-dir <dir>` writes `asyncapi.yaml` with the files Facet loads. Every command accepts a single file or a model directory, which it loads as one project.

@@ -287,7 +287,7 @@ Any other rule type is ignored.
 
 ## Integration
 
-`@mmmnt/schema` depends on `@mmmnt/core` for the IR. The CLI (`@mmmnt/cli`) uses it for `moment schema emit` and `moment schema status`.
+`@mmmnt/schema` depends on `@mmmnt/core` for the IR. The CLI (`@mmmnt/cli`) uses it for `moment schema emit` and `moment schema status`. `@mmmnt/generate` uses `emitPayloadSchemas` for the payloads of its AsyncAPI document.
 
 ## Changelog
 
