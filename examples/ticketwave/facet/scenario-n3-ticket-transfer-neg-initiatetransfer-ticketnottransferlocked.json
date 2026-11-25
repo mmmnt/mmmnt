@@ -25,8 +25,8 @@
       "payload": {
         "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "processName": "InitiateTransfer",
-        "ticketId": "ticketId-001",
-        "fromCustomerId": "fromCustomerId-001",
+        "ticketId": "3044d4b5-de08-8983-8075-d558980c9b81",
+        "fromCustomerId": "c9eb6b43-2e34-8acd-b02a-8cc16d5e77ca",
         "toEmail": "sample-toEmail",
         "toName": "sample-toName"
       }

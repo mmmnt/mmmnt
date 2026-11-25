@@ -35,7 +35,7 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
-        "paymentId": "paymentId-001",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "$branch": "approved",
         "outcome": "approved"
@@ -54,7 +54,12 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
-        "paymentId": "paymentId-001",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
@@ -75,8 +80,8 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
         "processName": "ConvertHoldToReservation",
-        "holdId": "holdId-001",
-        "paymentConfirmationId": "paymentConfirmationId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "$branch": "approved",
         "outcome": "approved"
       }
@@ -94,7 +99,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br0",
-        "holdId": "holdId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "closedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
         "outcome": "approved"
@@ -113,8 +118,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0",
-        "holdId": "holdId-001",
-        "paymentConfirmationId": "paymentConfirmationId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "convertedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
         "outcome": "approved"

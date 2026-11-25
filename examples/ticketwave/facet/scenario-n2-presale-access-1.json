@@ -42,7 +42,7 @@
       "payload": {
         "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "processName": "OpenPresaleWindow",
-        "windowId": "windowId-001"
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c"
       }
     },
     {
@@ -58,7 +58,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
-        "windowId": "windowId-001",
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c",
         "openedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -76,10 +76,10 @@
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
         "processName": "RedeemAccessCode",
-        "codeId": "codeId-001",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "code": "sample-code",
-        "customerId": "customerId-001",
-        "eventId": "eventId-001",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "$branch": "uses-remain",
         "outcome": "uses-remain",
         "whenState": "Open"
@@ -98,11 +98,11 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
-        "codeId": "codeId-001",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "code": "sample-code",
-        "customerId": "customerId-001",
-        "eventId": "eventId-001",
-        "windowId": "windowId-001",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "windowId": "cbd66376-e8a3-88ce-b219-7712a7dba41c",
         "redeemedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "uses-remain",
         "outcome": "uses-remain"
@@ -122,7 +122,7 @@
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::presale::InvalidateAccessCode::br1",
         "processName": "InvalidateAccessCode",
-        "codeId": "codeId-001",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "reason": "sample-reason",
         "$branch": "invalid",
         "outcome": "invalid"
@@ -141,7 +141,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::presale::AccessCodeInvalidated::br1",
-        "codeId": "codeId-001",
+        "codeId": "2a341ccc-cc79-832d-a16e-5efe604e548b",
         "reason": "sample-reason",
         "invalidatedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "invalid",

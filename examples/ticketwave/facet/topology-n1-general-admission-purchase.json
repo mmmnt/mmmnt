@@ -683,12 +683,12 @@
         "requiredFields": [
           "paymentId",
           "customerId",
-          "amount"
+          "totalAmount"
         ],
         "fieldTypes": {
           "paymentId": "UUID",
           "customerId": "UUID",
-          "amount": "Money"
+          "totalAmount": "Money"
         }
       },
       "eventType": "PaymentInitiated",

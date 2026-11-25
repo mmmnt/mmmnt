@@ -36,12 +36,12 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::RequestHold::br1",
         "processName": "RequestHold",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "sectionId": "sectionId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
@@ -59,13 +59,13 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::SeatsHeld::br1",
-        "holdId": "holdId-001",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "sectionId": "sectionId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "expiresAt": "2026-01-01T10:00:00.000Z",
         "heldAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved-after-rehold",
@@ -85,7 +85,12 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::PaymentConfirmed::br1",
-        "paymentId": "paymentId-001",
+        "paymentId": "9938011a-31e6-854c-b073-724b6d42ce41",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
+        "orderId": "719e47be-a901-8886-a740-bda8a07e3e19",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved-after-rehold",
@@ -106,8 +111,8 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br1",
         "processName": "ConvertHoldToReservation",
-        "holdId": "holdId-001",
-        "paymentConfirmationId": "paymentConfirmationId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
       }
@@ -125,7 +130,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br1",
-        "holdId": "holdId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "closedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"
@@ -144,8 +149,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br1",
-        "holdId": "holdId-001",
-        "paymentConfirmationId": "paymentConfirmationId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "paymentConfirmationId": "04a47500-4403-80ac-964e-22d23b339b67",
         "convertedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved-after-rehold",
         "outcome": "approved-after-rehold"

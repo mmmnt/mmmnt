@@ -56,7 +56,7 @@ To load a file or a whole model directory the way the `moment` CLI does, use `lo
 
 - **Parser.** A Langium grammar with error recovery. Each diagnostic carries a 1-based line and column.
 - **Typed IR.** A normalized, typed model that downstream packages read without touching the syntax tree.
-- **Model rules.** V1 to V57 check placements, references, orchestrations, aggregate states, multi-event commands, policy conditions and field types (see [Validation rules](#validation-rules)).
+- **Model rules.** V1 to V58 check placements, references, orchestrations, aggregate states, multi-event commands, policy conditions, field types and crossing contracts (see [Validation rules](#validation-rules)).
 - **Project mode.** `ProjectLoader` parses many `.moment` files, merges them into one IR, and checks names across files.
 - **Sift import.** `SiftSpecificationImporter` turns Sift building blocks and timeline events into `.moment` source, with an upstream fingerprint for drift tracking.
 - **Manifest tools.** `ManifestScaffolder` writes a `.manifest.yaml` and the `.moment/contexts/` and `.moment/flows/` directories. `ManifestUpdater` keeps the manifest's file lists current.
@@ -363,7 +363,7 @@ Attributes follow the type, in any order. A code that is a keyword or has a spac
 Rules run at two levels:
 
 - **Syntax level** (V1 to V20, V52 to V55). These run on each file as Langium validation. Their severity is fixed, the same in a single file and in a project. The diagnostic carries the id in `ruleId`. The id also begins its `message` (`V55: ...`), as it always has, and so do the parser's SP-01 to SP-03 checks. V1, V9, V11, SP-01 and SP-02 check names, so in a single file they run only when the file declares both contexts and flows.
-- **Model level** (V22 to V51, V56, V57). These compare names across declarations, so their severity depends on how much of the model is visible. `MomentParser.parseContent` reports them as **warnings** for a file that declares contexts, because the missing name may be in another file. `ProjectLoader.loadProject` reports them as **errors** over the merged project. The diagnostic carries the id in `ruleId`, and the message does not repeat it. Some findings carry their own severity in both modes: they are listed in the table below.
+- **Model level** (V22 to V51, V56 to V58). These compare names across declarations, so their severity depends on how much of the model is visible. `MomentParser.parseContent` reports them as **warnings** for a file that declares contexts, because the missing name may be in another file. `ProjectLoader.loadProject` reports them as **errors** over the merged project. The diagnostic carries the id in `ruleId`, and the message does not repeat it. Some findings carry their own severity in both modes: they are listed in the table below.
 
 ### Rules
 
@@ -422,6 +422,7 @@ Rules run at two levels:
 | V55  | syntax | A `[pattern]` is a valid regular expression on a string-valued type (`string`, `UUID`, `DateTime`, `Date`, a code set, or a scalar value object of one).                                                                     |
 | V56  | model  | A policy's `when` path is `<field>.kind` on a single (not array, not map) tagged-union field of its trigger, and a union field is guarded only through `.kind`.                                                              |
 | V57  | model  | The variant a `when <field>.kind = <Variant>` guard names is declared by the field's union.                                                                                                                                  |
+| V58  | model  | A crossing's `contract` names only fields its event declares. The event is the one the source context declares, else the target context's. A crossing event neither context declares is left to SP-02 and PM-04.             |
 
 Every syntax-level rule is an error unless the table says it is a warning. V3, V4, V15 and V21 are not implemented.
 

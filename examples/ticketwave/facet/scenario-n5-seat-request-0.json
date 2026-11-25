@@ -34,12 +34,12 @@
       "payload": {
         "nodeId": "moment-0-Seat-request::inventory::RequestHold::main",
         "processName": "RequestHold",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "sectionId": "sectionId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001"
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc"
       }
     },
     {
@@ -55,13 +55,13 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Seat-request::inventory::SeatsHeld::main",
-        "holdId": "holdId-001",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "sectionId": "sectionId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "quantity": 0,
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "expiresAt": "2026-01-01T10:00:00.000Z",
         "heldAt": "2026-01-01T10:00:00.000Z"
       }
@@ -80,8 +80,8 @@
       "payload": {
         "nodeId": "moment-1-Availability-decision::checkout::CreateCart::br0",
         "processName": "CreateCart",
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "$branch": "seats-available",
         "outcome": "seats-available"
       }
@@ -99,9 +99,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Availability-decision::checkout::CartCreated::br0",
-        "cartId": "cartId-001",
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
+        "cartId": "33194a13-1b96-8160-9c0d-dde1589bd237",
+        "customerId": "bc8bd1fc-a683-8f0e-bc3e-25bd4af85575",
+        "sessionId": "f6934c83-b54f-8430-8ccc-61e4bb343dbc",
         "createdAt": "2026-01-01T10:00:00.000Z",
         "$branch": "seats-available",
         "outcome": "seats-available"

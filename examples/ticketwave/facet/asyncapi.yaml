@@ -132,6 +132,7 @@ components:
         required:
           - 'paymentId'
           - 'customerId'
+          - 'totalAmount'
     PaymentConfirmed:
       name: 'PaymentConfirmed'
       payload:
@@ -141,11 +142,29 @@ components:
           paymentId:
             type: 'string'
             format: 'uuid'
+          paymentConfirmationId:
+            type: 'string'
+            format: 'uuid'
+          orderId:
+            type: 'string'
+            format: 'uuid'
+          customerId:
+            type: 'string'
+            format: 'uuid'
+          eventId:
+            type: 'string'
+            format: 'uuid'
+          holdId:
+            type: 'string'
+            format: 'uuid'
           gatewayTransactionId:
             type: 'string'
           confirmedAt:
             type: 'string'
             format: 'date-time'
+        required:
+          - 'holdId'
+          - 'paymentConfirmationId'
     TicketsIssued:
       name: 'TicketsIssued'
       payload:

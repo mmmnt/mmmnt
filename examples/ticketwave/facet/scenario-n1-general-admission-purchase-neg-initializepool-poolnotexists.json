@@ -27,7 +27,7 @@
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
         "processName": "PublishEvent",
-        "eventId": "eventId-001"
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc"
       }
     },
     {
@@ -43,7 +43,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
-        "eventId": "eventId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "publishedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -61,9 +61,9 @@
       "payload": {
         "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
         "processName": "InitializePool",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "sectionId": "sectionId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
+        "tierId": "c6e59699-f45e-8891-a635-3baa600eef11",
+        "sectionId": "a074dfa3-c8af-83d1-99d3-95d2682c6d05",
         "totalTickets": 0,
         "basePrice": 0
       }

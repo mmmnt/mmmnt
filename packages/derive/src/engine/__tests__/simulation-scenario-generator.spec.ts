@@ -14,6 +14,7 @@ import {
   deriveNegativeScenarios,
   deriveTimeoutScenarios,
 } from '../simulation-scenario-generator.js';
+import { expectedSampleUuid } from './sample-uuid.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -227,7 +228,7 @@ describe('SimulationScenarioGenerator', () => {
       const scenario = generateSimulationScenario(ir, flow);
       const payload = scenario.events[0].payload;
 
-      expect(payload.orderId).toBe('orderId-001');
+      expect(payload.orderId).toBe(expectedSampleUuid('orderId'));
       expect(payload.amount).toBe(0);
       expect(payload.notes).toBe('sample-notes');
     });
@@ -257,7 +258,7 @@ describe('SimulationScenarioGenerator', () => {
       const scenario = generateSimulationScenario(ir, flow);
       const payload = scenario.events[0].payload;
 
-      expect(payload.orderId).toBe('orderId-001');
+      expect(payload.orderId).toBe(expectedSampleUuid('orderId'));
       expect(payload.active).toBe(true);
       expect(payload.createdAt).toBe('2026-01-01T10:00:00.000Z');
       expect(payload.date).toBe('2026-01-01');
@@ -1265,7 +1266,7 @@ describe('SimulationScenarioGenerator', () => {
 
       const scenario = generateSimulationScenario(ir, flow);
 
-      expect(scenario.events[0].payload.conversationId).toBe('conversationId-001');
+      expect(scenario.events[0].payload.conversationId).toBe(expectedSampleUuid('conversationId'));
       expect(scenario.events[0].payload.body).toBe('sample-body');
       expect(scenario.events[0].payload.nodeId).toBe('fr1::ctx-1::MessageAccepted::main');
     });
@@ -1325,10 +1326,10 @@ describe('SimulationScenarioGenerator', () => {
       const payload = scenario.events[0].payload;
 
       // Declared fields as before, contract-only fields appended.
-      expect(payload.paymentId).toBe('paymentId-001');
+      expect(payload.paymentId).toBe(expectedSampleUuid('paymentId'));
       expect(payload.confirmedAt).toBe('2026-01-01T10:00:00.000Z');
-      expect(payload.holdId).toBe('holdId-001');
-      expect(payload.paymentConfirmationId).toBe('paymentConfirmationId-001');
+      expect(payload.holdId).toBe(expectedSampleUuid('holdId'));
+      expect(payload.paymentConfirmationId).toBe(expectedSampleUuid('paymentConfirmationId'));
       // Deterministic key order: nodeId, declared fields, contract-only fields.
       expect(Object.keys(payload)).toEqual([
         'nodeId',
@@ -1369,7 +1370,7 @@ describe('SimulationScenarioGenerator', () => {
 
       // Declared wins: Money placeholder (0), not the contract's 'sample-amount'.
       expect(payload.amount).toBe(0);
-      expect(payload.holdId).toBe('holdId-001');
+      expect(payload.holdId).toBe(expectedSampleUuid('holdId'));
     });
 
     it('unions every crossing attached to the node name, across moments', () => {

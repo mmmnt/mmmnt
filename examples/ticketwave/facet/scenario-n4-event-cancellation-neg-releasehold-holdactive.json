@@ -30,7 +30,7 @@
       "payload": {
         "nodeId": "moment-0-Event-cancellation::catalog::CancelEvent::main",
         "processName": "CancelEvent",
-        "eventId": "eventId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason"
       }
     },
@@ -47,7 +47,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Event-cancellation::catalog::EventCancelled::main",
-        "eventId": "eventId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -65,7 +65,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Cancellation-propagation-to-checkout::catalog::EventCancelled::main",
-        "eventId": "eventId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -83,7 +83,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-2-Cancellation-propagation-to-delivery::catalog::EventCancelled::main",
-        "eventId": "eventId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -101,7 +101,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-3-Cancellation-propagation-to-notifications::catalog::EventCancelled::main",
-        "eventId": "eventId-001",
+        "eventId": "707bc76a-d6fa-8c3b-b32c-5eede462c2cc",
         "reason": "sample-reason",
         "cancelledAt": "2026-01-01T10:00:00.000Z"
       }
@@ -120,7 +120,7 @@
       "payload": {
         "nodeId": "moment-4-Active-holds-release::inventory::ReleaseHold::main",
         "processName": "ReleaseHold",
-        "holdId": "holdId-001",
+        "holdId": "5c120ef6-4aa7-805f-ac7b-2cdb56fafb9d",
         "reason": "sample-reason"
       }
     },

@@ -393,6 +393,11 @@ context "Checkout" [Core]
 
     event PaymentConfirmed
       paymentId: UUID
+      paymentConfirmationId: UUID
+      orderId: UUID
+      customerId: UUID
+      eventId: UUID
+      holdId: UUID
       gatewayTransactionId: string
       confirmedAt: DateTime
 
@@ -1109,7 +1114,7 @@ flow "N1 - General admission purchase"
       contract
         paymentId: UUID [required]
         customerId: UUID [required]
-        amount: Money [required]
+        totalAmount: Money [required]
 
   moment "Payment fraud evaluation"
     antifraud: EvaluatePaymentRisk

@@ -37,6 +37,7 @@
   "scripts": {
     "build": "node build.mjs",
     "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

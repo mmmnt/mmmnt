@@ -4,6 +4,7 @@ import {
   deriveNegativeScenarios,
   generateSimulationScenario,
 } from '../simulation-scenario-generator.js';
+import { expectedSampleUuid } from './sample-uuid.js';
 
 async function load(source: string): Promise<IntermediateRepresentation> {
   const result = await new MomentParser().parseContent(source);
@@ -148,7 +149,7 @@ describe('ADR-040 D1/D2 orchestration commands in derivation', () => {
     const types = events.map((e) => e.eventType);
     expect(types.indexOf('PurchaseCompleted')).toBe(types.indexOf('SimProcess.FinishPurchase') + 1);
     const completed = events.find((e) => e.eventType === 'PurchaseCompleted');
-    expect(completed?.payload.customerId).toBe('customerId-001');
+    expect(completed?.payload.customerId).toBe(expectedSampleUuid('customerId'));
     expect(completed?.productSource).toBe('ticketing');
   });
 

@@ -123,7 +123,6 @@ switch (command) {
   case 'derive': {
     runDerive(args)
       .then((result) => {
-        for (const notice of result.notices ?? []) console.error(`note: ${notice}`);
         if (result.success) {
           console.log(result.message);
         } else {
