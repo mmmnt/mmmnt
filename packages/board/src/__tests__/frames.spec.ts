@@ -11,7 +11,7 @@ let pc: BoardProjection;
 let tw: BoardProjection;
 beforeAll(async () => {
   pc = projectBoard(numbered(await loadIr('fixtures/valid/process-constructs')));
-  tw = projectBoard(numbered(await loadIr('examples/ticketwave/spec/ticketwave.moment')));
+  tw = projectBoard(await loadIr('examples/ticketwave/spec/ticketwave.moment'));
 });
 
 const frame = (b: BoardProjection, id: string): BoardFrame => {

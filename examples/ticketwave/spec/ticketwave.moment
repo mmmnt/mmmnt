@@ -262,6 +262,11 @@ context "Inventory" [Core]
     action "Track the hold until it converts or expires"
     chains-to TrackHold
 
+  policy ConvertHoldOnRehold
+    trigger SeatsHeld after PaymentConfirmed
+    action "Payment cleared before the new hold was placed; convert the new hold"
+    chains-to ConvertHoldToReservation
+
   policy AwaitConversionOnPaymentConfirmed
     trigger PaymentConfirmed
     action "The hold's payment is confirmed; await its conversion"
@@ -1031,7 +1036,7 @@ context "Notifications" [Generic]
 // TicketWave — General Admission Purchase Flow
 // Full purchase lifecycle: browse → hold → fraud check → checkout → deliver → notify
 
-flow "general-admission-purchase"
+flow "N1 - General admission purchase"
   description "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase."
 
   lane catalog "Catalog" [Core]
@@ -1170,7 +1175,7 @@ flow "general-admission-purchase"
 // TicketWave — Presale Access Flow
 // Verified fan presale: code validation → early-window purchase → delivery
 
-flow "presale-access"
+flow "N2 - Presale access"
   description "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation."
 
   lane presale "Presale" [Supporting]
@@ -1274,7 +1279,7 @@ flow "presale-access"
 // TicketWave — Ticket Transfer Flow
 // Peer-to-peer transfer: initiate → notify recipient → accept/decline → re-issue
 
-flow "ticket-transfer"
+flow "N3 - Ticket transfer"
   description "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked."
 
   lane delivery "Delivery" [Supporting]
@@ -1326,7 +1331,7 @@ flow "ticket-transfer"
 // TicketWave — Event Cancellation Flow
 // Cancel event → revoke all tickets → refund all payments → notify all holders
 
-flow "event-cancellation"
+flow "N4 - Event cancellation"
   description "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event."
 
   lane catalog "Catalog" [Core]
@@ -1388,7 +1393,7 @@ flow "event-cancellation"
       triggered-by EventCancelled
     notifications: EventCancellationNoticeSent (×N) [terminal]
 
-flow "seat-request"
+flow "N5 - Seat request"
   description "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist."
 
   lane inventory "Inventory" [Core]
@@ -1408,7 +1413,7 @@ flow "seat-request"
       presale: JoinWaitlist
       presale: WaitlistJoined [outcome]
 
-flow "payment-settlement"
+flow "N6 - Payment settlement"
   description "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead."
 
   lane inventory "Inventory" [Core]
@@ -1431,7 +1436,7 @@ flow "payment-settlement"
       inventory: HoldClosed
       inventory: HoldConvertedToReservation [outcome]
 
-flow "hold-release"
+flow "N7 - Hold release"
   description "A customer abandons the cart and the hold is released; later a hold expires. Only the expired release promotes the waitlist."
 
   lane inventory "Inventory" [Core]
@@ -1445,7 +1450,7 @@ flow "hold-release"
       triggered-by HoldReleased
     presale: WaitlistPromotionNotified
 
-flow "waitlist-offer"
+flow "N8 - Waitlist offer"
   description "A waitlisted customer is offered seats and answers. The answer is the event's own outcome field; the branch is the arm the flow takes."
 
   lane presale "Presale" [Supporting]

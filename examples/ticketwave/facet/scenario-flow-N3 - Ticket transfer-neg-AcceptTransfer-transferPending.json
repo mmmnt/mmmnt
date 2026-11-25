@@ -1,0 +1,162 @@
+{
+  "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-AcceptTransfer-transferPending",
+  "flowId": "flow-N3 - Ticket transfer",
+  "flowName": "N3 - Ticket transfer",
+  "scenarioLabel": "Failure: Transfer must be in pending state not met",
+  "kind": "negative",
+  "description": "Negative scenario: Transfer must be in pending state precondition violation at AcceptTransfer",
+  "given": "A transfer initiation scenario is initiated",
+  "when": "AcceptTransfer is invoked without satisfying transferPending",
+  "then": "The command AcceptTransfer is rejected",
+  "expectedPath": [
+    "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+    "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
+    "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
+    "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
+    "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Transfer resolution",
+      "condition": "accepted",
+      "routeChosen": "accepted"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.InitiateTransfer",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
+        "processName": "InitiateTransfer",
+        "ticketId": "ticketId-001",
+        "fromCustomerId": "fromCustomerId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "TransferInitiated",
+      "productSource": "delivery",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
+        "transferId": "transferId-001",
+        "ticketId": "ticketId-001",
+        "fromCustomerId": "fromCustomerId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "initiatedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.SendTransferNotification",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Recipient-notification::notifications::SendTransferNotification::main",
+        "processName": "SendTransferNotification",
+        "transferId": "transferId-001",
+        "ticketId": "ticketId-001",
+        "toEmail": "sample-toEmail",
+        "toName": "sample-toName",
+        "eventTitle": "sample-eventTitle",
+        "fromName": "sample-fromName"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "TransferNotificationSent",
+      "productSource": "notifications",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Recipient-notification::notifications::TransferNotificationSent::main",
+        "dispatchId": "dispatchId-001",
+        "transferId": "transferId-001",
+        "toEmail": "sample-toEmail",
+        "sentAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.AcceptTransfer",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [
+        "evt-004"
+      ],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
+        "processName": "AcceptTransfer",
+        "transferId": "transferId-001",
+        "recipientCustomerId": "recipientCustomerId-001",
+        "$branch": "accepted",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SimFailure.AcceptTransfer.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Transfer-resolution::delivery::AcceptTransfer::br0",
+        "failedPrecondition": "transferPending",
+        "description": "Transfer must be in pending state"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "SimSaga.TransferLifecycle.Pending",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N3 - Ticket transfer",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N3 - Ticket transfer",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "TransferLifecycle",
+        "state": "Pending",
+        "triggeredBy": "TransferInitiated"
+      }
+    }
+  ]
+}

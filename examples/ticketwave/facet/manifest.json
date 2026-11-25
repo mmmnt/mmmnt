@@ -1,16 +1,16 @@
 {
   "flows": [
     {
-      "flowId": "flow-general-admission-purchase",
-      "flowName": "general-admission-purchase",
-      "topology": "topology-general-admission-purchase.json",
+      "flowId": "flow-N1 - General admission purchase",
+      "flowName": "N1 - General admission purchase",
+      "topology": "topology-n1-general-admission-purchase.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-0",
-          "scenarioLabel": "Happy Path: general-admission-purchase",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-0",
+          "scenarioLabel": "Happy Path: N1 - General admission purchase",
           "kind": "happy",
           "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
-          "file": "scenario-flow-general-admission-purchase-0.json",
+          "file": "scenario-flow-N1 - General admission purchase-0.json",
           "eventCount": 36,
           "pathLength": 33,
           "branchCount": 2,
@@ -18,11 +18,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-1",
-          "scenarioLabel": "Failure Path: general-admission-purchase [declined]",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-1",
+          "scenarioLabel": "Failure Path: N1 - General admission purchase [declined]",
           "kind": "failure",
           "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
-          "file": "scenario-flow-general-admission-purchase-1.json",
+          "file": "scenario-flow-N1 - General admission purchase-1.json",
           "eventCount": 22,
           "pathLength": 21,
           "branchCount": 2,
@@ -30,11 +30,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-2",
-          "scenarioLabel": "Failure Path: general-admission-purchase [high-risk]",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-2",
+          "scenarioLabel": "Failure Path: N1 - General admission purchase [high-risk]",
           "kind": "failure",
           "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
-          "file": "scenario-flow-general-admission-purchase-2.json",
+          "file": "scenario-flow-N1 - General admission purchase-2.json",
           "eventCount": 12,
           "pathLength": 11,
           "branchCount": 1,
@@ -42,11 +42,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-3",
-          "scenarioLabel": "Failure Path: general-admission-purchase [medium-risk]",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-3",
+          "scenarioLabel": "Failure Path: N1 - General admission purchase [medium-risk]",
           "kind": "failure",
           "description": "A customer discovers an event, selects tickets, holds seats, passes fraud checks, completes payment, receives digital tickets, and gets confirmation. The happy path for a standard ticket purchase.",
-          "file": "scenario-flow-general-admission-purchase-3.json",
+          "file": "scenario-flow-N1 - General admission purchase-3.json",
           "eventCount": 12,
           "pathLength": 11,
           "branchCount": 1,
@@ -54,11 +54,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-PublishEvent-eventComplete",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-PublishEvent-eventComplete",
           "scenarioLabel": "Failure: Event must have at least one ticket tier configured not met",
           "kind": "negative",
           "description": "Negative scenario: Event must have at least one ticket tier configured precondition violation at PublishEvent",
-          "file": "scenario-flow-general-admission-purchase-neg-PublishEvent-eventComplete.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-PublishEvent-eventComplete.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -66,11 +66,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-InitializePool-poolNotExists",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-InitializePool-poolNotExists",
           "scenarioLabel": "Failure: Pool must not already exist for this event-tier-section combination not met",
           "kind": "negative",
           "description": "Negative scenario: Pool must not already exist for this event-tier-section combination precondition violation at InitializePool",
-          "file": "scenario-flow-general-admission-purchase-neg-InitializePool-poolNotExists.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-InitializePool-poolNotExists.json",
           "eventCount": 4,
           "pathLength": 3,
           "branchCount": 0,
@@ -78,11 +78,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-RequestHold-ticketsAvailable",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-RequestHold-ticketsAvailable",
           "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
           "kind": "negative",
           "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
-          "file": "scenario-flow-general-admission-purchase-neg-RequestHold-ticketsAvailable.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-RequestHold-ticketsAvailable.json",
           "eventCount": 6,
           "pathLength": 5,
           "branchCount": 0,
@@ -90,11 +90,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-RequestHold-customerHoldLimit",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-RequestHold-customerHoldLimit",
           "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
           "kind": "negative",
           "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
-          "file": "scenario-flow-general-admission-purchase-neg-RequestHold-customerHoldLimit.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-RequestHold-customerHoldLimit.json",
           "eventCount": 6,
           "pathLength": 5,
           "branchCount": 0,
@@ -102,11 +102,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-cartOpen",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-AddTicketsToCart-cartOpen",
           "scenarioLabel": "Failure: Cart must be in open state not met",
           "kind": "negative",
           "description": "Negative scenario: Cart must be in open state precondition violation at AddTicketsToCart",
-          "file": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-cartOpen.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-AddTicketsToCart-cartOpen.json",
           "eventCount": 13,
           "pathLength": 11,
           "branchCount": 1,
@@ -114,11 +114,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-holdValid",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-AddTicketsToCart-holdValid",
           "scenarioLabel": "Failure: Referenced hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Referenced hold must be active precondition violation at AddTicketsToCart",
-          "file": "scenario-flow-general-admission-purchase-neg-AddTicketsToCart-holdValid.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-AddTicketsToCart-holdValid.json",
           "eventCount": 13,
           "pathLength": 11,
           "branchCount": 1,
@@ -126,11 +126,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-CalculateFees-cartHasItems",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-CalculateFees-cartHasItems",
           "scenarioLabel": "Failure: Cart must contain at least one line item not met",
           "kind": "negative",
           "description": "Negative scenario: Cart must contain at least one line item precondition violation at CalculateFees",
-          "file": "scenario-flow-general-admission-purchase-neg-CalculateFees-cartHasItems.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-CalculateFees-cartHasItems.json",
           "eventCount": 15,
           "pathLength": 13,
           "branchCount": 1,
@@ -138,11 +138,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-InitiatePayment-feesCalculated",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-InitiatePayment-feesCalculated",
           "scenarioLabel": "Failure: Fees must be calculated before payment not met",
           "kind": "negative",
           "description": "Negative scenario: Fees must be calculated before payment precondition violation at InitiatePayment",
-          "file": "scenario-flow-general-admission-purchase-neg-InitiatePayment-feesCalculated.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-InitiatePayment-feesCalculated.json",
           "eventCount": 17,
           "pathLength": 15,
           "branchCount": 1,
@@ -150,11 +150,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-ConfirmPayment-paymentPending",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-ConfirmPayment-paymentPending",
           "scenarioLabel": "Failure: Payment must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be in pending state precondition violation at ConfirmPayment",
-          "file": "scenario-flow-general-admission-purchase-neg-ConfirmPayment-paymentPending.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-ConfirmPayment-paymentPending.json",
           "eventCount": 21,
           "pathLength": 19,
           "branchCount": 2,
@@ -162,11 +162,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-ConvertHoldToReservation-holdActive",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-ConvertHoldToReservation-holdActive",
           "scenarioLabel": "Failure: Hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Hold must be active precondition violation at ConvertHoldToReservation",
-          "file": "scenario-flow-general-admission-purchase-neg-ConvertHoldToReservation-holdActive.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-ConvertHoldToReservation-holdActive.json",
           "eventCount": 26,
           "pathLength": 23,
           "branchCount": 2,
@@ -174,11 +174,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-IssueTickets-paymentConfirmed",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-IssueTickets-paymentConfirmed",
           "scenarioLabel": "Failure: Payment must be confirmed before ticket issuance not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be confirmed before ticket issuance precondition violation at IssueTickets",
-          "file": "scenario-flow-general-admission-purchase-neg-IssueTickets-paymentConfirmed.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-IssueTickets-paymentConfirmed.json",
           "eventCount": 30,
           "pathLength": 26,
           "branchCount": 2,
@@ -186,11 +186,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-GenerateMobilePass-ticketIssued",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-GenerateMobilePass-ticketIssued",
           "scenarioLabel": "Failure: Ticket must be issued not met",
           "kind": "negative",
           "description": "Negative scenario: Ticket must be issued precondition violation at GenerateMobilePass",
-          "file": "scenario-flow-general-admission-purchase-neg-GenerateMobilePass-ticketIssued.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-GenerateMobilePass-ticketIssued.json",
           "eventCount": 32,
           "pathLength": 28,
           "branchCount": 2,
@@ -198,11 +198,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-neg-FailPayment-paymentPending",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-neg-FailPayment-paymentPending",
           "scenarioLabel": "Failure: Payment must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be in pending state precondition violation at FailPayment",
-          "file": "scenario-flow-general-admission-purchase-neg-FailPayment-paymentPending.json",
+          "file": "scenario-flow-N1 - General admission purchase-neg-FailPayment-paymentPending.json",
           "eventCount": 21,
           "pathLength": 19,
           "branchCount": 2,
@@ -210,11 +210,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle",
-          "scenarioLabel": "Timeout: general-admission-purchase [SeatHoldLifecycle.holdExpiry]",
+          "scenarioId": "scenario-flow-N1 - General admission purchase-timeout-SeatHoldLifecycle",
+          "scenarioLabel": "Timeout: N1 - General admission purchase [SeatHoldLifecycle.holdExpiry]",
           "kind": "timeout",
           "description": "Timeout scenario: saga SeatHoldLifecycle timeout holdExpiry elapses after SeatsHeld; the domain flow stops at Seat selection and hold",
-          "file": "scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle.json",
+          "file": "scenario-flow-N1 - General admission purchase-timeout-SeatHoldLifecycle.json",
           "eventCount": 9,
           "pathLength": 6,
           "branchCount": 0,
@@ -224,16 +224,16 @@
       ]
     },
     {
-      "flowId": "flow-presale-access",
-      "flowName": "presale-access",
-      "topology": "topology-presale-access.json",
+      "flowId": "flow-N2 - Presale access",
+      "flowName": "N2 - Presale access",
+      "topology": "topology-n2-presale-access.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-presale-access-0",
-          "scenarioLabel": "Happy Path: presale-access",
+          "scenarioId": "scenario-flow-N2 - Presale access-0",
+          "scenarioLabel": "Happy Path: N2 - Presale access",
           "kind": "happy",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
-          "file": "scenario-flow-presale-access-0.json",
+          "file": "scenario-flow-N2 - Presale access-0.json",
           "eventCount": 29,
           "pathLength": 26,
           "branchCount": 2,
@@ -241,11 +241,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-presale-access-1",
-          "scenarioLabel": "Failure Path: presale-access [invalid]",
+          "scenarioId": "scenario-flow-N2 - Presale access-1",
+          "scenarioLabel": "Failure Path: N2 - Presale access [invalid]",
           "kind": "failure",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
-          "file": "scenario-flow-presale-access-1.json",
+          "file": "scenario-flow-N2 - Presale access-1.json",
           "eventCount": 7,
           "pathLength": 7,
           "branchCount": 2,
@@ -253,11 +253,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-presale-access-2",
-          "scenarioLabel": "Failure Path: presale-access [window-expired]",
+          "scenarioId": "scenario-flow-N2 - Presale access-2",
+          "scenarioLabel": "Failure Path: N2 - Presale access [window-expired]",
           "kind": "failure",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
-          "file": "scenario-flow-presale-access-2.json",
+          "file": "scenario-flow-N2 - Presale access-2.json",
           "eventCount": 7,
           "pathLength": 7,
           "branchCount": 2,
@@ -265,11 +265,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-presale-access-3",
-          "scenarioLabel": "Variant: presale-access [last-use]",
+          "scenarioId": "scenario-flow-N2 - Presale access-3",
+          "scenarioLabel": "Variant: N2 - Presale access [last-use]",
           "kind": "variant",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
-          "file": "scenario-flow-presale-access-3.json",
+          "file": "scenario-flow-N2 - Presale access-3.json",
           "eventCount": 30,
           "pathLength": 27,
           "branchCount": 2,
@@ -277,11 +277,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-presale-access-4",
-          "scenarioLabel": "Failure Path: presale-access [last-use, invalid]",
+          "scenarioId": "scenario-flow-N2 - Presale access-4",
+          "scenarioLabel": "Failure Path: N2 - Presale access [last-use, invalid]",
           "kind": "failure",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
-          "file": "scenario-flow-presale-access-4.json",
+          "file": "scenario-flow-N2 - Presale access-4.json",
           "eventCount": 8,
           "pathLength": 8,
           "branchCount": 2,
@@ -289,11 +289,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-presale-access-5",
-          "scenarioLabel": "Failure Path: presale-access [last-use, window-expired]",
+          "scenarioId": "scenario-flow-N2 - Presale access-5",
+          "scenarioLabel": "Failure Path: N2 - Presale access [last-use, window-expired]",
           "kind": "failure",
           "description": "A verified fan enters a presale access code, gains early access to ticket selection, and completes a purchase before general availability opens. Covers code validation, window enforcement, and presale-specific hold creation.",
-          "file": "scenario-flow-presale-access-5.json",
+          "file": "scenario-flow-N2 - Presale access-5.json",
           "eventCount": 8,
           "pathLength": 8,
           "branchCount": 2,
@@ -301,11 +301,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-OpenPresaleWindow-windowNotExpired",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-OpenPresaleWindow-windowNotExpired",
           "scenarioLabel": "Failure: Window must not have passed its end time not met",
           "kind": "negative",
           "description": "Negative scenario: Window must not have passed its end time precondition violation at OpenPresaleWindow",
-          "file": "scenario-flow-presale-access-neg-OpenPresaleWindow-windowNotExpired.json",
+          "file": "scenario-flow-N2 - Presale access-neg-OpenPresaleWindow-windowNotExpired.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -313,11 +313,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-RedeemAccessCode-codeValid",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-codeValid",
           "scenarioLabel": "Failure: Access code must be valid and unredeemed not met",
           "kind": "negative",
           "description": "Negative scenario: Access code must be valid and unredeemed precondition violation at RedeemAccessCode",
-          "file": "scenario-flow-presale-access-neg-RedeemAccessCode-codeValid.json",
+          "file": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-codeValid.json",
           "eventCount": 4,
           "pathLength": 3,
           "branchCount": 1,
@@ -325,11 +325,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-RedeemAccessCode-windowOpen",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-windowOpen",
           "scenarioLabel": "Failure: Associated presale window must be currently open not met",
           "kind": "negative",
           "description": "Negative scenario: Associated presale window must be currently open precondition violation at RedeemAccessCode",
-          "file": "scenario-flow-presale-access-neg-RedeemAccessCode-windowOpen.json",
+          "file": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-windowOpen.json",
           "eventCount": 4,
           "pathLength": 3,
           "branchCount": 1,
@@ -337,11 +337,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-RedeemAccessCode-redemptionLimit",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-redemptionLimit",
           "scenarioLabel": "Failure: Code must not have exceeded its redemption limit not met",
           "kind": "negative",
           "description": "Negative scenario: Code must not have exceeded its redemption limit precondition violation at RedeemAccessCode",
-          "file": "scenario-flow-presale-access-neg-RedeemAccessCode-redemptionLimit.json",
+          "file": "scenario-flow-N2 - Presale access-neg-RedeemAccessCode-redemptionLimit.json",
           "eventCount": 4,
           "pathLength": 3,
           "branchCount": 1,
@@ -349,11 +349,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-RequestHold-ticketsAvailable",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-RequestHold-ticketsAvailable",
           "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
           "kind": "negative",
           "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
-          "file": "scenario-flow-presale-access-neg-RequestHold-ticketsAvailable.json",
+          "file": "scenario-flow-N2 - Presale access-neg-RequestHold-ticketsAvailable.json",
           "eventCount": 6,
           "pathLength": 5,
           "branchCount": 2,
@@ -361,11 +361,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-RequestHold-customerHoldLimit",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-RequestHold-customerHoldLimit",
           "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
           "kind": "negative",
           "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
-          "file": "scenario-flow-presale-access-neg-RequestHold-customerHoldLimit.json",
+          "file": "scenario-flow-N2 - Presale access-neg-RequestHold-customerHoldLimit.json",
           "eventCount": 6,
           "pathLength": 5,
           "branchCount": 2,
@@ -373,11 +373,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-AddTicketsToCart-cartOpen",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-AddTicketsToCart-cartOpen",
           "scenarioLabel": "Failure: Cart must be in open state not met",
           "kind": "negative",
           "description": "Negative scenario: Cart must be in open state precondition violation at AddTicketsToCart",
-          "file": "scenario-flow-presale-access-neg-AddTicketsToCart-cartOpen.json",
+          "file": "scenario-flow-N2 - Presale access-neg-AddTicketsToCart-cartOpen.json",
           "eventCount": 11,
           "pathLength": 9,
           "branchCount": 2,
@@ -385,11 +385,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-AddTicketsToCart-holdValid",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-AddTicketsToCart-holdValid",
           "scenarioLabel": "Failure: Referenced hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Referenced hold must be active precondition violation at AddTicketsToCart",
-          "file": "scenario-flow-presale-access-neg-AddTicketsToCart-holdValid.json",
+          "file": "scenario-flow-N2 - Presale access-neg-AddTicketsToCart-holdValid.json",
           "eventCount": 11,
           "pathLength": 9,
           "branchCount": 2,
@@ -397,11 +397,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-CalculateFees-cartHasItems",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-CalculateFees-cartHasItems",
           "scenarioLabel": "Failure: Cart must contain at least one line item not met",
           "kind": "negative",
           "description": "Negative scenario: Cart must contain at least one line item precondition violation at CalculateFees",
-          "file": "scenario-flow-presale-access-neg-CalculateFees-cartHasItems.json",
+          "file": "scenario-flow-N2 - Presale access-neg-CalculateFees-cartHasItems.json",
           "eventCount": 13,
           "pathLength": 11,
           "branchCount": 2,
@@ -409,11 +409,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-InitiatePayment-feesCalculated",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-InitiatePayment-feesCalculated",
           "scenarioLabel": "Failure: Fees must be calculated before payment not met",
           "kind": "negative",
           "description": "Negative scenario: Fees must be calculated before payment precondition violation at InitiatePayment",
-          "file": "scenario-flow-presale-access-neg-InitiatePayment-feesCalculated.json",
+          "file": "scenario-flow-N2 - Presale access-neg-InitiatePayment-feesCalculated.json",
           "eventCount": 15,
           "pathLength": 13,
           "branchCount": 2,
@@ -421,11 +421,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-ConfirmPayment-paymentPending",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-ConfirmPayment-paymentPending",
           "scenarioLabel": "Failure: Payment must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be in pending state precondition violation at ConfirmPayment",
-          "file": "scenario-flow-presale-access-neg-ConfirmPayment-paymentPending.json",
+          "file": "scenario-flow-N2 - Presale access-neg-ConfirmPayment-paymentPending.json",
           "eventCount": 17,
           "pathLength": 15,
           "branchCount": 2,
@@ -433,11 +433,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-ConvertHoldToReservation-holdActive",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-ConvertHoldToReservation-holdActive",
           "scenarioLabel": "Failure: Hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Hold must be active precondition violation at ConvertHoldToReservation",
-          "file": "scenario-flow-presale-access-neg-ConvertHoldToReservation-holdActive.json",
+          "file": "scenario-flow-N2 - Presale access-neg-ConvertHoldToReservation-holdActive.json",
           "eventCount": 21,
           "pathLength": 18,
           "branchCount": 2,
@@ -445,11 +445,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-presale-access-neg-IssueTickets-paymentConfirmed",
+          "scenarioId": "scenario-flow-N2 - Presale access-neg-IssueTickets-paymentConfirmed",
           "scenarioLabel": "Failure: Payment must be confirmed before ticket issuance not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be confirmed before ticket issuance precondition violation at IssueTickets",
-          "file": "scenario-flow-presale-access-neg-IssueTickets-paymentConfirmed.json",
+          "file": "scenario-flow-N2 - Presale access-neg-IssueTickets-paymentConfirmed.json",
           "eventCount": 25,
           "pathLength": 21,
           "branchCount": 2,
@@ -459,16 +459,16 @@
       ]
     },
     {
-      "flowId": "flow-ticket-transfer",
-      "flowName": "ticket-transfer",
-      "topology": "topology-ticket-transfer.json",
+      "flowId": "flow-N3 - Ticket transfer",
+      "flowName": "N3 - Ticket transfer",
+      "topology": "topology-n3-ticket-transfer.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-ticket-transfer-0",
-          "scenarioLabel": "Happy Path: ticket-transfer",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-0",
+          "scenarioLabel": "Happy Path: N3 - Ticket transfer",
           "kind": "happy",
           "description": "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked.",
-          "file": "scenario-flow-ticket-transfer-0.json",
+          "file": "scenario-flow-N3 - Ticket transfer-0.json",
           "eventCount": 14,
           "pathLength": 12,
           "branchCount": 1,
@@ -476,11 +476,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-1",
-          "scenarioLabel": "Failure Path: ticket-transfer [declined]",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-1",
+          "scenarioLabel": "Failure Path: N3 - Ticket transfer [declined]",
           "kind": "failure",
           "description": "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked.",
-          "file": "scenario-flow-ticket-transfer-1.json",
+          "file": "scenario-flow-N3 - Ticket transfer-1.json",
           "eventCount": 8,
           "pathLength": 7,
           "branchCount": 1,
@@ -488,11 +488,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-2",
-          "scenarioLabel": "Failure Path: ticket-transfer [expired]",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-2",
+          "scenarioLabel": "Failure Path: N3 - Ticket transfer [expired]",
           "kind": "failure",
           "description": "A ticket holder initiates a transfer to another person. The recipient is notified, verifies their identity, and accepts the transfer. A new barcode is generated and the original is revoked.",
-          "file": "scenario-flow-ticket-transfer-2.json",
+          "file": "scenario-flow-N3 - Ticket transfer-2.json",
           "eventCount": 8,
           "pathLength": 7,
           "branchCount": 1,
@@ -500,11 +500,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-InitiateTransfer-ticketOwned",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-InitiateTransfer-ticketOwned",
           "scenarioLabel": "Failure: Sender must own the ticket not met",
           "kind": "negative",
           "description": "Negative scenario: Sender must own the ticket precondition violation at InitiateTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-InitiateTransfer-ticketOwned.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-InitiateTransfer-ticketOwned.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -512,11 +512,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-InitiateTransfer-ticketNotTransferLocked",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-InitiateTransfer-ticketNotTransferLocked",
           "scenarioLabel": "Failure: Ticket must not be transfer-locked not met",
           "kind": "negative",
           "description": "Negative scenario: Ticket must not be transfer-locked precondition violation at InitiateTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-InitiateTransfer-ticketNotTransferLocked.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-InitiateTransfer-ticketNotTransferLocked.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -524,11 +524,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-InitiateTransfer-eventNotPassed",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-InitiateTransfer-eventNotPassed",
           "scenarioLabel": "Failure: Event must not have already occurred not met",
           "kind": "negative",
           "description": "Negative scenario: Event must not have already occurred precondition violation at InitiateTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-InitiateTransfer-eventNotPassed.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-InitiateTransfer-eventNotPassed.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -536,11 +536,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-AcceptTransfer-transferPending",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-AcceptTransfer-transferPending",
           "scenarioLabel": "Failure: Transfer must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Transfer must be in pending state precondition violation at AcceptTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-AcceptTransfer-transferPending.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-AcceptTransfer-transferPending.json",
           "eventCount": 7,
           "pathLength": 5,
           "branchCount": 1,
@@ -548,11 +548,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-AcceptTransfer-recipientVerified",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-AcceptTransfer-recipientVerified",
           "scenarioLabel": "Failure: Recipient must have a verified account not met",
           "kind": "negative",
           "description": "Negative scenario: Recipient must have a verified account precondition violation at AcceptTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-AcceptTransfer-recipientVerified.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-AcceptTransfer-recipientVerified.json",
           "eventCount": 7,
           "pathLength": 5,
           "branchCount": 1,
@@ -560,11 +560,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-RevokeTicket-ticketNotRevoked",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-RevokeTicket-ticketNotRevoked",
           "scenarioLabel": "Failure: Ticket must not already be revoked not met",
           "kind": "negative",
           "description": "Negative scenario: Ticket must not already be revoked precondition violation at RevokeTicket",
-          "file": "scenario-flow-ticket-transfer-neg-RevokeTicket-ticketNotRevoked.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-RevokeTicket-ticketNotRevoked.json",
           "eventCount": 10,
           "pathLength": 7,
           "branchCount": 1,
@@ -572,11 +572,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-IssueTickets-paymentConfirmed",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-IssueTickets-paymentConfirmed",
           "scenarioLabel": "Failure: Payment must be confirmed before ticket issuance not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be confirmed before ticket issuance precondition violation at IssueTickets",
-          "file": "scenario-flow-ticket-transfer-neg-IssueTickets-paymentConfirmed.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-IssueTickets-paymentConfirmed.json",
           "eventCount": 12,
           "pathLength": 9,
           "branchCount": 1,
@@ -584,11 +584,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-DeclineTransfer-transferPending",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-DeclineTransfer-transferPending",
           "scenarioLabel": "Failure: Transfer must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Transfer must be in pending state precondition violation at DeclineTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-DeclineTransfer-transferPending.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-DeclineTransfer-transferPending.json",
           "eventCount": 7,
           "pathLength": 5,
           "branchCount": 1,
@@ -596,11 +596,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-neg-CancelTransfer-transferPending",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-neg-CancelTransfer-transferPending",
           "scenarioLabel": "Failure: Transfer must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Transfer must be in pending state precondition violation at CancelTransfer",
-          "file": "scenario-flow-ticket-transfer-neg-CancelTransfer-transferPending.json",
+          "file": "scenario-flow-N3 - Ticket transfer-neg-CancelTransfer-transferPending.json",
           "eventCount": 7,
           "pathLength": 5,
           "branchCount": 1,
@@ -608,11 +608,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-ticket-transfer-timeout-TransferLifecycle",
-          "scenarioLabel": "Timeout: ticket-transfer [TransferLifecycle.transferExpiry]",
+          "scenarioId": "scenario-flow-N3 - Ticket transfer-timeout-TransferLifecycle",
+          "scenarioLabel": "Timeout: N3 - Ticket transfer [TransferLifecycle.transferExpiry]",
           "kind": "timeout",
           "description": "Timeout scenario: saga TransferLifecycle timeout transferExpiry elapses after TransferInitiated; the domain flow stops at Transfer initiation",
-          "file": "scenario-flow-ticket-transfer-timeout-TransferLifecycle.json",
+          "file": "scenario-flow-N3 - Ticket transfer-timeout-TransferLifecycle.json",
           "eventCount": 5,
           "pathLength": 2,
           "branchCount": 0,
@@ -622,16 +622,16 @@
       ]
     },
     {
-      "flowId": "flow-event-cancellation",
-      "flowName": "event-cancellation",
-      "topology": "topology-event-cancellation.json",
+      "flowId": "flow-N4 - Event cancellation",
+      "flowName": "N4 - Event cancellation",
+      "topology": "topology-n4-event-cancellation.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-event-cancellation-0",
-          "scenarioLabel": "Happy Path: event-cancellation",
+          "scenarioId": "scenario-flow-N4 - Event cancellation-0",
+          "scenarioLabel": "Happy Path: N4 - Event cancellation",
           "kind": "happy",
           "description": "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event.",
-          "file": "scenario-flow-event-cancellation-0.json",
+          "file": "scenario-flow-N4 - Event cancellation-0.json",
           "eventCount": 13,
           "pathLength": 13,
           "branchCount": 1,
@@ -639,11 +639,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-event-cancellation-1",
-          "scenarioLabel": "Failure Path: event-cancellation [partial-failure]",
+          "scenarioId": "scenario-flow-N4 - Event cancellation-1",
+          "scenarioLabel": "Failure Path: N4 - Event cancellation [partial-failure]",
           "kind": "failure",
           "description": "An event is cancelled by the organizer. All tickets are revoked, all payments are refunded, and all affected customers are notified. Demonstrates cascading cross-context side effects from a single domain event.",
-          "file": "scenario-flow-event-cancellation-1.json",
+          "file": "scenario-flow-N4 - Event cancellation-1.json",
           "eventCount": 13,
           "pathLength": 13,
           "branchCount": 1,
@@ -651,11 +651,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-event-cancellation-neg-CancelEvent-eventNotAlreadyCancelled",
+          "scenarioId": "scenario-flow-N4 - Event cancellation-neg-CancelEvent-eventNotAlreadyCancelled",
           "scenarioLabel": "Failure: Event must not already be cancelled not met",
           "kind": "negative",
           "description": "Negative scenario: Event must not already be cancelled precondition violation at CancelEvent",
-          "file": "scenario-flow-event-cancellation-neg-CancelEvent-eventNotAlreadyCancelled.json",
+          "file": "scenario-flow-N4 - Event cancellation-neg-CancelEvent-eventNotAlreadyCancelled.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -663,11 +663,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-event-cancellation-neg-ReleaseHold-holdActive",
+          "scenarioId": "scenario-flow-N4 - Event cancellation-neg-ReleaseHold-holdActive",
           "scenarioLabel": "Failure: Hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Hold must be active precondition violation at ReleaseHold",
-          "file": "scenario-flow-event-cancellation-neg-ReleaseHold-holdActive.json",
+          "file": "scenario-flow-N4 - Event cancellation-neg-ReleaseHold-holdActive.json",
           "eventCount": 7,
           "pathLength": 6,
           "branchCount": 0,
@@ -675,11 +675,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-event-cancellation-neg-RevokeTicket-ticketNotRevoked",
+          "scenarioId": "scenario-flow-N4 - Event cancellation-neg-RevokeTicket-ticketNotRevoked",
           "scenarioLabel": "Failure: Ticket must not already be revoked not met",
           "kind": "negative",
           "description": "Negative scenario: Ticket must not already be revoked precondition violation at RevokeTicket",
-          "file": "scenario-flow-event-cancellation-neg-RevokeTicket-ticketNotRevoked.json",
+          "file": "scenario-flow-N4 - Event cancellation-neg-RevokeTicket-ticketNotRevoked.json",
           "eventCount": 9,
           "pathLength": 8,
           "branchCount": 0,
@@ -687,11 +687,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-event-cancellation-neg-RefundPayment-paymentConfirmed",
+          "scenarioId": "scenario-flow-N4 - Event cancellation-neg-RefundPayment-paymentConfirmed",
           "scenarioLabel": "Failure: Payment must have been confirmed not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must have been confirmed precondition violation at RefundPayment",
-          "file": "scenario-flow-event-cancellation-neg-RefundPayment-paymentConfirmed.json",
+          "file": "scenario-flow-N4 - Event cancellation-neg-RefundPayment-paymentConfirmed.json",
           "eventCount": 11,
           "pathLength": 10,
           "branchCount": 1,
@@ -701,16 +701,16 @@
       ]
     },
     {
-      "flowId": "flow-seat-request",
-      "flowName": "seat-request",
-      "topology": "topology-seat-request.json",
+      "flowId": "flow-N5 - Seat request",
+      "flowName": "N5 - Seat request",
+      "topology": "topology-n5-seat-request.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-seat-request-0",
-          "scenarioLabel": "Happy Path: seat-request",
+          "scenarioId": "scenario-flow-N5 - Seat request-0",
+          "scenarioLabel": "Happy Path: N5 - Seat request",
           "kind": "happy",
           "description": "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist.",
-          "file": "scenario-flow-seat-request-0.json",
+          "file": "scenario-flow-N5 - Seat request-0.json",
           "eventCount": 5,
           "pathLength": 4,
           "branchCount": 1,
@@ -718,11 +718,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-seat-request-1",
-          "scenarioLabel": "Variant: seat-request [sold-out]",
+          "scenarioId": "scenario-flow-N5 - Seat request-1",
+          "scenarioLabel": "Variant: N5 - Seat request [sold-out]",
           "kind": "variant",
           "description": "A customer asks for seats. With seats in the pool the customer gets a hold; with the tier sold out the customer joins the waitlist.",
-          "file": "scenario-flow-seat-request-1.json",
+          "file": "scenario-flow-N5 - Seat request-1.json",
           "eventCount": 5,
           "pathLength": 4,
           "branchCount": 1,
@@ -730,11 +730,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-seat-request-neg-RequestHold-ticketsAvailable",
+          "scenarioId": "scenario-flow-N5 - Seat request-neg-RequestHold-ticketsAvailable",
           "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
           "kind": "negative",
           "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
-          "file": "scenario-flow-seat-request-neg-RequestHold-ticketsAvailable.json",
+          "file": "scenario-flow-N5 - Seat request-neg-RequestHold-ticketsAvailable.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -742,11 +742,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-seat-request-neg-RequestHold-customerHoldLimit",
+          "scenarioId": "scenario-flow-N5 - Seat request-neg-RequestHold-customerHoldLimit",
           "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
           "kind": "negative",
           "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
-          "file": "scenario-flow-seat-request-neg-RequestHold-customerHoldLimit.json",
+          "file": "scenario-flow-N5 - Seat request-neg-RequestHold-customerHoldLimit.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -754,11 +754,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-seat-request-neg-JoinWaitlist-notAlreadyOnWaitlist",
+          "scenarioId": "scenario-flow-N5 - Seat request-neg-JoinWaitlist-notAlreadyOnWaitlist",
           "scenarioLabel": "Failure: Customer must not already be on the waitlist for this tier not met",
           "kind": "negative",
           "description": "Negative scenario: Customer must not already be on the waitlist for this tier precondition violation at JoinWaitlist",
-          "file": "scenario-flow-seat-request-neg-JoinWaitlist-notAlreadyOnWaitlist.json",
+          "file": "scenario-flow-N5 - Seat request-neg-JoinWaitlist-notAlreadyOnWaitlist.json",
           "eventCount": 5,
           "pathLength": 3,
           "branchCount": 1,
@@ -768,16 +768,16 @@
       ]
     },
     {
-      "flowId": "flow-payment-settlement",
-      "flowName": "payment-settlement",
-      "topology": "topology-payment-settlement.json",
+      "flowId": "flow-N6 - Payment settlement",
+      "flowName": "N6 - Payment settlement",
+      "topology": "topology-n6-payment-settlement.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-payment-settlement-0",
-          "scenarioLabel": "Happy Path: payment-settlement",
+          "scenarioId": "scenario-flow-N6 - Payment settlement-0",
+          "scenarioLabel": "Happy Path: N6 - Payment settlement",
           "kind": "happy",
           "description": "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead.",
-          "file": "scenario-flow-payment-settlement-0.json",
+          "file": "scenario-flow-N6 - Payment settlement-0.json",
           "eventCount": 5,
           "pathLength": 5,
           "branchCount": 1,
@@ -785,11 +785,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-payment-settlement-1",
-          "scenarioLabel": "Variant: payment-settlement [approved-after-rehold]",
+          "scenarioId": "scenario-flow-N6 - Payment settlement-1",
+          "scenarioLabel": "Variant: N6 - Payment settlement [approved-after-rehold]",
           "kind": "variant",
           "description": "Payment confirmation converts the hold; after a re-hold the conversion follows the new hold instead.",
-          "file": "scenario-flow-payment-settlement-1.json",
+          "file": "scenario-flow-N6 - Payment settlement-1.json",
           "eventCount": 9,
           "pathLength": 6,
           "branchCount": 1,
@@ -797,11 +797,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-payment-settlement-neg-ConfirmPayment-paymentPending",
+          "scenarioId": "scenario-flow-N6 - Payment settlement-neg-ConfirmPayment-paymentPending",
           "scenarioLabel": "Failure: Payment must be in pending state not met",
           "kind": "negative",
           "description": "Negative scenario: Payment must be in pending state precondition violation at ConfirmPayment",
-          "file": "scenario-flow-payment-settlement-neg-ConfirmPayment-paymentPending.json",
+          "file": "scenario-flow-N6 - Payment settlement-neg-ConfirmPayment-paymentPending.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 1,
@@ -809,11 +809,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-payment-settlement-neg-ConvertHoldToReservation-holdActive",
+          "scenarioId": "scenario-flow-N6 - Payment settlement-neg-ConvertHoldToReservation-holdActive",
           "scenarioLabel": "Failure: Hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Hold must be active precondition violation at ConvertHoldToReservation",
-          "file": "scenario-flow-payment-settlement-neg-ConvertHoldToReservation-holdActive.json",
+          "file": "scenario-flow-N6 - Payment settlement-neg-ConvertHoldToReservation-holdActive.json",
           "eventCount": 4,
           "pathLength": 3,
           "branchCount": 1,
@@ -821,11 +821,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-payment-settlement-neg-RequestHold-ticketsAvailable",
+          "scenarioId": "scenario-flow-N6 - Payment settlement-neg-RequestHold-ticketsAvailable",
           "scenarioLabel": "Failure: Requested quantity must be available in the pool not met",
           "kind": "negative",
           "description": "Negative scenario: Requested quantity must be available in the pool precondition violation at RequestHold",
-          "file": "scenario-flow-payment-settlement-neg-RequestHold-ticketsAvailable.json",
+          "file": "scenario-flow-N6 - Payment settlement-neg-RequestHold-ticketsAvailable.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 1,
@@ -833,11 +833,11 @@
           "isNegative": true
         },
         {
-          "scenarioId": "scenario-flow-payment-settlement-neg-RequestHold-customerHoldLimit",
+          "scenarioId": "scenario-flow-N6 - Payment settlement-neg-RequestHold-customerHoldLimit",
           "scenarioLabel": "Failure: Customer must not exceed maximum concurrent holds not met",
           "kind": "negative",
           "description": "Negative scenario: Customer must not exceed maximum concurrent holds precondition violation at RequestHold",
-          "file": "scenario-flow-payment-settlement-neg-RequestHold-customerHoldLimit.json",
+          "file": "scenario-flow-N6 - Payment settlement-neg-RequestHold-customerHoldLimit.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 1,
@@ -847,16 +847,16 @@
       ]
     },
     {
-      "flowId": "flow-hold-release",
-      "flowName": "hold-release",
-      "topology": "topology-hold-release.json",
+      "flowId": "flow-N7 - Hold release",
+      "flowName": "N7 - Hold release",
+      "topology": "topology-n7-hold-release.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-hold-release",
-          "scenarioLabel": "Happy Path: hold-release",
+          "scenarioId": "scenario-flow-N7 - Hold release",
+          "scenarioLabel": "Happy Path: N7 - Hold release",
           "kind": "happy",
           "description": "A customer abandons the cart and the hold is released; later a hold expires. Only the expired release promotes the waitlist.",
-          "file": "scenario-flow-hold-release.json",
+          "file": "scenario-flow-N7 - Hold release.json",
           "eventCount": 5,
           "pathLength": 5,
           "branchCount": 0,
@@ -864,11 +864,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-hold-release-neg-ReleaseHold-holdActive",
+          "scenarioId": "scenario-flow-N7 - Hold release-neg-ReleaseHold-holdActive",
           "scenarioLabel": "Failure: Hold must be active not met",
           "kind": "negative",
           "description": "Negative scenario: Hold must be active precondition violation at ReleaseHold",
-          "file": "scenario-flow-hold-release-neg-ReleaseHold-holdActive.json",
+          "file": "scenario-flow-N7 - Hold release-neg-ReleaseHold-holdActive.json",
           "eventCount": 2,
           "pathLength": 1,
           "branchCount": 0,
@@ -878,16 +878,16 @@
       ]
     },
     {
-      "flowId": "flow-waitlist-offer",
-      "flowName": "waitlist-offer",
-      "topology": "topology-waitlist-offer.json",
+      "flowId": "flow-N8 - Waitlist offer",
+      "flowName": "N8 - Waitlist offer",
+      "topology": "topology-n8-waitlist-offer.json",
       "scenarios": [
         {
-          "scenarioId": "scenario-flow-waitlist-offer-0",
-          "scenarioLabel": "Happy Path: waitlist-offer",
+          "scenarioId": "scenario-flow-N8 - Waitlist offer-0",
+          "scenarioLabel": "Happy Path: N8 - Waitlist offer",
           "kind": "happy",
           "description": "A waitlisted customer is offered seats and answers. The answer is the event's own outcome field; the branch is the arm the flow takes.",
-          "file": "scenario-flow-waitlist-offer-0.json",
+          "file": "scenario-flow-N8 - Waitlist offer-0.json",
           "eventCount": 4,
           "pathLength": 4,
           "branchCount": 1,
@@ -895,11 +895,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-waitlist-offer-1",
-          "scenarioLabel": "Variant: waitlist-offer [declined]",
+          "scenarioId": "scenario-flow-N8 - Waitlist offer-1",
+          "scenarioLabel": "Variant: N8 - Waitlist offer [declined]",
           "kind": "variant",
           "description": "A waitlisted customer is offered seats and answers. The answer is the event's own outcome field; the branch is the arm the flow takes.",
-          "file": "scenario-flow-waitlist-offer-1.json",
+          "file": "scenario-flow-N8 - Waitlist offer-1.json",
           "eventCount": 4,
           "pathLength": 4,
           "branchCount": 1,
@@ -907,11 +907,11 @@
           "isNegative": false
         },
         {
-          "scenarioId": "scenario-flow-waitlist-offer-neg-PromoteFromWaitlist-customerOnWaitlist",
+          "scenarioId": "scenario-flow-N8 - Waitlist offer-neg-PromoteFromWaitlist-customerOnWaitlist",
           "scenarioLabel": "Failure: Customer must be on the waitlist not met",
           "kind": "negative",
           "description": "Negative scenario: Customer must be on the waitlist precondition violation at PromoteFromWaitlist",
-          "file": "scenario-flow-waitlist-offer-neg-PromoteFromWaitlist-customerOnWaitlist.json",
+          "file": "scenario-flow-N8 - Waitlist offer-neg-PromoteFromWaitlist-customerOnWaitlist.json",
           "eventCount": 4,
           "pathLength": 3,
           "branchCount": 1,

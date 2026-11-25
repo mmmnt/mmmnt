@@ -6,7 +6,7 @@ import type { IntermediateRepresentation } from '@mmmnt/core';
 import { boardFiles } from '../files.js';
 import { projectBoard } from '../project-board.js';
 import type { BoardProjection } from '../types.js';
-import { ROOT, SIFT_MODEL, loadIr, numbered } from './helpers.js';
+import { ROOT, SIFT_MODEL, loadIr } from './helpers.js';
 
 const GOLDEN = resolve(ROOT, 'packages/board/fixtures/golden');
 // The Sift manifest's description line is not valid YAML for the manifest reader (an unquoted colon),
@@ -126,6 +126,6 @@ describe('the Sift model on the board (ADR-048 D5)', () => {
 
   it('is byte-stable: the golden render of TicketWave', async () => {
     const tw = await loadIr('examples/ticketwave/spec/ticketwave.moment');
-    matchGolden('ticketwave', projectBoard(numbered(tw)));
+    matchGolden('ticketwave', projectBoard(tw));
   });
 });

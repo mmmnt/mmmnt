@@ -404,8 +404,8 @@ describe('runPipeline --all serves every scenario simulate writes', () => {
     const ids = Object.keys(all.scenarios);
 
     expect(ids.filter((id) => id.includes('-timeout-')).sort()).toEqual([
-      'scenario-flow-general-admission-purchase-timeout-SeatHoldLifecycle.json',
-      'scenario-flow-ticket-transfer-timeout-TransferLifecycle.json',
+      'scenario-flow-N1 - General admission purchase-timeout-SeatHoldLifecycle.json',
+      'scenario-flow-N3 - Ticket transfer-timeout-TransferLifecycle.json',
     ]);
     expect(ids).toHaveLength(72);
     const counted = all.manifest.flows.reduce((n, f) => n + f.scenarioCount, 0);

@@ -1,0 +1,343 @@
+{
+  "scenarioId": "scenario-flow-N2 - Presale access-neg-InitiatePayment-feesCalculated",
+  "flowId": "flow-N2 - Presale access",
+  "flowName": "N2 - Presale access",
+  "scenarioLabel": "Failure: Fees must be calculated before payment not met",
+  "kind": "negative",
+  "description": "Negative scenario: Fees must be calculated before payment precondition violation at InitiatePayment",
+  "given": "A presale window opens scenario is initiated",
+  "when": "InitiatePayment is invoked without satisfying feesCalculated",
+  "then": "The command InitiatePayment is rejected",
+  "expectedPath": [
+    "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+    "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+    "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+    "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
+    "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
+    "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
+    "moment-3-Presale-cart-creation::checkout::CreateCart::main",
+    "moment-3-Presale-cart-creation::checkout::CartCreated::main",
+    "moment-4-Presale-cart-population::checkout::AddTicketsToCart::main",
+    "moment-4-Presale-cart-population::checkout::TicketsAddedToCart::main",
+    "moment-5-Presale-fee-calculation::checkout::CalculateFees::main",
+    "moment-5-Presale-fee-calculation::checkout::FeesCalculated::main",
+    "moment-6-Presale-payment::checkout::InitiatePayment::main"
+  ],
+  "activeBranches": [
+    {
+      "momentName": "Access code redemption",
+      "condition": "uses-remain",
+      "routeChosen": "uses-remain"
+    },
+    {
+      "momentName": "Code validation outcome",
+      "condition": "valid",
+      "routeChosen": "valid"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.OpenPresaleWindow",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
+        "processName": "OpenPresaleWindow",
+        "windowId": "windowId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "PresaleWindowOpened",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
+        "windowId": "windowId-001",
+        "openedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.RedeemAccessCode",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
+        "processName": "RedeemAccessCode",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "$branch": "uses-remain",
+        "outcome": "uses-remain",
+        "whenState": "Open"
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "AccessCodeRedeemed",
+      "productSource": "presale",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
+        "codeId": "codeId-001",
+        "code": "sample-code",
+        "customerId": "customerId-001",
+        "eventId": "eventId-001",
+        "windowId": "windowId-001",
+        "redeemedAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "uses-remain",
+        "outcome": "uses-remain"
+      }
+    },
+    {
+      "eventId": "evt-005",
+      "eventType": "SimProcess.RequestHold",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-004"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:04.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
+        "processName": "RequestHold",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "$branch": "valid",
+        "outcome": "valid"
+      }
+    },
+    {
+      "eventId": "evt-006",
+      "eventType": "SeatsHeld",
+      "productSource": "inventory",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-005"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:05.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-2-Code-validation-outcome::inventory::SeatsHeld::br0",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "quantity": 0,
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "expiresAt": "2026-01-01T10:00:00.000Z",
+        "heldAt": "2026-01-01T10:00:00.000Z",
+        "$branch": "valid",
+        "outcome": "valid"
+      }
+    },
+    {
+      "eventId": "evt-007",
+      "eventType": "SimProcess.CreateCart",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:06.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-3-Presale-cart-creation::checkout::CreateCart::main",
+        "processName": "CreateCart",
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001"
+      }
+    },
+    {
+      "eventId": "evt-008",
+      "eventType": "CartCreated",
+      "productSource": "checkout",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-007"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:07.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-3-Presale-cart-creation::checkout::CartCreated::main",
+        "cartId": "cartId-001",
+        "customerId": "customerId-001",
+        "sessionId": "sessionId-001",
+        "createdAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-009",
+      "eventType": "SimProcess.AddTicketsToCart",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-008"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:08.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-4-Presale-cart-population::checkout::AddTicketsToCart::main",
+        "processName": "AddTicketsToCart",
+        "cartId": "cartId-001",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "quantity": 0,
+        "unitPrice": 0
+      }
+    },
+    {
+      "eventId": "evt-010",
+      "eventType": "TicketsAddedToCart",
+      "productSource": "checkout",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-009"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:09.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-4-Presale-cart-population::checkout::TicketsAddedToCart::main",
+        "cartId": "cartId-001",
+        "lineItemId": "lineItemId-001",
+        "holdId": "holdId-001",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "quantity": 0,
+        "unitPrice": 0,
+        "lineTotal": 0,
+        "addedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-011",
+      "eventType": "SimProcess.CalculateFees",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-010"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:10.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-5-Presale-fee-calculation::checkout::CalculateFees::main",
+        "processName": "CalculateFees",
+        "cartId": "cartId-001"
+      }
+    },
+    {
+      "eventId": "evt-012",
+      "eventType": "FeesCalculated",
+      "productSource": "checkout",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-011"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:11.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-5-Presale-fee-calculation::checkout::FeesCalculated::main",
+        "cartId": "cartId-001",
+        "serviceFee": 0,
+        "facilityFee": 0,
+        "processingFee": 0,
+        "totalFees": 0,
+        "calculatedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-013",
+      "eventType": "SimProcess.InitiatePayment",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-012"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:12.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-6-Presale-payment::checkout::InitiatePayment::main",
+        "processName": "InitiatePayment",
+        "cartId": "cartId-001",
+        "customerId": "customerId-001",
+        "paymentMethod": {},
+        "totalAmount": 0
+      }
+    },
+    {
+      "eventId": "evt-014",
+      "eventType": "SimFailure.InitiatePayment.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-013"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:13.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-6-Presale-payment::checkout::InitiatePayment::main",
+        "failedPrecondition": "feesCalculated",
+        "description": "Fees must be calculated before payment"
+      }
+    },
+    {
+      "eventId": "evt-015",
+      "eventType": "SimSaga.SeatHoldLifecycle.Held",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N2 - Presale access",
+      "causationEventIds": [
+        "evt-006"
+      ],
+      "correlationId": "corr-scenario-flow-N2 - Presale access",
+      "timestamp": "2026-01-01T10:00:14.000Z",
+      "version": 1,
+      "payload": {
+        "sagaName": "SeatHoldLifecycle",
+        "state": "Held",
+        "triggeredBy": "SeatsHeld"
+      }
+    }
+  ]
+}

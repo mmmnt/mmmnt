@@ -1,0 +1,89 @@
+{
+  "scenarioId": "scenario-flow-N1 - General admission purchase-neg-InitializePool-poolNotExists",
+  "flowId": "flow-N1 - General admission purchase",
+  "flowName": "N1 - General admission purchase",
+  "scenarioLabel": "Failure: Pool must not already exist for this event-tier-section combination not met",
+  "kind": "negative",
+  "description": "Negative scenario: Pool must not already exist for this event-tier-section combination precondition violation at InitializePool",
+  "given": "A event discovery scenario is initiated",
+  "when": "InitializePool is invoked without satisfying poolNotExists",
+  "then": "The command InitializePool is rejected",
+  "expectedPath": [
+    "moment-0-Event-discovery::catalog::PublishEvent::main",
+    "moment-0-Event-discovery::catalog::EventPublished::main",
+    "moment-1-Pool-initialization::inventory::InitializePool::main"
+  ],
+  "activeBranches": [],
+  "events": [
+    {
+      "eventId": "evt-001",
+      "eventType": "SimProcess.PublishEvent",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N1 - General admission purchase",
+      "causationEventIds": [],
+      "correlationId": "corr-scenario-flow-N1 - General admission purchase",
+      "timestamp": "2026-01-01T10:00:00.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-discovery::catalog::PublishEvent::main",
+        "processName": "PublishEvent",
+        "eventId": "eventId-001"
+      }
+    },
+    {
+      "eventId": "evt-002",
+      "eventType": "EventPublished",
+      "productSource": "catalog",
+      "sessionId": "sess-scenario-flow-N1 - General admission purchase",
+      "causationEventIds": [
+        "evt-001"
+      ],
+      "correlationId": "corr-scenario-flow-N1 - General admission purchase",
+      "timestamp": "2026-01-01T10:00:01.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-0-Event-discovery::catalog::EventPublished::main",
+        "eventId": "eventId-001",
+        "publishedAt": "2026-01-01T10:00:00.000Z"
+      }
+    },
+    {
+      "eventId": "evt-003",
+      "eventType": "SimProcess.InitializePool",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N1 - General admission purchase",
+      "causationEventIds": [
+        "evt-002"
+      ],
+      "correlationId": "corr-scenario-flow-N1 - General admission purchase",
+      "timestamp": "2026-01-01T10:00:02.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
+        "processName": "InitializePool",
+        "eventId": "eventId-001",
+        "tierId": "tierId-001",
+        "sectionId": "sectionId-001",
+        "totalTickets": 0,
+        "basePrice": 0
+      }
+    },
+    {
+      "eventId": "evt-004",
+      "eventType": "SimFailure.InitializePool.PreconditionViolation",
+      "productSource": "moment:simulation",
+      "sessionId": "sess-scenario-flow-N1 - General admission purchase",
+      "causationEventIds": [
+        "evt-003"
+      ],
+      "correlationId": "corr-scenario-flow-N1 - General admission purchase",
+      "timestamp": "2026-01-01T10:00:03.000Z",
+      "version": 1,
+      "payload": {
+        "nodeId": "moment-1-Pool-initialization::inventory::InitializePool::main",
+        "failedPrecondition": "poolNotExists",
+        "description": "Pool must not already exist for this event-tier-section combination"
+      }
+    }
+  ]
+}

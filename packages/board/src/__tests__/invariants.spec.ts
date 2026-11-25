@@ -13,7 +13,7 @@ beforeAll(async () => {
     { name: 'sift', board: projectBoard(await loadIr(SIFT_MODEL), { contextOrder: SIFT_ORDER }) },
     {
       name: 'ticketwave',
-      board: projectBoard(numbered(await loadIr('examples/ticketwave/spec/ticketwave.moment'))),
+      board: projectBoard(await loadIr('examples/ticketwave/spec/ticketwave.moment')),
     },
     {
       name: 'process-constructs',

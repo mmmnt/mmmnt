@@ -58,7 +58,7 @@ describe('closure: every IR property is carried or unrendered with a reason (ADR
 
   it('lists the unrendered subtrees in the manifest with their reasons', async () => {
     const ir = await loadIr('examples/ticketwave/spec/ticketwave.moment');
-    const { unrendered } = projectBoard(numbered(ir)).manifest;
+    const { unrendered } = projectBoard(ir).manifest;
     expect(unrendered).toContainEqual(expect.objectContaining({ path: '*.fields*' }));
     expect(unrendered.every((u) => u.reason.length > 0)).toBe(true);
   });

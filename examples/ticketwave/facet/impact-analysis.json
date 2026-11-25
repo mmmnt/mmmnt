@@ -218,6 +218,7 @@
       ],
       "triggers": [
         "policy:Inventory:TrackHoldOnSeatsHeld",
+        "policy:Inventory:ConvertHoldOnRehold",
         "policy:AntiFraud:EvaluateOnHoldRequest",
         "command:AntiFraud:EvaluateHoldRisk",
         "command:Checkout:CreateCart",
@@ -274,6 +275,7 @@
       "name": "ConvertHoldToReservation",
       "context": "Inventory",
       "dependsOn": [
+        "policy:Inventory:ConvertHoldOnRehold",
         "saga:Inventory:SeatHoldLifecycle",
         "policy:Checkout:ConvertHoldOnPayment",
         "event:Checkout:PaymentConfirmed",
@@ -324,6 +326,17 @@
       ],
       "triggers": [
         "saga:Inventory:SeatHoldLifecycle"
+      ]
+    },
+    {
+      "type": "policy",
+      "name": "ConvertHoldOnRehold",
+      "context": "Inventory",
+      "dependsOn": [
+        "event:Inventory:SeatsHeld"
+      ],
+      "triggers": [
+        "command:Inventory:ConvertHoldToReservation"
       ]
     },
     {
@@ -1643,6 +1656,6 @@
     }
   ],
   "metadata": {
-    "generatedAt": "2026-11-08T02:38:23.465Z"
+    "generatedAt": "2026-11-24T21:48:20.847Z"
   }
 }
