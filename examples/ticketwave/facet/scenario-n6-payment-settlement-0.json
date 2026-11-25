@@ -35,7 +35,7 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::ConfirmPayment::br0",
         "processName": "ConfirmPayment",
-        "paymentId": "paymentId-001",
+        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "$branch": "approved",
         "outcome": "approved"
@@ -54,7 +54,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::checkout::PaymentConfirmed::br0",
-        "paymentId": "paymentId-001",
+        "paymentId": "afcfe549-4a5d-536c-ba93-87de7655adfa",
         "gatewayTransactionId": "sample-gatewayTransactionId",
         "confirmedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
@@ -75,8 +75,8 @@
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::ConvertHoldToReservation::br0",
         "processName": "ConvertHoldToReservation",
-        "holdId": "holdId-001",
-        "paymentConfirmationId": "paymentConfirmationId-001",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
         "$branch": "approved",
         "outcome": "approved"
       }
@@ -94,7 +94,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldClosed::br0",
-        "holdId": "holdId-001",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
         "closedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
         "outcome": "approved"
@@ -113,8 +113,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Payment-processing::inventory::HoldConvertedToReservation::br0",
-        "holdId": "holdId-001",
-        "paymentConfirmationId": "paymentConfirmationId-001",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
+        "paymentConfirmationId": "10b11d3f-7d2f-5b0c-971c-0302073db4fd",
         "convertedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "approved",
         "outcome": "approved"

@@ -37,6 +37,7 @@ import type {
   FieldDefinition,
   ValueObjectDefinition,
 } from '@mmmnt/core';
+import { createHash } from 'node:crypto';
 import { conditionPath, UNION_DISCRIMINATOR } from '@mmmnt/core';
 import { nodeId } from './node-ids.js';
 import { multiEventPlacements, type Placement } from './multi-event-placement.js';
@@ -1585,8 +1586,12 @@ function fieldPlaceholder(field: FieldDefinition): unknown {
   return generatePlaceholder(field.type, field.name);
 }
 
+/**
+ * Each sample has the format @mmmnt/schema gives its type: a UUID for UUID, an ISO date-time
+ * with an offset for DateTime, an ISO date for Date and a number for Money.
+ */
 function generatePlaceholder(type: string, name: string): unknown {
-  if (type === 'UUID') return `${name}-001`;
+  if (type === 'UUID') return sampleUuid(name);
   if (type === 'string') return `sample-${name}`;
   if (type === 'number') return 0;
   if (type === 'boolean') return true;
@@ -1595,6 +1600,18 @@ function generatePlaceholder(type: string, name: string): unknown {
   if (type === 'Money') return 0;
   if (type.endsWith('[]')) return [];
   return {};
+}
+
+/**
+ * A version 5 style UUID made from the SHA-1 of the field name. The same name gives the same
+ * UUID in every payload and on every run, so `holdId` is one id across a scenario.
+ */
+function sampleUuid(name: string): string {
+  const b = createHash('sha1').update(`moment:sample:${name}`).digest().subarray(0, 16);
+  b[6] = (b[6] & 0x0f) | 0x50;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = b.toString('hex');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
 function buildWhenClause(

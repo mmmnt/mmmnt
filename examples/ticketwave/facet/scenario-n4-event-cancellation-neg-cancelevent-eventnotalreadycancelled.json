@@ -25,7 +25,7 @@
       "payload": {
         "nodeId": "moment-0-Event-cancellation::catalog::CancelEvent::main",
         "processName": "CancelEvent",
-        "eventId": "eventId-001",
+        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
         "reason": "sample-reason"
       }
     },

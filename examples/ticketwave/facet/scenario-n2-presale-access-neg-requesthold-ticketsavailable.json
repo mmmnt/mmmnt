@@ -40,7 +40,7 @@
       "payload": {
         "nodeId": "moment-0-Presale-window-opens::presale::OpenPresaleWindow::main",
         "processName": "OpenPresaleWindow",
-        "windowId": "windowId-001"
+        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a"
       }
     },
     {
@@ -56,7 +56,7 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Presale-window-opens::presale::PresaleWindowOpened::main",
-        "windowId": "windowId-001",
+        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a",
         "openedAt": "2026-01-01T10:00:00.000Z"
       }
     },
@@ -74,10 +74,10 @@
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::RedeemAccessCode::br0",
         "processName": "RedeemAccessCode",
-        "codeId": "codeId-001",
+        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
         "code": "sample-code",
-        "customerId": "customerId-001",
-        "eventId": "eventId-001",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
         "$branch": "uses-remain",
         "outcome": "uses-remain",
         "whenState": "Open"
@@ -96,11 +96,11 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-1-Access-code-redemption::presale::AccessCodeRedeemed::br0",
-        "codeId": "codeId-001",
+        "codeId": "bd4ac0fb-a115-532b-a75b-1b054beb6eec",
         "code": "sample-code",
-        "customerId": "customerId-001",
-        "eventId": "eventId-001",
-        "windowId": "windowId-001",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "windowId": "8a856933-9f66-54a7-bf1f-96f775b57e2a",
         "redeemedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "uses-remain",
         "outcome": "uses-remain"
@@ -120,12 +120,12 @@
       "payload": {
         "nodeId": "moment-2-Code-validation-outcome::inventory::RequestHold::br0",
         "processName": "RequestHold",
-        "eventId": "eventId-001",
-        "tierId": "tierId-001",
-        "sectionId": "sectionId-001",
+        "eventId": "baf332ce-9f73-5de7-b719-fd906f2b32e9",
+        "tierId": "9b272e3c-6ffd-598a-be93-de03c6728773",
+        "sectionId": "606cbf20-c08e-5637-b312-2525fa17d93e",
         "quantity": 0,
-        "customerId": "customerId-001",
-        "sessionId": "sessionId-001",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "sessionId": "ef09ded3-e3c6-5d51-ba32-83300909584e",
         "$branch": "valid",
         "outcome": "valid"
       }

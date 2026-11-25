@@ -26,8 +26,8 @@
       "payload": {
         "nodeId": "moment-0-Transfer-initiation::delivery::InitiateTransfer::main",
         "processName": "InitiateTransfer",
-        "ticketId": "ticketId-001",
-        "fromCustomerId": "fromCustomerId-001",
+        "ticketId": "02359d5d-03f0-5030-84f7-cab21ac871ba",
+        "fromCustomerId": "68216b92-9bb3-514a-bd32-23740ed44572",
         "toEmail": "sample-toEmail",
         "toName": "sample-toName"
       }
@@ -45,9 +45,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Transfer-initiation::delivery::TransferInitiated::main",
-        "transferId": "transferId-001",
-        "ticketId": "ticketId-001",
-        "fromCustomerId": "fromCustomerId-001",
+        "transferId": "1553ae81-5d65-5f47-9879-b2aa9d4d8c43",
+        "ticketId": "02359d5d-03f0-5030-84f7-cab21ac871ba",
+        "fromCustomerId": "68216b92-9bb3-514a-bd32-23740ed44572",
         "toEmail": "sample-toEmail",
         "toName": "sample-toName",
         "expiresAt": "2026-01-01T10:00:00.000Z",

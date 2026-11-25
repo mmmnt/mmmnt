@@ -34,8 +34,8 @@
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::AnswerWaitlistOffer::br0",
         "processName": "AnswerWaitlistOffer",
-        "waitlistId": "waitlistId-001",
-        "customerId": "customerId-001",
+        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
         "outcome": "sample-outcome",
         "$branch": "accepted"
       }
@@ -53,8 +53,8 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::WaitlistOfferAnswered::br0",
-        "waitlistId": "waitlistId-001",
-        "customerId": "customerId-001",
+        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
         "outcome": "sample-outcome",
         "answeredAt": "2026-01-01T10:00:00.000Z",
         "$branch": "accepted"
@@ -74,9 +74,9 @@
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::PromoteFromWaitlist::br0",
         "processName": "PromoteFromWaitlist",
-        "waitlistId": "waitlistId-001",
-        "customerId": "customerId-001",
-        "holdId": "holdId-001",
+        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
         "$branch": "accepted",
         "outcome": "accepted"
       }
@@ -94,9 +94,9 @@
       "version": 1,
       "payload": {
         "nodeId": "moment-0-Offer-answered::presale::WaitlistPromoted::br0",
-        "waitlistId": "waitlistId-001",
-        "customerId": "customerId-001",
-        "holdId": "holdId-001",
+        "waitlistId": "6a463969-f40f-57a3-93c6-20ec2b56d15a",
+        "customerId": "bac8545c-d7ae-5b57-8f79-e55a536430aa",
+        "holdId": "0a06586d-282c-50c0-bcd3-55fc0b6273fd",
         "promotedAt": "2026-01-01T10:00:00.000Z",
         "$branch": "accepted",
         "outcome": "accepted"

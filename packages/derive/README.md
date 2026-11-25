@@ -135,7 +135,9 @@ Saga progress through mapped transitions is appended after the path events as `S
 
 The payload carries the node's identity (`nodeId`, and `processName` for a command) and a sample value for every declared field:
 
-- `UUID` fields sample `<name>-001`, strings `sample-<name>`, numbers and `Money` `0`, booleans `true`, value objects `{}`.
+- `UUID` fields sample a valid UUID. It is a version 5 style UUID made from the SHA-1 of the field name, so a field has the same UUID in every payload and on every run.
+- `DateTime` fields sample `2026-01-01T10:00:00.000Z` and `Date` fields `2026-01-01`. Strings sample `sample-<name>`, numbers and `Money` `0`, booleans `true`, value objects `{}`.
+- Each sample has the format `@mmmnt/schema` gives its type, so a contract check of formats passes it.
 - A code set (`kind: "user" | "api"`) samples its first value. A map (`T{}`) samples `{}`. Of an exclusive group (`a: T | b: U`) only the first member is written.
 - Fields of a crossing contract are added to the payload of the event that crosses.
 

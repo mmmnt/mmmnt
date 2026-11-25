@@ -15,7 +15,13 @@ regex = '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
 tags = ["snyk", "uuid"]
 [rules.allowlist]
 description = "Allow non-secret UUIDs in known files"
-paths = ['''turbo\.json''', '''package\.json''', '''pnpm-lock\.yaml''']
+paths = [
+  '''turbo\.json''',
+  '''package\.json''',
+  '''pnpm-lock\.yaml''',
+  # Derived sample payloads: a UUID field samples a version 5 style UUID of its name.
+  '''^examples/ticketwave/facet/''',
+]
 
 [[rules]]
 id = "github-pat"
