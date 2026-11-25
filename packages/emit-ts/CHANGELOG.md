@@ -1,5 +1,13 @@
 # @mmmnt/emit-ts
 
+## 0.16.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.16.0
+  - @mmmnt/derive@0.16.0
+
 ## 0.15.0
 
 ### Minor Changes

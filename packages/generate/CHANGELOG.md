@@ -1,5 +1,14 @@
 # @mmmnt/generate
 
+## 0.16.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/core@0.16.0
+  - @mmmnt/derive@0.16.0
+  - @mmmnt/schema@0.16.0
+
 ## 0.15.0
 
 ### Patch Changes
