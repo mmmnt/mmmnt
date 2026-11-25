@@ -117,16 +117,16 @@ describe('built-in types', () => {
   );
   const types = emit(model).get('src/sales/order.types.ts')!;
 
-  it('UUID and DateTime are strings and Money is a number, as @mmmnt/schema records them', () => {
+  it('UUID, DateTime and Date are strings and Money is a number, as @mmmnt/schema records them', () => {
     expect(types).toContain('  readonly orderId: string;');
     expect(types).toContain('  readonly placedAt: string;');
+    expect(types).toContain('  readonly dueOn: string;');
     expect(types).toContain('  readonly total: number;');
     expect(types).toContain('  readonly history: readonly string[];');
     expect(types).toContain('  readonly prices: Readonly<Record<string, number>>;');
   });
 
-  it('Date, string, number and boolean keep their TypeScript types', () => {
-    expect(types).toContain('  readonly dueOn: Date;');
+  it('string, number and boolean keep their TypeScript types', () => {
     expect(types).toContain('  readonly lines: number;');
     expect(types).toContain('  readonly express: boolean;');
     expect(types).toContain('  readonly note: string;');

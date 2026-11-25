@@ -128,10 +128,9 @@ Every property is `readonly`. A field that is not required is written with `?`.
 
 | Moment                               | TypeScript                                                      |
 | ------------------------------------ | --------------------------------------------------------------- |
-| `string`, `UUID`, `DateTime`         | `string`                                                        |
+| `string`, `UUID`, `DateTime`, `Date` | `string`                                                        |
 | `number`, `Money`                    | `number`                                                        |
 | `boolean`                            | `boolean`                                                       |
-| `Date`                               | `Date`                                                          |
 | `T[]`                                | `readonly T[]`                                                  |
 | `x?: T`                              | `readonly x?: T`                                                |
 | `"a" \| "b"` (code set)              | `'a' \| 'b'`                                                    |

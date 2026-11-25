@@ -60,7 +60,7 @@ const BUILT_IN_TYPES: Readonly<Record<string, string>> = {
   string: 'string',
   number: 'number',
   boolean: 'boolean',
-  date: 'Date',
+  date: 'string',
   datetime: 'string',
   uuid: 'string',
   money: 'number',
