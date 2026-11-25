@@ -1,5 +1,30 @@
 # @mmmnt/generate
 
+## 0.15.0
+
+### Patch Changes
+
+- [#235](https://github.com/mmmnt/mmmnt/pull/235) [`2aa0768`](https://github.com/mmmnt/mmmnt/commit/2aa07681e0e76b03ae07744fa680a20b337534db) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Every generated `.feature` file is valid Gherkin to the Cucumber parser.
+
+  - generate: an event's payload is a data table under its `Then ... emits <Event>` step, a row of field names and then a row of types, the same shape as a crossing's contract table. A list field's type ends in `[]`. It used to be a `carrying <field>, <field>` line, which is not Gherkin, so Cucumber refused 21 of the 23 features of TicketWave and the valid fixtures.
+  - generate: a `|` or `\` in a table cell is escaped.
+  - generate: in the Cucumber JSON, a step's `line` is the line the step is on. It used to be the scenario's line plus the step's position, so it drifted past every table or `carrying` line above it.
+
+  The feature file text changes: anyone diffing generated features sees every `carrying` line become a two-row table. The steps, scenarios and `scenarioCount` are unchanged. In `moment cucumber-json` output only the `line` numbers change.
+
+- [#230](https://github.com/mmmnt/mmmnt/pull/230) [`3da87e8`](https://github.com/mmmnt/mmmnt/commit/3da87e80be9efa41035b4069988900bdd60376ae) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - The Gherkin `scenarioCount` is the number of scenarios a feature renders, and the AsyncAPI payloads are typed as `@mmmnt/schema` types an event payload.
+
+  - generate: `scenarioCount` counts the `Scenario:` blocks of `content`. It used to count one per moment and one per branch arm, so it missed the saga scenarios and counted a note-only moment that renders none. TicketWave N1 now reports 22 (was 20) and N3 10 (was 8).
+  - generate: an AsyncAPI payload schema comes from `emitPayloadSchemas` of `@mmmnt/schema` (ADR-049 D8), which `@mmmnt/generate` now depends on. `Money` is a number, `UUID`, `DateTime` and `Date` are strings with a format, a value object is a `$ref` into `components.schemas`, an array has `items`, and code sets, unions, maps, patterns, `[encrypted]`, optional and exclusive fields are written as in `moment schema emit`. Every other type used to be written `string`. The payload is closed (`additionalProperties: false`), so a contract `[required]` name the event does not declare is left out of `required`. A `$ref` with a pattern or a deprecation is wrapped in `allOf`, because AsyncAPI reads draft 07. Every string value is single-quoted. `examples/ticketwave/facet/asyncapi.yaml` is regenerated.
+  - generate: a generated feature carries only the keys `GeneratedFeatureFile` declares. The undeclared `name` key is gone; the flow is `flowId`.
+
+  `moment generate` and `moment cucumber-json` write the same files for TicketWave and every valid fixture. `moment simulate --out-dir` writes a different `asyncapi.yaml`.
+
+- Updated dependencies [[`98ba180`](https://github.com/mmmnt/mmmnt/commit/98ba180e76b8b6fee2b6c8d4500657e7b2b5f75a), [`c7f6001`](https://github.com/mmmnt/mmmnt/commit/c7f6001899078840d2218d5afcb9e02e41cb6aed)]:
+  - @mmmnt/core@0.15.0
+  - @mmmnt/derive@0.15.0
+  - @mmmnt/schema@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes

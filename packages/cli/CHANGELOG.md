@@ -1,5 +1,76 @@
 # @mmmnt/cli
 
+## 0.15.0
+
+### Minor Changes
+
+- [#229](https://github.com/mmmnt/mmmnt/pull/229) [`8600af1`](https://github.com/mmmnt/mmmnt/commit/8600af17174e0b48c8f8b853a874f7a64d0768a0) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - The TypeScript that `emit-ts` writes type-checks on its own under `tsc --strict`.
+
+  - emit-ts: `DateTime` is written as `string` and `Money` as `number`, the type of the value an event records, as `UUID` already was and as `moment schema emit` writes them. No emitted file named `DateTime` or `Money` without declaring it.
+  - emit-ts: `Date` is written as `string`, an ISO 8601 date (`2026-11-24`), as `moment schema emit` records it and as derive samples it. It was the JavaScript `Date` object type, which no JSON payload carries.
+  - emit-ts: a types, aggregate, read-model or process file imports each declared type it names from the file that declares it, with `import type` and a relative path: another aggregate's file, the context's `read-model.types.ts`, or a file of another context. The context's own files come first.
+  - emit-ts: when two files of a context, or two contexts, declare the same name, the barrel re-exports it from the first, so `export *` no longer drops it. At `aggregate` scope the context barrel no longer re-exports a `read-model.types.ts` it does not emit.
+
+  Breaking for code that passes a JavaScript `Date` into a generated `Date` field: pass the ISO date string instead (`d.toISOString().slice(0, 10)`). Otherwise not breaking for code that compiled before: a field that was `DateTime` or `Money` is now `string` or `number`, which is what the name stood for, and every other change adds an import or an export. TicketWave and every model in `fixtures/valid` compile with no diagnostics, and a spec checks it.
+
+### Patch Changes
+
+- [#231](https://github.com/mmmnt/mmmnt/pull/231) [`1687f16`](https://github.com/mmmnt/mmmnt/commit/1687f16ba0e6736549bd7dc2ea460bce5c29e20c) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Every command refuses a flag it does not take, and four smaller CLI and MCP fixes.
+
+  - cli: a flag the command does not declare fails the run with exit 2 and runs nothing. The error names the flag and lists the flags the command takes. Before, every command but `generate` and `simulate` ignored it, so `moment emit-ts <spec> --out-dir <dir>` wrote into the current directory; `generate` and `simulate` printed a warning and ran.
+  - cli: `board` prints the notices of the projection on stderr, one `note:` line each, as `derive` does. It dropped them, so a model numbered in load order said nothing.
+  - cli: `moment quorum <other>` prints the usage of `quorum watch` with `--source`, the same text the command prints.
+  - cli: `simulate --out-dir` names scenario files with the slug topology files use: `scenario-n5-seat-request-0.json`, not `scenario-flow-N5 - Seat request-0.json`. Each `scenarioId` is unchanged, and `manifest.json` gives the new `file` names, so Facet, which reads them from there, needs no change. `serve` keys its scenarios by the same names. Two scenarios whose names slug to one file fail the run instead of overwriting each other. `examples/ticketwave/facet` is regenerated.
+  - mcp: `moment_viz` gives the same output for the same model. Its `timestamp` and `metadata.generatedAt` are the fixed time its session already used; they were the current time, which the code comment said they were not.
+
+  Behaviour change: a command line that passed a flag the command does not take, and ran anyway, now exits 2. That includes `generate` and `simulate`, which only warned. Every flag and alias in the CLI README still works: `--out`, `--out-dir` and `-o` on `generate`, `--out` on `simulate`, `-o` on `emit-ts`, `-p` on `serve`, `-n` and `-d` on `init`, `-d` on `watch`.
+
+- [#228](https://github.com/mmmnt/mmmnt/pull/228) [`98ba180`](https://github.com/mmmnt/mmmnt/commit/98ba180e76b8b6fee2b6c8d4500657e7b2b5f75a) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Project mode agrees with a single file on crossings, and every validation diagnostic names its rule.
+
+  - core: PM-04 accepts a crossing whose event is declared by its source context or by its target context, as SP-02 does. A crossing carries the source context's event, so the target-only rule warned on every crossing of TicketWave. An event declared by neither context still warns.
+  - core: a syntax-level diagnostic (V1 to V20, V52 to V55, and the parser's SP-01 to SP-03) carries its rule id in `ruleId`, as a model-level one does. Its message still begins with the id (`V55: ...`), so code that reads the message is unaffected.
+  - cli: `moment parse examples/ticketwave/spec/` prints no PM-04 warning.
+
+- [#235](https://github.com/mmmnt/mmmnt/pull/235) [`2aa0768`](https://github.com/mmmnt/mmmnt/commit/2aa07681e0e76b03ae07744fa680a20b337534db) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Every generated `.feature` file is valid Gherkin to the Cucumber parser.
+
+  - generate: an event's payload is a data table under its `Then ... emits <Event>` step, a row of field names and then a row of types, the same shape as a crossing's contract table. A list field's type ends in `[]`. It used to be a `carrying <field>, <field>` line, which is not Gherkin, so Cucumber refused 21 of the 23 features of TicketWave and the valid fixtures.
+  - generate: a `|` or `\` in a table cell is escaped.
+  - generate: in the Cucumber JSON, a step's `line` is the line the step is on. It used to be the scenario's line plus the step's position, so it drifted past every table or `carrying` line above it.
+
+  The feature file text changes: anyone diffing generated features sees every `carrying` line become a two-row table. The steps, scenarios and `scenarioCount` are unchanged. In `moment cucumber-json` output only the `line` numbers change.
+
+- [#230](https://github.com/mmmnt/mmmnt/pull/230) [`3da87e8`](https://github.com/mmmnt/mmmnt/commit/3da87e80be9efa41035b4069988900bdd60376ae) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - The Gherkin `scenarioCount` is the number of scenarios a feature renders, and the AsyncAPI payloads are typed as `@mmmnt/schema` types an event payload.
+
+  - generate: `scenarioCount` counts the `Scenario:` blocks of `content`. It used to count one per moment and one per branch arm, so it missed the saga scenarios and counted a note-only moment that renders none. TicketWave N1 now reports 22 (was 20) and N3 10 (was 8).
+  - generate: an AsyncAPI payload schema comes from `emitPayloadSchemas` of `@mmmnt/schema` (ADR-049 D8), which `@mmmnt/generate` now depends on. `Money` is a number, `UUID`, `DateTime` and `Date` are strings with a format, a value object is a `$ref` into `components.schemas`, an array has `items`, and code sets, unions, maps, patterns, `[encrypted]`, optional and exclusive fields are written as in `moment schema emit`. Every other type used to be written `string`. The payload is closed (`additionalProperties: false`), so a contract `[required]` name the event does not declare is left out of `required`. A `$ref` with a pattern or a deprecation is wrapped in `allOf`, because AsyncAPI reads draft 07. Every string value is single-quoted. `examples/ticketwave/facet/asyncapi.yaml` is regenerated.
+  - generate: a generated feature carries only the keys `GeneratedFeatureFile` declares. The undeclared `name` key is gone; the flow is `flowId`.
+
+  `moment generate` and `moment cucumber-json` write the same files for TicketWave and every valid fixture. `moment simulate --out-dir` writes a different `asyncapi.yaml`.
+
+- [#227](https://github.com/mmmnt/mmmnt/pull/227) [`345f494`](https://github.com/mmmnt/mmmnt/commit/345f4943035f9fc55e56e2dce67a834013f47387) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - The harness replays branch-lanes and checks contract values by their Moment type.
+
+  - harness: `EventReplayEngine` resolves a placement on a `branch-lane` (or a lane classified `[Terminal]`) to the lane, as `moment parse` does, and a placement on an `[External]` lane to the declared external. TicketWave replays all eight flows with no divergence; it reported five false ones in N1 to N4. A placement on a context the IR does not define, or on a lane of another flow, still diverges.
+  - harness: `ContractAssertionEngine` checks a value against its Moment type as `@mmmnt/schema` maps it (ADR-049). `UUID`, `DateTime` and `Date` are strings of that format, `Money` is a number, `T[]` is an array of `T` checked item by item, and a value object is an object. A valid UUID no longer fails as a type mismatch. Given the IR (`new ContractAssertionEngine(ir)`), a value object is checked as declared: its fields, a scalar value object with its pattern, a code set by its values, a tagged union by its `kind`, maps, exclusive groups and `[encrypted]` fields. New violations: `format mismatch`, `pattern mismatch`, `not in code set` and `exclusive fields`.
+
+- [#236](https://github.com/mmmnt/mmmnt/pull/236) [`c7f6001`](https://github.com/mmmnt/mmmnt/commit/c7f6001899078840d2218d5afcb9e02e41cb6aed) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - Derived sample payloads have the formats their types declare, a crossing contract names only fields its event declares, and the cli type-checks.
+
+  - derive: a `UUID` field samples a valid UUID, a version 8 (custom) UUID made from the SHA-256 of the field name. It was `<name>-001`, which a format check of UUIDs rejects. A field has the same UUID in every payload and on every run, so the same model still gives byte-identical scenarios. `DateTime`, `Date` and `Money` samples already had their formats and do not change.
+  - core: new rule V58. A crossing's `contract` field that the crossing event does not declare is a warning on a single file and an error over a project, like the other model-level rules. The diagnostic carries `ruleId: 'V58'`.
+  - Behaviour change: V58 can turn a project that loaded clean into one that fails. Declare the field on the event, or drop it from the contract.
+  - TicketWave's crossings of `PaymentInitiated` and `PaymentConfirmed` now name only fields their events declare.
+  - cli: `tsc --noEmit -p packages/cli` passes. The `derive` command read `result.notices`, which `runDerive` never returns; that line is gone and output is unchanged. The cli has a `typecheck` script, so CI's `pnpm turbo typecheck` checks it.
+
+- Updated dependencies [[`98ba180`](https://github.com/mmmnt/mmmnt/commit/98ba180e76b8b6fee2b6c8d4500657e7b2b5f75a), [`8600af1`](https://github.com/mmmnt/mmmnt/commit/8600af17174e0b48c8f8b853a874f7a64d0768a0), [`2aa0768`](https://github.com/mmmnt/mmmnt/commit/2aa07681e0e76b03ae07744fa680a20b337534db), [`3da87e8`](https://github.com/mmmnt/mmmnt/commit/3da87e80be9efa41035b4069988900bdd60376ae), [`345f494`](https://github.com/mmmnt/mmmnt/commit/345f4943035f9fc55e56e2dce67a834013f47387), [`c7f6001`](https://github.com/mmmnt/mmmnt/commit/c7f6001899078840d2218d5afcb9e02e41cb6aed)]:
+  - @mmmnt/core@0.15.0
+  - @mmmnt/emit-ts@0.15.0
+  - @mmmnt/generate@0.15.0
+  - @mmmnt/harness@0.15.0
+  - @mmmnt/derive@0.15.0
+  - @mmmnt/board@0.15.0
+  - @mmmnt/schema@0.15.0
+  - @mmmnt/viz@0.15.0
+  - @mmmnt/sync@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes
