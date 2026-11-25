@@ -1,5 +1,28 @@
 # @mmmnt/cli
 
+## 0.16.0
+
+### Minor Changes
+
+- [#243](https://github.com/mmmnt/mmmnt/pull/243) [`0d9fad5`](https://github.com/mmmnt/mmmnt/commit/0d9fad57b0882ddd5cf0d8f49ceef567e01a9be9) Thanks [@listenrightmeow](https://github.com/listenrightmeow)! - The VS Code extension (mmmnt.moment-language) is released with the toolchain, at its version, with the grammar `@mmmnt/core` ships.
+
+  - vscode: each release publishes the extension to the VS Code Marketplace and Open VSX at the version of `@mmmnt/cli`. Its last release was 0.1.1; the next is this one.
+  - vscode: packaging copies the grammar from `@mmmnt/core` every time, so the extension highlights every keyword the release parses. Since 0.1.1 it gains the declarations `orchestration`, `projection`, `query`, `rule`, `term`, `state`, `gateway` and `external` / `External`, and the clauses and words `enforced-by`, `invoked-by`, `initial`, `outcome`, `pattern`, `sources`, `causes`, `cause`, `issues`, `after`, `field`, `reads`, `note` and `none`, and the attribute `[encrypted]`.
+  - vscode: the extension's CHANGELOG is the toolchain's, followed by its own 0.1.x history.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @mmmnt/board@0.16.0
+  - @mmmnt/core@0.16.0
+  - @mmmnt/derive@0.16.0
+  - @mmmnt/emit-ts@0.16.0
+  - @mmmnt/generate@0.16.0
+  - @mmmnt/harness@0.16.0
+  - @mmmnt/schema@0.16.0
+  - @mmmnt/sync@0.16.0
+  - @mmmnt/viz@0.16.0
+
 ## 0.15.0
 
 ### Minor Changes
