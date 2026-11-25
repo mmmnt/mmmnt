@@ -3,21 +3,27 @@ import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Wordmark from '../components/Wordmark.astro';
+import { FACET_URL, FEATURE_URL } from '../consts';
 
 const title = 'Ecosystem';
 const description =
-  'Moment is the open-source keystone of the Complai ecosystem. Everything else is optional. No @mmmnt package may depend on any Complai service.';
+  'Moment is the open-source core of the Complai ecosystem. Facet proves a Moment design, Feature holds the code to it, and everything else is optional. No @mmmnt package depends on any Complai service.';
 
-const upstreamCards = [
-  { name: 'Sift', tag: 'UPSTREAM', desc: 'Automates Event Storming and hands Moment a converged spec. An optional input — hand-authoring the .moment file is always the primary path.' },
+const upstreamCards: Array<{ name: string; tag: string; desc: string; href?: string }> = [
+  { name: 'Sift', tag: 'UPSTREAM', desc: 'Automates event storming and hands Moment a model to import. An optional input: writing the .moment file by hand is always the primary path.' },
   { name: 'Codex', tag: 'UPSTREAM', desc: 'Versioned regulatory rule packs, consumed through an anti-corruption layer. When no pack is active, Moment behaves exactly as it does open-source.' },
 ];
-const downstreamCards = [
-  { name: 'Facet', tag: 'DOWNSTREAM', desc: 'The visual test surface. Renders the sequence from Moment’s simulation scenarios and asserts every crossing contract before code exists.' },
+const downstreamCards: Array<{ name: string; tag: string; desc: string; href?: string }> = [
+  { name: 'Facet', tag: 'DOWNSTREAM', href: FACET_URL, desc: "Moment's sibling product, a proof harness. It replays the scenarios Moment derives and asserts the path, each crossing and its contract, the branch, the terminal state, sagas and policy chains, before code exists." },
+  { name: 'Feature', tag: 'DOWNSTREAM', href: FEATURE_URL, desc: 'The step after Facet. A .feat execution spec for each command tells the builder what to build and what to refuse, predicts every observable effect, and compiles into the tests the code must pass.' },
   { name: 'Forge', tag: 'DOWNSTREAM', desc: "Turns Moment's building-block inventory and flow definitions into work items and execution plans for delivery." },
   { name: 'Proof', tag: 'DOWNSTREAM', desc: 'Evaluates Moment artifacts against governing protocols and audits co-evolution debt for regulated delivery.' },
-  { name: 'Glean', tag: 'DOWNSTREAM', desc: 'Learns from every Moment stream — a pure consumer that never sits in the request path.' },
+  { name: 'Glean', tag: 'DOWNSTREAM', desc: 'Learns from every Moment stream. A pure consumer that never sits in the request path.' },
 ];
+const monoSpan = (text: string) =>
+  `<span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9E8ED;">${text}</span>`;
+const withCode = (desc: string) =>
+  desc.replace('.moment', monoSpan('.moment')).replace('.feat', monoSpan('.feat'));
 ---
 
 <Base title={title} description={description}>
@@ -45,12 +51,12 @@ const downstreamCards = [
       <h1
         style="font-weight:600; font-size:54px; line-height:1.05; letter-spacing:-.025em; margin:0 0 24px; max-width:800px; color:#F2FBFC;"
       >
-        Moment is the open-source keystone. Everything else is optional.
+        Moment is the open-source core. Everything else is optional.
       </h1>
       <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
-        Complai is an eight-product platform for delivering software in regulated markets through
-        generative AI. Moment sits at the center — and the entire pipeline runs without any of the
-        others.
+        Complai is a family of products for delivering software in regulated markets through
+        generative AI. Moment sits at the center, and the entire pipeline runs without any of the
+        others. Facet and Feature are the next two steps from a design to verified code.
       </p>
     </section>
 
@@ -75,10 +81,9 @@ const downstreamCards = [
             > package may depend on any Complai service.
           </div>
           <p style="margin:0; font-size:15.5px; line-height:1.6; color:#90A2AA; max-width:640px;">
-            Not at runtime, not at build time. The open-source community uses the full toolchain —
-            parse, derive, generate, emit, simulate — without ever knowing Complai exists. Every
-            commercial product plugs in <span style="color:#C9E8ED;">around</span> Moment, never inside
-            it.
+            Not at runtime, not at build time. You can use the full toolchain (parse, derive,
+            generate, emit, simulate, board) without ever knowing Complai exists. Every commercial
+            product plugs in <span style="color:#C9E8ED;">around</span> Moment, never inside it.
           </p>
         </div>
       </div>
@@ -98,7 +103,7 @@ const downstreamCards = [
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:14px 16px;"
           >
             <div style="font-weight:600; font-size:15px;">Sift</div>
-            <div style="font-size:12px; color:#7C8C92; margin-top:2px;">converged spec in</div>
+            <div style="font-size:12px; color:#7C8C92; margin-top:2px;">a model to import</div>
           </div>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:14px 16px;"
@@ -144,11 +149,24 @@ const downstreamCards = [
             Downstream · optional
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div
-              style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px;"
+            <a
+              href={FACET_URL}
+              target="_blank"
+              rel="noopener"
+              style="background:#0A0F14; border:1px solid rgba(34,211,238,0.3); border-radius:11px; padding:12px 14px; display:block;"
             >
-              <div style="font-weight:600; font-size:14px;">Facet</div>
-            </div>
+              <div style="font-weight:600; font-size:14px; color:#F2FBFC;">Facet →</div>
+              <div style="font-size:12px; color:#7C8C92; margin-top:2px;">1 · prove the design</div>
+            </a>
+            <a
+              href={FEATURE_URL}
+              target="_blank"
+              rel="noopener"
+              style="background:#0A0F14; border:1px solid rgba(34,211,238,0.3); border-radius:11px; padding:12px 14px; display:block;"
+            >
+              <div style="font-weight:600; font-size:14px; color:#F2FBFC;">Feature →</div>
+              <div style="font-size:12px; color:#7C8C92; margin-top:2px;">2 · specify the build</div>
+            </a>
             <div
               style="background:#0A0F14; border:1px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px;"
             >
@@ -170,8 +188,8 @@ const downstreamCards = [
       <div
         style="text-align:center; margin-top:22px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92;"
       >
-        <span style="color:#C58CFF;">Trace</span> spans the whole platform, bidirectionally — Moment owns
-        its own cascade response.
+        <span style="color:#C58CFF;">Trace</span> spans the whole platform, in both directions. Moment
+        owns its own cascade response.
       </div>
     </section>
 
@@ -180,7 +198,7 @@ const downstreamCards = [
         <div
           style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
         >
-          The eight products
+          The products
         </div>
         <h2
           style="font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:0 0 40px; color:#F2FBFC;"
@@ -197,7 +215,7 @@ const downstreamCards = [
                     {p.tag}
                   </span>
                 </div>
-                <p set:html={p.desc.replace('.moment', '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:#C9E8ED;">.moment</span>')} style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;" />
+                <p set:html={withCode(p.desc)} style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;" />
               </div>
             ))
           }
@@ -214,20 +232,28 @@ const downstreamCards = [
               >
             </div>
             <p style="margin:0;font-size:13.5px;line-height:1.55;color:#C9E8ED;">
-              Gives DDD its missing temporal dimension — one spec to typed code, tests, docs, and
-              simulation. The only part you actually need.
+              Gives DDD its missing temporal dimension: one model, checked, and derived into tests,
+              types, simulations, schemas, documents and boards. The only part you need.
             </p>
           </div>
           {
             downstreamCards.map((p) => (
               <div style="background:#0A0F14; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:24px 24px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                  <span style="font-weight:600;font-size:16px;">{p.name}</span>
+                  <span style="font-weight:600;font-size:16px;">
+                    {p.href ? (
+                      <a href={p.href} target="_blank" rel="noopener" style="color:#7FE9F5;">
+                        {p.name} →
+                      </a>
+                    ) : (
+                      p.name
+                    )}
+                  </span>
                   <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#5b7077;letter-spacing:.06em;">
                     {p.tag}
                   </span>
                 </div>
-                <p style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;">{p.desc}</p>
+                <p set:html={withCode(p.desc)} style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;" />
               </div>
             ))
           }
@@ -244,12 +270,12 @@ const downstreamCards = [
               >
             </div>
             <p style="margin:0;font-size:13.5px;line-height:1.55;color:#90A2AA;">
-              Signals cascades across the platform. Moment listens, but owns its own cascade response —
-              it is never externally controlled.
+              Signals cascades across the platform. Moment listens, but owns its own cascade
+              response. It is never controlled from outside.
             </p>
           </div>
           <div
-            style="border:1px dashed rgba(255,255,255,0.14); border-radius:12px; padding:24px 24px; display:flex; flex-direction:column; justify-content:center;"
+            style="grid-column:1 / -1; border:1px dashed rgba(255,255,255,0.14); border-radius:12px; padding:24px 24px; display:flex; flex-direction:column; justify-content:center;"
           >
             <div style="font-weight:600; font-size:16px; color:#7C8C92; margin-bottom:6px;">
               Start with Moment
@@ -273,7 +299,7 @@ const downstreamCards = [
         <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:560px; margin:0 auto 32px;">
           Install the CLI, write a <span
             style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C9E8ED;">.moment</span
-          > file, and run the full pipeline today — no account, no platform, no lock-in.
+          > file, and run the full pipeline today. No account, no platform, no lock-in.
         </p>
         <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
           <a

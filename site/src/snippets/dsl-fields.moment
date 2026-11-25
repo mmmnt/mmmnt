@@ -1,0 +1,25 @@
+context "Intake" [Core]
+  value-object ActorKind: "user" | "api" | "system"        // a named code set (a scalar value object)
+  value-object ContentHash: string [pattern "^[0-9a-f]{64}$"]
+  value-object RecordRef: string
+
+  value-object Actor
+    sub: string
+    clientId?: string                                      // optional
+    kind: ActorKind
+
+  value-object Arrival                                     // a tagged union, discriminated by `kind`
+    actor: Actor                                           // common to every variant
+    | Live
+    | Replay
+        replay: "Bootstrap" | "Resume"                     // an inline code set
+    | Document
+        location: string
+        contentHash?: ContentHash
+
+  aggregate "Receipt"
+    identity pointer: string
+    event ReplayCompleted
+      replayPoint: number{stream}                          // a map from a string key (named `stream`)
+      pointer: string | recordRef: RecordRef               // exactly one of the two
+      rationale?: string [encrypted]                       // recorded as {dataKeyId, ciphertext}

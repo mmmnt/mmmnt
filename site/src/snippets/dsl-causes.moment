@@ -1,0 +1,17 @@
+context "Booking" [Core]
+  aggregate "Booking"
+    identity bookingId: UUID
+    command CancelBooking
+      input bookingId: UUID
+      causes CustomerRequest, OrganiserCancellation
+      precondition withinRefundWindow cause CustomerRequest: "The customer cancels 24 hours ahead"
+      emits BookingCancelled
+    event BookingCancelled
+      bookingId: UUID
+
+flow "Cancellation"
+  lane desk "Booking" [Core]
+
+  moment "The customer asks to cancel"
+    desk: CancelBooking cause CustomerRequest
+    desk: BookingCancelled

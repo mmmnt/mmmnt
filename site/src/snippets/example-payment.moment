@@ -1,0 +1,45 @@
+context "Payments" [Core]
+  aggregate "Payment"
+    identity paymentId: UUID
+    command AuthorizePayment
+      input amount: Money
+      emits PaymentAuthorized
+    command CapturePayment
+      emits PaymentCaptured
+    command RefundPayment
+      emits PaymentRefunded
+    event PaymentAuthorized
+      paymentId: UUID
+    event PaymentCaptured
+      paymentId: UUID
+    event PaymentRefunded
+      paymentId: UUID
+
+  orchestration Settlement
+    command StartSettlement
+      input paymentId: UUID
+    command CompleteSettlement
+    command AbortSettlement
+    invoked-by StartSettlement
+    issues AuthorizePayment, CapturePayment
+    states Capturing -> Settled on CompleteSettlement
+    compensation on AbortSettlement issues RefundPayment
+    timeout P1D
+
+  policy CompleteOnCaptured
+    trigger PaymentCaptured
+    action "the payment is captured"
+    chains-to CompleteSettlement
+
+flow "settlement"
+  lane payments "Payments" [Core]
+  moment "Authorize"
+    payments: AuthorizePayment
+    payments: PaymentAuthorized
+  moment "Capture or refund" [branch]
+    when captured
+      payments: CapturePayment
+      payments: PaymentCaptured
+    when declined
+      payments: RefundPayment
+      payments: PaymentRefunded [outcome]

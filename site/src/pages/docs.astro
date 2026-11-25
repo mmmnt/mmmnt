@@ -2,18 +2,20 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { GITHUB_URL, GITHUB_WIKI_URL } from '../consts';
+import { GITHUB_URL, GITHUB_WIKI_URL, MOMENT_VERSION } from '../consts';
 
 const title = 'Docs';
 const description =
-  'Everything you need to run Moment locally — install, quickstart, CLI reference, packages, and MCP server configuration.';
+  'Everything you need to run Moment locally: install, quickstart, CLI reference, packages and MCP server configuration.';
 
 const cliRows = [
   { cmd: 'moment parse', desc: 'Validate a .moment file, or a model directory as one project.' },
   { cmd: 'moment derive', desc: 'Derive the test topology from a specification.' },
   { cmd: 'moment generate', desc: 'Generate Gherkin, TypeScript scaffolds, and a specification document.' },
-  { cmd: 'moment simulate', desc: 'Write simulation scenarios, topologies, and AsyncAPI (--out-dir).' },
-  { cmd: 'moment serve', desc: 'Stream topology and scenarios to Facet over WebSocket; --project serves a model directory.' },
+  { cmd: 'moment simulate', desc: 'Derive simulation scenarios; --all adds every variant and negative path, --out-dir writes them with topologies and AsyncAPI.' },
+  { cmd: 'moment serve', desc: 'Stream topology and scenarios to Facet over WebSocket on ws://localhost:4321; --project serves a model directory.' },
+  { cmd: 'moment board', desc: 'Project the model onto an event-storming board: SVG frames plus manifest.json (--out).' },
+  { cmd: 'moment schema emit', desc: 'Write one closed JSON Schema per event payload (--out-dir).' },
   { cmd: 'moment status', desc: 'Report spec validity, implementation drift, and schema lifecycle.' },
   { cmd: 'moment sync propose', desc: 'Record implementation drift as proposals in .domain/.' },
   { cmd: 'moment sync accept · reject', desc: 'Decide pending proposals and commit the decision.' },
@@ -23,13 +25,14 @@ const cliRows = [
 
 const packages = [
   { name: '@mmmnt/core', desc: 'grammar + IR' },
-  { name: '@mmmnt/derive', desc: 'scenarios' },
-  { name: '@mmmnt/generate', desc: 'docs · tests' },
-  { name: '@mmmnt/emit-ts', desc: 'TypeScript' },
+  { name: '@mmmnt/derive', desc: 'topologies · scenarios' },
+  { name: '@mmmnt/generate', desc: 'Gherkin · docs · AsyncAPI' },
+  { name: '@mmmnt/emit-ts', desc: 'TypeScript types · scaffolds' },
   { name: '@mmmnt/sync', desc: 'drift · proposals · reconcile' },
-  { name: '@mmmnt/schema', desc: 'governance' },
-  { name: '@mmmnt/viz', desc: 'Facet bridge' },
-  { name: '@mmmnt/harness', desc: 'test runner' },
+  { name: '@mmmnt/schema', desc: 'JSON Schemas · governance' },
+  { name: '@mmmnt/viz', desc: 'context map · timeline' },
+  { name: '@mmmnt/board', desc: 'event-storming board' },
+  { name: '@mmmnt/harness', desc: 'event replay · contract assertion' },
   { name: '@mmmnt/mcp', desc: 'MCP server' },
   { name: '@mmmnt/cli', desc: 'the moment CLI' },
 ];
@@ -109,8 +112,8 @@ const jsonLd = {
           Everything to run Moment locally.
         </h1>
         <p style="font-size:17px; line-height:1.6; color:#90A2AA; max-width:640px; margin:0 0 20px;">
-          The essentials live here; the exhaustive reference — full grammar, every flag, adapters —
-          lives in the <a
+          The essentials live here. The full reference, with the grammar and every flag, lives in
+          the <a
             href={GITHUB_WIKI_URL}
             target="_blank"
             rel="noopener"
@@ -144,7 +147,7 @@ const jsonLd = {
               <div><span style="color:#5b7077;">$</span> npm install --save-dev @mmmnt/cli</div>
               <div>
                 <span style="color:#5b7077;">$</span> npx moment --version <span style="color:#7fbf9a;"
-                  ># 0.6.0</span
+                  ># {MOMENT_VERSION}</span
                 >
               </div>
             </div>
@@ -159,8 +162,11 @@ const jsonLd = {
             Quickstart
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
-            Write a spec, generate the artifacts, and simulate before writing code. The full five-step
-            walkthrough lives on the <a
+            Save the shop model as <span
+              style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+              >model/shop.moment</span
+            >, check it, generate from it, and simulate every path before writing code. The full
+            walkthrough, with the model, lives on the <a
               href="/get-started"
               style="color:#C9E8ED; border-bottom:1px solid rgba(201,232,237,0.3);">Get started</a
             > page.
@@ -178,23 +184,23 @@ const jsonLd = {
             >
               <div>
                 <span style="color:#5b7077;">$</span> npx moment parse <span style="color:#9DE6C6;"
-                  >order.moment</span
+                  >model/</span
                 >
               </div>
               <div>
                 <span style="color:#5b7077;">$</span> npx moment generate <span style="color:#9DE6C6;"
-                  >order.moment</span
+                  >model/shop.moment</span
                 >
               </div>
               <div>
-                <span style="color:#5b7077;">$</span> npx moment simulate order.moment <span style="color:#22D3EE;"
-                  >--out-dir</span
-                > facet
+                <span style="color:#5b7077;">$</span> npx moment simulate <span style="color:#9DE6C6;"
+                  >model/shop.moment</span
+                > <span style="color:#22D3EE;">--all</span>
               </div>
               <div>
                 <span style="color:#5b7077;">$</span> npx moment serve <span style="color:#9DE6C6;"
-                  >order.moment</span
-                >
+                  >model/shop.moment</span
+                > <span style="color:#22D3EE;">--all</span>
               </div>
             </div>
           </div>
@@ -233,7 +239,7 @@ const jsonLd = {
             }
           </div>
           <p style="font-size:13.5px; color:#5b7077; margin:14px 0 0;">
-            19 commands in total, run <span
+            20 commands in total. Run <span
               style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;">moment --help</span
             > or see the <a
               href={GITHUB_WIKI_URL}
@@ -252,9 +258,10 @@ const jsonLd = {
             Packages
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 20px;">
-            Ten <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+            Eleven <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
               >@mmmnt</span
-            > packages, published to npm and versioned together, each doing one job in the pipeline.
+            > packages, published to npm and released together at version {MOMENT_VERSION}, each
+            doing one job in the pipeline.
           </p>
           <div
             style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; font-family:'JetBrains Mono',monospace; font-size:12.5px;"
@@ -278,8 +285,12 @@ const jsonLd = {
             MCP server
           </h2>
           <p style="font-size:15px; line-height:1.6; color:#90A2AA; margin:0 0 16px;">
-            A Model Context Protocol server exposes 7 tools to Claude, Copilot, and Cursor — fully
-            offline. Point your agent at it and let it read and reconcile the model.
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#C9E8ED;"
+              >@mmmnt/mcp</span
+            > is a Model Context Protocol server over stdio with 7 tools: validate a model, report
+            project status, produce visualization data, read local event signals, import a Sift
+            export, plan TypeScript emission, and reconcile upstream drift. It reads and writes only
+            local files and makes no network calls.
           </p>
           <div
             style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:12px; overflow:hidden;"

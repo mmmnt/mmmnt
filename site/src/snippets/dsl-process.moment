@@ -1,0 +1,34 @@
+context "Checkout" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      input customerId: UUID
+      emits OrderPlaced
+    command CancelOrder
+      input orderId: UUID
+      emits OrderCancelled
+    event OrderPlaced
+      orderId: UUID
+    event OrderCancelled
+      orderId: UUID
+
+  orchestration Purchase
+    command StartPurchase
+      input customerId: UUID
+      emits PurchaseStarted
+    command AbandonPurchase
+      emits PurchaseAbandoned
+    event PurchaseStarted
+      customerId: UUID
+    event PurchaseAbandoned
+      customerId: UUID
+    invoked-by StartPurchase
+    issues PlaceOrder
+    states Started
+    compensation on AbandonPurchase issues CancelOrder
+    timeout purchaseWindow
+
+  policy StartPurchaseWhenOrderPlaced
+    trigger OrderPlaced
+    action "start the purchase process"
+    chains-to StartPurchase

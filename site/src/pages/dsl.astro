@@ -2,11 +2,89 @@
 import Base from '../layouts/Base.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import { GITHUB_WIKI_URL } from '../consts';
+import MomentCode from '../components/MomentCode.astro';
+import { GITHUB_URL, GITHUB_WIKI_URL } from '../consts';
+import causesSnippet from '../snippets/dsl-causes.moment?raw';
+import processSnippet from '../snippets/dsl-process.moment?raw';
+import noteSnippet from '../snippets/dsl-note.moment?raw';
+import emitsSnippet from '../snippets/dsl-emits.moment?raw';
+import outcomeSnippet from '../snippets/dsl-outcome.moment?raw';
+import policySnippet from '../snippets/dsl-policy.moment?raw';
+import fieldsSnippet from '../snippets/dsl-fields.moment?raw';
+import keywordsSnippet from '../snippets/dsl-keywords.moment?raw';
+
+const adrUrl = (file: string) => `${GITHUB_URL}/blob/main/docs/adr/${file}`;
+
+const constructs: Array<{ adr: string; href: string; title: string; body: string; file: string; code: string }> = [
+  {
+    adr: 'ADR-040',
+    href: adrUrl('ADR-040-process-constructs-causes-and-note-moments.md'),
+    title: 'A process records its outcomes as events',
+    body: 'An orchestration declares its own commands and events. Its commands emit them, and policies, projections and flows can use them like any other event. compensation names the commands that undo the process, and timeout names its time limit.',
+    file: 'purchase.moment',
+    code: processSnippet,
+  },
+  {
+    adr: 'ADR-040',
+    href: adrUrl('ADR-040-process-constructs-causes-and-note-moments.md'),
+    title: 'Causes: who asked, and which refusals apply',
+    body: 'A command issued for different reasons names them with causes. A precondition that belongs to one cause says so, and the flow names the cause it places. A precondition with no cause applies to every cause. Derived negative scenarios follow the cause.',
+    file: 'cancellation.moment',
+    code: causesSnippet,
+  },
+  {
+    adr: 'ADR-040',
+    href: adrUrl('ADR-040-process-constructs-causes-and-note-moments.md'),
+    title: 'A note is a step outside the model',
+    body: 'A note narrates a step the model does not describe, or one below its grain. It is not a node and asserts nothing. A moment may hold only notes. Here the card network is an external system with its own lane.',
+    file: 'card-payment.moment',
+    code: noteSnippet,
+  },
+  {
+    adr: 'ADR-041',
+    href: adrUrl('ADR-041-commands-record-one-or-more-events.md'),
+    title: 'emits A when S | B, C when T',
+    body: 'A command records one or more events. A comma joins the events one transaction records together. A bar separates alternative outcomes, and when names the declared state in which each one is recorded. In a flow, each arm places the events of one outcome.',
+    file: 'presale.moment',
+    code: emitsSnippet,
+  },
+  {
+    adr: 'ADR-043',
+    href: adrUrl('ADR-043-an-arm-may-end-at-an-outcome.md'),
+    title: '[outcome] and [terminal]',
+    body: 'A branch arm can end the flow. [outcome] is a normal result the business names, so the arm is a variant, not a failure. [terminal] is a failure exit, so the arm is a failure path. A refusal stays a precondition. Negative scenarios cover the preconditions of the commands on every branch path, not only the first (ADR-042).',
+    file: 'seat-request.moment',
+    code: outcomeSnippet,
+  },
+  {
+    adr: 'ADR-045 · ADR-050',
+    href: adrUrl('ADR-045-a-policy-declares-the-condition-under-which-it-reacts.md'),
+    title: 'Policy conditions',
+    body: 'By default a policy reacts to every occurrence of its trigger. trigger E when f = v reacts only when the event’s own field has that value. when f.kind = V reads the variant of a tagged-union field. after E reacts only when the occurrence has that event among its causes. when and after can be combined.',
+    file: 'payments.moment',
+    code: policySnippet,
+  },
+  {
+    adr: 'ADR-049',
+    href: adrUrl('ADR-049-fields-declare-optionality-code-sets-unions-maps-and-patterns.md'),
+    title: 'Optional fields, code sets, unions, maps and patterns',
+    body: 'Every field is required unless it is marked name?: T. A code set is string literals joined by |, inline or as a named scalar value object. A tagged union lists its variants with | and is discriminated by kind. T{key} is a map, a: T | b: U means exactly one of the two, and [pattern "..."] constrains a string.',
+    file: 'intake.moment',
+    code: fieldsSnippet,
+  },
+  {
+    adr: 'ADR-051',
+    href: adrUrl('ADR-051-any-keyword-may-name-a-field-an-input-or-a-lane.md'),
+    title: 'Any keyword can name a field, an input or a lane',
+    body: 'A name in those places is always followed by a colon, or by a label after lane, so policy: string is a field and policy P is a declaration. The name of a building block (a command, event, policy and so on) is still a plain identifier.',
+    file: 'scheduling.moment',
+    code: keywordsSnippet,
+  },
+];
 
 const title = 'The DSL';
 const description =
-  'The .moment DSL — a Langium grammar for temporal domains. Reads like a domain description, compiles to a typed intermediate representation, and drives every downstream artifact.';
+  'The .moment DSL is a Langium grammar for temporal domains. Reads like a domain description, compiles to a typed intermediate representation, and drives every downstream artifact.';
 
 const specLines: Array<{ key: string; indent: number; html: string }> = [
   { key: 'context', indent: 0, html: '<span style="color:#22D3EE;">context</span> <span style="color:#9DE6C6;">"Ordering"</span> <span style="color:#5b7077;">[Core]</span>' },
@@ -31,6 +109,8 @@ const specLines: Array<{ key: string; indent: number; html: string }> = [
   { key: 'via', indent: 4, html: '<span style="color:#5b7077;">via</span> CustomerSupplier' },
   { key: 'contract', indent: 4, html: '<span style="color:#5b7077;">contract</span> orderId: <span style="color:#8FD3FF;">UUID</span> <span style="color:#5b7077;">[required]</span>' },
   { key: 'triggers', indent: 3, html: '<span style="color:#C58CFF;">triggers</span> <span style="color:#E7C9A0;">InitiateFulfillment</span>' },
+  { key: 'moment', indent: 1, html: '<span style="color:#22D3EE;">moment</span> <span style="color:#9DE6C6;">"Fulfillment starts"</span>' },
+  { key: 'participation', indent: 2, html: 'fulfillment: <span style="color:#E7C9A0;">InitiateFulfillment</span>' },
 ];
 
 const gramLines: Array<{ indent: number; html: string }> = [
@@ -56,6 +136,8 @@ const gramLines: Array<{ indent: number; html: string }> = [
   { indent: 4, html: '<span style="color:#5b7077;">via</span> <span style="color:#9a8fd6;">&lt;Context-Mapping&gt;</span>' },
   { indent: 4, html: '<span style="color:#5b7077;">contract</span> <span style="color:#9a8fd6;">&lt;field&gt;</span>: <span style="color:#9a8fd6;">&lt;Type&gt;</span> <span style="color:#5b7077;">[required]</span>' },
   { indent: 3, html: '<span style="color:#C58CFF;">triggers</span> <span style="color:#9a8fd6;">&lt;Reactive-Command&gt;</span>' },
+  { indent: 1, html: '<span style="color:#22D3EE;">moment</span> <span style="color:#9a8fd6;">&lt;"next-point"&gt;</span>' },
+  { indent: 2, html: '<span style="color:#9a8fd6;">&lt;lane-id&gt;</span>: <span style="color:#9a8fd6;">&lt;Reactive-Command&gt;</span>' },
 ];
 
 const chips: Array<{ key: string; label: string; special?: boolean }> = [
@@ -92,6 +174,8 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
   { syntax: 'context [Role]', meaning: 'Bounded context with a Core / Supporting / Generic tag.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'aggregate · identity', meaning: 'Consistency boundary with an identity, owning commands and events.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'command · emits', meaning: 'An intent that changes state and records one or more events: A, B together, or A | B by state.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'emits A when S | B when T', meaning: 'Alternative outcomes, each recorded in a declared state of the aggregate. A comma joins the events one transaction records.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'state initial · state A -> B on C', meaning: 'The states an aggregate moves through, and the command that moves it.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'event', meaning: 'A typed, past-tense fact. Carries the fields listed under it.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'value-object', meaning: 'An immutable value without identity, in an aggregate or at context level: a record of fields, a scalar (value-object Id: string), or a tagged union of | variants.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'projection · sources', meaning: 'A read model built from events, with the fields it exposes.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
@@ -99,14 +183,17 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
   { syntax: 'rule · enforced-by', meaning: 'A context-level rule and the service, query, or external that enforces it.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'term', meaning: 'A glossary entry in the context’s ubiquitous language.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'policy · chains-to', meaning: 'When one domain event happens, then one command runs.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'trigger E when f = v · after E', meaning: 'A policy condition: the trigger’s field has a value, a union field carries a variant (when f.kind = V), or the occurrence has an event among its causes.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
+  { syntax: 'name?: T · "a" | "b" · T{} · [pattern]', meaning: 'Field types: optional fields, code sets, tagged unions, maps, exclusive fields and patterns. Every field is required unless marked.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'orchestration', meaning: 'A long-running process: issues commands, advances on its own, compensates, and records its outcomes as events.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'event (in an orchestration)', meaning: 'A fact the process records: the outcome of one of its commands.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'causes · cause', meaning: 'The reasons a command is issued for, and the refusals that apply to only one of them.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'external', meaning: 'A system you integrate with but do not model.', layer: 'structure', color: '#22D3EE', layerColor: '#5b7077' },
   { syntax: 'flow · lane · moment', meaning: 'A named temporal sequence across context lanes, made of behavioral assertions.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
   { syntax: 'crosses-to · via · contract', meaning: 'A boundary crossing, its relationship, and the fields it must carry.', layer: 'temporal', color: '#C58CFF', layerColor: '#22D3EE' },
-  { syntax: 'triggers', meaning: 'Causation — an event causes a downstream command.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
+  { syntax: 'triggers', meaning: 'Causation: an event causes a downstream command.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
   { syntax: 'note', meaning: 'Narration of a step outside the model; a moment can be only a note.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
+  { syntax: '[outcome] · [terminal]', meaning: 'An arm that ends the flow. [outcome] is a normal result, so the arm is a variant. [terminal] is a failure exit.', layer: 'temporal', color: '#22D3EE', layerColor: '#22D3EE' },
 ];
 ---
 
@@ -140,7 +227,7 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
       </h1>
       <p style="font-size:19px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0;">
         A Langium grammar. Reads like a domain description, compiles to a typed intermediate
-        representation, and drives every downstream artifact. Learn the whole language below — drag
+        representation, and drives every downstream artifact. Learn the whole language below. Drag
         the seam, or tap any keyword.
       </p>
     </section>
@@ -196,7 +283,7 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
           </div>
           <div
             id="codeBody"
-            style="position:relative; height:490px; overflow:hidden; user-select:none;"
+            style="position:relative; height:530px; overflow:hidden; user-select:none;"
           >
             {/* SPEC LAYER */}
             <div
@@ -293,11 +380,11 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
               The spatial map, threaded with time.
             </div>
             <p style="margin:0 0 14px; font-size:15px; line-height:1.6; color:#C9CDD6;">
-              DDD maps your domain in space — bounded contexts and aggregates, the <span
+              DDD maps your domain in space: bounded contexts and aggregates, the <span
                 style="color:#C9E8ED;">where</span
               >. Event Storming lays domain events along a timeline, the <span style="color:#C9E8ED;"
                 >when</span
-              >. A <span style="color:#9DE6C6;">.moment</span> file is where the two meet — drag the seam
+              >. A <span style="color:#9DE6C6;">.moment</span> file is where the two meet. Drag the seam
               to morph the grammar into the real spec.
             </p>
             <div
@@ -308,7 +395,7 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
                 >TIP</span
               >
               <span style="font-size:13.5px; line-height:1.55; color:#90A2AA;"
-                >Tap any keyword above — or any line in the code — for its DDD and Event Storming
+                >Tap any keyword above, or any line in the code, for its DDD and Event Storming
                 meaning.</span
               >
             </div>
@@ -355,6 +442,57 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
       </div>
     </section>
 
+    {/* NEWER CONSTRUCTS */}
+    <section style="position:relative; border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="site-container" style="max-width:1200px; margin:0 auto; padding:72px 40px;">
+        <div
+          style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#22D3EE; margin-bottom:16px;"
+        >
+          Processes, outcomes, conditions and fields
+        </div>
+        <h2
+          style="font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:0 0 14px; color:#F2FBFC;"
+        >
+          The rest of the language, construct by construct.
+        </h2>
+        <p style="font-size:16px; line-height:1.6; color:#90A2AA; max-width:680px; margin:0 0 40px;">
+          Each example below is a whole <span
+            style="font-family:'JetBrains Mono',monospace;font-size:13.5px;color:#C9E8ED;">.moment</span
+          > file that <span style="font-family:'JetBrains Mono',monospace;font-size:13.5px;color:#C9E8ED;"
+            >moment parse</span
+          > accepts. Each links to the architecture decision that added the construct.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:22px;">
+          {
+            constructs.map((c) => (
+              <div style="display:grid; grid-template-columns:0.8fr 1.2fr; gap:22px; align-items:start;">
+                <div style="padding-top:6px;">
+                  <a
+                    href={c.href}
+                    target="_blank"
+                    rel="noopener"
+                    style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#22D3EE;"
+                  >
+                    {c.adr} →
+                  </a>
+                  <div style="font-weight:600; font-size:18px; color:#F2FBFC; margin:10px 0 10px; letter-spacing:-.01em;">
+                    {c.title}
+                  </div>
+                  <p style="margin:0; font-size:14.5px; line-height:1.6; color:#90A2AA;">{c.body}</p>
+                </div>
+                <div style="background:#0A0F14; border:1px solid rgba(255,255,255,0.09); border-radius:14px; overflow:hidden; min-width:0;">
+                  <div style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.07); font-family:'JetBrains Mono',monospace; font-size:12px; color:#7C8C92;">
+                    {c.file}
+                  </div>
+                  <MomentCode code={c.code} />
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
     {/* FROM ONE SPEC */}
     <section
       style="position:relative; border-top:1px solid rgba(255,255,255,0.06); background:#0A0F14;"
@@ -375,10 +513,13 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
             [
               { name: 'TypeScript types', desc: 'Event and command interfaces, aggregate contracts, and read-model types for projections and queries.' },
               { name: 'Test scaffolds', desc: 'Topologies, negative cases, and saga state-machine checks.' },
-              { name: 'Gherkin features', desc: 'Human-readable .feature files per flow.' },
+              { name: 'Gherkin features', desc: 'A readable .feature file per flow, one scenario per moment and branch arm. Documentation, not the build step.' },
               { name: 'Simulation scenarios', desc: 'Topologies and scenarios from moment simulate, served to the Facet harness by moment serve.' },
               { name: 'AsyncAPI 3.0', desc: 'Channel and message contracts for every boundary crossing.' },
-              { name: 'Specification docs', desc: 'Markdown that never drifts, because it is generated, not written.' },
+              { name: 'Specification docs', desc: 'Markdown generated from the model, so it changes when the model changes.' },
+              { name: 'JSON Schemas', desc: 'One closed JSON Schema per event payload, from moment schema emit.' },
+              { name: 'Event-storming board', desc: 'SVG frames and a manifest from moment board, one to one with the model.' },
+              { name: 'Drift proposals', desc: 'Differences between model and code, recorded by moment sync for you to accept or reject.' },
             ].map((a) => (
               <div style="background:#07090D; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:22px 22px;">
                 <div style="font-weight:600; font-size:15px; margin-bottom:6px; color:#E6F0F2;">
@@ -420,20 +561,20 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
     }
 
     const DATA: Record<string, CoachData> = {
-      context: { tag: 'bounded context · the WHERE', syntax: 'context &lt;"Subdomain"&gt; [&lt;Core|Supporting|Generic&gt;]', meaning: 'A bounded context — a linguistic and organizational boundary where each term means exactly one thing. In DDD it is a region on the spatial map; in Event Storming it is the stretch of timeline a pivotal event opens.', rule: 'The role tag classifies the subdomain: Core differentiates you, Supporting is necessary, Generic is buy-or-borrow.' },
-      role: { tag: 'strategic classification', syntax: '[Core] · [Supporting] · [Generic]', meaning: 'Core-domain analysis: how much this subdomain differentiates the business. It decides where your strongest people go — not just what gets built.', rule: 'Core earns real investment; Generic should be bought or adopted, not hand-built.' },
-      aggregate: { tag: 'consistency boundary · a mini-domain', syntax: 'aggregate &lt;"Consistency-Boundary"&gt;', meaning: 'Not just a name. A lifecycle root that clusters the entities, values, and the commands that change them behind one invariant — the noun the events operate on. It usually becomes a microservice boundary.', rule: 'Every command and event lives in exactly one aggregate; it is the transaction boundary.' },
-      command: { tag: 'actor intent', syntax: 'command &lt;Actor-Intent&gt;', meaning: 'A decision an actor makes against an aggregate. It can be rejected, and on success it produces events — the blue sticky that precedes an orange one in Event Storming.', rule: 'Imperative, present-tense: PlaceOrder, not OrderPlaced.' },
+      context: { tag: 'bounded context · the WHERE', syntax: 'context &lt;"Subdomain"&gt; [&lt;Core|Supporting|Generic&gt;]', meaning: 'A bounded context: a linguistic and organizational boundary where each term means exactly one thing. In DDD it is a region on the spatial map; in Event Storming it is the stretch of timeline a pivotal event opens.', rule: 'The role tag classifies the subdomain: Core differentiates you, Supporting is necessary, Generic is buy-or-borrow.' },
+      role: { tag: 'strategic classification', syntax: '[Core] · [Supporting] · [Generic]', meaning: 'Core-domain analysis: how much this subdomain differentiates the business. It decides where your strongest people go, not just what gets built.', rule: 'Core earns real investment; Generic should be bought or adopted, not hand-built.' },
+      aggregate: { tag: 'consistency boundary · a mini-domain', syntax: 'aggregate &lt;"Consistency-Boundary"&gt;', meaning: 'Not just a name. A lifecycle root that clusters the entities, values, and the commands that change them behind one invariant: the noun the events operate on. It usually becomes a microservice boundary.', rule: 'Every command and event lives in exactly one aggregate; it is the transaction boundary.' },
+      command: { tag: 'actor intent', syntax: 'command &lt;Actor-Intent&gt;', meaning: 'A decision an actor makes against an aggregate. It can be rejected, and on success it produces events: the blue sticky that precedes an orange one in Event Storming.', rule: 'Imperative, present-tense: PlaceOrder, not OrderPlaced.' },
       emits: { tag: 'command → event', syntax: 'emits &lt;Resulting-Event&gt;<br>emits &lt;Event&gt;, &lt;Event&gt;<br>emits &lt;Event&gt; | &lt;Event&gt;<br>emits &lt;Event&gt; when &lt;State&gt; | …', meaning: 'The causal link from intent to fact: the event, or events, a command produces when it succeeds. A comma records events together in one transaction; a bar names alternative outcomes, of which the aggregate’s state chooses one; when names that state.', rule: 'One emits per command. A, B is and; A | B is or. A multi-event command stays inside its aggregate (V44), and a flow places one outcome of it (V47).' },
-      event: { tag: 'domain event · the WHEN', syntax: 'event &lt;Past-Tense-Fact&gt;', meaning: 'An immutable fact that has happened — the orange sticky, the atom of Event Storming’s timeline. Everything temporal in Moment hangs off events.', rule: 'Past-tense and irreversible: OrderPlaced, not PlaceOrder.' },
+      event: { tag: 'domain event · the WHEN', syntax: 'event &lt;Past-Tense-Fact&gt;', meaning: 'An immutable fact that has happened: the orange sticky, the atom of Event Storming’s timeline. Everything temporal in Moment hangs off events.', rule: 'Past-tense and irreversible: OrderPlaced, not PlaceOrder.' },
       field: { tag: 'typed payload', syntax: '&lt;attribute&gt;: &lt;Type&gt;<br>&lt;attribute&gt;?: &lt;Type&gt;<br>kind: "a" | "b"<br>points: number{stream}<br>hash: string [pattern "^[0-9a-f]{64}$"]', meaning: 'The data the event carries. Primitives, arrays with [], maps with {}, code sets of quoted values, and other defined types. A field is required unless it is marked ?; a: T | b: U on one line means exactly one of them; [pattern] and [encrypted] follow the type. This payload is exactly what a boundary contract can reference.', rule: 'Field types become the generated TypeScript interface, and moment schema emit writes one closed JSON Schema per event.' },
-      flow: { tag: 'timeline · the temporal model', syntax: 'flow &lt;"business-process"&gt;', meaning: 'A named run along Event Storming’s timeline — the WHEN that DDD’s spatial map leaves out. It threads moments across bounded contexts in order.', rule: 'This is the dimension Moment adds to a 2D domain design.' },
-      moment: { tag: 'pivotal point in the flow', syntax: 'moment &lt;"pivotal-point"&gt;', meaning: 'A single behavioral assertion at one point on the timeline — often an Event Storming pivotal event, the hinge where the process turns and a boundary is about to be crossed.', rule: 'The moment is the unit of value the whole language is named for. Event, policy and command may share one moment when a policy declares the hop (V43, an error when the file declares that policy).' },
-      participation: { tag: 'lane ↔ building-block binding', syntax: '&lt;lane-id&gt;: &lt;Node&gt;', meaning: 'Anchors a moment to a concrete building block — a command, event, query or projection — inside the lane’s bounded context: "in ordering, OrderPlaced happens here." It ties the temporal timeline back to the spatial map.', rule: 'The name must resolve to a building block that context declares (V1).' },
-      'crosses-to': { tag: 'pivotal event · the boundary', syntax: 'crosses-to &lt;downstream-lane&gt;', meaning: 'The heart of Moment. A pivotal event that leaves one bounded context and enters another — in Event Storming, the sticky that separates one phase of the system from the next. This is where incidents are born.', rule: 'A crossing must declare a contract with at least one field — an empty or implicit contract is an ERROR.' },
-      via: { tag: 'context mapping', syntax: 'via &lt;Context-Mapping&gt;', meaning: 'The DDD context-mapping pattern that governs the crossing — CustomerSupplier, Conformist, AnticorruptionLayer, Partnership, OpenHostService, PublishedLanguage, or SeparateWays.', rule: 'Names the real political and technical relationship between the two teams.' },
-      contract: { tag: 'published language · the promise', syntax: 'contract &lt;field&gt;: &lt;Type&gt; [required]', meaning: 'The exact schema carried across the boundary — the published language the two contexts agree on. Facet asserts every field of it at simulation time.', rule: 'Mandatory on every crossing. It is the promise the upstream context makes to the downstream one.' },
-      triggers: { tag: 'causation', syntax: 'triggers &lt;Reactive-Command&gt;', meaning: 'Causation — this event causes a downstream command to run. The reactive edge Facet animates and checks ordering on.', rule: 'Distinguishes cause from mere sequence on the timeline.' },
+      flow: { tag: 'timeline · the temporal model', syntax: 'flow &lt;"business-process"&gt;', meaning: 'A named run along Event Storming’s timeline: the WHEN that DDD’s spatial map leaves out. It threads moments across bounded contexts in order.', rule: 'This is the dimension Moment adds to a 2D domain design.' },
+      moment: { tag: 'pivotal point in the flow', syntax: 'moment &lt;"pivotal-point"&gt;', meaning: 'A single behavioral assertion at one point on the timeline, often an Event Storming pivotal event, the hinge where the process turns and a boundary is about to be crossed.', rule: 'The moment is the unit of value the whole language is named for. Event, policy and command may share one moment when a policy declares the hop (V43, an error when the file declares that policy).' },
+      participation: { tag: 'lane ↔ building-block binding', syntax: '&lt;lane-id&gt;: &lt;Node&gt;', meaning: 'Anchors a moment to a concrete building block (a command, event, query or projection) inside the lane’s bounded context: "in ordering, OrderPlaced happens here." It ties the temporal timeline back to the spatial map.', rule: 'The name must resolve to a building block that context declares (V1).' },
+      'crosses-to': { tag: 'pivotal event · the boundary', syntax: 'crosses-to &lt;downstream-lane&gt;', meaning: 'The heart of Moment. A pivotal event that leaves one bounded context and enters another. In Event Storming it is the sticky that separates one phase of the system from the next. This is where incidents are born.', rule: 'A crossing must declare a contract with at least one field. An empty contract is an ERROR.' },
+      via: { tag: 'context mapping', syntax: 'via &lt;Context-Mapping&gt;', meaning: 'The DDD context-mapping pattern that governs the crossing: CustomerSupplier, Conformist, AnticorruptionLayer, Partnership, OpenHostService, PublishedLanguage, or SeparateWays.', rule: 'Names the real political and technical relationship between the two teams.' },
+      contract: { tag: 'published language · the promise', syntax: 'contract &lt;field&gt;: &lt;Type&gt; [required]', meaning: 'The exact schema carried across the boundary: the published language the two contexts agree on. Facet asserts every field of it at simulation time.', rule: 'Mandatory on every crossing. It is the promise the upstream context makes to the downstream one.' },
+      triggers: { tag: 'causation', syntax: 'triggers &lt;Reactive-Command&gt;', meaning: 'Causation: this event causes a downstream command to run. The reactive edge Facet animates and checks ordering on.', rule: 'Distinguishes cause from mere sequence on the timeline.' },
       'identity': { tag: 'aggregate identity', syntax: 'identity &lt;id&gt;: &lt;Type&gt;', meaning: 'The field that tells one instance of the aggregate from another. It comes right after the aggregate name.', rule: 'Required on every aggregate.' },
       'value-object': { tag: 'immutable value', syntax: 'value-object LineItem<br>&nbsp;&nbsp;sku: string<br>&nbsp;&nbsp;quantity: number', meaning: 'A value without identity, compared by its fields. Declare it inside an aggregate or at the context level and use it as a field type.', rule: 'Each value object is declared once per context (V25).' },
       'projection': { tag: 'read model · the green sticky', syntax: 'projection OrderSummary<br>&nbsp;&nbsp;sources OrderPlaced<br>&nbsp;&nbsp;description "One row per placed order"<br>&nbsp;&nbsp;field orderId: UUID', meaning: 'A read model built from domain events. It names the events it is built from and the fields it exposes, and generates a read-model type.', rule: 'Every source must be a declared event (V22).' },
@@ -443,6 +584,7 @@ const referenceRows: Array<{ syntax: string; meaning: string; layer: string; col
       'policy': { tag: 'reaction · the lilac sticky', syntax: 'policy FulfillOnOrderPlaced<br>&nbsp;&nbsp;trigger OrderPlaced<br>&nbsp;&nbsp;action "start fulfillment"<br>&nbsp;&nbsp;chains-to InitiateFulfillment', meaning: 'Whenever this domain event happens, then this command runs. One event in, one command out.', rule: 'The trigger must be a declared domain event, and chains-to a command of an aggregate or orchestration.' },
       'orchestration': { tag: 'long-running process', syntax: 'orchestration Checkout<br>&nbsp;&nbsp;command StartCheckout<br>&nbsp;&nbsp;command FinishCheckout emits CheckoutCompleted<br>&nbsp;&nbsp;event CheckoutCompleted<br>&nbsp;&nbsp;invoked-by StartCheckout<br>&nbsp;&nbsp;issues PlaceOrder<br>&nbsp;&nbsp;states Placing<br>&nbsp;&nbsp;compensation none<br>&nbsp;&nbsp;timeout "none"', meaning: 'A process manager, written orchestration (saga is an alias). It is invoked by one of its own commands, issues commands to aggregates and externals, advances only on its own commands, and declares how it compensates. It can record outcomes as events, which policies and projections can use.', rule: 'Each step is one of its own commands, and some policy must chain to it. An orchestration command emits only an event the orchestration declares (V31).' },
       'cause': { tag: 'who asked · the reason a command runs', syntax: 'command CancelBooking<br>&nbsp;&nbsp;causes CustomerRequest, VenueClosure<br>&nbsp;&nbsp;precondition WithinCancellationWindow cause CustomerRequest: "..."', meaning: 'A command can be issued for different reasons. A refusal that applies to one reason names it; the others are not refused for it.', rule: 'A cause on a precondition or a placement must be one the command declares (V41).' },
+      causes: { tag: 'the reasons a command runs', syntax: 'command CancelBooking<br>&nbsp;&nbsp;causes CustomerRequest, OrganiserCancellation', meaning: 'The reasons a command can be issued for. A flow names the cause it places, and a precondition can apply to one cause only.', rule: 'A cause on a precondition or a placement is one of the declared causes (V41).' },
       'note': { tag: 'narration · outside the model', syntax: 'moment "Card is authorised"<br>&nbsp;&nbsp;note psp: "The network authorises the card"', meaning: 'A step the model does not describe. It is not a node and asserts nothing; it can be the whole of a moment.', rule: 'A moment holds a node, a when block or a note (V10).' },
       'external': { tag: 'system outside the model', syntax: 'external PaymentGateway "The card processor"<br><br>lane psp "PaymentGateway" [External]', meaning: 'A system you integrate with but do not model. It can be one end of a relationship and an External lane in a flow.', rule: 'An External lane must name a declared external (V27).' },
       'lane': { tag: 'swimlane · a context in the flow', syntax: 'lane &lt;lane-id&gt; &lt;"Context"&gt; [&lt;Classification&gt;]', meaning: 'Declares a swimlane for a bounded context, or an External system, in the flow. Every node names its lane before the colon.', rule: 'Every node must sit in a declared lane (V13).' },

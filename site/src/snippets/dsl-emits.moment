@@ -1,0 +1,24 @@
+context "Presale" [Core]
+  aggregate "AccessCode"
+    identity codeId: UUID
+    state initial Open
+    state Open -> OneUseLeft on RedeemAccessCode
+    command RedeemAccessCode
+      input codeId: UUID, code: string
+      emits AccessCodeRedeemed when Open
+          | AccessCodeRedeemed, AccessCodeExhausted when OneUseLeft
+    event AccessCodeRedeemed
+      codeId: UUID
+    event AccessCodeExhausted
+      codeId: UUID
+
+flow "Presale redemption"
+  lane presale "Presale" [Core]
+
+  moment "A fan redeems a code" [branch]
+    presale: RedeemAccessCode
+    when open
+      presale: AccessCodeRedeemed
+    when one-use-left
+      presale: AccessCodeRedeemed
+      presale: AccessCodeExhausted

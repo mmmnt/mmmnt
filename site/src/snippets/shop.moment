@@ -1,0 +1,49 @@
+context "Ordering" [Core]
+  aggregate "Order"
+    identity orderId: UUID
+    command PlaceOrder
+      input customerId: UUID, total: number
+      precondition notYetPlaced: "An order is placed once"
+      emits OrderPlaced
+    event OrderPlaced
+      orderId: UUID
+      customerId: UUID
+      total: number
+
+context "Fulfillment" [Supporting]
+  aggregate "Shipment"
+    identity shipmentId: UUID
+    state initial InStock
+    state InStock -> OutOfStock on ReserveStock
+    command ReserveStock
+      input orderId: UUID
+      emits StockReserved when InStock | StockBackordered when OutOfStock
+    event StockReserved
+      shipmentId: UUID
+      orderId: UUID
+    event StockBackordered
+      shipmentId: UUID
+      orderId: UUID
+  policy ReserveStockWhenOrderPlaced
+    trigger OrderPlaced
+    action "Reserve stock for the order"
+    chains-to ReserveStock
+
+flow "N1 - Checkout"
+  lane ordering "Ordering" [Core]
+  lane fulfillment "Fulfillment" [Supporting]
+
+  moment "The customer places an order"
+    ordering: PlaceOrder
+    ordering: OrderPlaced crosses-to fulfillment via CustomerSupplier
+      contract
+        orderId: UUID [required]
+        total: number [required]
+
+  moment "Fulfillment reserves the stock" [branch]
+    fulfillment: ReserveStock
+      triggered-by OrderPlaced
+    when inStock
+      fulfillment: StockReserved
+    when outOfStock
+      fulfillment: StockBackordered
