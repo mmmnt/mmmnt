@@ -4,16 +4,14 @@ import type {
   ContextDefinition,
   ConnectionDefinition,
 } from '@mmmnt/core';
+import { emitPayloadSchemas, type JsonSchema } from '@mmmnt/schema';
 
 type CrossingConnection = Extract<ConnectionDefinition, { connectionType: 'crosses-to' }>;
 
 interface CrossingInfo {
   readonly eventName: string;
-  readonly eventFields: readonly {
-    readonly name: string;
-    readonly type: string;
-    readonly deprecated?: boolean;
-  }[];
+  /** The event's payload schema from `@mmmnt/schema` (ADR-049 D8), value objects under `$defs`. */
+  readonly payload: JsonSchema;
   /** Fields the crossing contract marks [required] — surfaced as AsyncAPI required arrays. */
   readonly requiredFields: readonly string[];
   readonly producerContext: string;
@@ -23,7 +21,7 @@ interface CrossingInfo {
 export function generateAsyncApiSpec(ir: IntermediateRepresentation): string {
   const crossings = collectCrossings(ir);
   const channels = buildChannelYaml(crossings);
-  const messages = buildMessageYaml(crossings);
+  const components = buildComponentsYaml(crossings);
 
   // Audit fix #8: honest fallbacks — 'Moment Specification' when the spec has
   // no name, '1.0.0' when the version is missing or the '0.0.0' placeholder.
@@ -46,10 +44,8 @@ export function generateAsyncApiSpec(ir: IntermediateRepresentation): string {
     parts.push('');
   }
 
-  if (messages.length > 0) {
-    parts.push('components:');
-    parts.push('  messages:');
-    parts.push(messages);
+  if (components.length > 0) {
+    parts.push(components);
   }
 
   return parts.join('\n') + '\n';
@@ -95,48 +91,87 @@ function crossingFromConnection(
     producerCtx?.name ?? findProducingEntryContext(eventName, conn.sourceMomentId, flow, ir);
   if (!producerName) return undefined;
 
-  const consumerCtx = ir.contexts.find((c) => c.id === conn.targetContextId);
-  const consumerName = consumerCtx?.name ?? conn.targetContextId.replace(/^ctx-/, '');
-
-  const { eventFields, requiredFields } = crossingSchema(event, conn);
+  const subject = event ?? contractEvent(conn, eventName);
+  const home = producerCtx ?? ir.contexts.find((c) => c.name === producerName);
 
   return {
     eventName,
-    eventFields,
-    requiredFields,
+    payload: payloadSchema(subject, home, producerName, ir),
+    requiredFields: requiredFields(event, conn),
     producerContext: producerName,
-    consumerContext: consumerName,
+    consumerContext: consumerName(conn, ir),
   };
 }
 
-/** Payload fields and required markers for one crossing: context event fields
- *  when declared, else the crossing SchemaContract (flow-only fallback). */
-function crossingSchema(
+function consumerName(conn: CrossingConnection, ir: IntermediateRepresentation): string {
+  const consumerCtx = ir.contexts.find((c) => c.id === conn.targetContextId);
+  return consumerCtx?.name ?? conn.targetContextId.replace(/^ctx-/, '');
+}
+
+/**
+ * The event of a flow-only crossing, read from its SchemaContract: a contract type is written `T` or
+ * `T[]`.
+ */
+function contractEvent(conn: CrossingConnection, eventName: string): EventDefinition {
+  return {
+    id: conn.eventId,
+    name: eventName,
+    fields: conn.schemaContract.fields.map((f) => {
+      const isArray = f.type.endsWith('[]');
+      return {
+        name: f.name,
+        type: isArray ? f.type.slice(0, -2) : f.type,
+        isArray,
+        required: f.required,
+      };
+    }),
+  };
+}
+
+/**
+ * The payload schema of one event, from `@mmmnt/schema` (ADR-049 D8), so AsyncAPI and `moment schema
+ * emit` type a field the same way. The emitter is given the model with this event as the only event of
+ * its context: a value object then resolves in that context first, then in any other, as it does there.
+ */
+function payloadSchema(
+  event: EventDefinition,
+  home: ContextDefinition | undefined,
+  producerName: string,
+  ir: IntermediateRepresentation,
+): JsonSchema {
+  const contexts: ContextDefinition[] = ir.contexts.map((c) => ({
+    ...c,
+    events: c === home ? [event] : [],
+  }));
+  if (home === undefined) contexts.unshift(contextOf(producerName, event));
+  return emitPayloadSchemas({ ...ir, contexts }).schemas[event.name];
+}
+
+/** A context that declares nothing but the event: the producer of a flow-only crossing. */
+function contextOf(name: string, event: EventDefinition): ContextDefinition {
+  return {
+    id: `ctx-${name}`,
+    name,
+    aggregates: [],
+    domainServices: [],
+    commands: [],
+    events: [event],
+    policies: [],
+    sagas: [],
+    valueObjects: [],
+    invariants: [],
+  };
+}
+
+/** Audit fix #8: [required] markers from the crossing contract surface as AsyncAPI required arrays;
+ *  fall back to event field flags when the contract declares no required field. */
+function requiredFields(
   event: EventDefinition | undefined,
   conn: CrossingConnection,
-): { eventFields: CrossingInfo['eventFields']; requiredFields: CrossingInfo['requiredFields'] } {
-  const eventFields = event
-    ? event.fields.map((f) => ({
-        name: f.name,
-        type: f.type,
-        deprecated: f.deprecated ? true : undefined,
-      }))
-    : conn.schemaContract.fields.map((f) => ({
-        name: f.name,
-        type: f.type,
-        deprecated: undefined,
-      }));
-
-  // Audit fix #8: [required] markers from the crossing contract surface as
-  // AsyncAPI required arrays; fall back to event field flags when the
-  // contract declares no fields.
+): readonly string[] {
   const contractRequired = conn.schemaContract.fields.filter((f) => f.required).map((f) => f.name);
-  const requiredFields =
-    contractRequired.length > 0
-      ? contractRequired
-      : (event?.fields.filter((f) => f.required).map((f) => f.name) ?? []);
-
-  return { eventFields, requiredFields };
+  if (contractRequired.length > 0) return contractRequired;
+  return event?.fields.filter((f) => f.required).map((f) => f.name) ?? [];
 }
 
 /**
@@ -223,52 +258,169 @@ function buildChannelYaml(crossings: readonly CrossingInfo[]): string {
   return lines.join('\n');
 }
 
-function buildMessageYaml(crossings: readonly CrossingInfo[]): string {
-  const lines: string[] = [];
-  const seen = new Set<string>();
+/**
+ * `components.messages`, one per crossing event, and `components.schemas`, one per value object a
+ * payload reaches. A value object name that two payloads resolve to different schemas (a name declared
+ * in two contexts) is kept apart: that payload's value objects are named `<Event>.<Name>`.
+ */
+function buildComponentsYaml(crossings: readonly CrossingInfo[]): string {
+  const messages: Record<string, YamlValue> = {};
+  const schemas = new Map<string, JsonSchema>();
+  const declared = new Map<string, string>();
 
   for (const crossing of crossings) {
-    if (seen.has(crossing.eventName)) continue;
-    seen.add(crossing.eventName);
+    if (Object.hasOwn(messages, crossing.eventName)) continue;
 
-    lines.push(`    ${crossing.eventName}:`);
-    lines.push(`      name: '${escapeYaml(crossing.eventName)}'`);
-    lines.push(`      payload:`);
-    lines.push(`        type: object`);
-    lines.push(`        properties:`);
-
-    for (const field of crossing.eventFields) {
-      lines.push(`          ${yamlKey(field.name)}:`);
-      lines.push(`            type: '${mapAsyncApiType(field.type)}'`);
-      if (field.deprecated) {
-        lines.push(`            deprecated: true`);
-      }
+    const defs = Object.entries(crossing.payload.$defs ?? {});
+    const shared = defs.every(([name, def]) => {
+      const seen = declared.get(name);
+      return seen === undefined || seen === JSON.stringify(def);
+    });
+    const names = new Map(
+      defs.map(([name]) => [name, shared ? name : `${crossing.eventName}.${name}`]),
+    );
+    for (const [name, def] of defs) {
+      const component = names.get(name) as string;
+      if (schemas.has(component)) continue;
+      declared.set(component, JSON.stringify(def));
+      schemas.set(component, toComponent(def, names));
     }
 
-    // Audit fix #8: [required] markers surface as an AsyncAPI required array.
-    if (crossing.requiredFields.length > 0) {
-      lines.push(`        required:`);
-      for (const name of crossing.requiredFields) {
-        lines.push(`          - ${yamlKey(name)}`);
-      }
-    }
+    messages[crossing.eventName] = {
+      name: crossing.eventName,
+      payload: messagePayload(crossing, names) as YamlValue,
+    };
   }
 
+  if (Object.keys(messages).length === 0) return '';
+  const components: Record<string, YamlValue> = { messages };
+  if (schemas.size > 0) {
+    const sorted = [...schemas.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    components.schemas = Object.fromEntries(sorted) as YamlValue;
+  }
+  const lines: string[] = [];
+  writeYaml({ components }, 0, lines);
   return lines.join('\n');
 }
 
-function mapAsyncApiType(momentType: string): string {
-  const typeMap: Record<string, string> = {
-    string: 'string',
-    number: 'number',
-    boolean: 'boolean',
-    date: 'string',
-    uuid: 'string',
-    int: 'integer',
-    float: 'number',
-    decimal: 'number',
+/**
+ * The message payload: the event's closed object, with the crossing's required list. The object is
+ * closed, so a required name the event does not declare could never be met: it is left out.
+ */
+function messagePayload(crossing: CrossingInfo, names: ReadonlyMap<string, string>): JsonSchema {
+  const body = toComponent(crossing.payload, names);
+  // An event schema is always an object with properties (`objectSchema` of @mmmnt/schema).
+  const properties = body.properties as Record<string, JsonSchema>;
+  const required = crossing.requiredFields.filter((name) => Object.hasOwn(properties, name));
+  return {
+    type: body.type,
+    additionalProperties: body.additionalProperties,
+    properties,
+    ...(required.length > 0 ? { required } : {}),
+    ...(body.oneOf !== undefined ? { oneOf: body.oneOf } : {}),
+    ...(body.allOf !== undefined ? { allOf: body.allOf } : {}),
   };
-  return typeMap[momentType.toLowerCase()] ?? 'string';
+}
+
+/**
+ * A JSON Schema of `@mmmnt/schema` as an AsyncAPI Schema Object (a superset of draft 07): `#/$defs/V`
+ * points at `#/components/schemas/V`, `$schema`, `title` and `$defs` are dropped, and a `$ref` with
+ * siblings (a pattern or a deprecation on a value object field) is written `allOf: [{$ref}]` beside
+ * them, because draft 07 ignores the siblings of a `$ref`.
+ */
+function toComponent(schema: JsonSchema, names: ReadonlyMap<string, string>): JsonSchema {
+  const sub = (s: JsonSchema): JsonSchema => toComponent(s, names);
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (DROPPED.has(key)) continue;
+    out[key] = convertKeyword(key, value, sub, names);
+  }
+  const converted = out as JsonSchema;
+  if (converted.$ref !== undefined && Object.keys(converted).length > 1) {
+    const { $ref, ...siblings } = converted;
+    return { allOf: [{ $ref }], ...siblings };
+  }
+  return converted;
+}
+
+/** Keywords of `@mmmnt/schema` an AsyncAPI payload does not carry. */
+const DROPPED = new Set(['$schema', 'title', '$defs']);
+
+/** One keyword's value: a subschema is converted, a `$ref` repointed, any other value kept. */
+function convertKeyword(
+  key: string,
+  value: unknown,
+  sub: (s: JsonSchema) => JsonSchema,
+  names: ReadonlyMap<string, string>,
+): unknown {
+  switch (key) {
+    case '$ref': {
+      const name = (value as string).replace(/^#\/\$defs\//, '');
+      return `#/components/schemas/${names.get(name) ?? name}`;
+    }
+    case 'properties':
+      return Object.fromEntries(
+        Object.entries(value as Record<string, JsonSchema>).map(([k, v]) => [k, sub(v)]),
+      );
+    case 'items':
+      return sub(value as JsonSchema);
+    case 'additionalProperties':
+      return typeof value === 'object' ? sub(value as JsonSchema) : value;
+    case 'oneOf':
+    case 'allOf':
+      return (value as JsonSchema[]).map(sub);
+    default:
+      return value;
+  }
+}
+
+type YamlValue = string | number | boolean | undefined | YamlValue[] | { [key: string]: YamlValue };
+
+function isMapping(value: YamlValue): value is { [key: string]: YamlValue } {
+  return typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Block-style YAML of a mapping, in insertion order. A string is single-quoted; an undefined value is skipped. */
+function writeYaml(mapping: { [key: string]: YamlValue }, indent: number, out: string[]): void {
+  const pad = ' '.repeat(indent);
+  for (const [key, value] of Object.entries(mapping)) {
+    if (value === undefined) continue;
+    const head = `${pad}${yamlKey(key)}:`;
+    if (Array.isArray(value)) {
+      // A schema never holds an empty list: `required` and `enum` are written only when non-empty.
+      out.push(head);
+      for (const item of value) writeYamlItem(item, indent + 2, out);
+    } else if (isMapping(value)) {
+      if (Object.keys(value).length === 0) {
+        out.push(`${head} {}`);
+        continue;
+      }
+      out.push(head);
+      writeYaml(value, indent + 2, out);
+    } else {
+      out.push(`${head} ${yamlScalar(value)}`);
+    }
+  }
+}
+
+/**
+ * One block sequence item: a scalar (`required`, `enum`) or a non-empty schema (`oneOf`, `allOf`). A
+ * mapping starts on the `- ` line, its keys aligned after it. A schema never nests a list in a list.
+ */
+function writeYamlItem(item: YamlValue, indent: number, out: string[]): void {
+  const pad = ' '.repeat(indent);
+  if (item !== undefined && isMapping(item)) {
+    const inner: string[] = [];
+    writeYaml(item, indent + 2, inner);
+    inner[0] = `${pad}- ${inner[0].slice(indent + 2)}`;
+    out.push(...inner);
+  } else {
+    out.push(`${pad}- ${yamlScalar(item as string | number | boolean)}`);
+  }
+}
+
+function yamlScalar(value: string | number | boolean): string {
+  return typeof value === 'string' ? `'${escapeYaml(value)}'` : String(value);
 }
 
 function toKebabCase(name: string): string {
