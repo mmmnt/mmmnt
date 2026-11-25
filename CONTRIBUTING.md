@@ -42,7 +42,7 @@ The `pre-commit` hook runs ESLint and Prettier on staged files through lint-stag
 
 ## Changesets
 
-A change that affects a published package needs a changeset. Run `pnpm changeset`, choose the packages and the bump, and commit the generated file in `.changeset/`. The `@mmmnt/*` packages are a fixed version group: they are always released together at the same version.
+A change that affects a published package needs a changeset. Run `pnpm changeset`, choose the packages and the bump, and commit the generated file in `.changeset/`. The `@mmmnt/*` packages are a fixed version group: they are always released together at the same version. The VS Code extension (`packages/vscode`) is released with them: `pnpm changeset:version` runs `scripts/sync-extension.mjs`, which sets its version to `@mmmnt/cli`'s, copies the grammar from `@mmmnt/core` and rebuilds its CHANGELOG from the toolchain's, and the release workflow publishes it to the VS Code Marketplace and Open VSX at that version. Do not name the extension in a changeset.
 
 A changeset lists every package it changes in its frontmatter, not only `@mmmnt/cli`. Each package's CHANGELOG records only the changesets that name it, so a package left out shows "Updated dependencies" or "No changes in this release." even when its code changed. Name a package when its published code changes. A change to its tests alone does not count.
 

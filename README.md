@@ -255,7 +255,7 @@ What each command makes of it:
 | **Keep implementation honest** | `sync`, `reconcile`                | Drift between model and code recorded as proposals you accept or reject, and upstream drift reconciled                                 |
 | **Bring a model in**           | `init`, `import --from-sift`       | A new project manifest, or a model imported from a Sift export                                                                         |
 
-Moment also runs as an MCP server ([`@mmmnt/mcp`](packages/mcp)), so an AI agent can validate, query and emit from your model without a network connection. A [VS Code extension](packages/vscode) highlights `.moment` files.
+Moment also runs as an MCP server ([`@mmmnt/mcp`](packages/mcp)), so an AI agent can validate, query and emit from your model without a network connection. A [VS Code extension](packages/vscode), released with the toolchain to the VS Code Marketplace and Open VSX, highlights `.moment` files.
 
 ## Packages
 
