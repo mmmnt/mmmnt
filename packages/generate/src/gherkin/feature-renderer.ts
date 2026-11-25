@@ -21,7 +21,7 @@ import { emittedEvents, momentPlacements } from '@mmmnt/core';
  *         @happy-path, @failure-path, @policy, @saga, @invariant
  * - Rule: groups scenarios by bounded context
  * - Background: shared preconditions
- * - Data tables: crossing contracts
+ * - Data tables: crossing contracts and event payloads
  *
  * GN-02: Given=precondition, When=command, Then=event
  * GN-03: Exact specification vocabulary preserved
@@ -539,13 +539,27 @@ function renderCrossingStep(
 
   lines.push(`      Then ${entry.nodeName} crosses to ${targetName} via ${relType}`);
 
-  if (contract && contract.fields.length > 0) {
-    const required = contract.fields.filter((f) => f.required);
-    if (required.length > 0) {
-      lines.push(`        | ${required.map((f) => f.name).join(' | ')} |`);
-      lines.push(`        | ${required.map((f) => f.type).join(' | ')} |`);
-    }
-  }
+  const required = contract?.fields.filter((f) => f.required) ?? [];
+  renderFieldTable(lines, required);
+}
+
+/**
+ * Fields as a Gherkin data table under the step above: a row of names, then a row of types, with `[]`
+ * on a list. A crossing renders its required contract fields this way, and an event its payload.
+ */
+function renderFieldTable(
+  lines: string[],
+  fields: readonly { readonly name: string; readonly type: string; readonly isArray?: boolean }[],
+): void {
+  if (fields.length === 0) return;
+  const type = (f: (typeof fields)[number]): string => (f.isArray ? `${f.type}[]` : f.type);
+  lines.push(`        | ${fields.map((f) => tableCell(f.name)).join(' | ')} |`);
+  lines.push(`        | ${fields.map((f) => tableCell(type(f))).join(' | ')} |`);
+}
+
+/** A Gherkin table cell escapes a backslash and a pipe, and holds no newline. */
+function tableCell(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, '\\n');
 }
 
 /** ADR-037: reads are not domain events, so a query or projection step does not "emit". */
@@ -570,9 +584,7 @@ function renderInternalEventStep(
       : '';
   lines.push(`      Then ${ctxName} ${readOrEmit(entry)} ${entry.nodeName}${modifier}`);
 
-  if (evt && evt.fields.length > 0) {
-    lines.push(`        carrying ${evt.fields.map((f) => f.name).join(', ')}`);
-  }
+  if (evt) renderFieldTable(lines, evt.fields);
 }
 
 function renderEventStep(

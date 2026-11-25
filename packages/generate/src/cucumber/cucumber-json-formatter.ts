@@ -105,7 +105,6 @@ function extractRawScenarios(content: string): ParsedScenario[] {
   const lines = content.split('\n');
   let current: ParsedScenario | null = null;
   let pendingTags: CucumberTag[] = [];
-  let stepLine = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -124,13 +123,12 @@ function extractRawScenarios(content: string): ParsedScenario[] {
         lineNumber: i + 1,
       };
       pendingTags = [];
-      stepLine = i + 1;
       continue;
     }
 
+    // A step's line is its own line in the feature, so a data table under a step does not shift the next.
     if (current && isStepLine(line)) {
-      stepLine++;
-      current.steps.push(parseStepLine(line, stepLine));
+      current.steps.push(parseStepLine(line, i + 1));
     }
   }
 

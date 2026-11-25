@@ -1396,11 +1396,25 @@ describe('renderFeatureFromIr', () => {
     expect(output).not.toContain('@happy-path');
   });
 
-  it('renders event carrying fields', () => {
+  it('renders an event payload as a data table of names and types', () => {
     const ir = makeBasicIR();
     const output = renderFeatureFromIr(ir.flows[0], ir);
     // FulfillmentInitiated has field reqId
-    expect(output).toContain('carrying reqId');
+    expect(output).toContain('emits FulfillmentInitiated\n        | reqId |\n        | UUID |');
+    expect(output).not.toContain('carrying');
+  });
+
+  it('escapes a pipe and a backslash in a payload table cell', () => {
+    const ir = makeBasicIR();
+    const events = ir.contexts.flatMap((c) => [
+      ...c.events,
+      ...c.aggregates.flatMap((a) => a.events),
+    ]);
+    for (const evt of events) {
+      evt.fields = [{ name: 'path', type: 'a|b\\c', isArray: true, required: true }];
+    }
+    const output = renderFeatureFromIr(ir.flows[0], ir);
+    expect(output).toContain('        | path |\n        | a\\|b\\\\c[] |');
   });
 });
 

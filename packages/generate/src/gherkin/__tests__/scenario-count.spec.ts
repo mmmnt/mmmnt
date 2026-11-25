@@ -34,19 +34,11 @@ function features(ir: IntermediateRepresentation): GeneratedFeatureFile[] {
   return new GherkinGenerator().generate(ir, deriveTopology(ir)).featuresGenerated;
 }
 
-/**
- * The scenarios the Cucumber parser finds, in the feature and in its rules. A `carrying <fields>` line
- * continues the step above it and is not a Gherkin step, so it is dropped before parsing; it holds no
- * scenario.
- */
+/** The scenarios the Cucumber parser finds, in the feature and in its rules, reading the text as written. */
 function parsedScenarioCount(content: string): number {
-  const gherkin = content
-    .split('\n')
-    .filter((line) => !/^\s+carrying /.test(line))
-    .join('\n');
   const parser = new Parser(new AstBuilder(IdGenerator.uuid()), new GherkinClassicTokenMatcher());
   const children: readonly (FeatureChild | RuleChild)[] =
-    parser.parse(gherkin).feature?.children ?? [];
+    parser.parse(content).feature?.children ?? [];
   return children.reduce(
     (sum, child) =>
       sum +

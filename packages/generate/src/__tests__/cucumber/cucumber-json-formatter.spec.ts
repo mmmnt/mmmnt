@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { IntermediateRepresentation } from '@mmmnt/core';
-import type { TestSuiteTopology } from '@mmmnt/derive';
+import { readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { ProjectLoader, type IntermediateRepresentation } from '@mmmnt/core';
+import { deriveTopology, type TestSuiteTopology } from '@mmmnt/derive';
 import { generateCucumberJson } from '../../cucumber/cucumber-json-formatter.js';
+import { GherkinGenerator } from '../../gherkin/gherkin-generator.js';
 import type { GenerationManifest } from '../../types/index.js';
 
 const FEATURE_CONTENT = `@context:Ordering
@@ -158,6 +161,37 @@ describe('generateCucumberJson', () => {
     const sagaScenario = features[0].elements[0];
     for (const step of sagaScenario.steps) {
       expect(step.result.status).toBe('pending');
+    }
+  });
+});
+
+describe('cucumber-json step lines', () => {
+  it('gives every TicketWave step the line it is on, past the data tables above it', async () => {
+    const spec = resolve(import.meta.dirname, '../../../../../examples/ticketwave/spec');
+    const files = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory()
+          ? files(join(dir, e.name))
+          : e.name.endsWith('.moment')
+            ? [join(dir, e.name)]
+            : [],
+      );
+    const { ir } = await new ProjectLoader().loadProject(files(spec));
+    if (!ir) throw new Error('TicketWave did not load');
+    const topology = deriveTopology(ir);
+    const manifest = new GherkinGenerator().generate(ir, topology);
+    const text = new Map(
+      manifest.featuresGenerated.map((f) => [f.filePath, f.content.split('\n')]),
+    );
+
+    const steps = generateCucumberJson(manifest, topology, ir).flatMap((feature) =>
+      feature.elements.flatMap((s) => s.steps.map((step) => ({ uri: feature.uri, step }))),
+    );
+    expect(steps.length).toBeGreaterThan(0);
+    for (const { uri, step } of steps) {
+      expect(text.get(uri)?.[step.line - 1]?.trim(), `${uri}:${step.line}`).toBe(
+        step.keyword + step.name,
+      );
     }
   });
 });
