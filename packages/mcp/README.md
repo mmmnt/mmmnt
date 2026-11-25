@@ -110,7 +110,7 @@ Input:  { filePath: string }
 Output: { success, contextCount, flowCount, files, diagnostics[] }
 ```
 
-`files` is the number of `.moment` files loaded; it is left out when the model does not parse. Each diagnostic has `severity` and `message`, plus `ruleId` and `source` (file, line, column) when the rule gives them. For the TicketWave directory, `examples/ticketwave/spec/`, the result is 7 contexts, 8 flows, 1 file and 15 `PM-04` warnings.
+`files` is the number of `.moment` files loaded; it is left out when the model does not parse. Each diagnostic has `severity` and `message`, plus `ruleId` and `source` (file, line, column) when the rule gives them. For the TicketWave directory, `examples/ticketwave/spec/`, the result is 7 contexts, 8 flows, 1 file and no diagnostics.
 
 ### `moment_status`
 

@@ -49,6 +49,19 @@ import {
 } from '../generated/ast.js';
 import { buildMomentSequence } from '../parser/moment-sequence.js';
 
+/**
+ * The syntax-level rules this validator reports. Each diagnostic carries its rule id as its code,
+ * which `MomentParser` returns as `ruleId`. They run per file, so a project does not re-run them.
+ */
+export const SYNTAX_LEVEL_RULES: ReadonlySet<string> = new Set([
+  'SP-01',
+  'SP-02',
+  'SP-03',
+  ...[1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 52, 53, 54, 55].map(
+    (n) => `V${n}`,
+  ),
+]);
+
 // ---------------------------------------------------------------------------
 // Cross-file context interface
 // ---------------------------------------------------------------------------
@@ -251,6 +264,7 @@ function checkLiterals(type: TypeReference, accept: ValidationAcceptor): void {
   for (const literal of type.literals) {
     if (seen.has(literal)) {
       accept('error', `V53: The code set lists '${literal}' twice.`, {
+        code: 'V53',
         node: type,
         property: 'literals',
       });
@@ -302,10 +316,7 @@ function checkPatterns(
       accept(
         'error',
         `V55: The pattern of '${name}' is not a regular expression: ${(e as Error).message}`,
-        {
-          node: p,
-          property: 'pattern',
-        },
+        { code: 'V55', node: p, property: 'pattern' },
       );
       continue;
     }
@@ -313,7 +324,7 @@ function checkPatterns(
       accept(
         'error',
         `V55: '${name}' has a pattern, but its type '${type.typeName ?? 'string'}' is not string-valued.`,
-        { node: p, property: 'pattern' },
+        { code: 'V55', node: p, property: 'pattern' },
       );
     }
   }
@@ -351,10 +362,7 @@ export class MomentValidator {
       accept(
         'warning',
         `V12: Deprecated field '${field.name}' references replacement '${replacement}' which does not exist on this type.`,
-        {
-          node: deprecation,
-          property: 'replacement',
-        },
+        { code: 'V12', node: deprecation, property: 'replacement' },
       );
     }
   }
@@ -365,6 +373,7 @@ export class MomentValidator {
   checkCrossingEmptyContract(crossing: ContextCrossing, accept: ValidationAcceptor): void {
     if (crossing.fields.length === 0) {
       accept('error', 'SP-03: Crossing contract must contain at least one field.', {
+        code: 'SP-03',
         node: crossing,
         property: 'fields',
       });
@@ -380,6 +389,7 @@ export class MomentValidator {
     const targetLane = flow.lanes.find((l: LaneDeclaration) => l.id === crossing.targetLaneId);
     if (targetLane?.isBranch) {
       accept('error', 'V2: crosses-to must not target a branch-lane.', {
+        code: 'V2',
         node: crossing,
         property: 'targetLaneId',
       });
@@ -404,6 +414,7 @@ export class MomentValidator {
   checkOptionalWithCrossing(node: NodePlacement, accept: ValidationAcceptor): void {
     if (node.modifier?.type === 'optional' && node.crossing) {
       accept('error', 'V7: Optional nodes must not have crosses-to.', {
+        code: 'V7',
         node: node,
         property: 'crossing',
       });
@@ -428,6 +439,7 @@ export class MomentValidator {
     const idx = siblings.indexOf(node);
     if (idx >= 0 && idx < siblings.length - 1) {
       accept('error', 'V8: Terminal node must be the last node in its block.', {
+        code: 'V8',
         node: node,
         property: 'modifier',
       });
@@ -448,7 +460,7 @@ export class MomentValidator {
         accept(
           'warning',
           'V8: Terminal node is textually followed by a when block in the same moment; the flow would continue past the terminal.',
-          { node: node, property: 'modifier' },
+          { code: 'V8', node: node, property: 'modifier' },
         );
       }
     }
@@ -463,6 +475,7 @@ export class MomentValidator {
     const laneIds = flow.lanes.map((l: LaneDeclaration) => l.id);
     if (!laneIds.includes(node.laneId)) {
       accept('error', 'V13: Lane ID does not match any declared lane.', {
+        code: 'V13',
         node: node,
         property: 'laneId',
       });
@@ -477,6 +490,7 @@ export class MomentValidator {
     if (note.laneId === undefined || !flow) return;
     if (!flow.lanes.some((l: LaneDeclaration) => l.id === note.laneId)) {
       accept('error', 'V13: Lane ID does not match any declared lane.', {
+        code: 'V13',
         node: note,
         property: 'laneId',
       });
@@ -493,6 +507,7 @@ export class MomentValidator {
       (moment.notes ?? []).length === 0
     ) {
       accept('error', 'V10: Moment must contain at least one node, when block or note.', {
+        code: 'V10',
         node: moment,
         property: 'label',
       });
@@ -514,7 +529,7 @@ export class MomentValidator {
           accept(
             'error',
             `V54: '${member.name}' is one of an exclusive group ('${[field, ...field.alternatives].map((m) => m.name).join(' | ')}'), of which exactly one is present; it cannot also be optional.`,
-            { node: member, property: 'name' },
+            { code: 'V54', node: member, property: 'name' },
           );
         }
       }
@@ -539,7 +554,7 @@ export class MomentValidator {
           accept(
             'error',
             `V52: Value object '${vo.name}' is a tagged union, whose discriminator is 'kind'; no field of it may be named 'kind'.`,
-            { node: member, property: 'name' },
+            { code: 'V52', node: member, property: 'name' },
           );
         }
       }
@@ -550,10 +565,7 @@ export class MomentValidator {
         accept(
           'error',
           `V53: Value object '${vo.name}' declares the variant '${variant.name}' twice.`,
-          {
-            node: variant,
-            property: 'name',
-          },
+          { code: 'V53', node: variant, property: 'name' },
         );
       }
       seen.add(variant.name);
@@ -569,7 +581,7 @@ export class MomentValidator {
       accept(
         'error',
         `V18: Unknown annotation '@${ann.name}'. Allowed: @classification, @retention, @encryption.`,
-        { node: ann, property: 'name' },
+        { code: 'V18', node: ann, property: 'name' },
       );
     }
   }
@@ -590,7 +602,7 @@ export class MomentValidator {
       accept(
         'warning',
         `V19: Annotation '@${member.name}' is not followed by a declaration and has no effect.`,
-        { node: member, property: 'name' },
+        { code: 'V19', node: member, property: 'name' },
       );
     }
   }
@@ -631,7 +643,7 @@ export class MomentValidator {
       accept(
         'warning',
         `V20: declared trigger direction contradicts flow order: '${conn.nodeName}' occurs before '${node.nodeName}'.`,
-        { node: conn, property: 'nodeName' },
+        { code: 'V20', node: conn, property: 'nodeName' },
       );
     }
   }
@@ -648,7 +660,7 @@ export class MomentValidator {
       accept(
         'warning',
         `V20: declared trigger direction contradicts flow order: trigger '${conn.nodeName}' occurs after '${node.nodeName}'.`,
-        { node: conn, property: 'nodeName' },
+        { code: 'V20', node: conn, property: 'nodeName' },
       );
     }
   }
@@ -679,6 +691,7 @@ export class MomentValidator {
     );
     if (nested) {
       accept('warning', 'V17: Flow nests one returns-to loop inside another.', {
+        code: 'V17',
         node: flow,
         property: 'name',
       });
@@ -695,6 +708,7 @@ export class MomentValidator {
     for (const lane of branchLanes) {
       if (!referencedLaneIds.has(lane.id)) {
         accept('warning', 'V16: Branch-lane is not referenced in any when block or frame.', {
+          code: 'V16',
           node: lane,
           property: 'id',
         });
@@ -730,6 +744,7 @@ export class MomentValidator {
       if (lane.isBranch || lane.classification?.value === 'External') continue;
       if (!ctx.declaredContextNames.includes(lane.label)) {
         accept('error', 'SP-01: Lane label does not match any declared context name.', {
+          code: 'SP-01',
           node: lane,
           property: 'label',
         });
@@ -755,6 +770,7 @@ export class MomentValidator {
     );
     if (!declaredOnBoundary) {
       accept('error', 'SP-02: Crossing event is not declared in the source or target context.', {
+        code: 'SP-02',
         node: crossing,
         property: 'targetLaneId',
       });
@@ -774,6 +790,7 @@ export class MomentValidator {
     const blockNames = blocks.map((b) => b.name);
     if (!blockNames.includes(node.nodeName)) {
       accept('error', 'V1: Node name does not resolve to a declared building block.', {
+        code: 'V1',
         node: node,
         property: 'nodeName',
       });
@@ -798,6 +815,7 @@ export class MomentValidator {
     const block = blocks.find((b) => b.name === node.nodeName);
     if (block && block.kind !== 'event') {
       accept('error', 'V9: crosses-to is only valid on event nodes.', {
+        code: 'V9',
         node: node,
         property: 'crossing',
       });
@@ -816,6 +834,7 @@ export class MomentValidator {
     const block = blocks.find((b) => b.name === node.nodeName);
     if (block && block.kind !== 'event') {
       accept('error', 'V11: Multiplicity is only valid on event nodes.', {
+        code: 'V11',
         node: node,
         property: 'multiplicity',
       });
@@ -831,10 +850,7 @@ export class MomentValidator {
         accept(
           'warning',
           'V14: Partnership crossing should have a corresponding reverse crossing.',
-          {
-            node: crossing,
-            property: 'relationshipType',
-          },
+          { code: 'V14', node: crossing, property: 'relationshipType' },
         );
       }
     }
@@ -866,6 +882,7 @@ export class MomentValidator {
       const priorLabels = this.collectPriorMomentLabels(flow, moment);
       if (!priorLabels.has(conn.frameLabel)) {
         accept('error', 'V6: returns-to references a non-existent prior frame label.', {
+          code: 'V6',
           node: conn,
           property: 'frameLabel',
         });
@@ -886,7 +903,7 @@ export class MomentValidator {
         accept(
           'error',
           'V5: triggered-by must reference a node placed earlier in the flow, in a prior moment or earlier in the same moment.',
-          { node: conn, property: 'nodeName' },
+          { code: 'V5', node: conn, property: 'nodeName' },
         );
       }
     }

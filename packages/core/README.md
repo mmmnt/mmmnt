@@ -44,7 +44,9 @@ if (result.success && result.ir) {
 
 // Errors make success false. Warnings leave it true.
 for (const d of result.diagnostics) {
-  console.log(`[${d.severity}] ${d.ruleId ?? ''} ${d.message}`);
+  // A syntax-level message already begins with its rule id.
+  const rule = d.ruleId && !d.message.startsWith(`${d.ruleId}:`) ? `${d.ruleId}: ` : '';
+  console.log(`[${d.severity}] ${rule}${d.message}`);
 }
 ```
 
@@ -360,8 +362,8 @@ Attributes follow the type, in any order. A code that is a keyword or has a spac
 
 Rules run at two levels:
 
-- **Syntax level** (V1 to V20, V52 to V55). These run on each file as Langium validation. Their severity is fixed, the same in a single file and in a project. The diagnostic has no `ruleId`; the id begins its `message` (`V55: ...`). V1, V9, V11, SP-01 and SP-02 check names, so in a single file they run only when the file declares both contexts and flows.
-- **Model level** (V22 to V51, V56, V57). These compare names across declarations, so their severity depends on how much of the model is visible. `MomentParser.parseContent` reports them as **warnings** for a file that declares contexts, because the missing name may be in another file. `ProjectLoader.loadProject` reports them as **errors** over the merged project. The diagnostic carries the id in `ruleId`. Some findings carry their own severity in both modes: they are listed in the table below.
+- **Syntax level** (V1 to V20, V52 to V55). These run on each file as Langium validation. Their severity is fixed, the same in a single file and in a project. The diagnostic carries the id in `ruleId`. The id also begins its `message` (`V55: ...`), as it always has, and so do the parser's SP-01 to SP-03 checks. V1, V9, V11, SP-01 and SP-02 check names, so in a single file they run only when the file declares both contexts and flows.
+- **Model level** (V22 to V51, V56, V57). These compare names across declarations, so their severity depends on how much of the model is visible. `MomentParser.parseContent` reports them as **warnings** for a file that declares contexts, because the missing name may be in another file. `ProjectLoader.loadProject` reports them as **errors** over the merged project. The diagnostic carries the id in `ruleId`, and the message does not repeat it. Some findings carry their own severity in both modes: they are listed in the table below.
 
 ### Rules
 
@@ -425,21 +427,21 @@ Every syntax-level rule is an error unless the table says it is a warning. V3, V
 
 ### Structural and project checks
 
-| Rule  | Reported by                                         | Checks                                                              |
-| ----- | --------------------------------------------------- | ------------------------------------------------------------------- |
-| SP-01 | `SchemaValidator.validate`, and the parser (syntax) | A lane label, or a connection's target, is a declared context.      |
-| SP-02 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's event is declared by its source or its target context. |
-| SP-03 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's contract has at least one field.                       |
-| SP-04 | `SchemaValidator.validate`                          | A `returns-to` lands on a prior moment of the same flow.            |
-| SP-05 | `SchemaValidator.validateManifestFiles`             | Every file the manifest references exists.                          |
-| PM-00 | `ProjectLoader`                                     | A project file can be read.                                         |
-| PM-01 | `mergeIrs`                                          | A context is defined in exactly one file.                           |
-| PM-02 | `validateCrossFileReferences`                       | A flow lane names a context defined in some loaded file.            |
-| PM-03 | `validateCrossFileReferences`                       | A crossing's target context is defined in some loaded file.         |
-| PM-04 | `validateCrossFileReferences`                       | A crossing's event is declared in its target context. A warning.    |
-| PM-05 | `validateCrossFileReferences`                       | A placed node's context is defined in some loaded file.             |
-| PM-06 | `validateCrossFileReferences`                       | A relationship's ends are defined in some loaded file.              |
-| PM-07 | `validateCrossFileReferences`                       | A node on a context's lane names a building block of that context.  |
+| Rule  | Reported by                                         | Checks                                                                         |
+| ----- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| SP-01 | `SchemaValidator.validate`, and the parser (syntax) | A lane label, or a connection's target, is a declared context.                 |
+| SP-02 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's event is declared by its source or its target context.            |
+| SP-03 | `SchemaValidator.validate`, and the parser (syntax) | A crossing's contract has at least one field.                                  |
+| SP-04 | `SchemaValidator.validate`                          | A `returns-to` lands on a prior moment of the same flow.                       |
+| SP-05 | `SchemaValidator.validateManifestFiles`             | Every file the manifest references exists.                                     |
+| PM-00 | `ProjectLoader`                                     | A project file can be read.                                                    |
+| PM-01 | `mergeIrs`                                          | A context is defined in exactly one file.                                      |
+| PM-02 | `validateCrossFileReferences`                       | A flow lane names a context defined in some loaded file.                       |
+| PM-03 | `validateCrossFileReferences`                       | A crossing's target context is defined in some loaded file.                    |
+| PM-04 | `validateCrossFileReferences`                       | A crossing's event is declared by its source or its target context. A warning. |
+| PM-05 | `validateCrossFileReferences`                       | A placed node's context is defined in some loaded file.                        |
+| PM-06 | `validateCrossFileReferences`                       | A relationship's ends are defined in some loaded file.                         |
+| PM-07 | `validateCrossFileReferences`                       | A node on a context's lane names a building block of that context.             |
 
 `MomentParser.parseContent` runs `SchemaValidator.validate` on every file that declares contexts and reports its findings as warnings. The parser's own SP-01 to SP-03 checks are errors.
 
@@ -617,7 +619,9 @@ const spec = await loadSpecification('examples/ticketwave/spec');
 
 console.log(`${spec.files.length} file(s), project: ${spec.isProject}`);
 for (const d of spec.diagnostics) {
-  console.log(`[${d.severity}] ${d.ruleId ?? ''} ${d.message}`);
+  // A syntax-level message already begins with its rule id.
+  const rule = d.ruleId && !d.message.startsWith(`${d.ruleId}:`) ? `${d.ruleId}: ` : '';
+  console.log(`[${d.severity}] ${rule}${d.message}`);
 }
 if (spec.success && spec.ir) {
   console.log(`Contexts: ${spec.ir.contexts.length}`);

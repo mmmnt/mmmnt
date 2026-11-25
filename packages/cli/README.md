@@ -63,8 +63,6 @@ moment board examples/ticketwave/spec/ --out board/
 # Board written to board/: 39 file(s) and manifest.json (38 frame(s), 509 node(s))
 ```
 
-Over a directory, `parse` also prints 15 `PM-04` warnings for TicketWave on stderr (a crossing event not declared in its target context). They do not fail the run.
-
 ## Project mode
 
 Where a command takes `<file|dir>` (and for `serve --project <dir>`), you can pass a directory. The CLI then loads every `.moment` file beneath it, in sorted path order, as one merged project. Names resolve across files, and node placement, saga transitions and External lanes are checked over the whole model.

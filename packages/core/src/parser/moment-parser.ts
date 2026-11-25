@@ -121,6 +121,8 @@ export class MomentParser {
         .map((d) => ({
           severity: d.severity === 1 ? ('error' as const) : ('warning' as const),
           message: messageText(d.message),
+          // The validator passes each rule's id as the diagnostic code (V1, SP-02, ...).
+          ...(typeof d.code === 'string' ? { ruleId: d.code } : {}),
           source: d.range
             ? {
                 file,
@@ -154,11 +156,12 @@ export class MomentParser {
           message: messageText(d.message),
           ruleId: d.ruleId,
         })),
-        // V22–V28 (ADR-037): a file alone cannot see its siblings, so these are advisories here and
-        // errors only over a merged project (ProjectLoader).
+        // The model-level rules, V22 and up (ADR-037 on): a file alone cannot see its siblings, so these
+        // are advisories here and errors only over a merged project (ProjectLoader). Model completeness
+        // covers V22 to V28, V38 and V39.
         ...validateModelCompleteness(ir).map((d) => ({ severity: 'warning' as const, ...d })),
-        // V29–V37 (ADR-038), likewise. A finding that carries its own severity (V43 when the file declares
-        // the policy the hop needs) keeps it.
+        // Palette conformance covers V29 to V37, V40 to V51, V56 and V57, likewise. A finding that carries
+        // its own severity (V43 when the file declares the policy the hop needs) keeps it.
         ...validatePaletteConformance(ir).map((d) => ({ severity: 'warning' as const, ...d })),
       );
     }
