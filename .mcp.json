@@ -3,9 +3,7 @@
     "atlassian": {
       "type": "stdio",
       "command": "uvx",
-      "args": [
-        "mcp-atlassian"
-      ],
+      "args": ["mcp-atlassian"],
       "env": {
         "JIRA_URL": "https://coada.atlassian.net/",
         "JIRA_USERNAME": "${ATLASSIAN_USERNAME}",
@@ -18,11 +16,6 @@
     "flmnt": {
       "type": "http",
       "url": "http://localhost:8000/mcp"
-    },
-    "quorum": {
-      "type": "http",
-      "url": "http://localhost:8000/mcp",
-      "headersHelper": "bash scripts/mcp-auth-header.sh"
     }
   }
 }
