@@ -82,7 +82,7 @@ A feature has one `Rule` per context the flow crosses. Under each rule, a `Backg
 
 `scenarioCount` counts all of these: the moment and arm scenarios, the saga scenarios, and nothing for a note-only moment. In TicketWave, N1 has 22 scenarios and N3 has 10, saga scenarios included.
 
-A precondition is a `Given`, a command a `When` (`<Context> performs <Command> with <inputs>`), and an event a `Then` (`<Context> emits <Event>`, with the fields it is `carrying`). A query step reads `answers query` and a projection step `serves projection`. A `triggered-by` source becomes `<Event> has occurred`, as a `Given` or an `And`. A crossing renders its contract as a data table. A note renders as a comment line, `# note (<lane>): <text>`, and asserts nothing.
+A precondition is a `Given`, a command a `When` (`<Context> performs <Command> with <inputs>`), and an event a `Then` (`<Context> emits <Event>`). A query step reads `answers query` and a projection step `serves projection`. A `triggered-by` source becomes `<Event> has occurred`, as a `Given` or an `And`. An event's payload is a data table under its `Then`: a row of field names, then a row of types, with `[]` on a list. A crossing renders the required fields of its contract the same way. Every feature is valid Gherkin to the Cucumber parser. A note renders as a comment line, `# note (<lane>): <text>`, and asserts nothing.
 
 When a command records several events (`emits A, B`), the first is `Then` and each later one `And`, right after the command's `When`. Only the events the flow places are rendered.
 
@@ -121,7 +121,8 @@ Feature: N5 - Seat request
     Scenario: Seat request
       When Inventory performs RequestHold with eventId, tierId, sectionId, quantity, customerId, sessionId
       Then Inventory emits SeatsHeld
-        carrying holdId, eventId, tierId, sectionId, quantity, customerId, sessionId, expiresAt, heldAt
+        | holdId | eventId | tierId | sectionId | quantity | customerId | sessionId | expiresAt | heldAt |
+        | UUID | UUID | UUID | UUID | number | UUID | UUID | DateTime | DateTime |
 
   Rule: Checkout [Core]
 
@@ -132,7 +133,8 @@ Feature: N5 - Seat request
       Given Customer must not already be on the waitlist for this tier
       When Presale performs JoinWaitlist with eventId, tierId, customerId, requestedQuantity
       Then Presale emits WaitlistJoined (outcome)
-        carrying waitlistId, eventId, tierId, customerId, requestedQuantity, position, joinedAt
+        | waitlistId | eventId | tierId | customerId | requestedQuantity | position | joinedAt |
+        | UUID | UUID | UUID | UUID | number | number | DateTime |
       Then the flow ends at WaitlistJoined
 ```
 
